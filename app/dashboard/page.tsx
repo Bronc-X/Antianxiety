@@ -91,15 +91,16 @@ export default async function DashboardPage() {
         .order('completed_at', { ascending: true });
 
       if (error) {
-        // 检查错误对象是否有任何有意义的属性值
-        const errorKeys = Object.keys(error).filter(
-          (key) => error[key] !== undefined && error[key] !== null && error[key] !== ''
-        );
-
         // 检查是否有标准的错误信息字段
         const hasStandardErrorInfo =
           (error.code && typeof error.code === 'string' && error.code.trim() !== '') ||
           (error.message && typeof error.message === 'string' && error.message.trim() !== '');
+
+        // 检查错误对象是否有任何有意义的属性值（使用类型安全的方式）
+        const errorObj = error as Record<string, unknown>;
+        const errorKeys = Object.keys(errorObj).filter(
+          (key) => errorObj[key] !== undefined && errorObj[key] !== null && errorObj[key] !== ''
+        );
 
         // 只有在有实际错误信息时才记录
         if (hasStandardErrorInfo || errorKeys.length > 0) {
