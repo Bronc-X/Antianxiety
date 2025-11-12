@@ -3,9 +3,9 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV !== "production";
 
 const buildContentSecurityPolicy = () => {
-  const scriptSrc = ["'self'", "'wasm-unsafe-eval'"];
+  const scriptSrc = ["'self'", "'wasm-unsafe-eval'", "'unsafe-inline'"];
   if (isDev) {
-    scriptSrc.push("'unsafe-eval'", "'unsafe-inline'");
+    scriptSrc.push("'unsafe-eval'");
   }
 
   const connectSrc = new Set<string>([
