@@ -5,8 +5,14 @@ import { fadeUp, fadeIn, springScaleIn } from '@/lib/animations';
 import type { PropsWithChildren } from 'react';
 
 type VariantName = 'fadeUp' | 'fadeIn' | 'springScaleIn';
+type MotionVariant = {
+  initial?: any;
+  animate?: any;
+  exit?: any;
+  transition?: any;
+};
 
-const variantsMap: Record<VariantName, typeof fadeUp> = {
+const variantsMap: Record<VariantName, MotionVariant> = {
   fadeUp,
   fadeIn,
   springScaleIn,
