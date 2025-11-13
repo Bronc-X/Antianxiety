@@ -119,7 +119,6 @@ export default function SignupPage() {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhoneNumber,
-        channel: 'sms',
         options: {
           shouldCreateUser: true,
           data: {
