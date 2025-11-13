@@ -10,9 +10,9 @@ export default async function LandingPage() {
   let profile: any = null;
   let habitLogs: any[] = [];
   let dailyLogs: any[] = [];
-  const withTimeout = async <T,>(p: Promise<T>, ms = 2000, fallback: T): Promise<T> => {
+  const withTimeout = async <T,>(p: PromiseLike<T>, ms = 2000, fallback: T): Promise<T> => {
     return await Promise.race<T>([
-      p,
+      Promise.resolve(p),
       new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
     ]);
   };
