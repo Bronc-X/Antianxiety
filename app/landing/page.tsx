@@ -24,9 +24,9 @@ export default async function LandingPage() {
     try {
       const profilePromise = withTimeout(
         supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
           .single()
           .then(({ data, error }) => (!error && data ? data : null)),
         2000,
@@ -51,11 +51,11 @@ export default async function LandingPage() {
       dailyLogs = dailyLogsResult;
 
       // 如果拿到了 profile，再尝试拉取习惯及记录（加超时）
-      if (profile) {
+    if (profile) {
         const habits = await withTimeout(
           supabase
-            .from('user_habits')
-            .select('id')
+          .from('user_habits')
+          .select('id')
             .eq('user_id', session.user.id)
             .then(({ data }) => data || []),
           1500,
@@ -66,9 +66,9 @@ export default async function LandingPage() {
           const habitIds = habits.map((h: any) => h.id);
           habitLogs = await withTimeout(
             supabase
-              .from('habit_log')
-              .select('*')
-              .in('habit_id', habitIds)
+            .from('habit_log')
+            .select('*')
+            .in('habit_id', habitIds)
               .order('completed_at', { ascending: true })
               .then(({ data }) => data || []),
             1500,
