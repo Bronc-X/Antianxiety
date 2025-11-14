@@ -24,11 +24,27 @@ COPY . .
 # 设置环境变量（构建时需要的）
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+# 验证环境变量是否设置
+RUN if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then \
+      echo "❌ ERROR: NEXT_PUBLIC_SUPABASE_URL build arg is not set!"; \
+      exit 1; \
+    fi && \
+    if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then \
+      echo "❌ ERROR: NEXT_PUBLIC_SUPABASE_ANON_KEY build arg is not set!"; \
+      exit 1; \
+    fi && \
+    echo "✅ Build args are set" && \
+    echo "NEXT_PUBLIC_SUPABASE_URL length: $(echo -n "$NEXT_PUBLIC_SUPABASE_URL" | wc -c)" && \
+    echo "NEXT_PUBLIC_SUPABASE_ANON_KEY length: $(echo -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" | wc -c)"
+
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 # 构建应用
-RUN npm run build
+RUN echo "🚀 Starting Next.js build..." && \
+    npm run build && \
+    echo "✅ Build completed successfully"
 
 # 运行阶段
 FROM base AS runner

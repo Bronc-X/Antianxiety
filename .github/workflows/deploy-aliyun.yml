@@ -29,6 +29,20 @@ jobs:
           username: ${{ secrets.ALIYUN_ACR_USERNAME }}
           password: ${{ secrets.ALIYUN_ACR_PASSWORD }}
 
+      - name: Verify secrets are set
+        run: |
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ]; then
+            echo "❌ ERROR: NEXT_PUBLIC_SUPABASE_URL secret is not set!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
+            echo "❌ ERROR: NEXT_PUBLIC_SUPABASE_ANON_KEY secret is not set!"
+            exit 1
+          fi
+          echo "✅ All required secrets are set"
+          echo "NEXT_PUBLIC_SUPABASE_URL length: $(echo -n '${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}' | wc -c)"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY length: $(echo -n '${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}' | wc -c)"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -43,6 +57,8 @@ jobs:
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          no-cache: false
+          pull: true
 
       - name: Output image address
         run: |
