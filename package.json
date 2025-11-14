@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check-env": "node scripts/check-env.js",
+    "pages:build": "npx @cloudflare/next-on-pages@1",
+    "pages:deploy": "npm run build && npm run pages:build"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
