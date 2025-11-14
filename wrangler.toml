@@ -1,10 +1,10 @@
-name = "project-metabasis"
+name = "anxious"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = ".vercel/output/static"
 
 [env.production]
-name = "project-metabasis"
+name = "anxious"
 
 [env.preview]
-name = "project-metabasis-preview"
+name = "anxious-preview"
 
