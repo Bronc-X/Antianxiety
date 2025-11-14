@@ -1,5 +1,6 @@
 # 多阶段构建，优化镜像大小
-FROM node:20-alpine AS base
+# 使用阿里云镜像源以避免拉取 node 镜像时的网络问题
+FROM crpi-7sdjjtp0a37i7b0r.cn-guangzhou.personal.cr.aliyuncs.com/nomoreanxious/node:20-alpine AS base
 
 # 安装依赖阶段
 FROM base AS deps
