@@ -8,6 +8,9 @@ import Link from 'next/link';
 import AnimatedSection from '@/components/AnimatedSection';
 import { countryDialingCodes } from '@/data/countryDialingCodes';
 
+// 防止预渲染，因为这是客户端组件且需要环境变量
+export const dynamic = 'force-dynamic';
+
 /**
  * 注册页面组件
  * 新用户注册表单
