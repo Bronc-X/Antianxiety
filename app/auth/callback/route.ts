@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+export const runtime = 'edge';
+
 /**
  * 认证回调路由
  * 处理 Supabase Magic Link 和邮件验证的重定向

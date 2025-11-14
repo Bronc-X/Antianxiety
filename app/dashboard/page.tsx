@@ -11,6 +11,7 @@ import BeliefScoreChart from '@/components/BeliefScoreChart';
 import XFeed from '@/components/XFeed';
 import AnimateOnView from '@/components/AnimateOnView';
 
+export const runtime = 'edge';
 // 标记为动态路由，因为使用了 cookies
 export const dynamic = 'force-dynamic';
 

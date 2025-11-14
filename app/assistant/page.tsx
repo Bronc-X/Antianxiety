@@ -9,6 +9,7 @@ import ReminderPreferencesPanel from '@/components/ReminderPreferencesPanel';
 import { analyzeUserProfile } from '@/lib/aiAnalysis';
 import Link from 'next/link';
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 /**

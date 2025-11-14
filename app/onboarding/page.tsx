@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import OnboardingForm from '@/components/OnboardingForm';
 
+export const runtime = 'edge';
 // 标记为动态路由，因为使用了 cookies
 export const dynamic = 'force-dynamic';
 

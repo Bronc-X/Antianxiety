@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
+export const runtime = 'edge';
+
 /**
  * 查询 DeepSeek API 使用情况
  * 注意：DeepSeek API 可能不提供直接的配额查询端点

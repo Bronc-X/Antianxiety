@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
+export const runtime = 'edge';
+
 /**
  * DeepSeek API 聊天接口
  * 服务端 API 路由，安全地调用 DeepSeek API
