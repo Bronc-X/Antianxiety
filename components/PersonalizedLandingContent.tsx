@@ -2,8 +2,21 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
-import BeliefScoreChart from './BeliefScoreChart';
+import dynamic from 'next/dynamic';
 import { autoGroupData } from '@/lib/chartUtils';
+
+// 动态导入图表组件，减少 bundle 大小
+const BeliefScoreChart = dynamic(
+  () => import('./BeliefScoreChart'),
+  {
+    loading: () => (
+      <div className="h-64 flex items-center justify-center text-[#0B3D2E]/60">
+        加载图表中...
+      </div>
+    ),
+    ssr: false,
+  }
+);
 import AnimatedSection from './AnimatedSection';
 import { trendingTopics } from '@/data/trendingTopics';
 import type { TrendingTopic } from '@/data/trendingTopics';

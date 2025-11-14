@@ -6,9 +6,8 @@ import { autoGroupData } from '@/lib/chartUtils';
 import LogoutButton from '@/components/LogoutButton';
 import HabitForm from '@/components/HabitForm';
 import HabitList from '@/components/HabitList';
-import HabitCompletionChart from '@/components/HabitCompletionChart';
-import BeliefScoreChart from '@/components/BeliefScoreChart';
-import XFeed from '@/components/XFeed';
+// 使用动态导入减少 bundle 大小
+import { HabitCompletionChart, BeliefScoreChart, XFeed } from '@/components/LazyCharts';
 import AnimateOnView from '@/components/AnimateOnView';
 
 export const runtime = 'edge';
