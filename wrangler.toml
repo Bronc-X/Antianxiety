@@ -1,6 +1,7 @@
 name = "anxious"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = ".vercel/output/static"
+compatibility_flags = ["nodejs_compat"]
 
 [env.production]
 name = "anxious"

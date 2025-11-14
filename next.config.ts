@@ -85,6 +85,12 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  // 优化输出大小
+  output: 'standalone',
+  // 减少 bundle 大小
+  experimental: {
+    optimizePackageImports: ['@supabase/supabase-js', 'framer-motion', 'recharts'],
+  },
 };
 
 export default nextConfig;
