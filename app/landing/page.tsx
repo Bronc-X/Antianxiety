@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import MarketingNav from '@/components/MarketingNav';
 import LandingContent from '@/components/LandingContent';
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default async function LandingPage() {
