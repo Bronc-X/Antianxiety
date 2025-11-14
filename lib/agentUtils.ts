@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+// 直接导入 JSON 文件，兼容 Edge Runtime
+import agentRulesData from './agentRules.json';
 
 // 规则类型定义
 interface RuleCondition {
@@ -26,14 +26,13 @@ interface UserProfile {
 
 /**
  * 加载 agentRules.json 文件
+ * 使用直接导入方式，兼容 Edge Runtime
  * 
  * @returns {Promise<AgentRules>} 规则数据
  */
 export async function loadAgentRules(): Promise<AgentRules> {
   try {
-    const filePath = path.join(process.cwd(), 'lib', 'agentRules.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(fileContents) as AgentRules;
+    return agentRulesData as AgentRules;
   } catch (error) {
     console.error('加载 agentRules.json 时出错:', error);
     return { rules: [] };
