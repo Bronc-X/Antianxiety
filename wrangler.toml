@@ -1,0 +1,10 @@
+name = "project-metabasis"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = ".vercel/output/static"
+
+[env.production]
+name = "project-metabasis"
+
+[env.preview]
+name = "project-metabasis-preview"
+
