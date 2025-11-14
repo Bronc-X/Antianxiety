@@ -17,14 +17,19 @@ export const dynamic = 'force-dynamic';
  * 如果用户未完成资料收集，显示资料收集表单
  * 如果已完成，显示 AI 助理聊天界面
  */
-export default async function AssistantPage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
+type AssistantPageSearchParams = {
+  [key: string]: string | string[] | undefined;
+};
+
+type AssistantPageProps = {
+  searchParams?: Promise<AssistantPageSearchParams>;
+};
+
+export default async function AssistantPage({ searchParams }: AssistantPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? undefined;
   const { user } = await requireAuth();
   const supabase = await createServerSupabaseClient();
-  const isAnalyzing = ((searchParams?.analyzing as string | undefined) ?? undefined) === 'true';
+  const isAnalyzing = ((resolvedSearchParams?.analyzing as string | undefined) ?? undefined) === 'true';
 
   // 获取用户资料
   let profile = null;
@@ -109,7 +114,7 @@ export default async function AssistantPage({
 
   // 根据panel参数显示不同内容
   // 处理 searchParams 可能是数组的情况
-  const panelParam = searchParams?.panel;
+  const panelParam = resolvedSearchParams?.panel;
   const panel = Array.isArray(panelParam) ? panelParam[0] : (panelParam as string | undefined);
 
   // 显示 AI 助理聊天界面
