@@ -85,11 +85,48 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  // 优化输出大小
-  output: 'standalone',
-  // 减少 bundle 大小
+  // 减少 bundle 大小 - 优化包导入
   experimental: {
-    optimizePackageImports: ['@supabase/supabase-js', 'framer-motion', 'recharts'],
+    optimizePackageImports: [
+      '@supabase/supabase-js',
+      '@supabase/auth-helpers-nextjs',
+      'framer-motion',
+      'recharts',
+      'react-tweet',
+    ],
+  },
+  // 优化 Webpack 配置以减少 bundle 大小
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // 客户端优化：减少 bundle 大小
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // 将大型库单独打包
+            supabase: {
+              name: 'supabase',
+              test: /[\\/]node_modules[\\/](@supabase)[\\/]/,
+              priority: 20,
+            },
+            charts: {
+              name: 'charts',
+              test: /[\\/]node_modules[\\/](recharts)[\\/]/,
+              priority: 20,
+            },
+            motion: {
+              name: 'motion',
+              test: /[\\/]node_modules[\\/](framer-motion)[\\/]/,
+              priority: 20,
+            },
+          },
+        },
+      };
+    }
+    return config;
   },
 };
 
