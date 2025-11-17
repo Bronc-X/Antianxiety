@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# [nomoreanxious · iOS]
 
-## Getting Started
+> 让进入退行性年龄的用户通过 AI 辅助真正接受生理的变化，并用最科学的方式进行改变，对抗焦虑。
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 1. 🎯 项目愿景与目标用户 (The "Why" & "Who")
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* **核心问题：** 30+ 用户在事业 / 家庭 / 生理多重压力下产生焦虑，需要一个“冷峻理性”的助手帮助他们面对真实的生理信号。
+* **解决方案：** 通过 iOS 端记录 → Supabase 算法 → AI 助手反馈的闭环，提供最小阻力习惯、贝叶斯信念曲线以及高置信度的信息推送。
+* **目标用户：** 30-45 岁高知用户（硅谷科技圈 / 海外中产），对健康管理和数据准确度要求极高。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 2. ✨ iOS 端核心功能与状态 (仅统计 iOS Progress)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* `[✅ 已实现]` **用户系统（iOS）**  
+  邮箱 / 密码注册、双语界面、资料管理均已稳定运行。
 
-## Learn More
+* `[✅ 已实现]` **第三方登录（iOS）**  
+  Google / X / Reddit / 微信 已全量接入 Expo + Supabase。
 
-To learn more about Next.js, take a look at the following resources:
+* `[🚧 开发中]` **AI 助手（iOS）**  
+  - 整体进度：`[██████████░░░░░░░░░░] 50%`  
+  - UI：100%（聊天面板、冷峻语气提示）  
+  - 前端 API 集成：100%（与 Vercel 函数打通）  
+  - 后端编排：70%（DeepSeek / OpenAI 回退、重试、速率监控未完成）  
+  - AI 记忆系统：65%（SQL / 向量结构完成，需在 Supabase 执行脚本）
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+* `[✅ 已实现]` **个性化信息推送（iOS）**  
+  App 内 `feed` tab、`FeedItemCard`、`usePersonalizedFeed` Hook 已经联调 pgvector RPC，可根据用户画像返回相关性 > 4.5 的内容。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+* `[🚧 开发中]` **贝叶斯信念循环（iOS）**  
+  - 整体进度：`[██████████░░░░░░░░░░] 50%`  
+  - 数据库函数：100%（`supabase_bayesian_functions.sql` 已完成）  
+  - 习惯打卡：100%（iOS 端 UI 与触发器联动）  
+  - 数据可视化：100%（iOS 端 Chart + Recharts for Expo）  
+  - 当前阻塞：需要在生产库执行 SQL 脚本、接通 `user_metrics` 表的数据流。
 
-## Deploy on Vercel
+* `[🚧 开发中]` **数据同步（iOS）**  
+  - 整体进度：`[███████████████░░░░░] 75%`  
+  - iOS Client 已启用 Realtime 监听；需完成后台 pg_cron + Web 端订阅以保证端到端一致性。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+*(状态标签: `[✅ 已实现]`, `[🚧 开发中]`, `[💡 计划中]`, `[❌ 已废弃]`)*
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 3. 环境变量（iOS & Supabase）
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `DEEPSEEK_API_KEY`
+- `OPENAI_API_KEY`（作为嵌入与对话兜底）
+- `GITHUB_CLIENT_ID / SECRET`
+- `CONTENT_INGEST_API_KEY`（触发 `/api/ingest-content`）
+
+> ⚠️ 所有密钥必须写入 `.env` / Expo config，不得硬编码，也不要提交到 Git。
+
+---
+
+## 4. 核心架构 (概览)
+
+### A. iOS 前端（Expo）
+- 使用 Tamagui + Expo Router，提供 Dumb Terminal 能力。
+- 负责录入：习惯打卡 / 情绪日志 / 生理信号速记。
+- 展示：Supabase Realtime 推送的“真相”（贝叶斯指标、AI 提醒）。
+
+### B. 逻辑层（Vercel Functions）
+- `/api/ai/chat`：AI 对话 + 记忆闭环（DeepSeek → OpenAI fallback）。
+- `/api/feed`：基于 `user_persona_embedding` 与 `content_feed_vectors` 执行 RAG。
+- `/api/ingest-content`：Cron 调用的内容爬虫 + 向量入库。
+
+### C. 状态大脑（Supabase）
+- `profiles / habits / habit_completions / user_metrics`
+- `ai_memory`, `content_feed_vectors`（pgvector）
+- `supabase_bayesian_functions.sql`, `supabase_cron_jobs.sql` 负责贝叶斯循环与提醒。
+
+---
+
+## 5. 当前重点 TODO（iOS 侧）
+1. 在 Supabase Prod 执行 `supabase_bayesian_functions.sql`、`supabase_ai_memory_vector.sql`、`supabase_content_feed_vectors.sql` 以解锁真实数据。
+2. 打通 `/api/ai/chat` 的 AI 记忆写入，保证 App 端聊天不会“失忆”。
+3. 验证 Reddit OAuth 回调（Expo → Supabase → Deep Link）。
+4. 与 Web 端确认数据同步策略，避免重复执行 Cron。
+
