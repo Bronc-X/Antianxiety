@@ -31,7 +31,7 @@ export default async function InspirationPage() {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-4">
               <a href="/dashboard" className="text-xl font-semibold text-gray-900">
-                Metabasis
+                NoMoreAnxious
               </a>
               <span className="text-sm text-gray-500">/</span>
               <span className="text-sm text-gray-600">灵感</span>

@@ -3,8 +3,6 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export const runtime = 'edge';
-
 /**
  * 认证回调路由
  * 处理 Supabase Magic Link 和邮件验证的重定向
@@ -15,10 +13,12 @@ export async function GET(request: NextRequest) {
   const next = requestUrl.searchParams.get('next') || '/landing';
 
   try {
+    const cookieStore = cookies();
+
     // 在路由处理器中使用 createRouteHandlerClient
     const supabase = createRouteHandlerClient(
       {
-        cookies,
+        cookies: () => cookieStore,
       },
       {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +26,17 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // 获取会话，Supabase 会自动处理 URL 中的 code 参数
+    // 处理 URL 中的 code 参数（用于 OAuth 和 Magic Link）
+    const code = requestUrl.searchParams.get('code');
+    if (code) {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) {
+        console.error('交换 code 失败:', exchangeError);
+        return NextResponse.redirect(new URL('/login?error=invalid_token', request.url));
+      }
+    }
+
+    // 获取会话
     const {
       data: { session },
       error,

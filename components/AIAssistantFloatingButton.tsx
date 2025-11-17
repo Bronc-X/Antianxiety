@@ -1,28 +1,70 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createClientSupabaseClient } from '@/lib/supabase-client';
+import type { AIAssistantProfile } from '@/types/assistant';
+
+// 使用 Next.js dynamic 懒加载浮窗聊天组件，减少初始 bundle
+const AIAssistantFloatingChat = dynamic(() => import('./AIAssistantFloatingChat'), {
+  loading: () => (
+    <div className="fixed inset-0 sm:inset-auto sm:bottom-24 sm:right-6 z-50 w-full sm:w-96 h-full sm:h-[600px] flex items-center justify-center bg-white sm:rounded-2xl shadow-2xl">
+      <div className="text-[#0B3D2E]/60">加载中...</div>
+    </div>
+  ),
+  ssr: false,
+});
 
 export default function AIAssistantFloatingButton() {
   const [isHovered, setIsHovered] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [profile, setProfile] = useState<AIAssistantProfile | null>(null);
+  const supabase = createClientSupabaseClient();
+
+  // 加载用户资料
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from<AIAssistantProfile>('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          setProfile(data);
+        }
+      } catch (error) {
+        console.error('加载用户资料失败:', error);
+      }
+    };
+
+    if (isChatOpen) {
+      loadProfile();
+    }
+  }, [isChatOpen, supabase]);
 
   return (
-    <Link href="/assistant">
+    <>
       <motion.div
-        className="fixed bottom-6 right-6 z-50"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
         <motion.button
-          className="flex items-center gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-6 py-4 text-white shadow-lg hover:shadow-xl transition-all"
+          onClick={() => setIsChatOpen(true)}
+          className="flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-5 py-4 sm:px-6 sm:py-4 text-white shadow-lg active:shadow-xl sm:hover:shadow-xl transition-all touch-manipulation min-h-[56px] sm:min-h-0"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <span className="text-lg font-semibold">AI 助理</span>
+          <span className="text-base sm:text-lg font-semibold">AI 助理</span>
           <AnimatePresence>
             {isHovered && (
               <motion.span
@@ -30,15 +72,24 @@ export default function AIAssistantFloatingButton() {
                 animate={{ opacity: 1, width: 'auto' }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden whitespace-nowrap"
+                className="overflow-hidden whitespace-nowrap hidden sm:inline"
               >
-                点击进入
+                点击对话
               </motion.span>
             )}
           </AnimatePresence>
         </motion.button>
       </motion.div>
-    </Link>
+
+      <AnimatePresence>
+        {isChatOpen && (
+          <AIAssistantFloatingChat
+            initialProfile={profile}
+            onClose={() => setIsChatOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

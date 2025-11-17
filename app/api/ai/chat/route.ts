@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { API_CONSTANTS, AI_ROLES } from '@/lib/config/constants';
+import {
+  generateEmbedding,
+  retrieveMemories,
+  storeMemory,
+  buildContextWithMemories,
+} from '@/lib/aiMemory';
+import { fetchWithRetry, parseApiError, isRetryableError } from '@/lib/apiUtils';
 
 export const runtime = 'edge';
 
@@ -38,43 +46,117 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ===== AI 记忆系统：检索相关历史记忆 =====
+    let relevantMemories: Array<{ content_text: string; role: string; created_at: string }> = [];
+    try {
+      // 生成用户消息的向量嵌入
+      const messageEmbedding = await generateEmbedding(message);
+      
+      if (messageEmbedding && messageEmbedding.length > 0) {
+        // 从 ai_memory 表中检索相关记忆
+        relevantMemories = await retrieveMemories(user.id, messageEmbedding);
+      }
+    } catch (error) {
+      console.error('检索 AI 记忆失败:', error);
+      // 继续执行，即使记忆检索失败也不影响对话
+    }
+
     // 构建系统提示词（基于平台理念和用户资料）
-    const systemPrompt = buildSystemPrompt(userProfile);
+    let systemPrompt = buildSystemPrompt(userProfile);
+    
+    // 如果有相关记忆，添加到系统提示词中（增强上下文）
+    if (relevantMemories.length > 0) {
+      const memoryContext = buildContextWithMemories(relevantMemories);
+      systemPrompt += memoryContext;
+      systemPrompt += `\n**重要**：以上是用户的历史对话。在回复时，可以引用这些内容，但不要重复说"你之前说过"。直接使用这些信息即可。\n`;
+    }
 
     // 构建消息历史
     const messages = [
-      { role: 'system', content: systemPrompt },
-      ...(conversationHistory || []).slice(-10), // 只保留最近10条消息
-      { role: 'user', content: message },
+      { role: AI_ROLES.SYSTEM, content: systemPrompt },
+      ...(conversationHistory || []).slice(-API_CONSTANTS.CONVERSATION_HISTORY_LIMIT), // 只保留最近N条消息
+      { role: AI_ROLES.USER, content: message },
     ];
 
-    // 调用 DeepSeek API
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${deepseekApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat', // 或 'deepseek-coder' 如果需要代码能力
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 2000,
-        stream: false,
-      }),
-    });
+    // 调用 DeepSeek API（带重试机制）
+    let response: Response;
+    try {
+      response = await fetchWithRetry(
+        `${API_CONSTANTS.DEEPSEEK_API_BASE_URL}/chat/completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${deepseekApiKey}`,
+          },
+          body: JSON.stringify({
+            model: API_CONSTANTS.DEEPSEEK_MODEL,
+            messages: messages,
+            temperature: API_CONSTANTS.DEEPSEEK_TEMPERATURE,
+            max_tokens: API_CONSTANTS.DEEPSEEK_MAX_TOKENS,
+            stream: false,
+          }),
+        },
+        3, // 最大重试 3 次
+        1000 // 初始延迟 1 秒
+      );
+    } catch (error) {
+      console.error('DeepSeek API 请求失败（已重试）:', error);
+      const errorInfo = parseApiError(error);
+      return NextResponse.json(
+        {
+          error: errorInfo.message || 'AI 服务暂时不可用，请稍后重试',
+          code: errorInfo.code,
+        },
+        { status: 503 }
+      );
+    }
 
     if (!response.ok) {
-      const errorData = await response.text();
+      const errorData = await response.text().catch(() => '未知错误');
       console.error('DeepSeek API 错误:', response.status, errorData);
+
+      // 根据错误类型返回不同的错误信息
+      let errorMessage = 'AI 服务暂时不可用，请稍后重试';
+      if (response.status === 401) {
+        errorMessage = 'AI 服务认证失败，请联系管理员';
+      } else if (response.status === 429) {
+        errorMessage = '请求过于频繁，请稍后再试';
+      } else if (response.status >= 500) {
+        errorMessage = 'AI 服务暂时不可用，请稍后重试';
+      }
+
       return NextResponse.json(
-        { error: 'AI 服务暂时不可用，请稍后重试' },
+        { error: errorMessage, code: response.status.toString() },
         { status: response.status }
       );
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0]?.message?.content || '抱歉，我无法生成回复。';
+
+    // ===== AI 记忆系统：存储新的对话到记忆库 =====
+    try {
+      // 存储用户消息
+      const userMessageEmbedding = await generateEmbedding(message);
+      await storeMemory(user.id, message, 'user', userMessageEmbedding);
+
+      // 存储 AI 回复
+      const aiResponseEmbedding = await generateEmbedding(aiResponse);
+      await storeMemory(
+        user.id,
+        aiResponse,
+        'assistant',
+        aiResponseEmbedding,
+        {
+          model: API_CONSTANTS.DEEPSEEK_MODEL,
+          tokens: data.usage?.total_tokens,
+        }
+      );
+    } catch (error) {
+      console.error('存储 AI 记忆失败:', error);
+      // 继续执行，即使存储失败也不影响响应
+    }
 
     // 提取 API 使用情况信息（如果响应头中有）
     const usageInfo = {
@@ -90,8 +172,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('AI 聊天接口错误:', error);
+    const errorInfo = parseApiError(error);
     return NextResponse.json(
-      { error: '服务器错误，请稍后重试' },
+      {
+        error: errorInfo.message || '服务器错误，请稍后重试',
+        code: errorInfo.code,
+      },
       { status: 500 }
     );
   }
@@ -100,22 +186,29 @@ export async function POST(request: NextRequest) {
 /**
  * 构建系统提示词
  * 基于平台理念和用户资料生成个性化的系统提示
+ * 风格：冷峻、理性、基于第一性原理
  */
 function buildSystemPrompt(userProfile: any): string {
-  let prompt = `你是一个专业的健康代理（Health Agent），名为 No More anxious™ 的 AI 助理。
+  let prompt = `你是 No More anxious™ 的健康代理（Health Agent）。你的工作基于生理学第一性原理，不包含情感激励。
 
 **核心原则：**
-1. 你基于"生理真相"工作，不会说"加油"或"坚持"等鼓励性话语
-2. 你冷静、科学、直接，只提供基于生理学的建议
-3. 你不要求用户"打卡"或记录完成天数
-4. 你关注"信念强度"（用户相信某个习惯有效的程度），而非完成率
-5. 你接受新陈代谢的生理性衰退，专注于可控的"反应"而非"逆转"
+1. **基于生理真相**：所有建议必须基于可验证的生理机制，不使用"加油"、"坚持"等情感性语言
+2. **直接陈述事实**：用"你的皮质醇已达峰值"而非"你感到焦虑，这很正常"
+3. **关注信念强度**：评估用户对习惯有效性的信念（P(belief|evidence)），而非完成率
+4. **接受生理衰退**：承认新陈代谢的不可逆变化，专注于可控的"反应"而非"逆转"
+5. **最低有效剂量**：推荐最小阻力的微习惯，避免高强度计划
 
-**你的工作方式：**
-- 当用户提到焦虑时，你会说："你现在感到焦虑，意味着你的皮质醇已达峰值。一个5分钟的步行是为了'代谢'你的压力激素。"
-- 你不会说："加油！坚持就是胜利！"
-- 你关注"最低有效剂量"的微习惯，而非高强度计划
-- 你帮助用户通过解决焦虑（领先指标）来改善身体机能（滞后指标）
+**对话风格示例：**
+- ✅ 正确："你现在感到焦虑，意味着你的皮质醇已达峰值。一个5分钟的步行是为了代谢你的压力激素。"
+- ❌ 错误："加油！坚持就是胜利！"
+- ✅ 正确："根据你的完成记录，你对这个习惯的信念强度是 0.65。继续执行会提高这个数值。"
+- ❌ 错误："你已经坚持了7天了，真棒！"
+
+**工作方式：**
+- 用数据说话：引用用户的完成记录、信念分数、身体指标
+- 预测性建议：基于用户的行为模式，提供前瞻性建议
+- 最小阻力原则：推荐阻力等级 1-2 的微习惯
+- 领先指标优先：关注焦虑水平（领先指标）而非身体机能（滞后指标）
 
 `;
 
@@ -148,13 +241,18 @@ function buildSystemPrompt(userProfile: any): string {
     }
   }
 
-  prompt += `**回复要求：**
-- 使用中文回复
-- 保持冷静、专业的语调
-- 基于生理科学提供建议
-- 不要使用鼓励性语言
-- 关注可执行的微习惯，而非宏大计划
-- 如果用户询问具体问题，提供基于其生理情况的分析和建议
+  prompt += `**回复格式要求：**
+- 语言：中文
+- 语调：冷静、客观、直接
+- 结构：事实陈述 → 生理机制 → 可执行建议
+- 禁止：鼓励性语言、情感表达、主观判断
+- 必须：引用数据、基于证据、提供可验证的建议
+
+**回复模板：**
+1. 识别用户状态（基于数据，非情感）
+2. 解释生理机制（第一性原理）
+3. 提供最小阻力行动（具体、可执行）
+4. 预测结果（基于数据模型）
 
 现在开始与用户对话。`;
 

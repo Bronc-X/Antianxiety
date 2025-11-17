@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import AnimatedSection from '@/components/AnimatedSection';
 import MarketingNav from '@/components/MarketingNav';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
+import type { User } from '@supabase/supabase-js';
 
 interface WeatherData {
   temperature: number;
@@ -16,25 +17,33 @@ interface WeatherData {
   feelsLike?: number;
 }
 
+interface ProfileRecord {
+  id: string;
+  location?: string | null;
+  full_name?: string | null;
+}
+
 export default function WeatherPage() {
   const router = useRouter();
   const supabase = createClientSupabaseClient();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
       if (currentUser) {
         setUser(currentUser);
         const { data: profileData } = await supabase
-          .from('profiles')
+          .from<ProfileRecord>('profiles')
           .select('*')
           .eq('id', currentUser.id)
           .single();
-        setProfile(profileData);
+        setProfile(profileData || null);
       }
     };
     fetchUser();

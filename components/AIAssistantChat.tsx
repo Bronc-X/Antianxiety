@@ -3,30 +3,62 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
+import { AI_ROLES } from '@/lib/config/constants';
+import type { AIAssistantProfile, ConversationRow, MicroHabit, RoleType } from '@/types/assistant';
 
 interface Message {
-  role: 'user' | 'assistant' | 'system';
+  role: RoleType;
   content: string;
   timestamp: Date;
 }
 
+interface UsageInfo {
+  remaining?: string | null;
+  limit?: string | null;
+  usage?: {
+    total_tokens?: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    [key: string]: number | undefined;
+  } | null;
+}
+
 interface AIAssistantChatProps {
-  initialProfile: any;
+  initialProfile: AIAssistantProfile;
 }
 
 /**
  * AI 助理聊天界面
  * 支持对话、记忆、提醒等功能
  */
+const resolveDisplayName = (profile?: AIAssistantProfile): string => {
+  if (!profile) return '朋友';
+  const candidates = [
+    profile.full_name,
+    profile.nickname,
+    profile.preferred_name,
+    profile.username,
+    profile.email?.split?.('@')?.[0],
+  ];
+  const found = candidates.find((item?: string) => item && String(item).trim().length > 0);
+  return found ? String(found).trim() : '朋友';
+};
+
+const extractHabitMemory = (profile?: AIAssistantProfile): string | string[] | null => {
+  if (!profile) return null;
+  if (profile.habit_memory_summary) return profile.habit_memory_summary;
+  if (Array.isArray(profile.habit_focus) && profile.habit_focus.length > 0) {
+    return profile.habit_focus;
+  }
+  if (profile.latest_habit_note) return profile.latest_habit_note;
+  return null;
+};
+
 export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [usageInfo, setUsageInfo] = useState<{
-    remaining?: string | null;
-    limit?: string | null;
-    usage?: any;
-  } | null>(null);
+  const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClientSupabaseClient();
 
@@ -37,7 +69,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('ai_conversations')
+        .from<ConversationRow>('ai_conversations')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true })
@@ -49,8 +81,8 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       }
 
       if (data && data.length > 0) {
-        const historyMessages: Message[] = data.map(msg => ({
-          role: msg.role as 'user' | 'assistant' | 'system',
+        const historyMessages: Message[] = data.map((msg) => ({
+          role: msg.role,
           content: msg.content,
           timestamp: new Date(msg.created_at),
         }));
@@ -93,24 +125,35 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
   }, [messages]);
 
   // 生成欢迎消息
-  const generateWelcomeMessage = (profile: any): string => {
+  const generateWelcomeMessage = (profile: AIAssistantProfile): string => {
     if (!profile) {
-      return `你好，我是你的专属健康代理。\n\n有什么问题随时问我。`;
+      return `你好，我是你的专属健康代理。\n朋友，我会记住你的习惯偏好，随时等你继续对话。\n\n有什么问题随时问我。`;
     }
 
     const analysis = profile.ai_analysis_result;
     const plan = profile.ai_recommendation_plan;
+    const displayName = resolveDisplayName(profile);
+    const habitMemory = extractHabitMemory(profile);
 
     if (!analysis || !plan) {
-      return `你好，我是你的专属健康代理。\n\n你的资料正在分析中，请稍候。有什么问题随时问我。`;
+      return `你好，我是你的专属健康代理。\n${displayName}，我会继续跟踪你的微习惯，保持上下文不丢失。\n\n你的资料正在分析中，请稍候。有什么问题随时问我。`;
     }
 
-    let message = `你好，我是你的专属健康代理。\n\n`;
+    let message = `你好，我是你的专属健康代理。\n${displayName}，很高兴继续陪你一起复盘。\n`;
+    if (habitMemory) {
+      if (Array.isArray(habitMemory)) {
+        message += `我已经记住你最近专注的习惯：${habitMemory.slice(0, 3).join('、')}。\n\n`;
+      } else {
+        message += `我已经记住你最近的习惯重点：「${habitMemory}」。\n\n`;
+      }
+    } else {
+      message += `我会持续保留你的习惯记忆，确保我们每次对话都在同一上下文里。\n\n`;
+    }
     message += `基于你提供的资料，我已经完成了初步分析（置信度：${analysis.confidence_score || 0}%）。\n\n`;
     
     if (analysis.risk_factors && Array.isArray(analysis.risk_factors) && analysis.risk_factors.length > 0) {
       message += `**主要关注点：**\n`;
-      analysis.risk_factors.forEach((factor: string) => {
+      analysis.risk_factors.forEach((factor) => {
         message += `- ${factor}\n`;
       });
       message += `\n`;
@@ -118,7 +161,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
 
     if (plan.micro_habits && Array.isArray(plan.micro_habits) && plan.micro_habits.length > 0) {
       message += `**为你定制的微习惯：**\n`;
-      plan.micro_habits.forEach((habit: any, index: number) => {
+      plan.micro_habits.forEach((habit, index: number) => {
         message += `${index + 1}. **${habit.name || '未命名习惯'}**\n`;
         message += `   - 线索：${habit.cue || '未指定'}\n`;
         message += `   - 反应：${habit.response || '未指定'}\n`;
@@ -197,9 +240,9 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
     try {
       // 准备对话历史（只包含 user 和 assistant 消息）
       const conversationHistory = messages
-        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+        .filter(msg => msg.role === AI_ROLES.USER || msg.role === AI_ROLES.ASSISTANT)
         .map(msg => ({
-          role: msg.role === 'user' ? 'user' : 'assistant',
+          role: msg.role === AI_ROLES.USER ? AI_ROLES.USER : AI_ROLES.ASSISTANT,
           content: msg.content,
         }));
 
@@ -280,17 +323,17 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.role === AI_ROLES.USER ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                    message.role === 'user'
+                    message.role === AI_ROLES.USER
                       ? 'bg-[#0B3D2E] text-white'
                       : 'bg-[#FAF6EF] text-[#0B3D2E] border border-[#E7E1D6]'
                   }`}
                 >
                   <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-                  <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-white/70' : 'text-[#0B3D2E]/60'}`}>
+                  <div className={`text-xs mt-1 ${message.role === AI_ROLES.USER ? 'text-white/70' : 'text-[#0B3D2E]/60'}`}>
                     {message.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>

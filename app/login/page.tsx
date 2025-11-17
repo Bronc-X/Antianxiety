@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, FormEvent, Suspense } from 'react';
+import { useState, FormEvent, Suspense, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import AnimatedSection from '@/components/AnimatedSection';
 
 /**
@@ -19,14 +20,48 @@ function LoginFormContent() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [showWechatSignup, setShowWechatSignup] = useState(false);
-  const [oauthProviderLoading, setOauthProviderLoading] = useState<'google' | 'twitter' | null>(null);
+  const [oauthProviderLoading, setOauthProviderLoading] = useState<'google' | 'twitter' | 'reddit' | null>(null);
+  const [showNarrativePopup, setShowNarrativePopup] = useState(true);
+  const [narrativePhase, setNarrativePhase] = useState<'enter' | 'stable' | 'exit'>('enter');
   const wechatQrSrc =
     process.env.NEXT_PUBLIC_WECHAT_QR_URL ||
     'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fmp.weixin.qq.com';
-  const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClientSupabaseClient();
-  const handleOAuthLogin = async (provider: 'google' | 'twitter') => {
+  
+  // 监听认证状态变化
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // 登录成功，等待一下确保 cookies 同步
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const redirectedFrom = searchParams.get('redirectedFrom') || '/landing';
+        // 使用硬重定向确保服务器端能读取到 session
+        window.location.href = redirectedFrom;
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase.auth, searchParams]);
+
+  useEffect(() => {
+    if (!showNarrativePopup) {
+      return;
+    }
+    const settleTimer = setTimeout(() => setNarrativePhase('stable'), 500);
+    const exitTimer = setTimeout(() => setNarrativePhase('exit'), 4500);
+    const hideTimer = setTimeout(() => setShowNarrativePopup(false), 5000);
+    return () => {
+      clearTimeout(settleTimer);
+      clearTimeout(exitTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [showNarrativePopup]);
+  const handleOAuthLogin = async (provider: 'google' | 'twitter' | 'reddit') => {
     setOauthProviderLoading(provider);
     setMessage(null);
 
@@ -73,11 +108,15 @@ function LoginFormContent() {
         return;
       }
 
-      if (data.user) {
-        // 登录成功，重定向到 landing 页面或之前尝试访问的页面
-        const redirectedFrom = searchParams.get('redirectedFrom') || '/landing';
-        router.push(redirectedFrom);
-        router.refresh();
+      if (data.user && data.session) {
+        // 登录成功，session 已返回
+        // onAuthStateChange 会处理重定向，这里只显示成功消息
+        setMessage({ type: 'success', text: '登录成功，正在跳转...' });
+        // 不在这里重定向，让 onAuthStateChange 处理
+      } else if (data.user) {
+        // 如果只有 user 没有 session，等待 session 设置
+        setMessage({ type: 'success', text: '登录成功，正在设置会话...' });
+        // onAuthStateChange 会处理重定向
       }
     } catch (error) {
       console.error('登录时出错:', error);
@@ -160,7 +199,32 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] px-4 py-12 relative overflow-hidden">
+      {showNarrativePopup && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex justify-center">
+          <div
+            className={`pointer-events-auto mt-16 w-full max-w-2xl px-4 transition-all duration-700 ease-out ${
+              narrativePhase === 'enter'
+                ? 'translate-y-[-30px] opacity-0'
+                : narrativePhase === 'exit'
+                ? 'translate-y-[-60px] opacity-0'
+                : 'translate-y-0 opacity-100'
+            }`}
+          >
+            <div className="rounded-2xl border border-[#0B3D2E]/20 bg-gradient-to-br from-[#0B3D2E] via-[#06261c] to-[#020f0b] p-[1px] shadow-[0_20px_80px_rgba(11,61,46,0.35)]">
+              <div className="rounded-2xl bg-[#FAF6EF] p-6 text-center text-[#0B3D2E]">
+                <p className="text-base font-semibold tracking-wide">
+                  你是否在社交平台看过太多25岁A9的故事；
+                  <br />
+                  天天封口搞钱，瞻前顾后；
+                  <br />
+                  我们将杀死对焦虑的贩卖行为。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-md space-y-8">
         <AnimatedSection variant="fadeUp" className="text-center">
           {/* Logo */}
@@ -191,6 +255,10 @@ function LoginFormContent() {
             <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">X</span>
               <span>X 登录</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FF4500] text-sm font-semibold text-white">R</span>
+              <span>Reddit 登录</span>
             </div>
           </div>
 
@@ -349,6 +417,22 @@ function LoginFormContent() {
                   {oauthProviderLoading === 'twitter' ? '跳转中...' : '同步 X (Twitter) 账号'}
                 </span>
               </button>
+              <button
+                type="button"
+                onClick={() => handleOAuthLogin('reddit')}
+                disabled={oauthProviderLoading === 'reddit'}
+                className="inline-flex w-full items-center justify-between rounded-md border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E]/70 hover:bg-[#FAF6EF] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF4500] text-sm font-semibold text-white">
+                    R
+                  </span>
+                  <span>使用 Reddit 登录</span>
+                </span>
+                <span className="text-xs text-[#0B3D2E]/60">
+                  {oauthProviderLoading === 'reddit' ? '跳转中...' : '同步 Reddit 账号'}
+                </span>
+              </button>
             </div>
           </div>
 
@@ -441,10 +525,13 @@ function LoginFormContent() {
                 </div>
                 <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-[#0B3D2E]/10 bg-[#FFFDF8] px-5 py-6">
                   <div className="rounded-xl border border-[#0B3D2E]/10 bg-white p-3 shadow-inner">
-                    <img
+                    <Image
                       src={wechatQrSrc}
                       alt="微信扫码登录二维码"
+                      width={192}
+                      height={192}
                       className="h-48 w-48 rounded-md object-contain"
+                      unoptimized
                     />
                   </div>
                   <div className="text-center text-xs text-[#0B3D2E]/60">

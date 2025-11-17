@@ -1,12 +1,10 @@
 import { requireAuth } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { redirect } from 'next/navigation';
 import AIAssistantProfileForm from '@/components/AIAssistantProfileForm';
 import AIAssistantChat from '@/components/AIAssistantChat';
 import DailyCheckInPanel from '@/components/DailyCheckInPanel';
 import ProfileSettingsPanel from '@/components/ProfileSettingsPanel';
 import ReminderPreferencesPanel from '@/components/ReminderPreferencesPanel';
-import { analyzeUserProfile } from '@/lib/aiAnalysis';
 import Link from 'next/link';
 
 export const runtime = 'edge';
@@ -17,27 +15,41 @@ export const dynamic = 'force-dynamic';
  * 如果用户未完成资料收集，显示资料收集表单
  * 如果已完成，显示 AI 助理聊天界面
  */
-type AssistantPageSearchParams = {
-  [key: string]: string | string[] | undefined;
-};
+type AssistantPageSearchParams = Record<string, string | string[] | undefined>;
 
 type AssistantPageProps = {
-  searchParams?: Promise<AssistantPageSearchParams>;
+  searchParams?: AssistantPageSearchParams;
 };
 
-export default async function AssistantPage({ searchParams }: AssistantPageProps) {
-  const resolvedSearchParams = (await searchParams) ?? undefined;
+interface ProfileRecord {
+  id: string;
+  ai_profile_completed?: boolean;
+  ai_analysis_result?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+interface DailyWellnessLog {
+  id: string;
+  user_id: string;
+  log_date: string;
+  [key: string]: unknown;
+}
+
+export default async function AssistantPage({ searchParams = {} }: AssistantPageProps) {
+  const resolvedSearchParams = searchParams;
   const { user } = await requireAuth();
   const supabase = await createServerSupabaseClient();
-  const isAnalyzing = ((resolvedSearchParams?.analyzing as string | undefined) ?? undefined) === 'true';
+  const analyzingParam = resolvedSearchParams?.analyzing;
+  const isAnalyzing =
+    (Array.isArray(analyzingParam) ? analyzingParam[0] : analyzingParam) === 'true';
 
   // 获取用户资料
-  let profile = null;
-  let dailyLogs: any[] = [];
+  let profile: ProfileRecord | null = null;
+  let dailyLogs: DailyWellnessLog[] = [];
 
   try {
     const { data, error } = await supabase
-      .from('profiles')
+      .from<ProfileRecord>('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
@@ -64,7 +76,7 @@ export default async function AssistantPage({ searchParams }: AssistantPageProps
   // 获取近期每日记录
   try {
     const { data: wellnessLogs, error: wellnessError } = await supabase
-      .from('daily_wellness_logs')
+      .from<DailyWellnessLog>('daily_wellness_logs')
       .select('*')
       .eq('user_id', user.id)
       .order('log_date', { ascending: false })
@@ -130,7 +142,7 @@ export default async function AssistantPage({ searchParams }: AssistantPageProps
       {isAnalyzing && (
         <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 lg:px-8">
           <div className="rounded-md border border-[#0B3D2E]/20 bg-[#0B3D2E]/5 px-3 py-2 text-sm text-[#0B3D2E]">
-            正在分析你的资料，请稍候… 你可以点击"返回主页"。
+            正在分析你的资料，请稍候… 你可以点击 &quot;返回主页&quot;。
           </div>
         </div>
       )}
