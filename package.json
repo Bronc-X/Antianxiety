@@ -1,9 +1,9 @@
 {
-  "name": "project-metabasis",
+  "name": "nomoreanxiousweb",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",

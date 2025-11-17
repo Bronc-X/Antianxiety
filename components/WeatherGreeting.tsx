@@ -45,30 +45,44 @@ export default function WeatherGreeting() {
       setGreeting(getBeijingGreeting());
     }, 60000); // 每分钟更新一次
 
-    // 获取广州天气 (使用OpenWeatherMap API，如果没有API key则使用模拟数据)
+    const fallbackWeather = () => {
+      setWeather({
+        temperature: 22,
+        icon: '☀️',
+        description: '晴',
+      });
+    };
+
+    const controller = new AbortController();
+
     const fetchWeather = async () => {
       try {
-        // 使用免费的天气API (Open-Meteo)
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         const response = await fetch(
-          'https://api.open-meteo.com/v1/forecast?latitude=23.1291&longitude=113.2644&current=temperature_2m,weather_code&timezone=Asia/Shanghai'
+          'https://api.open-meteo.com/v1/forecast?latitude=23.1291&longitude=113.2644&current=temperature_2m,weather_code&timezone=Asia/Shanghai',
+          {
+            signal: controller.signal,
+            cache: 'no-store',
+          }
         );
-        
+
+        clearTimeout(timeoutId);
+
         if (response.ok) {
           const data = await response.json();
           const temp = Math.round(data.current.temperature_2m);
           const weatherCode = data.current.weather_code;
-          
-          // 根据天气代码获取图标
+
           const getWeatherIcon = (code: number) => {
-            // 简化的天气图标映射
-            if (code === 0) return '☀️'; // 晴天
-            if (code <= 3) return '⛅'; // 少云
-            if (code <= 49) return '🌫️'; // 雾
-            if (code <= 59) return '🌦️'; // 小雨
-            if (code <= 69) return '🌧️'; // 中雨
-            if (code <= 79) return '🌨️'; // 雪
-            if (code <= 84) return '⛈️'; // 雷暴
-            return '☁️'; // 默认多云
+            if (code === 0) return '☀️';
+            if (code <= 3) return '⛅';
+            if (code <= 49) return '🌫️';
+            if (code <= 59) return '🌦️';
+            if (code <= 69) return '🌧️';
+            if (code <= 79) return '🌨️';
+            if (code <= 84) return '⛈️';
+            return '☁️';
           };
 
           setWeather({
@@ -77,30 +91,32 @@ export default function WeatherGreeting() {
             description: '',
           });
         } else {
-          // 如果API失败，使用模拟数据
-          setWeather({
-            temperature: 22,
-            icon: '☀️',
-            description: '晴',
-          });
+          fallbackWeather();
         }
-      } catch (error) {
-        console.error('获取天气失败:', error);
-        // 使用模拟数据
-        setWeather({
-          temperature: 22,
-          icon: '☀️',
-          description: '晴',
-        });
+      } catch (error: any) {
+        if (error?.name === 'AbortError') {
+          console.warn('天气请求超时，使用默认数据');
+        } else {
+          console.warn('获取天气失败，使用默认数据:', error);
+        }
+        fallbackWeather();
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchWeather();
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      fallbackWeather();
+      setIsLoading(false);
+    } else {
+      fetchWeather();
+    }
 
     // 清理定时器
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      controller.abort();
+    };
   }, []);
 
   if (isLoading) {

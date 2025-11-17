@@ -5,6 +5,7 @@ import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface UserProfileMenuProps {
   user: {
@@ -100,10 +101,13 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
         className="flex items-center gap-2 rounded-full border border-[#E7E1D6] bg-white px-3 py-1.5 hover:bg-[#FAF6EF] transition-colors"
       >
         {avatarUrl ? (
-          <img
+          <Image
             src={avatarUrl}
             alt={fullName || user.email || 'User'}
             className="h-8 w-8 rounded-full object-cover"
+            width={32}
+            height={32}
+            unoptimized
           />
         ) : (
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0B3D2E] text-xs font-medium text-white">
@@ -180,10 +184,13 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
               <div className="p-4 space-y-3">
                 <div className="flex items-center gap-3 pb-3 border-b border-[#E7E1D6]">
                   {avatarUrl ? (
-                    <img
+                    <Image
                       src={avatarUrl}
                       alt={fullName || user.email || 'User'}
                       className="h-12 w-12 rounded-full object-cover"
+                      width={48}
+                      height={48}
+                      unoptimized
                     />
                   ) : (
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0B3D2E] text-sm font-medium text-white">

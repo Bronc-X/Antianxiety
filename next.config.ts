@@ -28,6 +28,8 @@ const buildContentSecurityPolicy = () => {
     "https://*.twimg.com",
     "https://pbs.twimg.com",
     "https://abs.twimg.com",
+    "https://images.unsplash.com",
+    "https://images.pexels.com",
   ];
 
   const frameSrc = ["https://*.supabase.co", "https://platform.twitter.com"];
@@ -97,6 +99,18 @@ const nextConfig: NextConfig = {
       'framer-motion',
       'recharts',
       'react-tweet',
+    ],
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.pexels.com",
+      },
     ],
   },
   // 优化 Webpack 配置以减少 bundle 大小

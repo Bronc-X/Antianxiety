@@ -8,6 +8,7 @@ import HabitForm from '@/components/HabitForm';
 import HabitList from '@/components/HabitList';
 // 使用动态导入减少 bundle 大小
 import { HabitCompletionChart, BeliefScoreChart, XFeed } from '@/components/LazyCharts';
+import PersonalizedFeed from '@/components/PersonalizedFeed';
 import AnimateOnView from '@/components/AnimateOnView';
 
 export const runtime = 'edge';
@@ -245,9 +246,9 @@ export default async function DashboardPage() {
           </div>
           </AnimateOnView>
 
-          {/* X.com Feed 灵感板块 */}
+          {/* 个性化信息流板块 */}
           <AnimateOnView>
-          <XFeed />
+          <PersonalizedFeed limit={10} />
           </AnimateOnView>
         </div>
       </main>

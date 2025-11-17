@@ -5,6 +5,7 @@ import type { MouseEvent } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import AnimatedSection from '@/components/AnimatedSection';
 import { countryDialingCodes } from '@/data/countryDialingCodes';
 
@@ -33,7 +34,7 @@ export default function SignupPage() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [showWechatModal, setShowWechatModal] = useState(false);
-  const [oauthProviderLoading, setOauthProviderLoading] = useState<'google' | 'twitter' | null>(null);
+  const [oauthProviderLoading, setOauthProviderLoading] = useState<'google' | 'twitter' | 'reddit' | null>(null);
   const wechatQrSrc =
     process.env.NEXT_PUBLIC_WECHAT_QR_URL ||
     'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fmp.weixin.qq.com';
@@ -215,7 +216,7 @@ export default function SignupPage() {
     }
   };
 
-  const handleOAuthSignup = async (provider: 'google' | 'twitter') => {
+  const handleOAuthSignup = async (provider: 'google' | 'twitter' | 'reddit') => {
     setOauthProviderLoading(provider);
     setMessage(null);
     try {
@@ -528,6 +529,22 @@ export default function SignupPage() {
                   {oauthProviderLoading === 'twitter' ? '跳转中...' : '同步社交资料'}
                 </span>
               </button>
+              <button
+                type="button"
+                onClick={() => handleOAuthSignup('reddit')}
+                disabled={oauthProviderLoading === 'reddit'}
+                className="inline-flex w-full items-center justify-between rounded-md border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E]/70 hover:bg-[#FAF6EF] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF4500] text-sm font-semibold text-white">
+                    R
+                  </span>
+                  <span>使用 Reddit 注册</span>
+                </span>
+                <span className="text-xs text-[#0B3D2E]/60">
+                  {oauthProviderLoading === 'reddit' ? '跳转中...' : '同步 Reddit 账号'}
+                </span>
+              </button>
             </div>
           </div>
 
@@ -561,10 +578,13 @@ export default function SignupPage() {
                 </div>
                 <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-[#0B3D2E]/10 bg-[#FFFDF8] px-5 py-6">
                   <div className="rounded-xl border border-[#0B3D2E]/10 bg-white p-3 shadow-inner">
-                    <img
+                    <Image
                       src={wechatQrSrc}
                       alt="微信扫码注册二维码"
+                      width={192}
+                      height={192}
                       className="h-48 w-48 rounded-md object-contain"
+                      unoptimized
                     />
                   </div>
                   <div className="text-center text-xs text-[#0B3D2E]/60">
