@@ -45,7 +45,15 @@ export default async function LandingPage() {
 
   // 获取 session，失败也不阻塞
   try {
-    session = await getServerSession();
+    const serverSession = await getServerSession();
+    if (serverSession) {
+      session = {
+        user: {
+          ...serverSession.user,
+          id: serverSession.user.id,
+        } as SessionUser,
+      };
+    }
   } catch (error) {
     console.error('获取 session 失败:', error);
   }
@@ -58,17 +66,17 @@ export default async function LandingPage() {
       // 使用 Promise.allSettled 确保即使一个失败也不阻塞
       const profilePromise = Promise.race<ProfileRecord | null>([
         supabase
-          .from<ProfileRecord>('profiles')
+          .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single()
+          .single<ProfileRecord>()
           .then(({ data, error }) => (!error && data ? data : null)),
         new Promise<ProfileRecord | null>((resolve) => setTimeout(() => resolve(null), 3000)),
       ]);
 
       const dailyLogsPromise = Promise.race<DailyWellnessLog[]>([
         supabase
-          .from<DailyWellnessLog>('daily_wellness_logs')
+          .from('daily_wellness_logs')
           .select('*')
           .eq('user_id', session.user.id)
           .order('log_date', { ascending: false })
@@ -94,10 +102,10 @@ export default async function LandingPage() {
         try {
           const habitsResult = await Promise.race<HabitSummary[]>([
             supabase
-              .from<HabitSummary>('user_habits')
+              .from('user_habits')
               .select('id')
               .eq('user_id', session.user.id)
-              .then(({ data }) => data || []),
+              .then(({ data }) => (data || []) as HabitSummary[]),
             new Promise<HabitSummary[]>((resolve) => setTimeout(() => resolve([]), 2000)),
           ]);
 
@@ -105,11 +113,11 @@ export default async function LandingPage() {
             const habitIds = habitsResult.map((habit) => habit.id);
             const habitLogsResult = await Promise.race<HabitLog[]>([
               supabase
-                .from<HabitLog>('habit_log')
+                .from('habit_log')
                 .select('*')
                 .in('habit_id', habitIds)
                 .order('completed_at', { ascending: true })
-                .then(({ data }) => data || []),
+                .then(({ data }) => (data || []) as HabitLog[]),
               new Promise<HabitLog[]>((resolve) => setTimeout(() => resolve([]), 2000)),
             ]);
             habitLogs = habitLogsResult;
@@ -125,13 +133,41 @@ export default async function LandingPage() {
   }
 
   // 确保返回页面，即使数据获取失败
+  // 转换profile类型以匹配LandingContent期望的类型
+  const landingProfile = profile ? {
+    daily_checkin_time: typeof (profile as ProfileRecord).daily_checkin_time === 'string' 
+      ? (profile as ProfileRecord).daily_checkin_time as string 
+      : null,
+    full_name: typeof (profile as ProfileRecord).full_name === 'string' 
+      ? (profile as ProfileRecord).full_name as string 
+      : null,
+  } : null;
+
+  // 转换habitLogs类型以匹配LandingContent期望的类型
+  const landingHabitLogs = habitLogs.map((log) => ({
+    id: log.habit_id,
+    habit_id: log.habit_id,
+    completed_at: log.completed_at,
+    belief_score_snapshot: 0, // 默认值，如果需要可以从数据库获取
+  }));
+
   return (
     <div className="min-h-screen bg-[#FAF6EF]">
-      <MarketingNav user={session?.user || null} profile={profile} />
+      <MarketingNav 
+        user={session?.user || null} 
+        profile={profile ? {
+          full_name: typeof (profile as ProfileRecord).full_name === 'string' 
+            ? (profile as ProfileRecord).full_name as string 
+            : null,
+          avatar_url: typeof (profile as ProfileRecord).avatar_url === 'string' 
+            ? (profile as ProfileRecord).avatar_url as string 
+            : null,
+        } : null} 
+      />
       <LandingContent 
         user={session?.user || null} 
-        profile={profile} 
-        habitLogs={habitLogs} 
+        profile={landingProfile} 
+        habitLogs={landingHabitLogs} 
         dailyLogs={dailyLogs} 
       />
     </div>

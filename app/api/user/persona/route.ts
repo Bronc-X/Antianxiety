@@ -3,7 +3,7 @@
  * 用于生成和更新用户的画像向量
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { updateUserPersonaEmbedding } from '@/lib/userPersona';
 
@@ -13,7 +13,7 @@ export const runtime = 'edge';
  * POST /api/user/persona
  * 更新用户画像向量
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // 验证用户身份
     const supabase = await createServerSupabaseClient();

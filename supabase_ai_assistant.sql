@@ -5,9 +5,11 @@
 -- 扩展 profiles 表，添加详细的生理和运动信息
 ALTER TABLE public.profiles
 ADD COLUMN IF NOT EXISTS gender TEXT,
+ADD COLUMN IF NOT EXISTS birth_date DATE,
 ADD COLUMN IF NOT EXISTS age_range TEXT, -- 年龄段选择（如 '25-34'）
 ADD COLUMN IF NOT EXISTS height_cm INTEGER,
 ADD COLUMN IF NOT EXISTS weight_kg INTEGER,
+ADD COLUMN IF NOT EXISTS body_fat_percentage NUMERIC(5,2),
 ADD COLUMN IF NOT EXISTS sleep_hours DECIMAL(4,1),
 ADD COLUMN IF NOT EXISTS stress_level INTEGER CHECK (stress_level >= 1 AND stress_level <= 10),
 ADD COLUMN IF NOT EXISTS energy_level INTEGER CHECK (energy_level >= 1 AND energy_level <= 10),
@@ -29,15 +31,22 @@ ADD COLUMN IF NOT EXISTS medical_conditions TEXT[], -- 医疗状况
 ADD COLUMN IF NOT EXISTS medications TEXT[], -- 药物
 ADD COLUMN IF NOT EXISTS daily_checkin_time TIME, -- 每日提醒时间
 ADD COLUMN IF NOT EXISTS body_function_score INTEGER DEFAULT 0, -- 身体机能分数（0-100）
+ADD COLUMN IF NOT EXISTS primary_goal TEXT,
+ADD COLUMN IF NOT EXISTS goal_focus_notes TEXT,
+ADD COLUMN IF NOT EXISTS target_weight_kg DECIMAL(6,2),
+ADD COLUMN IF NOT EXISTS weekly_goal_rate TEXT,
+ADD COLUMN IF NOT EXISTS weekly_goal_custom DECIMAL(5,2),
 ADD COLUMN IF NOT EXISTS ai_profile_completed BOOLEAN DEFAULT FALSE, -- AI资料收集完成标志
 ADD COLUMN IF NOT EXISTS ai_analysis_result JSONB, -- AI分析结果（JSON格式）
 ADD COLUMN IF NOT EXISTS ai_recommendation_plan JSONB; -- AI推荐方案（JSON格式）
 
 -- 添加注释
 COMMENT ON COLUMN public.profiles.gender IS '性别';
+COMMENT ON COLUMN public.profiles.birth_date IS '出生日期';
 COMMENT ON COLUMN public.profiles.age_range IS '年龄段';
 COMMENT ON COLUMN public.profiles.height_cm IS '身高（厘米）';
 COMMENT ON COLUMN public.profiles.weight_kg IS '体重（公斤）';
+COMMENT ON COLUMN public.profiles.body_fat_percentage IS '体脂率';
 COMMENT ON COLUMN public.profiles.sleep_hours IS '平均睡眠时长（小时）';
 COMMENT ON COLUMN public.profiles.stress_level IS '压力水平（1-10）';
 COMMENT ON COLUMN public.profiles.energy_level IS '精力水平（1-10）';
@@ -53,6 +62,11 @@ COMMENT ON COLUMN public.profiles.primary_focus_topics IS '关注的生理/焦�
 COMMENT ON COLUMN public.profiles.ai_profile_completed IS 'AI资料收集是否完成';
 COMMENT ON COLUMN public.profiles.daily_checkin_time IS '每日检查提醒时间';
 COMMENT ON COLUMN public.profiles.body_function_score IS '身体机能分数（0-100）';
+COMMENT ON COLUMN public.profiles.primary_goal IS '用户的主要健康目标';
+COMMENT ON COLUMN public.profiles.goal_focus_notes IS '针对目标的补充描述或指标';
+COMMENT ON COLUMN public.profiles.target_weight_kg IS 'AI 规划的目标体重';
+COMMENT ON COLUMN public.profiles.weekly_goal_rate IS '每周目标速率选择';
+COMMENT ON COLUMN public.profiles.weekly_goal_custom IS '自定义的每周目标速率';
 COMMENT ON COLUMN public.profiles.ai_analysis_result IS 'AI分析结果（JSON格式）';
 COMMENT ON COLUMN public.profiles.ai_recommendation_plan IS 'AI推荐方案（JSON格式）';
 

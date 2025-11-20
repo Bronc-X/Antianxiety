@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { DB_TABLES, RELEVANCE_THRESHOLD } from '@/lib/config/constants';
+import { DB_TABLES } from '@/lib/config/constants';
 import { generateEmbedding } from '@/lib/aiMemory';
 
 export const runtime = 'nodejs'; // 使用 Node.js runtime 以支持更复杂的操作
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerSupabaseClient();
     const body = await request.json();
-    const { sourceType, limit = 10 } = body;
+    const { sourceType, limit = 50 } = body; // 增加默认爬取数量
 
     // 支持的来源类型
     const supportedSources = ['x', 'reddit', 'journal', 'research_institution', 'university'];
@@ -232,7 +232,7 @@ async function crawlX(limit: number) {
       // 暂时返回空数组，需要配置 Twitter API
     } else {
       // 如果没有配置 Twitter API，返回空数组
-      console.warn('Twitter API 未配置，跳过 X 内容爬取');
+      console.warn(`Twitter API 未配置，跳过 X 内容爬取（计划抓取 ${limit} 条）`);
     }
   } catch (error) {
     console.error('X 爬取错误:', error);

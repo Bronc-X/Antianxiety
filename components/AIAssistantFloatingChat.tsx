@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent, useCallback } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AI_ROLES } from '@/lib/config/constants';
 import type { AIAssistantProfile, ConversationRow, RoleType } from '@/types/assistant';
 
@@ -97,7 +97,7 @@ const resolveDisplayName = (profile?: AIAssistantProfile | null): string => {
     profile.username,
     profile.email?.split?.('@')?.[0],
   ];
-  const found = candidates.find((item?: string) => item && String(item).trim().length > 0);
+  const found = candidates.find((item?: string | null) => item && String(item).trim().length > 0);
   return found ? String(found).trim() : '朋友';
 };
 
@@ -194,17 +194,20 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
   }, []);
 
   // 加载对话历史
-  const loadConversationHistory = async () => {
+  const loadConversationHistory = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
-        .from<ConversationRow>('ai_conversations')
+        .from('ai_conversations')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true })
-        .limit(20);
+        .limit(20)
+        .returns<ConversationRow[]>();
 
       if (error) {
         console.error('加载对话历史时出错:', error);
@@ -222,16 +225,16 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
     } catch (error) {
       console.error('加载对话历史时出错:', error);
     }
-  };
+  }, [supabase]);
 
   // 初始化聊天
   useEffect(() => {
     const initializeChat = async () => {
       await loadConversationHistory();
     };
-    
+
     initializeChat();
-  }, []);
+  }, [loadConversationHistory]);
 
   // 显示欢迎消息（如果没有历史消息）
   useEffect(() => {

@@ -66,7 +66,7 @@ export default function BeliefScoreModal({
           完成习惯：{habitName}
         </h3>
         <p className="text-sm text-gray-600 mb-6">
-          在1到10分之间，您多大程度上"相信"这个习惯正在帮助您缓解焦虑？
+          在1到10分之间，您多大程度上&quot;相信&quot;这个习惯正在帮助您缓解焦虑？
         </p>
 
         {/* 分数选择器 */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import AnimatedSection from '@/components/AnimatedSection';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
@@ -18,8 +18,15 @@ type DailyWellnessLog = {
   updated_at?: string;
 };
 
+interface DailyCheckInProfile {
+  id?: string;
+  daily_checkin_time?: string | null;
+  sleep_hours?: number | string | null;
+  stress_level?: number | null;
+}
+
 interface DailyCheckInPanelProps {
-  initialProfile: any;
+  initialProfile: DailyCheckInProfile;
   initialLogs: DailyWellnessLog[];
 }
 
@@ -99,6 +106,13 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
   const [isUpdatingReminder, setIsUpdatingReminder] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const hasPromptedRef = useRef(false);
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
+
+  useEffect(() => {
+    startTransition(() => {
+      setCurrentTimestamp(Date.now());
+    });
+  }, [todayLog, reminderTime]);
 
   const shouldPrompt = useMemo(() => {
     if (todayLog) return false;
@@ -106,30 +120,32 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
     const [hours, minutes] = reminderTime.split(':').map((item) => Number(item));
     const reminderMoment = new Date();
     reminderMoment.setHours(hours, minutes, 0, 0);
-    return Date.now() >= reminderMoment.getTime();
-  }, [todayLog, reminderTime]);
+    return currentTimestamp >= reminderMoment.getTime();
+  }, [currentTimestamp, todayLog, reminderTime]);
 
   useEffect(() => {
-    if (todayLog) {
-      setFormState({
-        sleepDuration: todayLog.sleep_duration_minutes !== null ? String(todayLog.sleep_duration_minutes) : '',
-        sleepQuality: todayLog.sleep_quality || '',
-        exerciseDuration: todayLog.exercise_duration_minutes !== null ? String(todayLog.exercise_duration_minutes) : '',
-        moodStatus: todayLog.mood_status || '',
-        stressLevel: todayLog.stress_level !== null ? String(todayLog.stress_level) : '',
-        notes: todayLog.notes || '',
-      });
-    } else {
-      const fallbackSleepMinutes = initialProfile?.sleep_hours ? Number(initialProfile.sleep_hours) * 60 : '';
-      setFormState({
-        sleepDuration: fallbackSleepMinutes ? String(Math.round(fallbackSleepMinutes / 30) * 30) : '',
-        sleepQuality: '',
-        exerciseDuration: '',
-        moodStatus: '',
-        stressLevel: initialProfile?.stress_level ? String(initialProfile.stress_level) : '',
-        notes: '',
-      });
-    }
+    const fallbackSleepMinutes = initialProfile?.sleep_hours ? Number(initialProfile.sleep_hours) * 60 : '';
+    const nextState = todayLog
+      ? {
+          sleepDuration: todayLog.sleep_duration_minutes !== null ? String(todayLog.sleep_duration_minutes) : '',
+          sleepQuality: todayLog.sleep_quality || '',
+          exerciseDuration:
+            todayLog.exercise_duration_minutes !== null ? String(todayLog.exercise_duration_minutes) : '',
+          moodStatus: todayLog.mood_status || '',
+          stressLevel: todayLog.stress_level !== null ? String(todayLog.stress_level) : '',
+          notes: todayLog.notes || '',
+        }
+      : {
+          sleepDuration: fallbackSleepMinutes ? String(Math.round(fallbackSleepMinutes / 30) * 30) : '',
+          sleepQuality: '',
+          exerciseDuration: '',
+          moodStatus: '',
+          stressLevel: initialProfile?.stress_level ? String(initialProfile.stress_level) : '',
+          notes: '',
+        };
+    startTransition(() => {
+      setFormState(nextState);
+    });
   }, [todayLog, initialProfile?.sleep_hours, initialProfile?.stress_level]);
 
   useEffect(() => {
@@ -141,7 +157,9 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
 
   useEffect(() => {
     if (shouldPrompt && !hasPromptedRef.current) {
-      setToast('提醒：按照设定的时间记录今日状态，以便持续更新你的生理基线。');
+      startTransition(() => {
+        setToast('提醒：按照设定的时间记录今日状态，以便持续更新你的生理基线。');
+      });
       hasPromptedRef.current = true;
     }
   }, [shouldPrompt]);

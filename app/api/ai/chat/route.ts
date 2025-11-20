@@ -7,9 +7,67 @@ import {
   storeMemory,
   buildContextWithMemories,
 } from '@/lib/aiMemory';
-import { fetchWithRetry, parseApiError, isRetryableError } from '@/lib/apiUtils';
+import { fetchWithRetry, parseApiError } from '@/lib/apiUtils';
 
 export const runtime = 'edge';
+
+type RoleValue = (typeof AI_ROLES)[keyof typeof AI_ROLES];
+
+interface ConversationMessage {
+  role: RoleValue;
+  content: string;
+}
+
+interface AIAnalysisResult {
+  metabolic_rate_estimate?: string;
+  cortisol_pattern?: string;
+  sleep_quality?: string;
+  recovery_capacity?: string;
+  stress_resilience?: string;
+  risk_factors?: string[];
+  [key: string]: unknown;
+}
+
+interface AIMicroHabit {
+  name?: string;
+  cue?: string;
+  response?: string;
+}
+
+interface AIRecommendationPlan {
+  micro_habits?: AIMicroHabit[];
+}
+
+interface UserProfileData {
+  ai_analysis_result?: AIAnalysisResult | null;
+  ai_recommendation_plan?: AIRecommendationPlan | null;
+  [key: string]: unknown;
+}
+
+interface DeepSeekUsage {
+  total_tokens?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  [key: string]: number | undefined;
+}
+
+interface DeepSeekChoice {
+  message?: {
+    role: RoleValue;
+    content?: string;
+  };
+}
+
+interface DeepSeekResponseBody {
+  choices: DeepSeekChoice[];
+  usage?: DeepSeekUsage;
+}
+
+interface ChatRequestBody {
+  message: string;
+  conversationHistory?: ConversationMessage[];
+  userProfile?: UserProfileData | null;
+}
 
 /**
  * DeepSeek API 聊天接口
@@ -29,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 获取请求体
-    const body = await request.json();
+    const body = (await request.json()) as ChatRequestBody;
     const { message, conversationHistory, userProfile } = body;
 
     if (!message) {
@@ -72,7 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 构建消息历史
-    const messages = [
+    const messages: ConversationMessage[] = [
       { role: AI_ROLES.SYSTEM, content: systemPrompt },
       ...(conversationHistory || []).slice(-API_CONSTANTS.CONVERSATION_HISTORY_LIMIT), // 只保留最近N条消息
       { role: AI_ROLES.USER, content: message },
@@ -132,7 +190,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as DeepSeekResponseBody;
     const aiResponse = data.choices[0]?.message?.content || '抱歉，我无法生成回复。';
 
     // ===== AI 记忆系统：存储新的对话到记忆库 =====
@@ -188,7 +246,7 @@ export async function POST(request: NextRequest) {
  * 基于平台理念和用户资料生成个性化的系统提示
  * 风格：冷峻、理性、基于第一性原理
  */
-function buildSystemPrompt(userProfile: any): string {
+function buildSystemPrompt(userProfile?: UserProfileData | null): string {
   let prompt = `你是 No More anxious™ 的健康代理（Health Agent）。你的工作基于生理学第一性原理，不包含情感激励。
 
 **核心原则：**
@@ -233,8 +291,8 @@ function buildSystemPrompt(userProfile: any): string {
       const plan = userProfile.ai_recommendation_plan;
       if (plan.micro_habits && plan.micro_habits.length > 0) {
         prompt += `**为用户定制的微习惯：**\n`;
-        plan.micro_habits.forEach((habit: any, index: number) => {
-          prompt += `${index + 1}. ${habit.name}：${habit.cue} → ${habit.response}\n`;
+        plan.micro_habits.forEach((habit, index: number) => {
+          prompt += `${index + 1}. ${habit.name ?? '未命名'}：${habit.cue ?? '未指定'} → ${habit.response ?? '未指定'}\n`;
         });
         prompt += `\n`;
       }

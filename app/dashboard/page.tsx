@@ -7,7 +7,7 @@ import LogoutButton from '@/components/LogoutButton';
 import HabitForm from '@/components/HabitForm';
 import HabitList from '@/components/HabitList';
 // 使用动态导入减少 bundle 大小
-import { HabitCompletionChart, BeliefScoreChart, XFeed } from '@/components/LazyCharts';
+import { HabitCompletionChart, BeliefScoreChart } from '@/components/LazyCharts';
 import PersonalizedFeed from '@/components/PersonalizedFeed';
 import AnimateOnView from '@/components/AnimateOnView';
 
@@ -242,7 +242,7 @@ export default async function DashboardPage() {
           <AnimateOnView>
           <div className="space-y-4">
             <HabitForm />
-            <HabitList habits={habits} />
+            <HabitList habits={habits} userId={user.id} />
           </div>
           </AnimateOnView>
 

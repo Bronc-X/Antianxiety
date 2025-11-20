@@ -359,6 +359,17 @@ fetch('/api/feed?limit=10')
   .catch(err => console.error('请求失败:', err));
 ```
 
+### 方法 4: Feed 状态 API 自检
+
+1. 登录 Web 应用后，直接访问 `http://localhost:3000/api/feed/status`
+2. 响应中会返回：
+   - `totalCount`：内容池总量
+   - `summaryBySource`：各来源最近抓取数量、最新抓取时间、示例链接
+   - `latestItems`：最近 25 条抓取记录
+3. 需要按来源过滤时，可访问 `http://localhost:3000/api/feed/status?source_type=reddit`、`...=x` 等
+
+**用途**：快速确认爬虫/内容入库是否运行、是否覆盖期望来源，以及最近是否有新内容入库。
+
 ---
 
 ## 🔧 步骤 6: 验证相关性过滤（4.5/5.0 阈值）
@@ -420,7 +431,8 @@ LATERAL match_content_feed_vectors(
 **解决方案**:
 1. 检查内容池是否有数据：`SELECT COUNT(*) FROM content_feed_vectors;`
 2. 检查相关性分数分布（见步骤 6）
-3. 如果相关性分数普遍较低，考虑：
+3. 如 API 响应包含 `personalization.fallback` 字段且值为 `latest`/`trending`，说明系统已自动回退至最新内容或精选热议；继续完善个人资料或等待内容池更新即可
+4. 如果相关性分数普遍较低，考虑：
    - 降低阈值（修改 `RELEVANCE_THRESHOLD` 常量）
    - 优化用户画像生成逻辑
    - 爬取更多相关内容

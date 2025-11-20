@@ -1,6 +1,7 @@
 'use client';
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import type { Session } from '@supabase/supabase-js';
 
 /**
  * 创建客户端 Supabase 客户端
@@ -10,11 +11,31 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
  * @returns Supabase 客户端实例
  */
 export function createClientSupabaseClient() {
-  // createClientComponentClient 会自动处理 cookies 同步
-  // 在客户端组件中，它会自动将 session 写入 cookies，服务器端可以读取
-  return createClientComponentClient({
+  const supabase = createClientComponentClient({
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  });
+
+  if (typeof window !== 'undefined') {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      try {
+        await syncSessionWithServer(event, session);
+      } catch (error) {
+        console.error('同步 session 失败:', error);
+      }
+    });
+  }
+
+  return supabase;
+}
+
+async function syncSessionWithServer(event: string, session: Session | null) {
+  await fetch('/auth/callback', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ event, session }),
   });
 }
 

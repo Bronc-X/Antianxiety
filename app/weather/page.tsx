@@ -39,10 +39,10 @@ export default function WeatherPage() {
       if (currentUser) {
         setUser(currentUser);
         const { data: profileData } = await supabase
-          .from<ProfileRecord>('profiles')
+          .from('profiles')
           .select('*')
           .eq('id', currentUser.id)
-          .single();
+          .single<ProfileRecord>();
         setProfile(profileData || null);
       }
     };

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AnimatedSection from '@/components/AnimatedSection';
 import UserProfileMenu from '@/components/UserProfileMenu';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useI18n } from '@/lib/i18n';
 
 interface MarketingNavProps {
   user?: {
@@ -18,6 +20,7 @@ interface MarketingNavProps {
 
 export default function MarketingNav({ user, profile }: MarketingNavProps) {
   const pathname = usePathname();
+  const { t } = useI18n();
   
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     // 如果不在landing页面，先跳转到landing页面
@@ -55,34 +58,35 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
             </span>
             </Link>
           </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
+          <nav className="hidden md:flex items-center gap-4 text-sm">
+            <LanguageSwitcher />
             <a 
               href="#how" 
               onClick={(e) => handleAnchorClick(e, '#how')}
               className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
             >
-              核心功能
+              {t('nav.core')}
             </a>
             <a 
               href="#model" 
               onClick={(e) => handleAnchorClick(e, '#model')}
               className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
             >
-              科学模型
+              {t('nav.model')}
             </a>
             <a 
               href="#authority" 
               onClick={(e) => handleAnchorClick(e, '#authority')}
               className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
             >
-              权威洞察
+              {t('nav.authority')}
             </a>
             <a 
               href="#pricing" 
               onClick={(e) => handleAnchorClick(e, '#pricing')}
               className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
             >
-              升级
+              {t('nav.pricing')}
             </a>
             {user ? (
               <>
@@ -90,19 +94,21 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
                   href="/assistant"
                   className="inline-flex items-center rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-white hover:shadow-md transition-all"
                 >
-                  AI 助理
+                  {t('nav.assistant')}
                 </Link>
               <UserProfileMenu user={user} profile={profile} />
               </>
             ) : (
               <>
-                <Link href="/login" className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors">登录</Link>
+                <Link href="/login" className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors">
+                  {t('nav.login')}
+                </Link>
                 <a 
                   href="#cta"
                   onClick={(e) => handleAnchorClick(e, '#cta')}
                   className="inline-flex items-center rounded-md bg-[#0B3D2E] px-3 py-1.5 text-white hover:bg-[#0a3629] transition-colors cursor-pointer"
                 >
-                  获取早期访问权限
+                  {t('nav.early')}
                 </a>
               </>
             )}

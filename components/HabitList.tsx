@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import BeliefScoreModal from './BeliefScoreModal';
@@ -18,17 +18,58 @@ interface Habit {
 
 interface HabitListProps {
   habits: Habit[];
+  userId: string;
 }
 
 /**
  * 习惯列表组件
  * 显示用户的习惯列表，并提供"我今天完成了"按钮
  */
-export default function HabitList({ habits }: HabitListProps) {
+export default function HabitList({ habits, userId }: HabitListProps) {
   const router = useRouter();
   const supabase = createClientSupabaseClient();
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const habitIdSetRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    habitIdSetRef.current = new Set(habits.map((habit) => habit.id));
+  }, [habits]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`habit-sync-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_habits', filter: `user_id=eq.${userId}` },
+        () => {
+          router.refresh();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'habit_log' },
+        (payload) => {
+          const newHabitId = (payload.new as { habit_id?: number } | null)?.habit_id;
+          const oldHabitId = (payload.old as { habit_id?: number } | null)?.habit_id;
+          if (
+            (typeof newHabitId === 'number' && habitIdSetRef.current.has(newHabitId)) ||
+            (typeof oldHabitId === 'number' && habitIdSetRef.current.has(oldHabitId))
+          ) {
+            router.refresh();
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('Supabase 实时频道连接失败，已回退到手动刷新。');
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [router, supabase, userId]);
 
   // 处理点击"我今天完成了"按钮
   const handleCompleteClick = (habit: Habit) => {
@@ -61,7 +102,7 @@ export default function HabitList({ habits }: HabitListProps) {
       // 由于 Supabase 不支持事务，我们需要分别执行两个操作
 
       // 1. 更新 user_habits 表的 belief_score
-      const { data: updateData, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('user_habits')
         .update({ belief_score: score })
         .eq('id', selectedHabit.id)
@@ -102,7 +143,7 @@ export default function HabitList({ habits }: HabitListProps) {
       }
 
       // 2. 在 habit_log 表中创建新记录
-      const { data: insertData, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('habit_log')
         .insert({
           habit_id: selectedHabit.id,

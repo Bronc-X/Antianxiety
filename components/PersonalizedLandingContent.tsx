@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { autoGroupData } from '@/lib/chartUtils';
 
@@ -24,14 +23,86 @@ import RefreshIcon from './RefreshIcon';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 
+// 扩展Window接口以支持requestIdleCallback（如果不存在）
+if (typeof window !== 'undefined' && !window.requestIdleCallback) {
+  (window as unknown as { requestIdleCallback: typeof requestIdleCallback }).requestIdleCallback = function(
+    callback: IdleRequestCallback
+  ) {
+    const start = Date.now();
+    return setTimeout(() => {
+      callback({
+        didTimeout: false,
+        timeRemaining() {
+          return Math.max(0, 50 - (Date.now() - start));
+        },
+      });
+    }, 1) as unknown as number;
+  };
+  
+  (window as unknown as { cancelIdleCallback: typeof cancelIdleCallback }).cancelIdleCallback = function(handle: number) {
+    clearTimeout(handle);
+  };
+}
+
+interface HabitLogEntry {
+  id: number;
+  habit_id: number;
+  completed_at: string;
+  belief_score_snapshot: number;
+}
+
+interface DailyLogEntry {
+  log_date: string;
+  sleep_duration_minutes?: number | null;
+  stress_level?: number | null;
+}
+
+interface MicroHabit {
+  name?: string;
+  cue?: string;
+  response?: string;
+  timing?: string;
+  rationale?: string;
+}
+
+interface ProfileData {
+  daily_checkin_time?: string | null;
+  body_function_score?: number | string | null;
+  sleep_hours?: number | string | null;
+  stress_level?: number | string | null;
+  energy_level?: number | string | null;
+  exercise_frequency?: string | null;
+  chronic_conditions?: string[] | null;
+  primary_focus_topics?: string[] | null;
+  reminder_preferences?: Record<string, ReminderPreference> & { ai_auto_mode?: boolean };
+  ai_analysis_result?: {
+    metabolic_rate_estimate?: string;
+    cortisol_pattern?: string;
+    sleep_quality?: string;
+    recovery_capacity?: string;
+    stress_resilience?: string;
+    risk_factors?: string[];
+  };
+  ai_recommendation_plan?: {
+    micro_habits?: MicroHabit[];
+  };
+}
+
+interface ReminderPreference {
+  enabled: boolean;
+  mode: 'manual' | 'ai';
+  time?: string;
+  dose?: string;
+}
+
 interface PersonalizedLandingContentProps {
-  habitLogs: any[];
-  profile: any;
-  dailyLogs: any[];
+  habitLogs: HabitLogEntry[];
+  profile: ProfileData | null;
+  dailyLogs: DailyLogEntry[];
 }
 
 // 今日提醒面板组件
-function TodayRemindersPanel({ profile }: { profile: any }) {
+function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
   const router = useRouter();
   const supabase = createClientSupabaseClient();
   const [reminderTimeMode, setReminderTimeMode] = useState<'manual' | 'ai'>('manual');
@@ -96,14 +167,12 @@ function TodayRemindersPanel({ profile }: { profile: any }) {
         last_updated: new Date().toISOString(),
       };
 
-      const updateData: any = {};
-
-      // 尝试更新 reminder_preferences，如果字段不存在则只更新其他字段
-      try {
-        updateData.reminder_preferences = todayReminders;
-      } catch (e) {
-        console.warn('reminder_preferences 字段可能不存在，跳过该字段更新');
-      }
+      const updateData: {
+        reminder_preferences: typeof todayReminders;
+        daily_checkin_time?: string;
+      } = {
+        reminder_preferences: todayReminders,
+      };
 
       if (reminderTimeMode === 'manual' && manualTime) {
         updateData.daily_checkin_time = `${manualTime}:00`;
@@ -486,14 +555,14 @@ export default function PersonalizedLandingContent({
           const uniq = mapped.filter(m => !builtinIds.has(m.id));
           setCsvTopics(uniq);
         }
-      } catch (e) {
+      } catch {
         // 静默失败，保持内置数据
         // console.warn('加载 tweets.csv 失败', e);
       }
     };
     // 延迟到首帧之后执行，避免阻塞首次渲染
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(() => {
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(() => {
         if (!cancelled) loadCsv();
       }, { timeout: 1000 });
     } else {
@@ -588,12 +657,6 @@ export default function PersonalizedLandingContent({
     return [];
   }, [profile?.primary_focus_topics]);
 
-  const reminderTime = useMemo(() => {
-    if (!profile?.daily_checkin_time) return null;
-    const timeString = profile.daily_checkin_time as string;
-    return timeString.slice(0, 5);
-  }, [profile?.daily_checkin_time]);
-
   // 确保bodyFunctionScore在0-100范围内，并计算水的高度
   const waterLevel = Math.max(0, Math.min(100, bodyFunctionScore));
   const waterHeight = Math.max(0, (240 * waterLevel) / 100);
@@ -638,7 +701,7 @@ export default function PersonalizedLandingContent({
     let stressSum = 0;
     let stressCount = 0;
 
-    const logMap = new Map<string, any>(dailyLogs.map((log: any) => [log.log_date, log]));
+    const logMap = new Map<string, DailyLogEntry>(dailyLogs.map((log) => [log.log_date, log]));
 
     lastSevenDates.forEach((dateKey) => {
       const log = logMap.get(dateKey);
@@ -661,11 +724,6 @@ export default function PersonalizedLandingContent({
       averageStress: stressCount > 0 ? Number((stressSum / stressCount).toFixed(1)) : null,
     };
   }, [dailyLogs, lastSevenDates]);
-
-  const averageSleepDisplay =
-    dailyStats.averageSleepHours !== null ? `${dailyStats.averageSleepHours} 小时` : '待记录';
-  const averageStressDisplay =
-    dailyStats.averageStress !== null ? `${dailyStats.averageStress}/10` : '待记录';
 
   // 计算匹配分数并筛选帖子的函数
   const calculateMatchedTopics = useCallback((excludeIds: Set<string> = new Set(), currentDisplayedIds: Set<string> = new Set()) => {
@@ -938,7 +996,7 @@ export default function PersonalizedLandingContent({
               <div>
                 <h3 className="text-lg font-semibold text-[#0B3D2E]">高赞生理话题匹配</h3>
                 <p className="text-sm text-[#0B3D2E]/70">
-                  从 Reddit / X 过滤噪音，推送与你关注主题高度相关的科学讨论与数据洞察。
+                  过滤噪音，向你推荐通过计算，推送内容符合与你的改善计划高度相关的科学讨论与数据洞察。
                 </p>
               </div>
               <div className="flex items-center gap-3">

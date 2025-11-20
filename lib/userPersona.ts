@@ -150,9 +150,10 @@ export async function updateUserPersonaEmbedding(userId: string): Promise<{ succ
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('更新用户画像向量异常:', error);
-    return { success: false, error: error.message };
+    const message = error instanceof Error ? error.message : '未知错误';
+    return { success: false, error: message };
   }
 }
 

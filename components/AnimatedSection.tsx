@@ -1,21 +1,15 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { fadeUp, fadeIn, springScaleIn } from '@/lib/animations';
 import type { PropsWithChildren } from 'react';
 
 type VariantName = 'fadeUp' | 'fadeIn' | 'springScaleIn';
-type MotionVariant = {
-  initial?: any;
-  animate?: any;
-  exit?: any;
-  transition?: any;
-};
 
-const variantsMap: Record<VariantName, MotionVariant> = {
-  fadeUp,
-  fadeIn,
-  springScaleIn,
+const variantsMap: Record<VariantName, Variants> = {
+  fadeUp: fadeUp as Variants,
+  fadeIn: fadeIn as Variants,
+  springScaleIn: springScaleIn as Variants,
 };
 
 type AnimatedSectionProps = PropsWithChildren<{
@@ -38,7 +32,6 @@ export default function AnimatedSection({
         initial="initial"
         whileInView="animate"
         viewport={{ once: true, amount: 0.2 }}
-        transition={variants.transition}
         variants={variants}
         className={className}
       >
@@ -52,7 +45,6 @@ export default function AnimatedSection({
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={variants.transition}
       variants={variants}
       className={className}
     >

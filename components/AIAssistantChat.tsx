@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, FormEvent } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
 import { AI_ROLES } from '@/lib/config/constants';
-import type { AIAssistantProfile, ConversationRow, MicroHabit, RoleType } from '@/types/assistant';
+import type { AIAssistantProfile, ConversationRow, RoleType } from '@/types/assistant';
 
 interface Message {
   role: RoleType;
@@ -40,7 +40,7 @@ const resolveDisplayName = (profile?: AIAssistantProfile): string => {
     profile.username,
     profile.email?.split?.('@')?.[0],
   ];
-  const found = candidates.find((item?: string) => item && String(item).trim().length > 0);
+  const found = candidates.find((item?: string | null) => item && String(item).trim().length > 0);
   return found ? String(found).trim() : '朋友';
 };
 
@@ -69,11 +69,12 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       if (!user) return;
 
       const { data, error } = await supabase
-        .from<ConversationRow>('ai_conversations')
+        .from('ai_conversations')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true })
-        .limit(50);
+        .limit(50)
+        .returns<ConversationRow[]>();
 
       if (error) {
         console.error('加载对话历史时出错:', error);
