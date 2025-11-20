@@ -4,6 +4,7 @@ import "./globals.css";
 import RouteTransition from "@/components/RouteTransition";
 import MotionProvider from "@/components/MotionProvider";
 import AIAssistantFloatingButton from "@/components/AIAssistantFloatingButton";
+import { I18nProvider } from "@/lib/i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,10 +32,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
+        <I18nProvider>
         <MotionProvider>
           <RouteTransition>{children}</RouteTransition>
           <AIAssistantFloatingButton />
         </MotionProvider>
+        </I18nProvider>
       </body>
     </html>
   );

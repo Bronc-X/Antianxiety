@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, Suspense } from 'react';
+import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import AnimatedSection from '@/components/AnimatedSection';
 import Link from 'next/link';
@@ -33,14 +33,33 @@ const HealingIllustration = dynamic(() => import('@/components/HealingIllustrati
   ssr: false,
 });
 
+interface LandingProfile {
+  daily_checkin_time?: string | null;
+  full_name?: string | null;
+}
+
+interface LandingDailyLog {
+  log_date: string;
+  sleep_duration_minutes?: number | null;
+  stress_level?: number | null;
+  exercise_duration_minutes?: number | null;
+}
+
+interface HabitLogEntry {
+  id: number;
+  habit_id: number;
+  completed_at: string;
+  belief_score_snapshot: number;
+}
+
 interface LandingContentProps {
   user?: {
     id: string;
     email?: string;
   } | null;
-  profile?: any;
-  habitLogs?: any[];
-  dailyLogs?: any[];
+  profile?: LandingProfile | null;
+  habitLogs?: HabitLogEntry[];
+  dailyLogs?: LandingDailyLog[];
 }
 
 export default function LandingContent({
@@ -627,8 +646,8 @@ export default function LandingContent({
       <section id="how" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 scroll-mt-20">
         <AnimatedSection inView variant="fadeUp">
           <h2 className="text-2xl sm:text-3xl font-semibold text-[#0B3D2E] leading-tight">
-            <span className="block">健康产业是"噪音"。</span>
-            <span className="block">生理信号是"真相"。</span>
+            <span className="block">健康产业是&quot;噪音&quot;。</span>
+            <span className="block">生理信号是&quot;真相&quot;。</span>
           </h2>
           <div className="mt-6 grid md:grid-cols-3 gap-4 items-stretch">
             {/* 认知负荷 */}
@@ -648,11 +667,11 @@ export default function LandingContent({
                   }}
                 />
                 <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Cognitive Load</div>
-                <div className="mt-1 text-xl font-medium text-[#0B3D2E]">"认知负荷"已满。</div>
+                <div className="mt-1 text-xl font-medium text-[#0B3D2E]">&quot;认知负荷&quot;已满。</div>
                 <div className="mt-3 text-[#0B3D2E]/80 space-y-3">
                   <p>你知道有氧和力量训练；你懂得区分优质的蛋白质、脂肪和碳水。你明白要保证充足的睡眠。</p>
-                  <p>但身体仍然像一个失控的"黑匣子"。</p>
-                  <p>你发现，只是更努力地去坚持这些"规则"，并不是最终的答案。</p>
+                  <p>但身体仍然像一个失控的&quot;黑匣子&quot;。</p>
+                  <p>你发现，只是更努力地去坚持这些&quot;规则&quot;，并不是最终的答案。</p>
                 </div>
               </motion.div>
             </div>
@@ -676,7 +695,7 @@ export default function LandingContent({
                 <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Habit Streaks</div>
                 <div className="mt-1 text-xl font-medium text-[#0B3D2E]">打卡游戏好玩吗？</div>
                 <p className="mt-3 text-[#0B3D2E]/80">
-                  许多健康App依赖"羞耻感"和"强制打卡"。功能越来越多，认知负荷越来越重，却不触及"根本原因"。你的身体并没有崩溃，它只是在诚实地对压力做出反应。
+                  许多健康App依赖&quot;羞耻感&quot;和&quot;强制打卡&quot;。功能越来越多，认知负荷越来越重，却不触及&quot;根本原因&quot;。你的身体并没有崩溃，它只是在诚实地对压力做出反应。
                 </p>
               </motion.div>
             </div>
@@ -700,7 +719,7 @@ export default function LandingContent({
                 <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">The Signal</div>
                 <div className="mt-1 text-xl font-medium text-[#0B3D2E]">信号：接受生理真相。</div>
                 <p className="mt-3 text-[#0B3D2E]/80">
-                  我们承认新陈代谢的不可逆趋势，但可以选择"反应"。先解决"焦虑"（领先指标），自然改善"身体机能"（滞后指标）。不对抗真相，与真相和解。
+                  我们承认新陈代谢的不可逆趋势，但可以选择&quot;反应&quot;。先解决&quot;焦虑&quot;（领先指标），自然改善&quot;身体机能&quot;（滞后指标）。不对抗真相，与真相和解。
                 </p>
               </motion.div>
             </div>
@@ -733,11 +752,11 @@ export default function LandingContent({
                 <div className="pointer-events-none absolute right-3 top-3 h-5 w-5 rounded-sm bg-[#0B3D2E]/10 border border-[#0B3D2E]/20" />
 
                 <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Agent</div>
-                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">您的专属"健康代理"</h3>
+                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">您的专属&quot;健康代理&quot;</h3>
                 <p className="mt-3 text-[#0B3D2E]/80">这不是一个AI聊天机器人。</p>
-                <p className="mt-2 text-[#0B3D2E] font-semibold">它冷血，因为它只会基于唯一的规则："生理真相"。</p>
+                <p className="mt-2 text-[#0B3D2E] font-semibold">它冷血，因为它只会基于唯一的规则：&quot;生理真相&quot;。</p>
                 <p className="mt-2 text-[#0B3D2E]/80">
-                  它不会说"加油！"。它会说："你现在感到焦虑，意味着你的皮质醇已达峰值。一个5分钟的步行是为了'代谢'你的压力激素。"
+                  它不会说&quot;加油！&quot;。它会说：&quot;你现在感到焦虑，意味着你的皮质醇已达峰值。一个5分钟的步行是为了&nbsp;&apos;代谢&apos;&nbsp;你的压力激素。&quot;
                 </p>
                 <div className="mt-4">
                   <Link
@@ -782,12 +801,12 @@ export default function LandingContent({
                 <div className="pointer-events-none absolute right-3 top-3 h-5 w-5 rounded-sm bg-[#0B3D2E]/10 border border-[#0B3D2E]/20" />
 
                 <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Bayesian</div>
-                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">"贝叶斯信念"循环</h3>
+                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">&quot;贝叶斯信念&quot;循环</h3>
                 <p className="mt-3 text-[#0B3D2E]/80">
-                  我们从来不为"打卡天数"而焦虑。我们只关心"信念强度"。每次行动后，你将评估："这在起作用的确信度(1-10)"。我们帮你可视化"信心曲线"。
+                  我们从来不为&quot;打卡天数&quot;而焦虑。我们只关心&quot;信念强度&quot;。每次行动后，你将评估：&quot;这在起作用的确信度(1-10)&quot;。我们帮你可视化&quot;信心曲线&quot;。
                 </p>
                 <div className="mt-auto pt-4 text-xs text-[#0B3D2E]/60">
-                  参考：后验置信度随可验证信号更新（Bayes' theorem，
+                  参考：后验置信度随可验证信号更新（Bayes&apos; theorem，
                   <a className="underline" href="https://en.wikipedia.org/wiki/Bayes%27_theorem" target="_blank" rel="noreferrer">
                     https://en.wikipedia.org/wiki/Bayes%27_theorem
                   </a>
@@ -825,7 +844,7 @@ export default function LandingContent({
                 <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Minimum Dose</div>
                 <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">最低有效剂量</h3>
                 <p className="mt-3 text-[#0B3D2E]/80">
-                  你不需要每天锻炼1小时，那太累了。你只需要在"线索"出现时，执行"最低阻力"的"反应"（如步行5分钟）。我们帮你识别并建立这些"微习惯"，直到它们成为"自动脚本"。
+                  你不需要每天锻炼1小时，那太累了。你只需要在&quot;线索&quot;出现时，执行&quot;最低阻力&quot;的&quot;反应&quot;（如步行5分钟）。我们帮你识别并建立这些&quot;微习惯&quot;，直到它们成为&quot;自动脚本&quot;。
                 </p>
                 <div className="mt-auto pt-4 text-xs text-[#0B3D2E]/60">
                   参考：运动与奖赏/上瘾机制综述（NCBI，
@@ -871,12 +890,12 @@ export default function LandingContent({
       {/* Authority Feed (static) */}
       <section id="authority" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 scroll-mt-20">
         <AnimatedSection inView variant="fadeUp" className="rounded-xl border border-[#E7E1D6] bg-white p-6">
-          <h2 className="text-2xl font-semibold text-[#0B3D2E]">一个没有"噪音"的信息流。</h2>
+          <h2 className="text-2xl font-semibold text-[#0B3D2E]">一个没有&quot;噪音&quot;的信息流。</h2>
           <p className="mt-3 text-[#0B3D2E]/80">
             我们从 X、顶级权威健康研报、Reddit 热议组等为您精选了该领域最顶尖的生理学家、神经科学家和表现专家的核心见解。
-            没有励志名言，没有低效"技巧"，只有可执行的数据和第一性原理。
+            没有励志名言，没有低效&quot;技巧&quot;，只有可执行的数据和第一性原理。
             <span className="block mt-1 text-[#0B3D2E]/60 text-xs">
-              (The internet is 99% noise and 1% signal. We've done the filtering for you. We curate core insights from top physiologists, neuroscientists, and performance experts on X (formerly Twitter). No motivational quotes, no inefficient 'hacks.' Just actionable data and first principles.)
+              (The internet is 99% noise and 1% signal. We&apos;ve done the filtering for you. We curate core insights from top physiologists, neuroscientists, and performance experts on X (formerly Twitter). No motivational quotes, no inefficient &apos;hacks.&apos; Just actionable data and first principles.)
             </span>
           </p>
           <div className="mt-4">

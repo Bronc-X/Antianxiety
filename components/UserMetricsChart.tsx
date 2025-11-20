@@ -101,9 +101,13 @@ export default function UserMetricsChart({ data }: UserMetricsChartProps) {
                 borderRadius: '6px',
                 color: '#0B3D2E',
               }}
-              formatter={(value: any) => {
+              formatter={(value) => {
                 if (value === null || value === undefined) return '暂无数据';
-                return `${parseFloat(value).toFixed(1)}`;
+                const numericValue = Array.isArray(value) ? Number(value[0]) : Number(value);
+                if (Number.isNaN(numericValue)) {
+                  return '暂无数据';
+                }
+                return `${numericValue.toFixed(1)}`;
               }}
               labelFormatter={(label) => `日期: ${label}`}
             />

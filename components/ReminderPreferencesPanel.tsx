@@ -5,8 +5,22 @@ import { useRouter } from 'next/navigation';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
 
+interface ReminderPreference {
+  enabled: boolean;
+  mode: 'manual' | 'ai';
+  time?: string;
+  dose?: string;
+}
+
+interface ReminderProfile {
+  id?: string;
+  reminder_preferences?: Record<string, ReminderPreference> & {
+    ai_auto_mode?: boolean;
+  };
+}
+
 interface ReminderPreferencesPanelProps {
-  initialProfile: any;
+  initialProfile: ReminderProfile;
 }
 
 const reminderActivities = [
@@ -22,28 +36,29 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
   const supabase = createClientSupabaseClient();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [aiAutoMode, setAiAutoMode] = useState(false); // AI自动提醒模式
-
   const savedPreferences = initialProfile?.reminder_preferences || {};
-  const [preferences, setPreferences] = useState<Record<string, {
-    enabled: boolean;
-    mode: 'manual' | 'ai';
-    time?: string;
-    dose?: string;
-  }>>(() => {
-    const prefs: Record<string, any> = {};
-    reminderActivities.forEach(activity => {
-      prefs[activity.id] = savedPreferences[activity.id] || {
-        enabled: false,
-        mode: 'ai',
-        time: activity.defaultTime,
-        dose: activity.defaultDose,
-      };
+  const [aiAutoMode, setAiAutoMode] = useState(Boolean(savedPreferences.ai_auto_mode));
+
+  const [preferences, setPreferences] = useState<Record<string, ReminderPreference>>(() => {
+    const prefs: Record<string, ReminderPreference> = {};
+    reminderActivities.forEach((activity) => {
+      const existingPreference = savedPreferences[activity.id] as ReminderPreference | undefined;
+      prefs[activity.id] =
+        existingPreference || {
+          enabled: false,
+          mode: 'ai',
+          time: activity.defaultTime,
+          dose: activity.defaultDose,
+        };
     });
     return prefs;
   });
 
-  const updatePreference = (activityId: string, field: string, value: any) => {
+  const updatePreference = <K extends keyof ReminderPreference>(
+    activityId: string,
+    field: K,
+    value: ReminderPreference[K]
+  ) => {
     setPreferences(prev => ({
       ...prev,
       [activityId]: {
@@ -57,8 +72,8 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
   const handleEnableAIAuto = () => {
     setAiAutoMode(true);
     // 将所有活动设置为启用，模式为AI
-    const newPreferences: Record<string, any> = {};
-    reminderActivities.forEach(activity => {
+    const newPreferences: Record<string, ReminderPreference> = {};
+    reminderActivities.forEach((activity) => {
       newPreferences[activity.id] = {
         enabled: true,
         mode: 'ai',
@@ -89,18 +104,9 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
         last_updated: new Date().toISOString(),
       };
 
-      const updateData: any = {};
-      
-      // 尝试更新 reminder_preferences，如果字段不存在则只更新其他字段
-      try {
-        updateData.reminder_preferences = todayReminders;
-      } catch (e) {
-        console.warn('reminder_preferences 字段可能不存在，跳过该字段更新');
-      }
-
       const { error: updateError } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update({ reminder_preferences: todayReminders })
         .eq('id', user.id);
 
       if (updateError) {

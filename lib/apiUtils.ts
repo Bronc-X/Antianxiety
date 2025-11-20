@@ -58,20 +58,22 @@ export async function fetchWithRetry(
 /**
  * 解析 API 错误信息
  */
-export function parseApiError(error: any): { message: string; code?: string } {
-  if (error?.response) {
-    // Fetch API 错误
-    return {
-      message: error.response.statusText || '请求失败',
-      code: error.response.status?.toString(),
-    };
-  }
+export function parseApiError(error: unknown): { message: string; code?: string } {
+  if (error && typeof error === 'object') {
+    const response = (error as { response?: { statusText?: string; status?: number } }).response;
+    if (response) {
+      return {
+        message: response.statusText || '请求失败',
+        code: response.status?.toString(),
+      };
+    }
 
-  if (error?.message) {
-    return {
-      message: error.message,
-      code: error.code,
-    };
+    if ('message' in error) {
+      return {
+        message: String((error as { message?: string }).message || '请求失败'),
+        code: (error as { code?: string | number }).code?.toString(),
+      };
+    }
   }
 
   return {

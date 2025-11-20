@@ -5,8 +5,29 @@ import { useRouter } from 'next/navigation';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
 
+interface ProfileRecord {
+  id?: string;
+  height?: number | null;
+  weight?: number | null;
+  birth_date?: string | null;
+  location?: string | null;
+  daily_checkin_time?: string | null;
+  notification_enabled?: boolean | null;
+  notification_email?: string | null;
+}
+
 interface ProfileSettingsPanelProps {
-  initialProfile: any;
+  initialProfile: ProfileRecord;
+}
+
+interface ProfileFormState {
+  height: string;
+  weight: string;
+  birth_date: string;
+  location: string;
+  daily_checkin_time: string;
+  notification_enabled: boolean;
+  notification_email: string;
 }
 
 export default function ProfileSettingsPanel({ initialProfile }: ProfileSettingsPanelProps) {
@@ -15,9 +36,9 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
-    height: initialProfile?.height || '',
-    weight: initialProfile?.weight || '',
+  const [formData, setFormData] = useState<ProfileFormState>({
+    height: initialProfile?.height ? String(initialProfile.height) : '',
+    weight: initialProfile?.weight ? String(initialProfile.weight) : '',
     birth_date: initialProfile?.birth_date ? (initialProfile.birth_date as string).slice(0, 10) : '',
     location: initialProfile?.location || '广州',
     daily_checkin_time: initialProfile?.daily_checkin_time ? (initialProfile.daily_checkin_time as string).slice(0, 5) : '',
@@ -25,8 +46,8 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
     notification_email: initialProfile?.notification_email || '',
   });
 
-  const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleChange = <K extends keyof ProfileFormState>(field: K, value: ProfileFormState[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {

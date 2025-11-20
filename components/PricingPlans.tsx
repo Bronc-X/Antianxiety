@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 
 interface PricingPlan {
@@ -68,8 +67,6 @@ const pricingPlans: PricingPlan[] = [
 ];
 
 export default function PricingPlans() {
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-
   return (
     <div className="bg-[#FAF6EF] py-16 px-4">
       <div className="max-w-7xl mx-auto">
@@ -148,7 +145,6 @@ export default function PricingPlans() {
               {/* CTA 按钮 */}
               <Link
                 href={plan.ctaLink}
-                onClick={() => setSelectedPlan(plan.name)}
                 className={`block w-full text-center py-3 px-6 rounded-lg font-semibold transition-all ${
                   plan.highlighted
                     ? 'bg-[#0B3D2E] text-white hover:bg-[#0a3427] shadow-md'

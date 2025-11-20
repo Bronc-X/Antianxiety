@@ -148,6 +148,13 @@ async function runFullTest() {
   console.log('\n✅ 测试完成！');
 }
 
+if (require.main === module) {
+  runFullTest().catch((error) => {
+    console.error('测试运行出错:', error);
+    process.exit(1);
+  });
+}
+
 // ============================================
 // 导出测试函数（在 Console 中可以直接调用）
 // ============================================

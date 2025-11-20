@@ -3,6 +3,16 @@
 import dynamic from 'next/dynamic';
 import { ComponentType } from 'react';
 
+type HabitCompletionDataPoint = {
+  period: string;
+  completions: number;
+};
+
+type BeliefScoreDataPoint = {
+  period: string;
+  averageScore: number;
+};
+
 // 动态导入图表组件，减少初始 bundle 大小
 export const HabitCompletionChart = dynamic(
   () => import('@/components/HabitCompletionChart'),
@@ -14,7 +24,7 @@ export const HabitCompletionChart = dynamic(
     ),
     ssr: false,
   }
-) as ComponentType<{ data: any[] }>;
+) as ComponentType<{ data: HabitCompletionDataPoint[] }>;
 
 export const BeliefScoreChart = dynamic(
   () => import('@/components/BeliefScoreChart'),
@@ -26,7 +36,7 @@ export const BeliefScoreChart = dynamic(
     ),
     ssr: false,
   }
-) as ComponentType<{ data: any[] }>;
+) as ComponentType<{ data: BeliefScoreDataPoint[] }>;
 
 export const XFeed = dynamic(
   () => import('@/components/XFeed'),

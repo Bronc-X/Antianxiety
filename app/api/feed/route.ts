@@ -2,16 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { DB_TABLES, RELEVANCE_THRESHOLD } from '@/lib/config/constants';
 import { parseApiError } from '@/lib/apiUtils';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { trendingTopics } from '@/data/trendingTopics';
 
 export const runtime = 'nodejs';
 
+interface ProfileEmbedding {
+  user_persona_embedding: number[] | null;
+  primary_focus_topics?: string[];
+}
+
+interface ContentFeedVector {
+  id: number | string;
+  source_url: string;
+  source_type: string;
+  content_text: string;
+  published_at: string | null;
+  relevance_score?: number | null;
+}
+
+interface ContentFeedVectorWithEmbedding extends ContentFeedVector {
+  embedding: number[] | null;
+}
+
+interface PersonalizationMeta {
+  ready: boolean;
+  reason: string;
+  message?: string;
+  fallback?: 'latest' | 'trending' | 'none';
+}
+
 /**
  * 个性化信息流 API
- * 根据用户画像进行 RAG 搜索，返回高度相关的内容（相关性 > 4.5/5）
+ * 根据用户画像进行 RAG 搜索，返回高度相关的内容（相关性 ≥ 4.5/5）
+ * 支持缺省降级：当个性化数据不足时回退到最新高质量内容
  */
 export async function GET(request: NextRequest) {
   try {
-    // 验证用户身份
     const supabase = await createServerSupabaseClient();
     const {
       data: { user },
@@ -22,70 +49,102 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    // 获取查询参数
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const sourceType = searchParams.get('source_type'); // 可选：过滤来源类型
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 50);
+    const sourceType = searchParams.get('source_type');
 
-    // 获取用户画像向量
     const { data: profile, error: profileError } = await supabase
       .from(DB_TABLES.PROFILES)
       .select('user_persona_embedding, primary_focus_topics')
       .eq('id', user.id)
-      .single();
+      .single<ProfileEmbedding>();
 
     if (profileError || !profile) {
-      return NextResponse.json(
-        { error: '用户资料不存在' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: '用户资料不存在' }, { status: 404 });
     }
 
-    // 如果没有用户画像向量，返回空结果
     if (!profile.user_persona_embedding) {
+      const fallbackItems = await getLatestHighQualityFeed(supabase, limit, sourceType);
       return NextResponse.json({
-        items: [],
-        message: '用户画像向量未生成，请先完成个人资料设置',
+        items: fallbackItems,
+        personalization: buildMeta({
+          ready: false,
+          reason: 'missing_embedding',
+          message: '尚未生成个人画像向量，已为你展示最新高评分内容。',
+          fallback: fallbackItems.length ? 'latest' : 'trending',
+        }),
       });
     }
 
-    // 执行向量相似度搜索
-    let query = supabase
-      .from(DB_TABLES.CONTENT_FEED_VECTORS)
-      .select('id, source_url, source_type, content_text, published_at, relevance_score')
-      .not('embedding', 'is', null);
-
-    // 如果指定了来源类型，添加过滤
-    if (sourceType) {
-      query = query.eq('source_type', sourceType);
-    }
-
-    // 使用 pgvector 的相似度搜索
-    // 注意：Supabase 的向量搜索需要使用 RPC 函数
     const { data: similarContent, error: searchError } = await supabase.rpc(
       'match_content_feed_vectors',
       {
         query_embedding: profile.user_persona_embedding,
-        match_threshold: RELEVANCE_THRESHOLD / 5.0, // 转换为 0-1 范围（4.5/5 = 0.9）
+        match_threshold: RELEVANCE_THRESHOLD / 5.0,
         match_count: limit,
         source_type_filter: sourceType || null,
       }
-    );
+    ) as { data: ContentFeedVector[] | null; error: Error | null };
 
     if (searchError) {
-      // 如果 RPC 函数不存在，使用备用方案：计算相关性分数
-      console.warn('RPC 函数不存在，使用备用搜索方案');
-      return await fallbackSearch(supabase, profile.user_persona_embedding, limit, sourceType);
+      console.warn('match_content_feed_vectors 不可用，使用备用搜索方案:', searchError.message);
+      const scoredFallback = await fallbackSearch(
+        supabase,
+        profile.user_persona_embedding,
+        limit,
+        sourceType
+      );
+
+      if (scoredFallback.length > 0) {
+        return NextResponse.json({
+          items: scoredFallback.slice(0, limit),
+          personalization: buildMeta({
+            ready: true,
+            reason: 'rpc_fallback',
+            message: '向量搜索暂不可用，已改用备用算法提供内容。',
+            fallback: 'latest',
+          }),
+        });
+      }
+
+      const latest = await getLatestHighQualityFeed(supabase, limit, sourceType);
+      return NextResponse.json({
+        items: latest,
+        personalization: buildMeta({
+          ready: true,
+          reason: 'rpc_fallback',
+          message: '向量搜索暂不可用，已改用最新内容池。',
+          fallback: latest.length ? 'latest' : 'trending',
+        }),
+      });
     }
 
-    // 过滤相关性分数 >= 4.5/5 的内容
     const filteredContent = (similarContent || []).filter(
-      (item: any) => (item.relevance_score || 0) >= RELEVANCE_THRESHOLD
+      (item: ContentFeedVector) => Number(item.relevance_score ?? 0) >= RELEVANCE_THRESHOLD
     );
+
+    if (!Array.isArray(filteredContent) || filteredContent.length === 0) {
+      const fallbackItems = await getLatestHighQualityFeed(supabase, limit, sourceType);
+      return NextResponse.json({
+        items: fallbackItems,
+        personalization: buildMeta({
+          ready: true,
+          reason: 'no_high_match',
+          message: '暂未匹配到 4.5 星以上的内容，已展示最新优质内容。',
+          fallback: fallbackItems.length ? 'latest' : 'trending',
+        }),
+      });
+    }
 
     return NextResponse.json({
       items: filteredContent.slice(0, limit),
       count: filteredContent.length,
+      personalization: buildMeta({
+        ready: true,
+        reason: 'personalized',
+        message: '已基于你的画像筛选出 4.5 星以上的讨论。',
+        fallback: 'none',
+      }),
     });
   } catch (error) {
     console.error('个性化信息流 API 错误:', error);
@@ -100,62 +159,104 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * 备用搜索方案（如果 RPC 函数不存在）
- */
+function buildMeta(meta: PersonalizationMeta): PersonalizationMeta {
+  return meta;
+}
+
 async function fallbackSearch(
-  supabase: any,
+  supabase: SupabaseClient,
   userEmbedding: number[],
   limit: number,
   sourceType: string | null
-) {
-  // 获取所有内容
+): Promise<ContentFeedVector[]> {
   let query = supabase
     .from(DB_TABLES.CONTENT_FEED_VECTORS)
     .select('id, source_url, source_type, content_text, published_at, embedding')
     .not('embedding', 'is', null)
-    .limit(100); // 限制查询数量以提高性能
+    .limit(200);
 
   if (sourceType) {
     query = query.eq('source_type', sourceType);
   }
 
-  const { data: allContent, error } = await query;
+  const { data: allContent, error } = await query.returns<ContentFeedVectorWithEmbedding[]>();
 
   if (error || !allContent) {
-    return NextResponse.json({ items: [], count: 0 });
+    console.error('备用相似度搜索失败:', error);
+    return [];
   }
 
-  // 计算余弦相似度
-  const scoredContent = allContent
-    .map((item: any) => {
-      if (!item.embedding || !Array.isArray(item.embedding)) {
-        return null;
-      }
+  const mapped: ContentFeedVector[] = [];
+  
+  for (const item of allContent) {
+    if (!item.embedding || !Array.isArray(item.embedding)) {
+      continue;
+    }
 
-      // 计算余弦相似度
-      const similarity = cosineSimilarity(userEmbedding, item.embedding);
-      const relevanceScore = similarity * 5; // 转换为 0-5 范围
+    const similarity = cosineSimilarity(userEmbedding, item.embedding);
+    const relevanceScore = similarity * 5;
 
-      return {
-        ...item,
+    if (relevanceScore >= RELEVANCE_THRESHOLD) {
+      mapped.push({
+        id: item.id,
+        source_url: item.source_url,
+        source_type: item.source_type,
+        content_text: item.content_text,
+        published_at: item.published_at,
         relevance_score: relevanceScore,
-        embedding: undefined, // 移除嵌入向量以减小响应大小
-      };
-    })
-    .filter((item: any) => item && item.relevance_score >= RELEVANCE_THRESHOLD)
-    .sort((a: any, b: any) => b.relevance_score - a.relevance_score)
+      });
+    }
+  }
+  
+  return mapped
+    .sort((a, b) => (Number(b.relevance_score ?? 0) - Number(a.relevance_score ?? 0)))
     .slice(0, limit);
-
-  return NextResponse.json({
-    items: scoredContent,
-    count: scoredContent.length,
-  });
 }
 
-/**
- * 计算余弦相似度
- */
+async function getLatestHighQualityFeed(
+  supabase: SupabaseClient,
+  limit: number,
+  sourceType: string | null
+): Promise<ContentFeedVector[]> {
+  let query = supabase
+    .from(DB_TABLES.CONTENT_FEED_VECTORS)
+    .select('id, source_url, source_type, content_text, published_at, relevance_score')
+    .order('crawled_at', { ascending: false })
+    .limit(limit);
+
+  if (sourceType) {
+    query = query.eq('source_type', sourceType);
+  }
+
+  const { data, error } = await query;
+
+  if (!error && data && data.length > 0) {
+    return data;
+  }
+
+  return buildTrendingFallback(limit, sourceType);
+}
+
+function buildTrendingFallback(limit: number, sourceType: string | null): ContentFeedVector[] {
+  const normalizedFilter = sourceType?.toLowerCase() ?? null;
+  const normalizedTopics = trendingTopics
+    .filter((topic) => {
+      if (!normalizedFilter) return true;
+      return topic.source.toLowerCase() === normalizedFilter;
+    })
+    .slice(0, limit)
+    .map((topic, index) => ({
+      id: `trending-${topic.id}-${index}`,
+      source_url: topic.url,
+      source_type: topic.source.toLowerCase() === 'x' ? 'x' : 'reddit',
+      content_text: topic.summary,
+      published_at: null,
+      relevance_score: topic.baseScore ?? RELEVANCE_THRESHOLD,
+    }));
+
+  return normalizedTopics;
+}
+
 function cosineSimilarity(vecA: number[], vecB: number[]): number {
   if (vecA.length !== vecB.length) {
     return 0;
@@ -178,5 +279,3 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
 
   return dotProduct / denominator;
 }
-
-

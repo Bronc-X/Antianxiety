@@ -2,7 +2,7 @@
  * 环境变量检查脚本
  * 用于验证部署所需的环境变量是否已配置
  */
-
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 

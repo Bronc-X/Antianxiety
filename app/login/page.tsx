@@ -4,42 +4,76 @@ import { useState, FormEvent, Suspense, useEffect } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import AnimatedSection from '@/components/AnimatedSection';
 
-/**
- * 登录表单内容组件（使用 Suspense 包裹 useSearchParams）
+/*
+ * 登录页面组件
+ * 支持邮箱/密码登录与第三方 OAuth
  */
 function LoginFormContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isMagicLink, setIsMagicLink] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
-  const [showWechatSignup, setShowWechatSignup] = useState(false);
-  const [oauthProviderLoading, setOauthProviderLoading] = useState<'google' | 'twitter' | 'reddit' | null>(null);
-  const [showNarrativePopup, setShowNarrativePopup] = useState(true);
-  const [narrativePhase, setNarrativePhase] = useState<'enter' | 'stable' | 'exit'>('enter');
-  const wechatQrSrc =
-    process.env.NEXT_PUBLIC_WECHAT_QR_URL ||
-    'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fmp.weixin.qq.com';
+  const [oauthProviderLoading, setOauthProviderLoading] = useState<'twitter' | 'github' | 'web3' | 'wechat' | null>(null);
   const searchParams = useSearchParams();
   const supabase = createClientSupabaseClient();
   
+  // 检查 URL 中的错误参数
+  useEffect(() => {
+    const error = searchParams.get('error');
+    const details = searchParams.get('details');
+    if (error) {
+      let errorMessage = '登录失败，请稍后再试。';
+      if (error === 'invalid_token') {
+        errorMessage = '登录验证失败，请重新尝试登录。';
+      } else if (error === 'server_error') {
+        errorMessage = details ? `服务器错误：${decodeURIComponent(details)}` : '服务器错误，请稍后再试。';
+      } else if (error === 'oauth_error') {
+        errorMessage = '第三方登录授权失败，请重试。';
+      } else if (error === 'no_session') {
+        errorMessage = '登录会话创建失败，请重试。';
+      } else if (error === 'no_code') {
+        errorMessage = '缺少授权码，请重新登录。';
+      } else if (error === 'session_error') {
+        errorMessage = '会话获取失败，请重试。';
+      } else if (error === 'session_validation_failed') {
+        errorMessage = '登录状态验证失败，请重新登录。';
+      }
+      setMessage({
+        type: 'error',
+        text: errorMessage,
+      });
+    }
+  }, [searchParams]);
+
   // 监听认证状态变化
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        // 登录成功，等待一下确保 cookies 同步
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const redirectedFrom = searchParams.get('redirectedFrom') || '/landing';
-        // 使用硬重定向确保服务器端能读取到 session
-        window.location.href = redirectedFrom;
+        console.log('登录成功，用户ID:', session.user.id);
+        // 等待一下确保 cookies 同步
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 验证 session 是否真正可用
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (user && !error) {
+          console.log('Session 验证成功，准备重定向');
+          const redirectedFrom = searchParams.get('redirectedFrom') || '/landing';
+          // 使用硬重定向确保服务器端能读取到 session
+          window.location.href = redirectedFrom;
+        } else {
+          console.error('Session 验证失败:', error);
+          setMessage({
+            type: 'error',
+            text: '登录状态验证失败，请重新尝试。',
+          });
+        }
       }
     });
 
@@ -48,28 +82,17 @@ function LoginFormContent() {
     };
   }, [supabase.auth, searchParams]);
 
-  useEffect(() => {
-    if (!showNarrativePopup) {
-      return;
-    }
-    const settleTimer = setTimeout(() => setNarrativePhase('stable'), 500);
-    const exitTimer = setTimeout(() => setNarrativePhase('exit'), 4500);
-    const hideTimer = setTimeout(() => setShowNarrativePopup(false), 5000);
-    return () => {
-      clearTimeout(settleTimer);
-      clearTimeout(exitTimer);
-      clearTimeout(hideTimer);
-    };
-  }, [showNarrativePopup]);
-  const handleOAuthLogin = async (provider: 'google' | 'twitter' | 'reddit') => {
+  const handleOAuthLogin = async (provider: 'twitter' | 'github' | 'wechat') => {
     setOauthProviderLoading(provider);
     setMessage(null);
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+        // Supabase 类型定义可能不包含 wechat，这里通过类型断言绕过，但保持运行时安全
+        provider: provider as 'twitter' | 'github',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/landing`,
+          skipBrowserRedirect: false, // 确保浏览器重定向
         },
       });
 
@@ -78,12 +101,84 @@ function LoginFormContent() {
           type: 'error',
           text: error.message || '第三方登录失败，请稍后再试。',
         });
+        setOauthProviderLoading(null);
       }
-    } catch (error) {
-      console.error('第三方登录出错:', error);
+      // 如果成功，用户会被重定向到OAuth提供商
+      // data.url 包含重定向URL，Supabase会自动处理
+    } catch (err) {
+      console.error('第三方登录出错:', err);
       setMessage({
         type: 'error',
         text: '登录过程中出现未知错误，请稍后重试。',
+      });
+      setOauthProviderLoading(null);
+    }
+  };
+
+  // Web3钱包登录处理
+  const handleWeb3Login = async () => {
+    setOauthProviderLoading('web3');
+    setMessage(null);
+
+    try {
+      // 检查是否安装了钱包
+      if (typeof window !== 'undefined' && typeof (window as { ethereum?: unknown }).ethereum === 'undefined') {
+        setMessage({
+          type: 'error',
+          text: '未检测到Web3钱包，请安装MetaMask或其他兼容钱包。',
+        });
+        setOauthProviderLoading(null);
+        return;
+      }
+
+      const ethereum = (window as { ethereum?: { request: (args: { method: string }) => Promise<string[]> } }).ethereum;
+      
+      if (!ethereum) {
+        setMessage({
+          type: 'error',
+          text: '未检测到Web3钱包，请安装MetaMask或其他兼容钱包。',
+        });
+        setOauthProviderLoading(null);
+        return;
+      }
+      
+      // 请求连接钱包
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      
+      if (accounts && accounts.length > 0) {
+        const address = accounts[0];
+        
+        // 使用钱包地址进行签名认证
+        // 注意：这需要后端API支持Web3钱包认证
+        const response = await fetch('/api/auth/web3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address }),
+        });
+
+        const result: { error?: string } = await response.json();
+
+        if (result.error) {
+          setMessage({
+            type: 'error',
+            text: result.error || 'Web3钱包登录失败，请稍后再试。',
+          });
+        } else {
+          setMessage({
+            type: 'success',
+            text: 'Web3钱包登录成功！',
+          });
+          // 等待一下后重定向
+          setTimeout(() => {
+            window.location.href = '/landing';
+          }, 1000);
+        }
+      }
+    } catch (err) {
+      console.error('Web3钱包登录出错:', err);
+      setMessage({
+        type: 'error',
+        text: 'Web3钱包登录失败，请稍后再试。',
       });
     } finally {
       setOauthProviderLoading(null);
@@ -97,72 +192,46 @@ function LoginFormContent() {
     setMessage(null);
 
     try {
+      console.log('开始邮箱登录:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('登录失败:', error);
         setMessage({ type: 'error', text: error.message });
         setIsLoading(false);
         return;
       }
 
       if (data.user && data.session) {
+        console.log('登录成功，用户ID:', data.user.id);
         // 登录成功，session 已返回
         // onAuthStateChange 会处理重定向，这里只显示成功消息
-        setMessage({ type: 'success', text: '登录成功，正在跳转...' });
+        setMessage({ type: 'success', text: '登录成功，正在验证身份...' });
         // 不在这里重定向，让 onAuthStateChange 处理
       } else if (data.user) {
         // 如果只有 user 没有 session，等待 session 设置
+        console.log('用户存在但 session 为空，等待 session 设置...');
         setMessage({ type: 'success', text: '登录成功，正在设置会话...' });
         // onAuthStateChange 会处理重定向
+      } else {
+        console.error('登录返回数据异常:', data);
+        setMessage({ type: 'error', text: '登录失败，返回数据异常，请重试。' });
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('登录时出错:', error);
+    } catch (err) {
+      console.error('登录时出错:', err);
       setMessage({
         type: 'error',
         text: '登录时发生错误，请稍后重试',
       });
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // 处理 Magic Link 登录
-  const handleMagicLinkLogin = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        setMessage({ type: 'error', text: error.message });
-        setIsLoading(false);
-        return;
-      }
-
-      setMessage({
-        type: 'success',
-        text: '登录链接已发送到您的邮箱，请查收邮件并点击链接完成登录',
-      });
-    } catch (error) {
-      console.error('发送 Magic Link 时出错:', error);
-      setMessage({
-        type: 'error',
-        text: '发送登录链接时发生错误，请稍后重试',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Magic Link 登录已从前端移除（仅保留邮箱/密码与第三方 OAuth）
 
   // 处理忘记密码
   const handleForgotPassword = async (e: FormEvent<HTMLFormElement>) => {
@@ -199,32 +268,7 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] px-4 py-12 relative overflow-hidden">
-      {showNarrativePopup && (
-        <div className="pointer-events-none fixed inset-0 z-40 flex justify-center">
-          <div
-            className={`pointer-events-auto mt-16 w-full max-w-2xl px-4 transition-all duration-700 ease-out ${
-              narrativePhase === 'enter'
-                ? 'translate-y-[-30px] opacity-0'
-                : narrativePhase === 'exit'
-                ? 'translate-y-[-60px] opacity-0'
-                : 'translate-y-0 opacity-100'
-            }`}
-          >
-            <div className="rounded-2xl border border-[#0B3D2E]/20 bg-gradient-to-br from-[#0B3D2E] via-[#06261c] to-[#020f0b] p-[1px] shadow-[0_20px_80px_rgba(11,61,46,0.35)]">
-              <div className="rounded-2xl bg-[#FAF6EF] p-6 text-center text-[#0B3D2E]">
-                <p className="text-base font-semibold tracking-wide">
-                  你是否在社交平台看过太多25岁A9的故事；
-                  <br />
-                  天天封口搞钱，瞻前顾后；
-                  <br />
-                  我们将杀死对焦虑的贩卖行为。
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] px-4 py-12">
       <div className="w-full max-w-md space-y-8">
         <AnimatedSection variant="fadeUp" className="text-center">
           {/* Logo */}
@@ -242,50 +286,20 @@ function LoginFormContent() {
           </p>
         </AnimatedSection>
 
-        <AnimatedSection variant="fadeUp" className="mt-8">
-          <div className="mb-6 flex justify-center gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1AAD19] text-white text-sm">微</span>
-              <span>微信扫码</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-semibold text-[#EA4335]">G</span>
-              <span>Google 登录</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">X</span>
-              <span>X 登录</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FF4500] text-sm font-semibold text-white">R</span>
-              <span>Reddit 登录</span>
+        <AnimatedSection variant="fadeUp">
+          <div className="rounded-2xl border border-[#0B3D2E]/20 bg-gradient-to-r from-[#0B3D2E] via-[#06261c] to-[#020f0b] p-[1px] shadow-[0_20px_60px_rgba(11,61,46,0.2)]">
+            <div className="rounded-2xl bg-[#FAF6EF] px-6 py-4 text-center text-[#0B3D2E]">
+              <p className="text-base font-semibold tracking-wide">
+                我们将始终履行对抗贩卖焦虑的行为。
+              </p>
             </div>
           </div>
+        </AnimatedSection>
 
-          {/* 切换登录方式 */}
-          <div className="mb-6 flex rounded-lg border border-[#E7E1D6] bg-white p-1">
-            <button
-              type="button"
-              onClick={() => setIsMagicLink(false)}
-              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                !isMagicLink
-                  ? 'bg-[#0B3D2E]/10 text-[#0B3D2E]'
-                  : 'text-[#0B3D2E]/70 hover:text-[#0B3D2E]'
-              }`}
-            >
-              邮箱/密码
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMagicLink(true)}
-              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                isMagicLink
-                  ? 'bg-[#0B3D2E]/10 text-[#0B3D2E]'
-                  : 'text-[#0B3D2E]/70 hover:text-[#0B3D2E]'
-              }`}
-            >
-              Magic Link
-            </button>
+        <AnimatedSection variant="fadeUp" className="mt-8">
+          {/* 登录方式：邮箱/密码（Magic Link 已移除） */}
+          <div className="mb-6">
+            <div className="text-sm font-medium text-[#0B3D2E]">邮箱/密码 登录</div>
           </div>
 
           {/* 消息提示 */}
@@ -303,7 +317,7 @@ function LoginFormContent() {
 
           {/* 登录表单 */}
           <form
-            onSubmit={isMagicLink ? handleMagicLinkLogin : handleEmailPasswordLogin}
+            onSubmit={handleEmailPasswordLogin}
             className="space-y-6 rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm"
           >
             <div>
@@ -323,118 +337,43 @@ function LoginFormContent() {
               />
             </div>
 
-            {!isMagicLink && (
-              <div>
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-medium text-[#0B3D2E]">
-                    密码
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowForgotPassword(true);
-                      setMessage(null);
-                    }}
-                    className="text-xs text-[#0B3D2E]/70 hover:text-[#0B3D2E] underline"
-                  >
-                    忘记密码？
-                  </button>
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
-                  placeholder="••••••••"
-                />
+            <div>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="block text-sm font-medium text-[#0B3D2E]">
+                  密码
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(true);
+                    setMessage(null);
+                  }}
+                  className="text-xs text-[#0B3D2E]/70 hover:text-[#0B3D2E] underline"
+                >
+                  忘记密码？
+                </button>
               </div>
-            )}
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                placeholder="••••••••"
+              />
+            </div>
 
             <button
               type="submit"
               disabled={isLoading}
               className="w-full rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isLoading ? '处理中...' : isMagicLink ? '发送登录链接' : '登录'}
+              {isLoading ? '处理中...' : '登录'}
             </button>
           </form>
-
-          <div className="mt-8">
-            <div className="relative flex items-center">
-              <div className="flex-1 border-t border-dashed border-[#E7E1D6]" />
-              <span className="mx-3 text-xs uppercase tracking-widest text-[#0B3D2E]/50">
-                或使用其他平台登录
-              </span>
-              <div className="flex-1 border-t border-dashed border-[#E7E1D6]" />
-            </div>
-            <div className="mt-4 space-y-3">
-              <button
-                type="button"
-                onClick={() => setShowWechatSignup(true)}
-                className="inline-flex w-full items-center justify-between rounded-md border border-[#0B3D2E]/30 bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E] hover:bg-[#FAF6EF]"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1AAD19] text-sm font-semibold text-white">
-                    微
-                  </span>
-                  <span>微信扫码登录</span>
-                </span>
-                <span className="text-xs text-[#0B3D2E]/60">推荐中国大陆用户</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOAuthLogin('google')}
-                disabled={oauthProviderLoading === 'google'}
-                className="inline-flex w-full items-center justify-between rounded-md border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E]/70 hover:bg-[#FAF6EF] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#F4C7C3] bg-white text-sm font-semibold text-[#EA4335]">
-                    G
-                  </span>
-                  <span>使用 Google 登录</span>
-                </span>
-                <span className="text-xs text-[#0B3D2E]/60">
-                  {oauthProviderLoading === 'google' ? '跳转中...' : '同步 Gmail 用户'}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOAuthLogin('twitter')}
-                disabled={oauthProviderLoading === 'twitter'}
-                className="inline-flex w-full items-center justify-between rounded-md border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E]/70 hover:bg-[#FAF6EF] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
-                    X
-                  </span>
-                  <span>使用 X 登录</span>
-                </span>
-                <span className="text-xs text-[#0B3D2E]/60">
-                  {oauthProviderLoading === 'twitter' ? '跳转中...' : '同步 X (Twitter) 账号'}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOAuthLogin('reddit')}
-                disabled={oauthProviderLoading === 'reddit'}
-                className="inline-flex w-full items-center justify-between rounded-md border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E]/70 hover:bg-[#FAF6EF] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF4500] text-sm font-semibold text-white">
-                    R
-                  </span>
-                  <span>使用 Reddit 登录</span>
-                </span>
-                <span className="text-xs text-[#0B3D2E]/60">
-                  {oauthProviderLoading === 'reddit' ? '跳转中...' : '同步 Reddit 账号'}
-                </span>
-              </button>
-            </div>
-          </div>
 
           {/* 注册链接 */}
           <p className="mt-6 text-center text-sm text-[#0B3D2E]/70">
@@ -443,6 +382,71 @@ function LoginFormContent() {
               立即注册
             </Link>
           </p>
+
+          {/* 第三方登录分隔线 */}
+          <div className="mt-8">
+            <div className="relative flex items-center">
+              <div className="flex-1 border-t border-dashed border-[#E7E1D6]" />
+              <span className="mx-3 text-xs uppercase tracking-widest text-[#0B3D2E]/50">
+                或使用其他平台登录
+              </span>
+              <div className="flex-1 border-t border-dashed border-[#E7E1D6]" />
+            </div>
+
+            {/* 第三方登录按钮 */}
+            <div className="mt-6 flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => handleOAuthLogin('twitter')}
+                disabled={oauthProviderLoading !== null}
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#0B3D2E]/20 bg-white text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E] hover:bg-[#FAF6EF] disabled:opacity-50 disabled:cursor-not-allowed"
+                title="使用 X 登录"
+              >
+                <span className="text-lg font-semibold">X</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOAuthLogin('github')}
+                disabled={oauthProviderLoading !== null}
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#0B3D2E]/20 bg-white text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E] hover:bg-[#FAF6EF] disabled:opacity-50 disabled:cursor-not-allowed"
+                title="使用 GitHub 登录"
+              >
+                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOAuthLogin('wechat')}
+                disabled={oauthProviderLoading !== null}
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#0B3D2E]/20 bg-white text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E] hover:bg-[#FAF6EF] disabled:opacity-50 disabled:cursor-not-allowed"
+                title="使用微信登录"
+              >
+                {/* 微信官方风格简化 logo：两个对话气泡 */}
+                <svg className="h-6 w-6" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g fill="#1AAD19">
+                    <path d="M20 8a12 12 0 100 24 12 12 0 000-24z"/>
+                    <path d="M44 14a9 9 0 100 18 9 9 0 000-18z"/>
+                  </g>
+                  <path d="M18 28c0 2.2-1.8 4-4 4s-4-1.8-4-4 1.8-4 4-4 4 1.8 4 4z" fill="#fff"/>
+                  <path d="M44 20c0 1.2-.9 2-2 2s-2-.8-2-2 .9-2 2-2 2 .8 2 2z" fill="#fff"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={handleWeb3Login}
+                disabled={oauthProviderLoading !== null}
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#0B3D2E]/20 bg-white text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E] hover:bg-[#FAF6EF] disabled:opacity-50 disabled:cursor-not-allowed"
+                title="使用 Web3 钱包登录"
+              >
+                {/* 钱包样式图标（简化） */}
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="7" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="currentColor"/>
+                  <circle cx="18" cy="13" r="1.5" fill="#fff"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </AnimatedSection>
 
         {/* 忘记密码弹窗 */}
@@ -503,62 +507,6 @@ function LoginFormContent() {
           </AnimatedSection>
         )}
 
-        {showWechatSignup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-            <AnimatedSection variant="fadeUp" className="w-full max-w-sm">
-              <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-lg">
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#0B3D2E]">微信扫码登录 / 注册</h3>
-                    <p className="mt-1 text-sm text-[#0B3D2E]/70">
-                      使用微信扫一扫关注官方小程序后即可快捷登录或一键创建账号。
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowWechatSignup(false)}
-                    className="text-[#0B3D2E]/50 transition-colors hover:text-[#0B3D2E]"
-                    aria-label="关闭微信扫码弹窗"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-[#0B3D2E]/10 bg-[#FFFDF8] px-5 py-6">
-                  <div className="rounded-xl border border-[#0B3D2E]/10 bg-white p-3 shadow-inner">
-                    <Image
-                      src={wechatQrSrc}
-                      alt="微信扫码登录二维码"
-                      width={192}
-                      height={192}
-                      className="h-48 w-48 rounded-md object-contain"
-                      unoptimized
-                    />
-                  </div>
-                  <div className="text-center text-xs text-[#0B3D2E]/60">
-                    <p>1. 打开微信 &gt; 扫一扫</p>
-                    <p>2. 关注「No More anxious」官方服务</p>
-                    <p>3. 按指引完成绑定，账号将自动同步至 Web 端</p>
-                  </div>
-                </div>
-                <div className="mt-6 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowWechatSignup(false)}
-                    className="flex-1 rounded-md border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] transition-colors hover:bg-[#FAF6EF]"
-                  >
-                    我已完成扫码
-                  </button>
-                  <Link
-                    href="weixin://"
-                    className="flex-1 rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-center text-sm font-medium text-white shadow-md transition-all hover:shadow-lg"
-                  >
-                    打开微信
-                  </Link>
-                </div>
-              </div>
-            </AnimatedSection>
-          </div>
-        )}
       </div>
     </div>
   );

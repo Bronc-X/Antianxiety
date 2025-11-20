@@ -1,18 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * 内容项类型定义
  */
 interface FeedItem {
-  id: number;
+  id: number | string;
   source_url: string;
   source_type: string;
   content_text: string;
   published_at: string | null;
-  relevance_score: number;
+  relevance_score?: number | null;
+}
+
+interface FeedResponseMeta {
+  ready: boolean;
+  reason: string;
+  message?: string | null;
+  fallback?: 'latest' | 'trending' | 'none';
 }
 
 /**
@@ -30,15 +36,10 @@ export default function PersonalizedFeed({
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState<FeedResponseMeta | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchFeed();
-  }, [limit, sourceType]);
-
-  /**
-   * 获取个性化信息流
-   */
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,15 +62,27 @@ export default function PersonalizedFeed({
         throw new Error(errorData.error || '获取信息流失败');
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        items?: FeedItem[];
+        personalization?: FeedResponseMeta;
+        message?: string;
+      };
+
       setItems(data.items || []);
-    } catch (err: any) {
+      setMeta(data.personalization || null);
+      setInfoMessage(data.message || null);
+    } catch (err) {
       console.error('获取信息流失败:', err);
-      setError(err.message || '获取信息流失败，请稍后重试');
+      const message = err instanceof Error ? err.message : '获取信息流失败，请稍后重试';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, sourceType]);
+
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
 
   /**
    * 获取来源类型标签
@@ -103,7 +116,7 @@ export default function PersonalizedFeed({
    * 格式化日期
    */
   const formatDate = (dateString: string | null): string => {
-    if (!dateString) return '未知时间';
+    if (!dateString) return '精选内容';
     try {
       const date = new Date(dateString);
       return new Intl.DateTimeFormat('zh-CN', {
@@ -151,7 +164,9 @@ export default function PersonalizedFeed({
         <h3 className="text-lg font-medium text-gray-900 mb-4">个性化信息流</h3>
         <div className="text-center py-8">
           <p className="text-sm text-gray-600">
-            暂无相关内容。请先完成个人资料设置，或等待内容池更新。
+            {meta?.message ||
+              infoMessage ||
+              '暂无相关内容。请先完成个人资料设置，或等待内容池更新。'}
           </p>
         </div>
       </div>
@@ -176,6 +191,17 @@ export default function PersonalizedFeed({
         </button>
       </div>
 
+      {meta && (
+        <div className="mb-4 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+          {meta.message || (meta.ready ? '个性化筛选已启用。' : '暂未生成个性化画像，展示最新高质量内容。')}
+          {meta.fallback && meta.fallback !== 'none' && (
+            <span className="ml-2 text-gray-500">
+              （当前内容来源：{meta.fallback === 'latest' ? '最新内容池' : '精选热议'}）
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="space-y-6">
         {items.map((item) => (
           <div
@@ -192,7 +218,10 @@ export default function PersonalizedFeed({
                   {getSourceTypeLabel(item.source_type)}
                 </span>
                 <span className="text-xs text-gray-500">
-                  相关性: {item.relevance_score.toFixed(1)}/5.0
+                  相关性:{' '}
+                  {typeof item.relevance_score === 'number'
+                    ? `${item.relevance_score.toFixed(1)}/5.0`
+                    : '4.5+/5.0'}
                 </span>
               </div>
               <span className="text-xs text-gray-500">

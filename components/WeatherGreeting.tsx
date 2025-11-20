@@ -93,8 +93,8 @@ export default function WeatherGreeting() {
         } else {
           fallbackWeather();
         }
-      } catch (error: any) {
-        if (error?.name === 'AbortError') {
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
           console.warn('天气请求超时，使用默认数据');
         } else {
           console.warn('获取天气失败，使用默认数据:', error);

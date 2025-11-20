@@ -30,10 +30,10 @@ export default function AIAssistantFloatingButton() {
         if (!user) return;
 
         const { data, error } = await supabase
-          .from<AIAssistantProfile>('profiles')
+          .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .single<AIAssistantProfile>();
 
         if (!error && data) {
           setProfile(data);

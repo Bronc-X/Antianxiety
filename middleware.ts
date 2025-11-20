@@ -1,18 +1,31 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
  * 中间件：保护需要认证的路由
- * 未登录用户访问受保护路由时，重定向到登录页面
+ * 使用客户端 cookie 检查，避免 Supabase auth-helpers 的问题
  */
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+export function middleware(req: NextRequest) {
+  // 检查是否有有效的 Supabase session cookie（兼容不同 cookie 名称）
+  const cookieCandidates = [
+    'sb-session',
+    'sb-access-token',
+    'sb-refresh-token',
+    'supabase-auth-token',
+    'sb:token',
+  ];
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  let session: string | undefined = undefined;
+  for (const name of cookieCandidates) {
+    const c = req.cookies.get(name as string);
+    if (c) {
+      // NextRequest.cookies.get 在不同环境可能返回字符串或带 value 的对象
+      // 兼容处理以获取真实值
+      // @ts-ignore
+      session = typeof c === 'string' ? c : c?.value ?? String(c);
+      break;
+    }
+  }
 
   // 受保护的路由路径
   const protectedPaths = ['/dashboard', '/onboarding', '/inspiration'];
@@ -20,7 +33,7 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith(path)
   );
 
-  // 如果访问受保护的路由且未登录，重定向到登录页面
+  // 如果访问受保护的路由且没有 session，重定向到登录页面
   if (isProtectedPath && !session) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/login';
@@ -28,14 +41,14 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // 如果已登录用户访问登录或注册页面，重定向到 landing 页面
+  // 如果有 session 且访问登录或注册页面，重定向到 landing 页面
   if (session && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup')) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/landing';
     return NextResponse.redirect(redirectUrl);
   }
 
-  return res;
+  return NextResponse.next();
 }
 
 export const config = {

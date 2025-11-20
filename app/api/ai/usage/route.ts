@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export const runtime = 'edge';
@@ -8,7 +8,7 @@ export const runtime = 'edge';
  * 注意：DeepSeek API 可能不提供直接的配额查询端点
  * 此接口返回使用建议和说明
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // 验证用户身份
     const supabase = await createServerSupabaseClient();

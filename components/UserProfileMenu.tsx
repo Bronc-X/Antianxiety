@@ -21,24 +21,14 @@ interface UserProfileMenuProps {
 export default function UserProfileMenu({ user, profile }: UserProfileMenuProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [fullName, setFullName] = useState(profile?.full_name || '');
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const supabase = createClientSupabaseClient();
-
-  useEffect(() => {
-    setFullName(profile?.full_name || '');
-    setAvatarUrl(profile?.avatar_url || '');
-  }, [profile?.full_name, profile?.avatar_url]);
 
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        setIsEditing(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -52,43 +42,19 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
     router.refresh();
   };
 
-  const handleSaveProfile = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName || null,
-          avatar_url: avatarUrl || null,
-        })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('更新资料时出错:', error);
-        alert('保存失败，请稍后重试');
-      } else {
-        setIsEditing(false);
-        setIsOpen(false);
-        router.refresh();
-      }
-    } catch (error) {
-      console.error('保存资料时出错:', error);
-      alert('保存失败，请稍后重试');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const displayName = profile?.full_name || user.email?.split('@')[0] || '用户';
+  const avatarUrl = profile?.avatar_url || '';
 
   const getInitials = () => {
-    if (fullName) {
-      return fullName
+    if (displayName) {
+      return displayName
         .split(' ')
         .map(n => n[0])
         .join('')
         .toUpperCase()
         .slice(0, 2);
     }
-    return user.email?.[0].toUpperCase() || 'U';
+    return user.email?.[0]?.toUpperCase() || 'U';
   };
 
   return (
@@ -103,7 +69,7 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
         {avatarUrl ? (
           <Image
             src={avatarUrl}
-            alt={fullName || user.email || 'User'}
+            alt={displayName}
             className="h-8 w-8 rounded-full object-cover"
             width={32}
             height={32}
@@ -115,7 +81,7 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
           </div>
         )}
         <span className="hidden md:block text-sm text-[#0B3D2E]">
-          {fullName || user.email?.split('@')[0] || '用户'}
+          {displayName}
         </span>
         <svg
           className={`h-4 w-4 text-[#0B3D2E] transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -136,57 +102,12 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
             transition={{ duration: 0.2 }}
             className="absolute right-0 mt-2 w-64 rounded-lg border border-[#E7E1D6] bg-white shadow-lg z-50"
           >
-            {isEditing ? (
-              <div className="p-4 space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-[#0B3D2E] mb-1">姓名</label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20"
-                    placeholder="输入您的姓名"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#0B3D2E] mb-1">头像 URL</label>
-                  <input
-                    type="url"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    className="w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20"
-                    placeholder="https://example.com/avatar.jpg"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={isLoading}
-                    className="flex-1 rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-3 py-2 text-sm text-white hover:shadow-md transition-all disabled:opacity-50"
-                  >
-                    {isLoading ? '保存中...' : '保存'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsEditing(false);
-                      setIsOpen(false);
-                      setFullName(profile?.full_name || '');
-                      setAvatarUrl(profile?.avatar_url || '');
-                    }}
-                    type="button"
-                    className="rounded-md border border-[#E7E1D6] px-3 py-2 text-sm text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors"
-                  >
-                    取消
-                  </button>
-                </div>
-              </div>
-            ) : (
               <div className="p-4 space-y-3">
                 <div className="flex items-center gap-3 pb-3 border-b border-[#E7E1D6]">
                   {avatarUrl ? (
                     <Image
                       src={avatarUrl}
-                      alt={fullName || user.email || 'User'}
+                    alt={displayName}
                       className="h-12 w-12 rounded-full object-cover"
                       width={48}
                       height={48}
@@ -199,34 +120,25 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-[#0B3D2E] truncate">
-                      {fullName || '未设置姓名'}
+                    {displayName || '未设置姓名'}
                     </div>
                     <div className="text-xs text-[#0B3D2E]/60 truncate">{user.email}</div>
                   </div>
                 </div>
                 <Link
-                  href="/pricing"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full rounded-md border border-[#0B3D2E] bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-3 py-2 text-sm text-white hover:shadow-md transition-all text-left block font-medium"
-                >
-                  升级订阅
-                </Link>
-                <Link
-                  href="/assistant?panel=profile"
+                  href="/assistant"
                   onClick={() => setIsOpen(false)}
                   className="w-full rounded-md border border-[#E7E1D6] bg-white px-3 py-2 text-sm text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors text-left block"
                 >
                   设置
                 </Link>
-                <button
-                  onClick={() => {
-                    setIsEditing(true);
-                  }}
-                  type="button"
-                  className="w-full rounded-md border border-[#E7E1D6] bg-white px-3 py-2 text-sm text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors text-left"
+              <Link
+                href="/pricing"
+                onClick={() => setIsOpen(false)}
+                className="w-full rounded-md border border-[#0B3D2E] bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-3 py-2 text-sm text-white hover:shadow-md transition-all text-left block font-medium"
                 >
-                  编辑个人信息
-                </button>
+                升级订阅
+              </Link>
                 <button
                   onClick={handleLogout}
                   type="button"
@@ -235,7 +147,6 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
                   退出登录
                 </button>
               </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

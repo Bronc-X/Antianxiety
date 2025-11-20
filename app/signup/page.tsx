@@ -221,7 +221,7 @@ export default function SignupPage() {
     setMessage(null);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: provider as 'google' | 'twitter',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },

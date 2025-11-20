@@ -41,6 +41,39 @@ interface ProfileFormData {
   daily_checkin_time: string;
 }
 
+interface ProfileUpdatePayload {
+  gender: string | null;
+  age_range: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  sleep_hours: number | null;
+  stress_level: number | null;
+  energy_level: number | null;
+  exercise_types: string[] | null;
+  exercise_frequency: string | null;
+  exercise_duration_minutes: number | null;
+  has_fitness_app: boolean;
+  fitness_app_name: string | null;
+  can_sync_fitness_data: boolean;
+  hobbies: string[] | null;
+  work_schedule: string | null;
+  meal_pattern: string | null;
+  caffeine_intake: string | null;
+  alcohol_intake: string | null;
+  smoking_status: string | null;
+  chronic_conditions: string[] | null;
+  primary_focus_topics: string[] | null;
+  medical_conditions: string[] | null;
+  medications: string[] | null;
+  daily_checkin_time: string | null;
+  ai_profile_completed: boolean;
+}
+
+interface UserMetadata {
+  username?: string;
+  [key: string]: unknown;
+}
+
 /**
  * AI 助理资料收集表单
  * 通过选择题收集用户信息，用于判断生理情况（80%准确度）
@@ -197,7 +230,7 @@ export default function AIAssistantProfileForm() {
       }
 
       // 准备更新数据
-      const updateData: any = {
+      const updateData: ProfileUpdatePayload = {
         gender: formData.gender || null,
         age_range: formData.age_range || null,
         height_cm: formData.height_cm ? parseInt(formData.height_cm, 10) : null,
@@ -259,7 +292,8 @@ export default function AIAssistantProfileForm() {
           return;
         }
       } else {
-        const fallbackUsername = (user.user_metadata as any)?.username || user.email || user.id;
+        const metadata = (user.user_metadata || {}) as UserMetadata;
+        const fallbackUsername = metadata.username || user.email || user.id;
         const { error: insertError, data: inserted } = await supabase
           .from('profiles')
           .insert({ id: user.id, username: fallbackUsername, ...updateData })
