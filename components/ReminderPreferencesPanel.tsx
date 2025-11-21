@@ -104,13 +104,25 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
         last_updated: new Date().toISOString(),
       };
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ reminder_preferences: todayReminders })
-        .eq('id', user.id);
+      const metadata = (user.user_metadata || {}) as { username?: string };
+      const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
 
-      if (updateError) {
-        setError(`保存失败: ${updateError.message}`);
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert(
+          { 
+            id: user.id, 
+            username: fallbackUsername,
+            reminder_preferences: todayReminders 
+          },
+          { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          }
+        );
+
+      if (upsertError) {
+        setError(`保存失败: ${upsertError.message}`);
         setIsSaving(false);
         return;
       }

@@ -112,21 +112,31 @@ export default function BasicInfoPanel({ initialProfile }: BasicInfoPanelProps) 
         }
       }
 
-      const { error: updateError } = await supabase
+      const metadata = (user.user_metadata || {}) as { username?: string };
+      const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
+      
+      const { error: upsertError } = await supabase
         .from('profiles')
-        .update({
-          full_name: fullName || null,
-          avatar_url: finalAvatarUrl || null,
-        })
-        .eq('id', user.id);
+        .upsert(
+          {
+            id: user.id,
+            username: fallbackUsername,
+            full_name: fullName || null,
+            avatar_url: finalAvatarUrl || null,
+          },
+          { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          }
+        );
 
-      if (updateError) {
-        setError(`保存失败: ${updateError.message}`);
+      if (upsertError) {
+        setError(`保存失败: ${upsertError.message}`);
         setIsSaving(false);
         return;
       }
 
-      // 保存成功后刷新页面
+      router.push('/landing');
       router.refresh();
       setError(null);
     } catch (err) {

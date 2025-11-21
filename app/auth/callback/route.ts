@@ -79,11 +79,19 @@ export async function GET(request: NextRequest) {
       if (sessionData?.session) {
         console.log('Session 交换成功，用户ID:', sessionData.session.user.id);
         
-        // 验证 session 是否真正可用
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token,
+        });
+
+        if (setSessionError) {
+          console.error('设置 session 到 cookies 失败:', setSessionError);
+          return NextResponse.redirect(new URL('/login?error=session_cookie_failed', request.url));
+        }
+        
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (user && !userError) {
           console.log('Session 验证成功，准备重定向到:', next);
-          // Supabase auth helpers 会自动处理 cookies，直接重定向即可
           const redirectUrl = new URL(next, request.url);
           return NextResponse.redirect(redirectUrl);
         } else {

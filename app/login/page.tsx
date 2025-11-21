@@ -18,7 +18,7 @@ function LoginFormContent() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
-  const [oauthProviderLoading, setOauthProviderLoading] = useState<'twitter' | 'github' | 'web3' | 'wechat' | null>(null);
+  const [oauthProviderLoading, setOauthProviderLoading] = useState<'twitter' | 'github' | 'wechat' | null>(null);
   const searchParams = useSearchParams();
   const supabase = createClientSupabaseClient();
   
@@ -87,7 +87,7 @@ function LoginFormContent() {
     setMessage(null);
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         // Supabase 类型定义可能不包含 wechat，这里通过类型断言绕过，但保持运行时安全
         provider: provider as 'twitter' | 'github',
         options: {
@@ -103,6 +103,9 @@ function LoginFormContent() {
         });
         setOauthProviderLoading(null);
       }
+      if (data?.url) {
+        window.location.assign(data.url);
+      }
       // 如果成功，用户会被重定向到OAuth提供商
       // data.url 包含重定向URL，Supabase会自动处理
     } catch (err) {
@@ -115,75 +118,6 @@ function LoginFormContent() {
     }
   };
 
-  // Web3钱包登录处理
-  const handleWeb3Login = async () => {
-    setOauthProviderLoading('web3');
-    setMessage(null);
-
-    try {
-      // 检查是否安装了钱包
-      if (typeof window !== 'undefined' && typeof (window as { ethereum?: unknown }).ethereum === 'undefined') {
-        setMessage({
-          type: 'error',
-          text: '未检测到Web3钱包，请安装MetaMask或其他兼容钱包。',
-        });
-        setOauthProviderLoading(null);
-        return;
-      }
-
-      const ethereum = (window as { ethereum?: { request: (args: { method: string }) => Promise<string[]> } }).ethereum;
-      
-      if (!ethereum) {
-        setMessage({
-          type: 'error',
-          text: '未检测到Web3钱包，请安装MetaMask或其他兼容钱包。',
-        });
-        setOauthProviderLoading(null);
-        return;
-      }
-      
-      // 请求连接钱包
-      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-      
-      if (accounts && accounts.length > 0) {
-        const address = accounts[0];
-        
-        // 使用钱包地址进行签名认证
-        // 注意：这需要后端API支持Web3钱包认证
-        const response = await fetch('/api/auth/web3', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address }),
-        });
-
-        const result: { error?: string } = await response.json();
-
-        if (result.error) {
-          setMessage({
-            type: 'error',
-            text: result.error || 'Web3钱包登录失败，请稍后再试。',
-          });
-        } else {
-          setMessage({
-            type: 'success',
-            text: 'Web3钱包登录成功！',
-          });
-          // 等待一下后重定向
-          setTimeout(() => {
-            window.location.href = '/landing';
-          }, 1000);
-        }
-      }
-    } catch (err) {
-      console.error('Web3钱包登录出错:', err);
-      setMessage({
-        type: 'error',
-        text: 'Web3钱包登录失败，请稍后再试。',
-      });
-    } finally {
-      setOauthProviderLoading(null);
-    }
-  };
 
   // 处理邮箱/密码登录
   const handleEmailPasswordLogin = async (e: FormEvent<HTMLFormElement>) => {
@@ -430,19 +364,6 @@ function LoginFormContent() {
                   </g>
                   <path d="M18 28c0 2.2-1.8 4-4 4s-4-1.8-4-4 1.8-4 4-4 4 1.8 4 4z" fill="#fff"/>
                   <path d="M44 20c0 1.2-.9 2-2 2s-2-.8-2-2 .9-2 2-2 2 .8 2 2z" fill="#fff"/>
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={handleWeb3Login}
-                disabled={oauthProviderLoading !== null}
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-[#0B3D2E]/20 bg-white text-[#0B3D2E] shadow-sm transition-all hover:border-[#0B3D2E] hover:bg-[#FAF6EF] disabled:opacity-50 disabled:cursor-not-allowed"
-                title="使用 Web3 钱包登录"
-              >
-                {/* 钱包样式图标（简化） */}
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2" y="7" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="currentColor"/>
-                  <circle cx="18" cy="13" r="1.5" fill="#fff"/>
                 </svg>
               </button>
             </div>

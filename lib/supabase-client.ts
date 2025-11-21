@@ -11,10 +11,7 @@ import type { Session } from '@supabase/supabase-js';
  * @returns Supabase 客户端实例
  */
 export function createClientSupabaseClient() {
-  const supabase = createClientComponentClient({
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  });
+  const supabase = createClientComponentClient();
 
   if (typeof window !== 'undefined') {
     supabase.auth.onAuthStateChange(async (event, session) => {
