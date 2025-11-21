@@ -40,10 +40,15 @@ interface PhysiologicalAnalysis {
   confidence_reasons: string[]; // 置信度评分理由
   analysis_details: {
     [key: string]: {
-      reason: string; // 为什么是这个结果
-      target: string; // 目标值
+      reason: string;
+      reason_en: string;
+      target: string;
+      target_en: string;
     };
   };
+  risk_factors_en?: string[];
+  strengths_en?: string[];
+  confidence_reasons_en?: string[];
 }
 
 interface RecommendationPlan {
@@ -248,45 +253,111 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
     analysis.confidence_reasons.push('缺少部分基础数据影响分析准确性');
   }
 
-  // 添加每个指标的详细分析
+  // 添加每个指标的详细分析（中英文）
   analysis.analysis_details = {
     metabolic_rate_estimate: {
       reason: `基于您的${profile.age ? `${profile.age}岁年龄` : '年龄信息'}、${profile.activity_level || '活动水平'}和BMI计算`,
-      target: '提升至"较高"以优化能量消耗效率'
+      reason_en: `Based on your ${profile.age ? `age (${profile.age})` : 'age'}, ${profile.activity_level || 'activity level'}, and BMI calculation`,
+      target: '提升至"较高"以优化能量消耗效率',
+      target_en: 'Improve to "High" to optimize energy expenditure efficiency'
     },
     cortisol_pattern: {
       reason: `根据您的压力水平${profile.stress_level ? `(${profile.stress_level}/10)` : ''}、睡眠时长${profile.sleep_hours ? `(${profile.sleep_hours}小时)` : ''}和咖啡因摄入评估`,
-      target: '维持"正常"水平，避免升高'
+      reason_en: `Based on your stress level${profile.stress_level ? ` (${profile.stress_level}/10)` : ''}, sleep duration${profile.sleep_hours ? ` (${profile.sleep_hours} hours)` : ''}, and caffeine intake`,
+      target: '维持"正常"水平，避免升高',
+      target_en: 'Maintain "Normal" level, avoid elevation'
     },
     sleep_quality: {
       reason: `基于每日${profile.sleep_hours || '未知'}小时睡眠时长的评估`,
-      target: '达到"良好"，每晚7-9小时深度睡眠'
+      reason_en: `Based on ${profile.sleep_hours || 'unknown'} hours of daily sleep duration`,
+      target: '达到"良好"，每晚7-9小时深度睡眠',
+      target_en: 'Achieve "Good" with 7-9 hours of deep sleep per night'
     },
     recovery_capacity: {
       reason: `综合运动频率${profile.exercise_frequency ? `"${profile.exercise_frequency}"` : ''}和精力水平${profile.energy_level ? `(${profile.energy_level}/10)` : ''}`,
-      target: '提升至"较高"以增强身体适应能力'
+      reason_en: `Based on exercise frequency${profile.exercise_frequency ? ` "${profile.exercise_frequency}"` : ''} and energy level${profile.energy_level ? ` (${profile.energy_level}/10)` : ''}`,
+      target: '提升至"较高"以增强身体适应能力',
+      target_en: 'Improve to "High" to enhance physical adaptability'
     },
     stress_resilience: {
       reason: `根据压力水平${profile.stress_level ? `(${profile.stress_level}/10)` : ''}和生活方式评估`,
-      target: '提升至"较高"以增强抗压能力'
+      reason_en: `Based on stress level${profile.stress_level ? ` (${profile.stress_level}/10)` : ''} and lifestyle assessment`,
+      target: '提升至"较高"以增强抗压能力',
+      target_en: 'Improve to "High" to enhance stress resistance'
     },
     energy_stability: {
       reason: `综合精力水平${profile.energy_level ? `(${profile.energy_level}/10)` : ''}、睡眠质量和咖啡因依赖分析`,
-      target: '达到"稳定"，全天保持均衡精力'
+      reason_en: `Based on energy level${profile.energy_level ? ` (${profile.energy_level}/10)` : ''}, sleep quality, and caffeine dependency analysis`,
+      target: '达到"稳定"，全天保持均衡精力',
+      target_en: 'Achieve "Stable" with consistent energy throughout the day'
     },
     inflammation_risk: {
       reason: `基于吸烟状况"${profile.smoking_status || '未知'}"、酒精摄入和运动习惯评估`,
-      target: '降低至"低"风险水平'
+      reason_en: `Based on smoking status "${profile.smoking_status || 'unknown'}", alcohol intake, and exercise habits`,
+      target: '降低至"低"风险水平',
+      target_en: 'Reduce to "Low" risk level'
     },
     hormonal_balance: {
       reason: `综合睡眠、压力和运动规律性分析`,
-      target: '达到"平衡"状态'
+      reason_en: `Based on sleep, stress, and exercise regularity analysis`,
+      target: '达到"平衡"状态',
+      target_en: 'Achieve "Balanced" state'
     },
     cardiovascular_health: {
       reason: `基于活动水平"${profile.activity_level || '未知'}"、吸烟状况和运动频率综合评估`,
-      target: '提升至"良好"水平'
+      reason_en: `Based on activity level "${profile.activity_level || 'unknown'}", smoking status, and exercise frequency`,
+      target: '提升至"良好"水平',
+      target_en: 'Improve to "Good" level'
     }
   };
+
+  // 添加英文版本的strengths和risk_factors
+  analysis.strengths_en = analysis.strengths.map(s => {
+    const translations: Record<string, string> = {
+      '代谢能力良好': 'Good metabolic capacity',
+      '睡眠充足': 'Adequate sleep',
+      '睡眠质量良好': 'Good sleep quality',
+      '运动习惯良好': 'Good exercise habits',
+      '压力管理良好': 'Good stress management',
+      '精力稳定': 'Stable energy',
+      '低炎症风险': 'Low inflammation risk',
+      '激素平衡良好': 'Good hormonal balance',
+      '心血管状况良好': 'Good cardiovascular health',
+      '运动类型多样化': 'Diverse exercise types',
+      '规律饮食': 'Regular eating patterns'
+    };
+    return translations[s] || s;
+  });
+
+  analysis.risk_factors_en = analysis.risk_factors.map(r => {
+    const translations: Record<string, string> = {
+      '代谢率偏低': 'Low metabolic rate',
+      '压力激素可能偏高': 'Stress hormones may be elevated',
+      '睡眠不足': 'Insufficient sleep',
+      '睡眠质量差': 'Poor sleep quality',
+      '高压力水平': 'High stress level',
+      '焦虑症': 'Anxiety disorder',
+      '吸烟': 'Smoking',
+      '酒精摄入过多': 'Excessive alcohol intake',
+      '正在服用抗焦虑药物': 'Taking anti-anxiety medication',
+      '精力不稳定': 'Unstable energy',
+      '高炎症风险': 'High inflammation risk',
+      '激素可能失衡': 'Possible hormonal imbalance',
+      '心血管需要关注': 'Cardiovascular needs attention'
+    };
+    return translations[r] || r;
+  });
+
+  analysis.confidence_reasons_en = analysis.confidence_reasons.map(r => {
+    const translations: Record<string, string> = {
+      '已提供完整身体基础数据': 'Complete basic physical data provided',
+      '已提供睡眠数据': 'Sleep data provided',
+      '已提供压力水平数据': 'Stress level data provided',
+      '已提供运动习惯数据': 'Exercise habit data provided',
+      '缺少部分基础数据影响分析准确性': 'Missing some basic data affects analysis accuracy'
+    };
+    return translations[r] || r;
+  });
 
   return analysis;
 }

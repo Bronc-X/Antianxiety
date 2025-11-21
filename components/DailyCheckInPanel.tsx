@@ -202,13 +202,13 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
       return [data, ...otherLogs].sort((a, b) => (a.log_date < b.log_date ? 1 : -1));
     });
 
-    setToast('今日记录已更新。');
+    setToast('✅ 保存成功！即将返回主页...');
     setIsSaving(false);
     
     // 保存成功后返回首页
     setTimeout(() => {
       router.push('/landing');
-    }, 1000);
+    }, 1500);
   };
 
   const handleUpdateReminder = async () => {
