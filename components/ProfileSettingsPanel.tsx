@@ -63,27 +63,37 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
         return;
       }
 
-      const { error: updateError } = await supabase
+      const metadata = (user.user_metadata || {}) as { username?: string };
+      const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
+      
+      const { error: upsertError } = await supabase
         .from('profiles')
-        .update({
-          height: formData.height ? parseFloat(formData.height) : null,
-          weight: formData.weight ? parseFloat(formData.weight) : null,
-          birth_date: formData.birth_date || null,
-          location: formData.location || null,
-          daily_checkin_time: formData.daily_checkin_time ? `${formData.daily_checkin_time}:00` : null,
-          notification_enabled: formData.notification_enabled,
-          notification_email: formData.notification_email || null,
-        })
-        .eq('id', user.id);
+        .upsert(
+          {
+            id: user.id,
+            username: fallbackUsername,
+            height: formData.height ? parseFloat(formData.height) : null,
+            weight: formData.weight ? parseFloat(formData.weight) : null,
+            birth_date: formData.birth_date || null,
+            location: formData.location || null,
+            daily_checkin_time: formData.daily_checkin_time ? `${formData.daily_checkin_time}:00` : null,
+            notification_enabled: formData.notification_enabled,
+            notification_email: formData.notification_email || null,
+          },
+          { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          }
+        );
 
-      if (updateError) {
-        setError(`保存失败: ${updateError.message}`);
+      if (upsertError) {
+        setError(`保存失败: ${upsertError.message}`);
         setIsSaving(false);
         return;
       }
 
-      // 保存成功后返回首页
       router.push('/landing');
+      router.refresh();
     } catch (err) {
       console.error('保存设置时出错:', err);
       setError('保存时发生错误，请稍后重试');

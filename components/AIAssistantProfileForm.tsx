@@ -258,66 +258,39 @@ export default function AIAssistantProfileForm() {
         ai_profile_completed: true,
       };
 
-      // 如存在资料则更新；否则插入时带上 username（NOT NULL）
-      const { data: existingProfile } = await supabase
+      // 使用 upsert 避免 RLS 策略问题
+      const metadata = (user.user_metadata || {}) as UserMetadata;
+      const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
+      
+      const { error: upsertError, data: upserted } = await supabase
         .from('profiles')
-        .select('id, username')
-        .eq('id', user.id)
-        .maybeSingle();
+        .upsert(
+          { id: user.id, username: fallbackUsername, ...updateData },
+          { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          }
+        )
+        .select();
 
-      if (existingProfile) {
-        const { error: updateError, data: updated } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', user.id)
-          .select();
+      if (upsertError) {
+        console.error('保存资料时出错:', {
+          message: upsertError.message,
+          details: upsertError.details,
+          hint: upsertError.hint,
+          code: upsertError.code,
+          fullError: upsertError,
+        });
+        setError(`保存资料时出错: ${upsertError.message || '未知错误'}${upsertError.hint ? ` (提示: ${upsertError.hint})` : ''}`);
+        setIsLoading(false);
+        return;
+      }
 
-        if (updateError) {
-          console.error('更新资料时出错:', {
-            message: updateError.message,
-            details: updateError.details,
-            hint: updateError.hint,
-            code: updateError.code,
-            fullError: updateError,
-          });
-          setError(`保存资料时出错: ${updateError.message || '未知错误'}${updateError.hint ? ` (提示: ${updateError.hint})` : ''}`);
-          setIsLoading(false);
-          return;
-        }
-
-        if (!updated || updated.length === 0) {
-          console.error('更新资料失败: 没有返回数据');
-          setError('保存资料失败，请检查您的账户是否存在');
-          setIsLoading(false);
-          return;
-        }
-      } else {
-        const metadata = (user.user_metadata || {}) as UserMetadata;
-        const fallbackUsername = metadata.username || user.email || user.id;
-        const { error: insertError, data: inserted } = await supabase
-          .from('profiles')
-          .insert({ id: user.id, username: fallbackUsername, ...updateData })
-          .select();
-
-        if (insertError) {
-          console.error('创建资料时出错:', {
-            message: insertError.message,
-            details: insertError.details,
-            hint: insertError.hint,
-            code: insertError.code,
-            fullError: insertError,
-          });
-          setError(`保存资料时出错: ${insertError.message || '未知错误'}${insertError.hint ? ` (提示: ${insertError.hint})` : ''}`);
-          setIsLoading(false);
-          return;
-        }
-
-        if (!inserted || inserted.length === 0) {
-          console.error('创建资料失败: 没有返回数据');
-          setError('保存资料失败，请检查您的账户是否存在');
-          setIsLoading(false);
-          return;
-        }
+      if (!upserted || upserted.length === 0) {
+        console.error('保存资料失败: 没有返回数据');
+        setError('保存资料失败，请检查您的账户是否存在');
+        setIsLoading(false);
+        return;
       }
 
       // 触发 AI 分析（这里先保存数据，分析在服务端进行）

@@ -23,7 +23,7 @@
   * ✅ Google OAuth（注册页按钮 + Supabase provider 已打通）  
   * ✅ X (Twitter) OAuth（登录/注册页按钮，已可跳转授权）  
   * ✅ GitHub OAuth（登录页按钮已连通 Supabase）  
-  * ⏳ Reddit OAuth（按钮已接入，仍需在 Supabase Dashboard 配置 ClientID/Secret）  
+  * ⏳ web3钱包登录
   * ⏳ 微信扫码（目前仅展示二维码提示，尚未有后端回调）  
   * ⏳ iOS 端第三方账号尚未集成，需等 Expo 项目接入
 
@@ -74,7 +74,7 @@
 http://localhost:3000
 
 github仓库
-https://github.com/Bronc-X/project-Nomoreanxious.git
+https://github.com/Bronc-X/Nomoreanxiousweb.git
 
 vercel web端
 project-nomoreanxious-git-main-loxxs-projects-cc4324a7.vercel.app

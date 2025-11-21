@@ -220,7 +220,7 @@ export default function SignupPage() {
     setOauthProviderLoading(provider);
     setMessage(null);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider as 'google' | 'twitter',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
@@ -231,6 +231,9 @@ export default function SignupPage() {
           type: 'error',
           text: error.message || '跳转第三方授权失败，请稍后再试。',
         });
+      }
+      if (data?.url) {
+        window.location.assign(data.url);
       }
     } catch (error) {
       console.error('第三方注册出错:', error);

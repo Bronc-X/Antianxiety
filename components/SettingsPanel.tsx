@@ -11,6 +11,7 @@ type PrimaryGoalOption = 'lose_weight' | 'maintain_energy' | 'gain_muscle' | 'im
 
 interface ProfileRecord {
   id?: string;
+  username?: string | null;
   gender?: string | null;
   birth_date?: string | null;
   height?: number | null;
@@ -28,6 +29,7 @@ interface ProfileRecord {
 
 interface SettingsPanelProps {
   initialProfile: ProfileRecord | null;
+  userId: string;
 }
 
 interface SettingsFormState {
@@ -106,7 +108,7 @@ const convertImperialToCm = (feet: number, inches: number) =>
 const convertKgToLbs = (kg: number) => parseFloat((kg * LBS_PER_KG).toFixed(1));
 const convertLbsToKg = (lbs: number) => parseFloat((lbs / LBS_PER_KG).toFixed(1));
 
-export default function SettingsPanel({ initialProfile }: SettingsPanelProps) {
+export default function SettingsPanel({ initialProfile, userId }: SettingsPanelProps) {
   const profile = initialProfile || {};
   const supabase = createClientSupabaseClient();
   const router = useRouter();
@@ -313,8 +315,7 @@ export default function SettingsPanel({ initialProfile }: SettingsPanelProps) {
     setBanner(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!userId) {
         setBanner({ type: 'error', text: '请先登录后再保存设置。' });
         setIsSaving(false);
         return;
@@ -349,22 +350,30 @@ export default function SettingsPanel({ initialProfile }: SettingsPanelProps) {
             ? signedCustomRate
             : null,
       };
+      
+      const fallbackUsername = initialProfile?.username || userId.slice(0, 8);
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert(
+          { 
+            id: userId, 
+            username: fallbackUsername, 
+            ...payload 
+          },
+          { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          }
+        );
 
-      const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
-
-      if (error) {
-        setBanner({
-          type: 'error',
-          text: `保存失败：${error.message}`,
-        });
+      if (upsertError) {
+        setBanner({ type: 'error', text: `保存失败：${upsertError.message}` });
         setIsSaving(false);
         return;
       }
 
-      setBanner({
-        type: 'success',
-        text: '基础指标设置已更新，AI 将基于这些数据调整建议。',
-      });
+      setBanner({ type: 'success', text: '设置已保存，正在返回首页…' });
+      router.push('/landing');
       router.refresh();
     } catch (err) {
       console.error('保存设置时出错:', err);
