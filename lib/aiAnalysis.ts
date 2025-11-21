@@ -37,6 +37,13 @@ interface PhysiologicalAnalysis {
   risk_factors: string[];
   strengths: string[];
   confidence_score: number; // 0-100, 分析置信度
+  confidence_reasons: string[]; // 置信度评分理由
+  analysis_details: {
+    [key: string]: {
+      reason: string; // 为什么是这个结果
+      target: string; // 目标值
+    };
+  };
 }
 
 interface RecommendationPlan {
@@ -70,6 +77,8 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
     risk_factors: [],
     strengths: [],
     confidence_score: 0,
+    confidence_reasons: [],
+    analysis_details: {},
   };
 
   let confidencePoints = 0;
@@ -221,6 +230,63 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
   }
 
   analysis.confidence_score = Math.min(confidencePoints, maxPoints);
+
+  // 添加置信度理由
+  if (profile.age && profile.height_cm && profile.weight_kg) {
+    analysis.confidence_reasons.push('已提供完整身体基础数据');
+  }
+  if (profile.sleep_hours) {
+    analysis.confidence_reasons.push('已提供睡眠数据');
+  }
+  if (profile.stress_level) {
+    analysis.confidence_reasons.push('已提供压力水平数据');
+  }
+  if (profile.exercise_frequency) {
+    analysis.confidence_reasons.push('已提供运动习惯数据');
+  }
+  if (!profile.age || !profile.height_cm) {
+    analysis.confidence_reasons.push('缺少部分基础数据影响分析准确性');
+  }
+
+  // 添加每个指标的详细分析
+  analysis.analysis_details = {
+    metabolic_rate_estimate: {
+      reason: `基于您的${profile.age ? `${profile.age}岁年龄` : '年龄信息'}、${profile.activity_level || '活动水平'}和BMI计算`,
+      target: '提升至"较高"以优化能量消耗效率'
+    },
+    cortisol_pattern: {
+      reason: `根据您的压力水平${profile.stress_level ? `(${profile.stress_level}/10)` : ''}、睡眠时长${profile.sleep_hours ? `(${profile.sleep_hours}小时)` : ''}和咖啡因摄入评估`,
+      target: '维持"正常"水平，避免升高'
+    },
+    sleep_quality: {
+      reason: `基于每日${profile.sleep_hours || '未知'}小时睡眠时长的评估`,
+      target: '达到"良好"，每晚7-9小时深度睡眠'
+    },
+    recovery_capacity: {
+      reason: `综合运动频率${profile.exercise_frequency ? `"${profile.exercise_frequency}"` : ''}和精力水平${profile.energy_level ? `(${profile.energy_level}/10)` : ''}`,
+      target: '提升至"较高"以增强身体适应能力'
+    },
+    stress_resilience: {
+      reason: `根据压力水平${profile.stress_level ? `(${profile.stress_level}/10)` : ''}和生活方式评估`,
+      target: '提升至"较高"以增强抗压能力'
+    },
+    energy_stability: {
+      reason: `综合精力水平${profile.energy_level ? `(${profile.energy_level}/10)` : ''}、睡眠质量和咖啡因依赖分析`,
+      target: '达到"稳定"，全天保持均衡精力'
+    },
+    inflammation_risk: {
+      reason: `基于吸烟状况"${profile.smoking_status || '未知'}"、酒精摄入和运动习惯评估`,
+      target: '降低至"低"风险水平'
+    },
+    hormonal_balance: {
+      reason: `综合睡眠、压力和运动规律性分析`,
+      target: '达到"平衡"状态'
+    },
+    cardiovascular_health: {
+      reason: `基于活动水平"${profile.activity_level || '未知'}"、吸烟状况和运动频率综合评估`,
+      target: '提升至"良好"水平'
+    }
+  };
 
   return analysis;
 }
