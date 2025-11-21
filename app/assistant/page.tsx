@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import HealthProfileForm from '@/components/HealthProfileForm';
 import AIAnalysisDisplay from '@/components/AIAnalysisDisplay';
+import DailyCheckInPanel from '@/components/DailyCheckInPanel';
 import Link from 'next/link';
 
 export const runtime = 'edge';
@@ -17,11 +18,31 @@ interface ProfileRecord {
 export default async function AssistantPage({ 
   searchParams 
 }: { 
-  searchParams?: Promise<{ edit?: string }> 
+  searchParams?: Promise<{ edit?: string, panel?: string }> 
 }) {
   const params = await searchParams;
   const { user } = await requireAuth();
   const supabase = await createServerSupabaseClient();
+
+  // 如果是 panel=daily，显示每日状态记录面板
+  if (params?.panel === 'daily') {
+    return (
+      <div className="min-h-screen bg-[#FAF6EF]">
+        <nav className="border-b border-[#E7E1D6] bg-white">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="h-14 flex items-center justify-between">
+              <Link href="/landing" className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80">返回主页</Link>
+              <h1 className="text-lg font-semibold text-[#0B3D2E]">记录今日状态</h1>
+              <div className="w-16"></div>
+            </div>
+          </div>
+        </nav>
+        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+          <DailyCheckInPanel userId={user.id} />
+        </div>
+      </div>
+    );
+  }
 
   // 获取用户资料
   let profile: ProfileRecord | null = null;

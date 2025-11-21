@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
 
+type Language = 'en' | 'zh';
+
 interface AIAnalysisDisplayProps {
   analysis: {
     metabolic_rate_estimate?: string;
@@ -63,6 +65,7 @@ const translateValue = (value: string | undefined) => {
 export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [language, setLanguage] = useState<Language>('en');
   
   useEffect(() => {
     const duration = 2500;
@@ -146,24 +149,35 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
     { metric: '心血管', value: getScoreValue(analysis.cardiovascular_health), fullMark: 100 },
   ];
 
+  const t = (en: string, zh: string) => language === 'en' ? en : zh;
+
   return (
     <div className="space-y-6">
       {/* Header Card */}
       <div className="bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
         <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900 mb-1">Health Analysis Report</h1>
-            <p className="text-slate-600">AI-powered personalized health assessment</p>
+          <div className="flex-1">
+            <h1 className="text-2xl font-semibold text-slate-900 mb-1">{t('Health Analysis Report', '健康分析报告')}</h1>
+            <p className="text-slate-600">{t('AI-powered personalized health assessment', '基于AI的个性化健康评估')}</p>
           </div>
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
+            className="mr-4 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            title={t('Switch to Chinese', '切换到英文')}
+          >
+            <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
           <div className="border border-slate-200 px-4 py-2 rounded-lg bg-slate-50">
-            <div className="text-xs font-medium text-slate-600 uppercase tracking-wide">Confidence</div>
+            <div className="text-xs font-medium text-slate-600 uppercase tracking-wide">{t('Confidence', '置信度')}</div>
             <div className="text-2xl font-semibold text-slate-900">{analysis.confidence_score}%</div>
           </div>
         </div>
         
         {analysis.confidence_reasons && analysis.confidence_reasons.length > 0 && (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-4">
-            <div className="text-sm font-semibold text-slate-900 mb-3">Analysis Basis</div>
+            <div className="text-sm font-semibold text-slate-900 mb-3">{t('Analysis Basis', '分析依据')}</div>
             <div className="grid grid-cols-2 gap-2">
               {analysis.confidence_reasons.map((reason, i) => (
                 <div key={i} className="text-sm text-slate-700 flex items-start gap-2">
@@ -178,7 +192,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
 
       {/* Radar Chart */}
       <div className="bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900 mb-6">Health Metrics Overview</h2>
+        <h2 className="text-xl font-semibold text-slate-900 mb-6">{t('Health Metrics Overview', '健康指标概览')}</h2>
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={radarData}>
@@ -202,17 +216,17 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
 
       {/* 8维指标详情 */}
       <div className="bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900 mb-6">Detailed Health Metrics</h2>
+        <h2 className="text-xl font-semibold text-slate-900 mb-6">{t('Detailed Health Metrics', '详细健康指标')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
-            { key: 'metabolic_rate_estimate', label: 'Metabolic Rate' },
-            { key: 'cortisol_pattern', label: 'Cortisol Pattern' },
-            { key: 'sleep_quality', label: 'Sleep Quality' },
-            { key: 'recovery_capacity', label: 'Recovery Capacity' },
-            { key: 'stress_resilience', label: 'Stress Resilience' },
-            { key: 'energy_stability', label: 'Energy Stability' },
-            { key: 'inflammation_risk', label: 'Inflammation Risk' },
-            { key: 'cardiovascular_health', label: 'Cardiovascular Health' }
+            { key: 'metabolic_rate_estimate', label: t('Metabolic Rate', '代谢率') },
+            { key: 'cortisol_pattern', label: t('Cortisol Pattern', '皮质醇模式') },
+            { key: 'sleep_quality', label: t('Sleep Quality', '睡眠质量') },
+            { key: 'recovery_capacity', label: t('Recovery Capacity', '恢复能力') },
+            { key: 'stress_resilience', label: t('Stress Resilience', '压力韧性') },
+            { key: 'energy_stability', label: t('Energy Stability', '精力稳定性') },
+            { key: 'inflammation_risk', label: t('Inflammation Risk', '炎症风险') },
+            { key: 'cardiovascular_health', label: t('Cardiovascular Health', '心血管健康') }
           ].map((item) => {
             const value = analysis[item.key as keyof typeof analysis] as string;
             const details = analysis.analysis_details?.[item.key];
@@ -235,11 +249,11 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                 {details && (
                   <div className="space-y-3 text-sm pt-3 border-t border-slate-100">
                     <div>
-                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">Analysis</div>
+                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">{t('ANALYSIS', '分析')}</div>
                       <div className="text-slate-700 leading-relaxed">{details.reason}</div>
                     </div>
                     <div>
-                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">Target</div>
+                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">{t('TARGET', '目标')}</div>
                       <div className="text-slate-700 leading-relaxed">{details.target}</div>
                     </div>
                   </div>
@@ -254,7 +268,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {analysis.strengths && analysis.strengths.length > 0 && (
           <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-            <div className="text-base font-semibold text-slate-900 mb-4">Strengths to Maintain</div>
+            <div className="text-base font-semibold text-slate-900 mb-4">{t('Strengths to Maintain', '继续保持')}</div>
             <div className="space-y-2">
               {analysis.strengths.map((s, i) => (
                 <div key={i} className="flex items-start gap-3 text-slate-700">
@@ -268,7 +282,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
 
         {analysis.risk_factors && analysis.risk_factors.length > 0 && (
           <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-            <div className="text-base font-semibold text-slate-900 mb-4">Areas for Improvement</div>
+            <div className="text-base font-semibold text-slate-900 mb-4">{t('Areas for Improvement', '需要改善')}</div>
             <div className="space-y-2">
               {analysis.risk_factors.map((r, i) => (
                 <div key={i} className="flex items-start gap-3 text-slate-700">
@@ -285,8 +299,8 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
       {plan.micro_habits && plan.micro_habits.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-1">Personalized Action Plan</h2>
-            <p className="text-slate-600">{plan.micro_habits.length} micro-habits tailored for you</p>
+            <h2 className="text-xl font-semibold text-slate-900 mb-1">{t('Personalized Action Plan', '个性化行动方案')}</h2>
+            <p className="text-slate-600">{t(`${plan.micro_habits.length} micro-habits tailored for you`, `为您定制的 ${plan.micro_habits.length} 个微习惯`)}</p>
           </div>
           <div className="space-y-4">
             {plan.micro_habits.map((habit, i) => (
@@ -299,21 +313,21 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">{habit.name}</h3>
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
-                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-16">Trigger</span>
+                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-16">{t('TRIGGER', '触发')}</span>
                         <span className="text-slate-700 flex-1">{habit.cue}</span>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-16">Action</span>
+                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-16">{t('ACTION', '行动')}</span>
                         <span className="text-slate-900 font-medium flex-1">{habit.response}</span>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-16">Timing</span>
+                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide w-16">{t('TIMING', '时机')}</span>
                         <span className="text-slate-700 flex-1">{habit.timing}</span>
                       </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-slate-100">
                       <div className="text-sm text-slate-600 leading-relaxed">
-                        <span className="font-medium text-slate-700">Rationale: </span>{habit.rationale}
+                        <span className="font-medium text-slate-700">{t('Rationale', '原理')}: </span>{habit.rationale}
                       </div>
                     </div>
                   </div>
@@ -330,7 +344,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
           onClick={() => window.location.href = '/assistant?edit=true'}
           className="px-6 py-2.5 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm"
         >
-          Edit Health Parameters
+          {t('Edit Health Parameters', '修改健康参数')}
         </button>
       </div>
     </div>
