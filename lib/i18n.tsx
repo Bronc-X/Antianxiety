@@ -21,7 +21,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.authority': '权威洞察',
     'nav.pricing': '升级',
     'nav.login': '登录',
-    'nav.assistant': 'AI 助理',
+    'nav.assistant': '分析报告',
     'nav.early': '获取早期访问权限',
     // 通用
     'common.save': '保存',
@@ -37,7 +37,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.authority': 'Authority Insights',
     'nav.pricing': 'Upgrade',
     'nav.login': 'Login',
-    'nav.assistant': 'AI Assistant',
+    'nav.assistant': 'Analysis Report',
     'nav.early': 'Get Early Access',
     // 通用
     'common.save': 'Save',
