@@ -20,6 +20,9 @@ interface AIAnalysisDisplayProps {
     strengths?: string[];
     confidence_score?: number;
     confidence_reasons?: string[];
+    risk_factors_en?: string[];
+    strengths_en?: string[];
+    confidence_reasons_en?: string[];
     analysis_details?: {
       [key: string]: {
         reason: string;
@@ -51,15 +54,25 @@ const getScoreValue = (value: string | undefined) => {
   return scoreMap[value || ''] || 50;
 };
 
-const translateValue = (value: string | undefined) => {
-  const translations: Record<string, string> = {
-    'low': '较低', 'medium': '中等', 'high': '较高',
-    'poor': '较差', 'fair': '一般', 'good': '良好',
-    'unstable': '不稳定', 'moderate': '中等', 'stable': '稳定',
-    'imbalanced': '失衡', 'balanced': '平衡',
-    'needs_attention': '需关注', 'elevated': '偏高', 'normal': '正常'
+const translateValue = (value: string | undefined, lang: Language) => {
+  const translations: Record<string, { en: string; zh: string }> = {
+    'low': { en: 'Low', zh: '较低' },
+    'medium': { en: 'Medium', zh: '中等' },
+    'high': { en: 'High', zh: '较高' },
+    'poor': { en: 'Poor', zh: '较差' },
+    'fair': { en: 'Fair', zh: '一般' },
+    'good': { en: 'Good', zh: '良好' },
+    'unstable': { en: 'Unstable', zh: '不稳定' },
+    'moderate': { en: 'Moderate', zh: '中等' },
+    'stable': { en: 'Stable', zh: '稳定' },
+    'imbalanced': { en: 'Imbalanced', zh: '失衡' },
+    'balanced': { en: 'Balanced', zh: '平衡' },
+    'needs_attention': { en: 'Needs Attention', zh: '需关注' },
+    'elevated': { en: 'Elevated', zh: '偏高' },
+    'normal': { en: 'Normal', zh: '正常' }
   };
-  return translations[value || ''] || value;
+  const translation = translations[value || ''];
+  return translation ? translation[lang] : value;
 };
 
 export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayProps) {
@@ -179,7 +192,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-4">
             <div className="text-sm font-semibold text-slate-900 mb-3">{t('Analysis Basis', '分析依据')}</div>
             <div className="grid grid-cols-2 gap-2">
-              {analysis.confidence_reasons.map((reason, i) => (
+              {(language === 'en' ? analysis.confidence_reasons_en : analysis.confidence_reasons)?.map((reason, i) => (
                 <div key={i} className="text-sm text-slate-700 flex items-start gap-2">
                   <span className="text-slate-400 mt-0.5">·</span>
                   <span>{reason}</span>
@@ -238,7 +251,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                   <div>
                     <div className="font-medium text-slate-900">{item.label}</div>
                     <div className="text-sm text-slate-600 mt-0.5">
-                      {translateValue(value)}
+                      {translateValue(value, language)}
                     </div>
                   </div>
                   <div className="text-2xl font-semibold text-slate-900">
@@ -250,11 +263,11 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                   <div className="space-y-3 text-sm pt-3 border-t border-slate-100">
                     <div>
                       <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">{t('ANALYSIS', '分析')}</div>
-                      <div className="text-slate-700 leading-relaxed">{details.reason}</div>
+                      <div className="text-slate-700 leading-relaxed">{language === 'en' ? details.reason_en : details.reason}</div>
                     </div>
                     <div>
                       <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">{t('TARGET', '目标')}</div>
-                      <div className="text-slate-700 leading-relaxed">{details.target}</div>
+                      <div className="text-slate-700 leading-relaxed">{language === 'en' ? details.target_en : details.target}</div>
                     </div>
                   </div>
                 )}
@@ -270,7 +283,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
           <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
             <div className="text-base font-semibold text-slate-900 mb-4">{t('Strengths to Maintain', '继续保持')}</div>
             <div className="space-y-2">
-              {analysis.strengths.map((s, i) => (
+              {(language === 'en' ? analysis.strengths_en : analysis.strengths)?.map((s, i) => (
                 <div key={i} className="flex items-start gap-3 text-slate-700">
                   <span className="text-slate-400 mt-1">·</span>
                   <span>{s}</span>
@@ -284,7 +297,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
           <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
             <div className="text-base font-semibold text-slate-900 mb-4">{t('Areas for Improvement', '需要改善')}</div>
             <div className="space-y-2">
-              {analysis.risk_factors.map((r, i) => (
+              {(language === 'en' ? analysis.risk_factors_en : analysis.risk_factors)?.map((r, i) => (
                 <div key={i} className="flex items-start gap-3 text-slate-700">
                   <span className="text-slate-400 mt-1">·</span>
                   <span>{r}</span>
