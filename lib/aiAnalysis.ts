@@ -30,6 +30,10 @@ interface PhysiologicalAnalysis {
   sleep_quality: 'poor' | 'fair' | 'good';
   recovery_capacity: 'low' | 'medium' | 'high';
   stress_resilience: 'low' | 'medium' | 'high';
+  energy_stability: 'unstable' | 'moderate' | 'stable';
+  inflammation_risk: 'high' | 'medium' | 'low';
+  hormonal_balance: 'imbalanced' | 'moderate' | 'balanced';
+  cardiovascular_health: 'needs_attention' | 'fair' | 'good';
   risk_factors: string[];
   strengths: string[];
   confidence_score: number; // 0-100, 分析置信度
@@ -59,6 +63,10 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
     sleep_quality: 'fair',
     recovery_capacity: 'medium',
     stress_resilience: 'medium',
+    energy_stability: 'moderate',
+    inflammation_risk: 'medium',
+    hormonal_balance: 'moderate',
+    cardiovascular_health: 'fair',
     risk_factors: [],
     strengths: [],
     confidence_score: 0,
@@ -147,7 +155,64 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
   }
   confidencePoints += 10;
 
-  // 7. 其他优势
+  // 6. 精力稳定性（基于精力水平、睡眠、咖啡因依赖）
+  const energyLevel = profile.energy_level || 5;
+  const caffeineHigh = profile.caffeine_intake === '每天4杯以上';
+  
+  if (energyLevel >= 7 && profile.sleep_hours && profile.sleep_hours >= 7 && !caffeineHigh) {
+    analysis.energy_stability = 'stable';
+    analysis.strengths.push('精力稳定');
+  } else if (energyLevel <= 4 || caffeineHigh || (profile.sleep_hours && profile.sleep_hours < 6)) {
+    analysis.energy_stability = 'unstable';
+    analysis.risk_factors.push('精力不稳定');
+  }
+  confidencePoints += 10;
+
+  // 7. 炎症风险（基于吸烟、酒精、压力、运动）
+  let inflammationScore = 0;
+  if (profile.smoking_status && profile.smoking_status !== 'non_smoker' && profile.smoking_status !== 'ex_smoker') inflammationScore += 2;
+  if (profile.alcohol_intake === '3+_week') inflammationScore += 1;
+  if (profile.stress_level && profile.stress_level >= 7) inflammationScore += 1;
+  if (profile.exercise_frequency === 'rarely') inflammationScore += 1;
+  
+  if (inflammationScore >= 3) {
+    analysis.inflammation_risk = 'high';
+    analysis.risk_factors.push('高炎症风险');
+  } else if (inflammationScore <= 1) {
+    analysis.inflammation_risk = 'low';
+    analysis.strengths.push('低炎症风险');
+  }
+  confidencePoints += 10;
+
+  // 8. 激素平衡（基于睡眠、压力、体脂、运动）
+  const goodSleep = profile.sleep_hours && profile.sleep_hours >= 7 && profile.sleep_hours <= 9;
+  const lowStress = profile.stress_level && profile.stress_level <= 5;
+  const regularExercise = profile.exercise_frequency && ['2-3_week', '4-5_week', '6-7_week'].includes(profile.exercise_frequency);
+  
+  if (goodSleep && lowStress && regularExercise) {
+    analysis.hormonal_balance = 'balanced';
+    analysis.strengths.push('激素平衡良好');
+  } else if (!goodSleep || (profile.stress_level && profile.stress_level >= 8)) {
+    analysis.hormonal_balance = 'imbalanced';
+    analysis.risk_factors.push('激素可能失衡');
+  }
+  confidencePoints += 10;
+
+  // 9. 心血管健康（基于运动、体重、吸烟、酒精）
+  const activeLifestyle = profile.activity_level && ['moderate', 'active'].includes(profile.activity_level);
+  const noSmoking = profile.smoking_status === 'non_smoker' || profile.smoking_status === 'ex_smoker';
+  const moderateAlcohol = !profile.alcohol_intake || profile.alcohol_intake !== '3+_week';
+  
+  if (activeLifestyle && noSmoking && moderateAlcohol && regularExercise) {
+    analysis.cardiovascular_health = 'good';
+    analysis.strengths.push('心血管状况良好');
+  } else if (profile.smoking_status === 'regular' || profile.activity_level === 'sedentary') {
+    analysis.cardiovascular_health = 'needs_attention';
+    analysis.risk_factors.push('心血管需要关注');
+  }
+  confidencePoints += 10;
+
+  // 10. 其他优势
   if (profile.exercise_types && profile.exercise_types.length >= 3) {
     analysis.strengths.push('运动类型多样化');
   }
