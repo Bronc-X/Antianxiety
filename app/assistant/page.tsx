@@ -26,6 +26,20 @@ export default async function AssistantPage({
 
   // 如果是 panel=daily，显示每日状态记录面板
   if (params?.panel === 'daily') {
+    // 获取用户资料和日志
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('id, daily_checkin_time, sleep_hours, stress_level')
+      .eq('id', user.id)
+      .single();
+
+    const { data: logsData } = await supabase
+      .from('daily_wellness_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('log_date', { ascending: false })
+      .limit(30);
+
     return (
       <div className="min-h-screen bg-[#FAF6EF]">
         <nav className="border-b border-[#E7E1D6] bg-white">
@@ -38,7 +52,10 @@ export default async function AssistantPage({
           </div>
         </nav>
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-          <DailyCheckInPanel userId={user.id} />
+          <DailyCheckInPanel 
+            initialProfile={profileData || { id: user.id }}
+            initialLogs={logsData || []}
+          />
         </div>
       </div>
     );
