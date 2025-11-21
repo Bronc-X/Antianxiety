@@ -26,7 +26,9 @@ interface AIAnalysisDisplayProps {
     analysis_details?: {
       [key: string]: {
         reason: string;
+        reason_en: string;
         target: string;
+        target_en: string;
       };
     };
   };
