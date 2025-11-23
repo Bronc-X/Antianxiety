@@ -27,18 +27,22 @@
   * ⏳ 微信扫码（目前仅展示二维码提示，尚未有后端回调）  
   * ⏳ iOS 端第三方账号尚未集成，需等 Expo 项目接入
 
-* `[🚧 开发中]` **AI 助手** – 进度 `[███████████████░░░] 75%`，可对话但尚未完成预测场景  
+* `[🚧 开发中]` **AI 助手** – 进度 `[████████████████░░░] 85%`，核心对话+方案生成已完成  
   * ✅ Web UI (`AIAssistantChat` / `AIAssistantFloatingChat`)  
-  * ✅ 会话接口 `/api/ai/chat`：DeepSeek + Supabase 记忆检索、上下文拼接、失败重试  
-  * ✅ 记忆系统：`ai_memory` 表、向量存储、`fetchWithRetry`、历史上下文注入  
+  * ✅ 会话接口 `/api/ai/chat`：Claude + DeepSeek双模型、记忆检索、上下文拼接  
+  * ✅ 记忆系统：`ai_memory` 表、向量存储、sessionId管理、历史加载  
+  * ✅ AI方案生成：自动识别方案+确认保存机制  
+  * ✅ 对话记忆：50条历史上下文注入  
   * ⏳ 预测型建议 / 任务编排尚未实现（需要事件触发 + 定时任务联动）  
   * ⏳ iOS 端入口等待 Expo 集成
 
-* `[🚧 开发中]` **个性化信息推送** – 进度 `[████████████████░░░] 85%`  
+* `[✅ 已实现]` **个性化信息推送** – 进度 `[██████████████████░] 95%`  
   * ✅ Reddit & PubMed 抓取：`/api/ingest-content` 已能批量入库并生成 embedding  
   * ✅ RAG 侧：`match_content_feed_vectors`、余弦相似度 fallback、4.5+ 过滤策略  
+  * ✅ 独立推荐页面：`/feed` 个性化内容推荐页面已上线  
   * ✅ Dashboard 展示：`<PersonalizedFeed />` + 备用 trending feed  
   * ✅ X.com 数据：已添加手动精选列表 + Twitter API兜底方案  
+  * ✅ 灵感板块：`/inspiration` 专业推文展示  
   * ⏳ 内容质量打分 / 去噪逻辑待落地  
   * ⏳ iOS 端 UI 未接入
 
@@ -50,7 +54,16 @@
   * ⏳ Onboarding 过程仍缺少信念问卷 & 先验值校准  
   * ⏳ iOS 端图表尚未联调
 
-* `[🚧 开发中]` **AI 预测性提醒** – 进度 `[████████████████░░░] 80%` ✨新增  
+* `[✅ 已实现]` **AI 方案闭环系统** – 进度 `[███████████████████] 100%` ✨核心功能  
+  * ✅ AI方案生成与解析：`plan-parser.ts` 自动识别方案  
+  * ✅ 用户交互：`AIPlanCard` [修改][确认]按钮  
+  * ✅ 方案保存：`/api/plans/create` 创建用户计划  
+  * ✅ 计划管理：`/plans` 页面展示、展开、删除功能  
+  * ✅ 执行记录：`user_plan_completions` 表记录每日完成情况  
+  * ✅ AI反馈：执行数据注入system prompt，优化下一个方案  
+  * ✅ 完整闭环：AI生成 → 用户确认 → 执行记录 → AI优化 ✅  
+
+* `[🚧 开发中]` **AI 预测性提醒** – 进度 `[████████████████░░░] 80%`  
   * ✅ `ai_reminders` 表结构完成（支持 habit_prompt / stress_check / exercise_reminder）  
   * ✅ AIReminderList 组件已集成到 dashboard  
   * ✅ 实时订阅：提醒自动刷新  
@@ -298,13 +311,23 @@ published_at, crawled_at, updated_at
 
 ---
 
+## 🎉 最新完成（2025-11-23）
+1. **✅ 登录重定向循环修复** - 禁用middleware冲突，统一跳转到/landing
+2. **✅ 导航栏完善** - 恢复5个主要链接（核心洞察、模型方法、权威来源、分析报告、AI计划表）
+3. **✅ 用户菜单恢复** - UserProfileMenu（个人设置、升级订阅、退出登录）
+4. **✅ 计划删除功能** - 修复API动态路由params为Promise的问题
+5. **✅ 项目大清理** - 删陂89个文件（-34%），代码从260个减至171个文件
+6. **✅ 页面功能优化** - 新增/feed个性化推荐页面，明确页面功能划分
+7. **✅ AI方案闭环系统** - 完整实现从生成到执行的闭环
+
 ## 当前重点 TODO
-1. **🔴 最高优先级：AI方案闭环系统** - 见 AI_PLAN_CLOSED_LOOP_SYSTEM.md
-2. **✅ 已完成：Web端迁移到新表结构** - habits/habit_completions表已激活，贝叶斯触发器正常工作
-3. **✅ 已完成：X.com数据源** - 添加手动精选列表 + Twitter API兜底方案  
-4. **✅ 已完成：AI预测性提醒系统** - ai_reminders表和AIReminderList组件已集成
-5. 在 Supabase Prod 执行所有SQL脚本（bayesian_functions, ai_memory_vector, content_feed_vectors, ai_reminders）
-6. 打通 `/api/ai/chat` 的 AI 记忆写入，保证聊天不会"失忆"
+1. **✅ 已完成：AI方案闭环系统** - 完整闭环已打通 ✨
+2. **✅ 已完成：Web端迁移到新表结构** - habits/habit_completions表已激活
+3. **✅ 已完成：页面架构优化** - landing/assistant/plans/feed/inspiration功能明确
+4. **✅ 已完成：用户体验优化** - 登录流程、导航栏、用户菜单全部修复
+5. 🔴 完善README - 添加截图、架构图、快速开始指南
+6. 🔴 Vercel部署 - 配置环境变量，上线Demo
 7. 配置 pg_cron 定时任务，启用AI预测性提醒
-8. iOS ↔ Web 数据同步策略确认，避免重复执行 Cron
+8. iOS ↔ Web 数据同步策略确认
 9. Onboarding 过程添加信念问卷 & 先验值校准
+10. 编写技术博客，准备Product Hunt发布
