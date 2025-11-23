@@ -75,9 +75,7 @@ if (!isDev) {
 }
 
 const nextConfig: NextConfig = {
-  // 启用 standalone 输出模式，用于 Docker 部署（阿里云等）
-  // 注意：这会生成 .next/standalone 目录，与 Cloudflare Pages 不兼容
-  // 如果需要部署到 Cloudflare Pages，请注释掉这一行
+  // 启用 standalone 输出模式，用于 Docker 部署
   output: 'standalone',
   async headers() {
     return [
