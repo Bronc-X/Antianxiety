@@ -187,7 +187,7 @@ export default async function LandingPage() {
                 权威来源
               </a>
               <Link
-                href="/inspiration"
+                href="/assistant"
                 className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
                 分析报告
