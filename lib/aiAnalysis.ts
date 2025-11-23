@@ -1,5 +1,37 @@
 import { createServerSupabaseClient } from './supabase-server';
 
+/**
+ * AI Analysis System - Metabolic Aging Research Database
+ * 
+ * 本分析系统基于2024年最新代谢衰老研究：
+ * 
+ * 核心机制（30-45岁人群）：
+ * 1. 线粒体功能障碍 (Błaszczyk 2020, Raza 2024)
+ *    - ATP生成↓, ROS↑ → 易疲劳、恢复慢
+ * 
+ * 2. 代谢重编程 (Raffaghello & Longo 2017)
+ *    - 氧化磷酸化→糖酵解, RER: 0.75→0.85
+ *    - 表现：对碳水渴望↑, 餐后困倦
+ * 
+ * 3. IL-17/TNF炎症通路 (Shen et al. 2024, DOI: 10.1186/s13020-024-00927-9)
+ *    - SASP激活慢性炎症 → 内脏脂肪积累, 代谢失调
+ *    - 关键通路：IL-17/TNF-α驱动的Inflammaging
+ * 
+ * 循证干预策略：
+ * - Zone 2有氧 → BMR↑ 5-10% (Cabo 2024)
+ * - 抗阻训练 → 保留肌肉量 (Chen & Wu 2024, DOI: 10.14336/AD.2024.0407)
+ * - 16:8禁食 → 胰岛素敏感性↑ 20-30% (Kwon 2019)
+ * - Omega-3/多酚 → 炎症标志物↓ 20-30% (Izadi 2024)
+ * 
+ * 前沿研究：
+ * - AgeXtend AI预测抗衰分子 (Arora 2024, Nature Aging)
+ * - 血细胞代谢时钟-尿苷 (Zeng 2024, Nature Aging)
+ * - EEAI能量消耗衰老指数 (Shen 2024)
+ * 
+ * 完整数据库：/data/metabolic_aging_research_database.json
+ * 使用指南：/data/METABOLIC_AGING_RESEARCH_README.md
+ */
+
 interface UserProfile {
   id: string;
   age?: number | null;
@@ -22,6 +54,7 @@ interface UserProfile {
   primary_concern?: string | null;
   activity_level?: string | null;
   circadian_rhythm?: string | null;
+  metabolic_concerns?: string[] | null;
 }
 
 interface PhysiologicalAnalysis {
@@ -55,10 +88,15 @@ interface RecommendationPlan {
   core_principles: string[];
   micro_habits: Array<{
     name: string;
+    name_en: string;
     cue: string;
+    cue_en: string;
     response: string;
+    response_en: string;
     timing: string;
+    timing_en: string;
     rationale: string;
+    rationale_en: string;
   }>;
   avoidance_behaviors: string[];
   monitoring_approach: string;
@@ -88,6 +126,64 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
 
   let confidencePoints = 0;
   const maxPoints = 100;
+
+  // 代谢健康困扰映射（基于2024年代谢研究数据库）
+  if (profile.metabolic_concerns && profile.metabolic_concerns.length > 0) {
+    profile.metabolic_concerns.forEach(concern => {
+      switch (concern) {
+        case 'easy_fatigue':
+          // 线粒体功能障碍
+          analysis.metabolic_rate_estimate = 'low';
+          analysis.energy_stability = 'unstable';
+          analysis.risk_factors.push('ATP生成减少（线粒体功能障碍）');
+          analysis.risk_factors_en = analysis.risk_factors_en || [];
+          analysis.risk_factors_en.push('Reduced ATP production (mitochondrial dysfunction)');
+          break;
+        
+        case 'belly_fat':
+          // IL-17/TNF炎症通路
+          analysis.inflammation_risk = 'high';
+          analysis.hormonal_balance = 'imbalanced';
+          analysis.risk_factors.push('IL-17/TNF炎症通路激活');
+          analysis.risk_factors_en = analysis.risk_factors_en || [];
+          analysis.risk_factors_en.push('IL-17/TNF inflammatory pathway activation');
+          break;
+        
+        case 'muscle_loss':
+          // 肌少症风险
+          analysis.metabolic_rate_estimate = 'low';
+          analysis.recovery_capacity = 'low';
+          analysis.risk_factors.push('肌少症风险（30岁后每年流失1-2%肌肉量）');
+          analysis.risk_factors_en = analysis.risk_factors_en || [];
+          analysis.risk_factors_en.push('Sarcopenia risk (1-2% muscle loss per year after 30)');
+          break;
+        
+        case 'slow_recovery':
+          // 线粒体+氧化应激
+          analysis.recovery_capacity = 'low';
+          analysis.inflammation_risk = 'high';
+          analysis.risk_factors.push('恢复能力下降（氧化应激）');
+          analysis.risk_factors_en = analysis.risk_factors_en || [];
+          analysis.risk_factors_en.push('Reduced recovery capacity (oxidative stress)');
+          break;
+        
+        case 'carb_cravings':
+          // 代谢重编程 RER 0.75→0.85
+          analysis.energy_stability = 'unstable';
+          analysis.hormonal_balance = 'imbalanced';
+          analysis.risk_factors.push('代谢重编程（燃料偏好转向葡萄糖）');
+          analysis.risk_factors_en = analysis.risk_factors_en || [];
+          analysis.risk_factors_en.push('Metabolic reprogramming (shift to glucose preference)');
+          break;
+      }
+    });
+    
+    // 用户提供了详细的代谢困扰信息，提高置信度
+    confidencePoints += 20;
+    analysis.confidence_reasons.push(`用户提供了${profile.metabolic_concerns.length}项代谢困扰信息`);
+    analysis.confidence_reasons_en = analysis.confidence_reasons_en || [];
+    analysis.confidence_reasons_en.push(`User provided ${profile.metabolic_concerns.length} metabolic concern(s)`);
+  }
 
   // 1. 代谢率评估（基于年龄、性别、活动水平、BMI）
   if (profile.age && profile.height_cm && profile.weight_kg) {
@@ -385,34 +481,179 @@ export function generateRecommendationPlan(
     '建立最低有效剂量的微习惯，而非高强度计划',
   ];
 
+  // 根据代谢困扰生成针对性微习惯（优先级最高）
+  if (profile.metabolic_concerns && profile.metabolic_concerns.length > 0) {
+    profile.metabolic_concerns.forEach(concern => {
+      switch (concern) {
+        case 'easy_fatigue':
+          plan.micro_habits.push({
+            name: 'Zone 2有氧运动',
+            name_en: 'Zone 2 Aerobic Exercise',
+            cue: '每天早晨或下午精力较好时',
+            cue_en: 'Morning or afternoon when energy is good',
+            response: '进行30分钟低心率有氧运动（60-70%最大心率）',
+            response_en: '30-minute low heart rate aerobic exercise (60-70% max HR)',
+            timing: '每日',
+            timing_en: 'Daily',
+            rationale: '提升线粒体功能，增加ATP生成。研究显示8-12周可提升基础代谢率5-10%（Cabo et al. 2024）',
+            rationale_en: 'Enhance mitochondrial function and ATP production. Studies show 5-10% BMR increase in 8-12 weeks (Cabo et al. 2024)',
+          });
+          break;
+        
+        case 'belly_fat':
+          plan.micro_habits.push({
+            name: '16:8间歇性禁食',
+            name_en: '16:8 Intermittent Fasting',
+            cue: '每天晚上8点后',
+            cue_en: 'After 8 PM daily',
+            response: '停止进食，只喝水或无糖茶，直到次日中午12点',
+            response_en: 'Stop eating, only water or unsweetened tea until 12 PM next day',
+            timing: '每日',
+            timing_en: 'Daily',
+            rationale: '抑制IL-17/TNF炎症通路，改善胰岛素敏感性20-30%。研究显示可减少内脏脂肪积累（Kwon et al. 2019）',
+            rationale_en: 'Suppress IL-17/TNF pathway, improve insulin sensitivity 20-30%. Reduces visceral fat (Kwon et al. 2019)',
+          });
+          plan.micro_habits.push({
+            name: '抗炎食物摄入',
+            name_en: 'Anti-inflammatory Foods',
+            cue: '每日午餐和晚餐',
+            cue_en: 'Lunch and dinner daily',
+            response: '摄入深海鱼（Omega-3）或绿茶（多酚）',
+            response_en: 'Consume fatty fish (Omega-3) or green tea (polyphenols)',
+            timing: '随餐',
+            timing_en: 'With meals',
+            rationale: '降低炎症标志物（CRP、IL-6）20-30%（Izadi et al. 2024）',
+            rationale_en: 'Reduce inflammatory markers (CRP, IL-6) by 20-30% (Izadi et al. 2024)',
+          });
+          break;
+        
+        case 'muscle_loss':
+          plan.micro_habits.push({
+            name: '抗阻训练',
+            name_en: 'Resistance Training',
+            cue: '每周一、三、五',
+            cue_en: 'Monday, Wednesday, Friday',
+            response: '进行自重深蹲或俯卧撑（3组×8-12次）',
+            response_en: 'Bodyweight squats or push-ups (3 sets × 8-12 reps)',
+            timing: '每周3次',
+            timing_en: '3 times per week',
+            rationale: '对抗肌少症，每周3-4次抗阻训练可提升基础代谢率5-8%。30岁后每年流失1-2%肌肉量（Chen & Wu 2024）',
+            rationale_en: 'Counter sarcopenia, 3-4 sessions/week can boost BMR 5-8%. Prevent 1-2% muscle loss per year after 30 (Chen & Wu 2024)',
+          });
+          plan.micro_habits.push({
+            name: '优质蛋白补充',
+            name_en: 'Quality Protein Intake',
+            cue: '早餐或运动后30分钟内',
+            cue_en: 'Breakfast or within 30 min post-workout',
+            response: '摄入20-30g优质蛋白（鸡蛋、乳清蛋白）',
+            response_en: '20-30g quality protein (eggs, whey protein)',
+            timing: '每日早餐/练后',
+            timing_en: 'Daily breakfast/post-workout',
+            rationale: '亮氨酸激活mTOR通路，促进肌肉蛋白合成（Deng et al. 2024）',
+            rationale_en: 'Leucine activates mTOR pathway for muscle protein synthesis (Deng et al. 2024)',
+          });
+          break;
+        
+        case 'slow_recovery':
+          plan.micro_habits.push({
+            name: '主动恢复',
+            name_en: 'Active Recovery',
+            cue: '运动后或疲劳时',
+            cue_en: 'Post-exercise or when fatigued',
+            response: '进行10-15分钟轻度有氧运动或拉伸',
+            response_en: '10-15 min light aerobic or stretching',
+            timing: '运动后',
+            timing_en: 'After exercise',
+            rationale: '促进血液循环，加速代谢废物清除。配合冷热交替浴效果更佳',
+            rationale_en: 'Enhance circulation, accelerate metabolic waste removal. Contrast baths amplify effects',
+          });
+          plan.micro_habits.push({
+            name: 'Omega-3补充',
+            name_en: 'Omega-3 Supplementation',
+            cue: '每日午餐或晚餐',
+            cue_en: 'Lunch or dinner daily',
+            response: '摄入1-2g EPA+DHA（深海鱼或鱼油）',
+            response_en: '1-2g EPA+DHA (fatty fish or fish oil)',
+            timing: '随餐',
+            timing_en: 'With meals',
+            rationale: '减少氧化应激，改善线粒体功能，降低炎症标志物20-30%',
+            rationale_en: 'Reduce oxidative stress, improve mitochondrial function, lower inflammation 20-30%',
+          });
+          break;
+        
+        case 'carb_cravings':
+          plan.micro_habits.push({
+            name: '低GI饮食',
+            name_en: 'Low-GI Diet',
+            cue: '每日三餐',
+            cue_en: 'All meals',
+            response: '选择低GI食物（全谷物、蔬菜），避免精制碳水',
+            response_en: 'Choose low-GI foods (whole grains, vegetables), avoid refined carbs',
+            timing: '每餐',
+            timing_en: 'Every meal',
+            rationale: '稳定血糖，逆转代谢重编程。配合16:8禁食可优化RER（呼吸交换率）',
+            rationale_en: 'Stabilize blood sugar, reverse metabolic reprogramming. Combined with 16:8 fasting optimizes RER',
+          });
+          plan.micro_habits.push({
+            name: '规律进餐',
+            name_en: 'Regular Meal Timing',
+            cue: '每3-4小时',
+            cue_en: 'Every 3-4 hours',
+            response: '小份餐食，避免长时间空腹后暴食',
+            response_en: 'Small portions, avoid binge eating after long fasting',
+            timing: '每日',
+            timing_en: 'Daily',
+            rationale: '维持能量稳定性，防止血糖波动。短暂户外活动可快速恢复精力',
+            rationale_en: 'Maintain energy stability, prevent blood sugar fluctuations. Brief outdoor activity restores energy quickly',
+          });
+          break;
+      }
+    });
+  }
+
   // 根据分析结果生成微习惯
   if (analysis.cortisol_pattern === 'elevated') {
     plan.micro_habits.push({
       name: '压力激素代谢',
+      name_en: 'Stress Hormone Metabolism',
       cue: '感到焦虑或压力上升时',
+      cue_en: 'When feeling anxious or stress rising',
       response: '进行5分钟步行或深呼吸',
+      response_en: 'Take a 5-minute walk or deep breathing',
       timing: '随时',
+      timing_en: 'Anytime',
       rationale: '及时代谢升高的皮质醇，防止压力累积',
+      rationale_en: 'Metabolize elevated cortisol promptly to prevent stress accumulation',
     });
   }
 
   if (analysis.sleep_quality === 'poor') {
     plan.micro_habits.push({
       name: '睡眠信号优化',
+      name_en: 'Sleep Signal Optimization',
       cue: '晚上9点后',
+      cue_en: 'After 9 PM',
       response: '调暗灯光，停止使用电子设备',
+      response_en: 'Dim lights and stop using electronic devices',
       timing: '睡前1-2小时',
+      timing_en: '1-2 hours before bed',
       rationale: '改善褪黑素分泌，提升睡眠质量',
+      rationale_en: 'Improve melatonin secretion and sleep quality',
     });
   }
 
   if (analysis.recovery_capacity === 'low') {
     plan.micro_habits.push({
       name: '最低有效运动',
+      name_en: 'Minimum Effective Exercise',
       cue: '感到精力不足时',
+      cue_en: 'When feeling low energy',
       response: '进行10分钟轻度运动（如拉伸、慢走）',
+      response_en: 'Do 10 minutes of light exercise (stretching or slow walking)',
       timing: '根据精力水平',
+      timing_en: 'Based on energy level',
       rationale: '不增加负担，但保持运动习惯的连续性',
+      rationale_en: 'Maintain exercise continuity without adding burden',
     });
   }
 

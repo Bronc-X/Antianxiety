@@ -516,9 +516,9 @@ export default function PersonalizedLandingContent({
         // 增加超时防护，避免请求卡死
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
-        const res = await fetch('/tweets.csv', { cache: 'no-store', signal: controller.signal });
+        const res = await fetch('/tweets.csv', { cache: 'no-store', signal: controller.signal }).catch(() => null);
         clearTimeout(timeout);
-        if (!res.ok) return;
+        if (!res || !res.ok) return;
         // 过大文件直接跳过，避免前端阻塞
         const cl = res.headers.get('content-length');
         if (cl && Number(cl) > 2_000_000) {

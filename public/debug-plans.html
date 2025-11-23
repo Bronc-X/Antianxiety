@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计划数据调试</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        h1 {
+            color: #4ec9b0;
+        }
+        button {
+            padding: 10px 20px;
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        .section {
+            background: #252526;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4ec9b0;
+            border-radius: 4px;
+        }
+        pre {
+            background: #1e1e1e;
+            padding: 15px;
+            overflow-x: auto;
+            border-radius: 4px;
+            border: 1px solid #3c3c3c;
+        }
+        .success {
+            color: #4ec9b0;
+        }
+        .error {
+            color: #f48771;
+        }
+        .warning {
+            color: #dcdcaa;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 计划数据调试工具</h1>
+    
+    <div class="section">
+        <h2>快速测试</h2>
+        <button onclick="testAll()">运行全部测试</button>
+        <button onclick="location.reload()">刷新页面</button>
+    </div>
+
+    <div class="section">
+        <h2>1. 测试 API /api/plans/list</h2>
+        <button onclick="testListAPI()">测试获取计划列表</button>
+        <pre id="list-result"></pre>
+    </div>
+
+    <div class="section">
+        <h2>2. 测试数据库查询（通过API）</h2>
+        <button onclick="testDatabaseQuery()">查询数据库</button>
+        <pre id="db-result"></pre>
+    </div>
+
+    <div class="section">
+        <h2>3. 检查数据格式</h2>
+        <button onclick="checkDataFormat()">检查格式</button>
+        <pre id="format-result"></pre>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const el = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning';
+            el.innerHTML += `<span class="${color}">[${timestamp}] ${message}</span>\n`;
+        }
+
+        async function testListAPI() {
+            const el = document.getElementById('list-result');
+            el.innerHTML = '';
+            
+            try {
+                log('list-result', '📤 发起请求: GET /api/plans/list?status=active&limit=20');
+                
+                const response = await fetch('/api/plans/list?status=active&limit=20');
+                log('list-result', `📊 HTTP 状态码: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const data = await response.json();
+                log('list-result', '📦 响应数据:', 'info');
+                log('list-result', JSON.stringify(data, null, 2), 'info');
+                
+                if (data.success) {
+                    const plans = data.data?.plans || [];
+                    log('list-result', `✅ 成功获取 ${plans.length} 个计划`, 'success');
+                    
+                    if (plans.length === 0) {
+                        log('list-result', '⚠️ 警告：计划列表为空！', 'warning');
+                        log('list-result', '可能原因：', 'warning');
+                        log('list-result', '1. 用户没有保存任何计划', 'warning');
+                        log('list-result', '2. 数据保存失败', 'warning');
+                        log('list-result', '3. RLS策略阻止了查询', 'warning');
+                    } else {
+                        plans.forEach((plan, index) => {
+                            log('list-result', `\n计划 ${index + 1}:`, 'success');
+                            log('list-result', `  ID: ${plan.id}`, 'info');
+                            log('list-result', `  标题: ${plan.title}`, 'info');
+                            log('list-result', `  类型: ${plan.plan_type}`, 'info');
+                            log('list-result', `  难度: ${plan.difficulty}`, 'info');
+                            log('list-result', `  状态: ${plan.status}`, 'info');
+                            log('list-result', `  创建时间: ${plan.created_at}`, 'info');
+                        });
+                    }
+                } else {
+                    log('list-result', `❌ API返回失败: ${data.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log('list-result', `❌ 请求失败: ${error.message}`, 'error');
+                log('list-result', `堆栈: ${error.stack}`, 'error');
+            }
+        }
+
+        async function testDatabaseQuery() {
+            const el = document.getElementById('db-result');
+            el.innerHTML = '';
+            
+            try {
+                log('db-result', '📤 直接查询数据库（通过 list API）');
+                
+                const response = await fetch('/api/plans/list?status=active&limit=100');
+                const data = await response.json();
+                
+                if (data.success && data.data?.plans) {
+                    const plans = data.data.plans;
+                    log('db-result', `✅ 数据库中共有 ${plans.length} 个活跃计划`, 'success');
+                    log('db-result', `\n完整数据:`, 'info');
+                    log('db-result', JSON.stringify(plans, null, 2), 'info');
+                } else {
+                    log('db-result', '❌ 无法从数据库获取数据', 'error');
+                    log('db-result', JSON.stringify(data, null, 2), 'error');
+                }
+                
+            } catch (error) {
+                log('db-result', `❌ 查询失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkDataFormat() {
+            const el = document.getElementById('format-result');
+            el.innerHTML = '';
+            
+            try {
+                log('format-result', '🔍 检查数据格式规范');
+                
+                const response = await fetch('/api/plans/list?status=active&limit=20');
+                const data = await response.json();
+                
+                log('format-result', '检查顶层结构:', 'info');
+                log('format-result', `  success: ${data.success ? '✅' : '❌'}`, data.success ? 'success' : 'error');
+                log('format-result', `  data 对象存在: ${data.data ? '✅' : '❌'}`, data.data ? 'success' : 'error');
+                
+                if (data.data) {
+                    log('format-result', '\n检查 data 对象:', 'info');
+                    log('format-result', `  plans 数组存在: ${data.data.plans ? '✅' : '❌'}`, data.data.plans ? 'success' : 'error');
+                    log('format-result', `  plans 类型: ${Array.isArray(data.data.plans) ? 'Array ✅' : 'NOT Array ❌'}`, Array.isArray(data.data.plans) ? 'success' : 'error');
+                    log('format-result', `  plans 长度: ${data.data.plans?.length || 0}`, 'info');
+                    
+                    if (data.data.plans && data.data.plans.length > 0) {
+                        const plan = data.data.plans[0];
+                        log('format-result', '\n检查第一个计划的字段:', 'info');
+                        const requiredFields = ['id', 'title', 'plan_type', 'difficulty', 'status', 'created_at'];
+                        requiredFields.forEach(field => {
+                            const exists = field in plan;
+                            log('format-result', `  ${field}: ${exists ? '✅' : '❌ 缺失'}`, exists ? 'success' : 'error');
+                        });
+                        
+                        log('format-result', '\n完整的第一个计划:', 'info');
+                        log('format-result', JSON.stringify(plan, null, 2), 'info');
+                    }
+                }
+                
+            } catch (error) {
+                log('format-result', `❌ 检查失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAll() {
+            document.getElementById('list-result').innerHTML = '';
+            document.getElementById('db-result').innerHTML = '';
+            document.getElementById('format-result').innerHTML = '';
+            
+            await testListAPI();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testDatabaseQuery();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await checkDataFormat();
+        }
+
+        // 页面加载时自动运行
+        window.addEventListener('load', () => {
+            console.log('🔧 计划数据调试工具已加载');
+            console.log('点击按钮开始测试');
+        });
+    </script>
+</body>
+</html>

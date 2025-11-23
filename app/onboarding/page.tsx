@@ -34,9 +34,9 @@ export default async function OnboardingPage() {
     console.error('获取用户资料时出错:', error);
   }
 
-  // 如果用户已经完成了 onboarding（primary_concern 不为空），重定向到 dashboard
+  // 如果用户已经完成了 onboarding（primary_concern 不为空），重定向到主页
   if (profile?.primary_concern) {
-    redirect('/dashboard');
+    redirect('/landing');
   }
 
   return (

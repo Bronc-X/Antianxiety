@@ -20,14 +20,27 @@ type EmbeddingProvider = {
 
 /**
  * 生成文本的向量嵌入
- * 支持 DeepSeek / OpenAI，并且当首选服务失败时自动回退
+ * 支持 OpenAI / DashScope / Moonshot，优先使用OpenAI
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const moonshotApiKey = process.env.MOONSHOT_API_KEY;
-  const dashscopeApiKey = process.env.DASHSCOPE_API_KEY;
-  const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
   const openaiApiKey = process.env.OPENAI_API_KEY;
+  const dashscopeApiKey = process.env.DASHSCOPE_API_KEY;
+  const moonshotApiKey = process.env.MOONSHOT_API_KEY;
   const providers: EmbeddingProvider[] = [];
+
+  // 优先使用OpenAI（与Claude配合最佳）
+  if (openaiApiKey) {
+    const openAiBase = process.env.OPENAI_API_BASE?.replace(/\/$/, '');
+    providers.push({
+      name: 'OpenAI',
+      apiKey: openaiApiKey,
+      apiUrl:
+        process.env.OPENAI_EMBEDDING_API_URL ||
+        (openAiBase ? `${openAiBase}/embeddings` : undefined) ||
+        'https://api.openai.com/v1/embeddings',
+      model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+    });
+  }
 
   if (dashscopeApiKey) {
     providers.push({
@@ -50,40 +63,14 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     });
   }
 
-  if (deepseekApiKey) {
-    providers.push({
-      name: 'DeepSeek',
-      apiKey: deepseekApiKey,
-      apiUrl:
-        process.env.DEEPSEEK_EMBEDDING_API_URL || 'https://api.deepseek.com/v1/embeddings',
-      model: process.env.DEEPSEEK_EMBEDDING_MODEL || 'deepseek-embedding',
-    });
-  }
-
-  if (openaiApiKey) {
-    const openAiBase = process.env.OPENAI_API_BASE?.replace(/\/$/, '');
-    providers.push({
-      name: 'OpenAI',
-      apiKey: openaiApiKey,
-      apiUrl:
-        process.env.OPENAI_EMBEDDING_API_URL ||
-        (openAiBase ? `${openAiBase}/embeddings` : undefined) ||
-        'https://api.openai.com/v1/embeddings',
-      model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
-    });
-  }
-
   if (providers.length === 0) {
-    console.warn('未配置任何向量服务（DashScope / Moonshot / DeepSeek / OpenAI），无法生成向量嵌入');
+    console.warn('未配置任何向量服务（OpenAI / DashScope / Moonshot），无法生成向量嵌入');
     return [];
   }
 
   for (const provider of providers) {
     const embedding = await requestEmbedding(provider, text);
     if (embedding.length > 0) {
-      if (provider.name === 'OpenAI' && deepseekApiKey) {
-        console.warn('DeepSeek 向量接口不可用，已自动回退到 OpenAI。');
-      }
       return embedding;
     }
   }

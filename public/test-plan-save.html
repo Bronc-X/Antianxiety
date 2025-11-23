@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计划保存功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            background: #0b3d2e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #06261c;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-left: 4px solid #0b3d2e;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            border-left-color: #ef4444;
+            background: #fee;
+        }
+        .success {
+            border-left-color: #10b981;
+            background: #efe;
+        }
+        h2 {
+            color: #0b3d2e;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 计划保存功能诊断工具</h1>
+    
+    <div class="test-section">
+        <h2>步骤1：测试API连接</h2>
+        <p>检查API端点是否可访问</p>
+        <button onclick="testAPIConnection()">测试 /api/plans/create</button>
+        <div id="connection-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>步骤2：测试用户认证</h2>
+        <p>检查用户是否已登录</p>
+        <button onclick="testAuth()">测试认证状态</button>
+        <div id="auth-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>步骤3：测试保存计划</h2>
+        <p>尝试保存一个测试计划</p>
+        <button onclick="testSavePlan()">保存测试计划</button>
+        <div id="save-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>步骤4：查看所有计划</h2>
+        <p>获取已保存的计划列表</p>
+        <button onclick="testListPlans()">获取计划列表</button>
+        <div id="list-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>步骤5：查看浏览器Console</h2>
+        <p>按F12打开开发者工具，查看Console标签的详细日志</p>
+        <button onclick="window.location.reload()">刷新页面</button>
+    </div>
+
+    <script>
+        function showResult(elementId, message, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.textContent = message;
+            el.className = isError ? 'result error' : 'result success';
+        }
+
+        async function testAPIConnection() {
+            console.log('=== 测试API连接 ===');
+            try {
+                const response = await fetch('/api/plans/list?status=active&limit=1');
+                console.log('响应状态:', response.status);
+                console.log('响应OK:', response.ok);
+                
+                const result = await response.json();
+                console.log('响应数据:', result);
+                
+                showResult('connection-result', 
+                    `✅ API连接成功\n状态码: ${response.status}\n响应: ${JSON.stringify(result, null, 2)}`,
+                    !response.ok
+                );
+            } catch (error) {
+                console.error('连接失败:', error);
+                showResult('connection-result', 
+                    `❌ API连接失败\n错误: ${error.message}`,
+                    true
+                );
+            }
+        }
+
+        async function testAuth() {
+            console.log('=== 测试认证状态 ===');
+            try {
+                const response = await fetch('/api/plans/list?status=active&limit=1');
+                const result = await response.json();
+                
+                if (response.status === 401) {
+                    showResult('auth-result', 
+                        `❌ 未登录\n请先登录系统`,
+                        true
+                    );
+                } else if (response.ok) {
+                    showResult('auth-result', 
+                        `✅ 已登录\n用户认证成功`,
+                        false
+                    );
+                } else {
+                    showResult('auth-result', 
+                        `⚠️ 状态异常\n${JSON.stringify(result, null, 2)}`,
+                        true
+                    );
+                }
+            } catch (error) {
+                console.error('认证测试失败:', error);
+                showResult('auth-result', 
+                    `❌ 测试失败\n错误: ${error.message}`,
+                    true
+                );
+            }
+        }
+
+        async function testSavePlan() {
+            console.log('=== 测试保存计划 ===');
+            
+            const testPlan = {
+                title: '测试方案：早晨轻运动',
+                content: '每天早上进行15分钟的轻度运动，包括拉伸和慢走。',
+                difficulty: '⭐⭐',
+                duration: '1周'
+            };
+            
+            console.log('测试计划数据:', testPlan);
+            
+            try {
+                const response = await fetch('/api/plans/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        plans: [testPlan],
+                        sessionId: 'test-session-' + Date.now()
+                    })
+                });
+                
+                console.log('响应状态:', response.status);
+                console.log('响应头:', [...response.headers.entries()]);
+                
+                const result = await response.json();
+                console.log('响应数据:', result);
+                
+                if (response.ok) {
+                    showResult('save-result', 
+                        `✅ 保存成功！\n${JSON.stringify(result, null, 2)}`,
+                        false
+                    );
+                } else {
+                    showResult('save-result', 
+                        `❌ 保存失败\n状态码: ${response.status}\n错误: ${JSON.stringify(result, null, 2)}`,
+                        true
+                    );
+                }
+            } catch (error) {
+                console.error('保存失败:', error);
+                showResult('save-result', 
+                    `❌ 请求失败\n错误类型: ${error.constructor.name}\n错误消息: ${error.message}\n错误堆栈: ${error.stack}`,
+                    true
+                );
+            }
+        }
+
+        async function testListPlans() {
+            console.log('=== 测试获取计划列表 ===');
+            try {
+                const response = await fetch('/api/plans/list?status=active&limit=20');
+                const result = await response.json();
+                
+                console.log('计划列表响应:', result);
+                
+                if (response.ok) {
+                    const plans = result.data?.plans || [];
+                    showResult('list-result', 
+                        `✅ 获取成功\n计划数量: ${plans.length}\n\n计划列表:\n${JSON.stringify(plans, null, 2)}`,
+                        false
+                    );
+                } else {
+                    showResult('list-result', 
+                        `❌ 获取失败\n${JSON.stringify(result, null, 2)}`,
+                        true
+                    );
+                }
+            } catch (error) {
+                console.error('获取失败:', error);
+                showResult('list-result', 
+                    `❌ 请求失败\n错误: ${error.message}`,
+                    true
+                );
+            }
+        }
+
+        // 页面加载时自动测试
+        window.addEventListener('load', () => {
+            console.log('🔧 计划保存诊断工具已加载');
+            console.log('按顺序点击按钮进行测试');
+        });
+    </script>
+</body>
+</html>

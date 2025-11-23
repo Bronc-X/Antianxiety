@@ -69,11 +69,11 @@ export const LANGUAGES = {
  * API 相关常量
  */
 export const API_CONSTANTS = {
-  // DeepSeek API
-  DEEPSEEK_API_BASE_URL: 'https://api.deepseek.com/v1',
-  DEEPSEEK_MODEL: 'deepseek-chat',
-  DEEPSEEK_TEMPERATURE: 0.7,
-  DEEPSEEK_MAX_TOKENS: 2000,
+  // AI API配置
+  CLAUDE_API_BASE_URL: 'https://api.anthropic.com/v1',
+  CLAUDE_MODEL: 'claude-sonnet-4-5-20250929', // 使用中转站的Claude Sonnet 4.5
+  CLAUDE_TEMPERATURE: 0.7,
+  CLAUDE_MAX_TOKENS: 2000,
   
   // 对话历史保留数量
   CONVERSATION_HISTORY_LIMIT: 10,

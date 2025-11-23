@@ -1,0 +1,438 @@
+{
+  "database_version": "1.0",
+  "last_updated": "2024-11-22",
+  "description": "30-45岁人群新陈代谢退行性机制与干预核心数据资料包",
+  
+  "core_pathology_mechanisms": {
+    "mitochondrial_dysfunction": {
+      "name_zh": "线粒体功能障碍",
+      "name_en": "Mitochondrial Dysfunction",
+      "mechanism": {
+        "zh": "线粒体效率下降，ATP生成减少，氧化应激（ROS）增加",
+        "en": "Decreased mitochondrial efficiency, reduced ATP production, increased oxidative stress (ROS)"
+      },
+      "user_symptoms": {
+        "zh": ["易疲劳", "耐力下降", "恢复慢"],
+        "en": ["Easy fatigue", "Decreased endurance", "Slow recovery"]
+      },
+      "biomarkers": ["ATP levels", "ROS markers", "Mitochondrial DNA copy number"],
+      "references": [
+        {
+          "authors": "Błaszczyk",
+          "year": 2020,
+          "journal": "Biomolecules",
+          "doi": "10.3390/biom10111508",
+          "key_findings": "Mitochondrial function decline is a hallmark of aging"
+        },
+        {
+          "authors": "Raza",
+          "year": 2024,
+          "key_findings": "Mitochondrial dysfunction leads to metabolic decline"
+        }
+      ]
+    },
+    
+    "metabolic_reprogramming": {
+      "name_zh": "代谢重编程",
+      "name_en": "Metabolic Reprogramming",
+      "mechanism": {
+        "zh": "身体从高效的氧化磷酸化转向低效的糖酵解，这是一种类似衰老和肿瘤的代谢特征",
+        "en": "Shift from efficient oxidative phosphorylation to less efficient glycolysis, a metabolic feature similar to aging and tumors"
+      },
+      "user_symptoms": {
+        "zh": ["对碳水渴望增加", "吃完饭容易犯困", "能量不稳定"],
+        "en": ["Increased carbohydrate cravings", "Post-meal drowsiness", "Energy instability"]
+      },
+      "metabolic_markers": {
+        "RER_shift": "从0.75提升至0.85，表明燃料偏好从脂肪转向葡萄糖",
+        "substrate_preference": "Shift from fat oxidation to glucose utilization"
+      },
+      "references": [
+        {
+          "authors": "Raffaghello & Longo",
+          "year": 2017,
+          "key_findings": "Metabolic reprogramming is characteristic of aging cells"
+        }
+      ]
+    },
+    
+    "hormonal_inflammaging": {
+      "name_zh": "激素与慢性炎症",
+      "name_en": "Hormonal & Inflammaging",
+      "mechanism": {
+        "zh": "胰岛素敏感性下降（胰岛素抵抗前兆），生长激素/性激素下降；慢性低度炎症（Inflammaging）由IL-17/TNF-α驱动",
+        "en": "Decreased insulin sensitivity (precursor to insulin resistance), declining growth/sex hormones; chronic low-grade inflammation (Inflammaging) driven by IL-17/TNF-α"
+      },
+      "user_symptoms": {
+        "zh": ["腹部脂肪堆积", "向心性肥胖", "关节微痛", "睡眠质量差"],
+        "en": ["Abdominal fat accumulation", "Central obesity", "Joint discomfort", "Poor sleep quality"]
+      },
+      "inflammatory_pathways": {
+        "IL17_TNF": {
+          "description": "IL-17和TNF炎症通路通过SASP（衰老相关分泌表型）激活",
+          "key_cytokines": ["IL-17", "TNF-α", "IL-6"],
+          "downstream_effects": ["Chronic inflammation", "Metabolic dysfunction", "Organ aging"]
+        },
+        "SASP": {
+          "full_name": "Senescence Associated Secretory Phenotype",
+          "description": "衰老细胞分泌促炎细胞因子和代谢物"
+        }
+      },
+      "references": [
+        {
+          "authors": "Shen et al.",
+          "year": 2024,
+          "journal": "Chinese Medicine",
+          "doi": "10.1186/s13020-024-00927-9",
+          "key_findings": "BZBS (Bazi Bushen) suppresses IL-17/TNF inflammatory pathways and SASP, improving metabolic homeostasis",
+          "evidence": "Transcriptomic analysis showed BZBS inhibited arachidonic acid-linoleic acid metabolism and restrained IL-17/TNF pathways"
+        },
+        {
+          "authors": "Kim & Dixit",
+          "year": 2025,
+          "key_findings": "Inflammaging is a key driver of metabolic decline"
+        }
+      ]
+    }
+  },
+  
+  "intervention_strategies": {
+    "BMR_decline": {
+      "problem_zh": "基础代谢率下降",
+      "problem_en": "Basal Metabolic Rate Decline",
+      "scientific_intervention": {
+        "zh": "有氧运动",
+        "en": "Aerobic Exercise"
+      },
+      "app_habit_recommendation": {
+        "zh": "每日30分钟Zone 2低心率跑或快走",
+        "en": "Daily 30-minute Zone 2 low heart rate running or brisk walking",
+        "intensity": "60-70% max heart rate",
+        "frequency": "Daily or 5-6 times/week"
+      },
+      "expected_outcomes": {
+        "metabolic_improvement": "5-10% increase in BMR",
+        "timeline": "8-12 weeks"
+      },
+      "references": [
+        {
+          "authors": "Cabo et al.",
+          "year": 2024,
+          "journal": "Springer",
+          "doi": "10.1007/s10389-024-02327-7",
+          "key_findings": "Exercise intervention effectively reverses age-related metabolic decline"
+        }
+      ]
+    },
+    
+    "sarcopenia": {
+      "problem_zh": "肌少症/代谢慢",
+      "problem_en": "Sarcopenia/Slow Metabolism",
+      "scientific_intervention": {
+        "zh": "抗阻训练",
+        "en": "Resistance Training"
+      },
+      "app_habit_recommendation": {
+        "zh": "每周3次自重深蹲或俯卧撑（保住肌肉量）",
+        "en": "3 times/week bodyweight squats or push-ups (preserve muscle mass)",
+        "sets_reps": "3 sets × 8-12 reps",
+        "progression": "Progressive overload principle"
+      },
+      "metabolic_benefits": {
+        "muscle_mass_preservation": "Prevents age-related muscle loss (1-2% per year after 30)",
+        "metabolic_boost": "Each pound of muscle burns 6-7 calories/day at rest"
+      },
+      "references": [
+        {
+          "authors": "Chen & Wu",
+          "year": 2024,
+          "journal": "Aging and Disease",
+          "doi": "10.14336/AD.2024.0407",
+          "title": "Aging-Related Sarcopenia: Metabolic Characteristics and Therapeutic Strategies",
+          "key_findings": "Sarcopenia is characterized by metabolic changes including altered amino acid metabolism, decreased mitochondrial function, and impaired protein synthesis"
+        }
+      ]
+    },
+    
+    "insulin_resistance": {
+      "problem_zh": "胰岛素抵抗",
+      "problem_en": "Insulin Resistance",
+      "scientific_intervention": {
+        "zh": "饮食限制/间歇性禁食",
+        "en": "Dietary Restriction/Intermittent Fasting"
+      },
+      "app_habit_recommendation": {
+        "zh": "16:8饮食法或控制晚餐碳水",
+        "en": "16:8 intermittent fasting or control dinner carbohydrates",
+        "eating_window": "8 hours (e.g., 12pm-8pm)",
+        "fasting_window": "16 hours"
+      },
+      "metabolic_benefits": {
+        "insulin_sensitivity": "Improves insulin sensitivity by 20-30%",
+        "autophagy": "Activates cellular autophagy and repair mechanisms"
+      },
+      "references": [
+        {
+          "authors": "Kwon et al.",
+          "year": 2019,
+          "key_findings": "Intermittent fasting improves metabolic markers and insulin sensitivity"
+        }
+      ]
+    },
+    
+    "oxidative_stress": {
+      "problem_zh": "氧化应激/炎症",
+      "problem_en": "Oxidative Stress/Inflammation",
+      "scientific_intervention": {
+        "zh": "特定营养素补充",
+        "en": "Specific Nutrient Supplementation"
+      },
+      "app_habit_recommendation": {
+        "zh": "摄入Omega-3（深海鱼）或多酚（黑咖啡/绿茶）",
+        "en": "Intake of Omega-3 (fatty fish) or polyphenols (coffee/green tea)",
+        "omega3_dosage": "1-2g EPA+DHA daily",
+        "polyphenol_sources": ["Green tea (EGCG)", "Coffee (chlorogenic acid)", "Berries (anthocyanins)"]
+      },
+      "anti_inflammatory_effects": {
+        "omega3": "Reduces inflammatory markers (CRP, IL-6) by 20-30%",
+        "polyphenols": "Neutralizes ROS and activates Nrf2 antioxidant pathway"
+      },
+      "references": [
+        {
+          "authors": "Izadi et al.",
+          "year": 2024,
+          "key_findings": "Omega-3 and polyphenols effectively reduce oxidative stress markers"
+        }
+      ]
+    },
+    
+    "protein_synthesis_decline": {
+      "problem_zh": "蛋白质合成减缓",
+      "problem_en": "Protein Synthesis Decline",
+      "scientific_intervention": {
+        "zh": "亮氨酸摄入",
+        "en": "Leucine Intake"
+      },
+      "app_habit_recommendation": {
+        "zh": "早餐/练后补充优质蛋白（如鸡蛋、乳清蛋白）",
+        "en": "Supplement quality protein at breakfast/post-workout (eggs, whey protein)",
+        "protein_amount": "20-30g per meal",
+        "leucine_threshold": "2.5-3g leucine to trigger mTOR"
+      },
+      "anabolic_response": {
+        "mTOR_activation": "Leucine activates mTOR pathway for protein synthesis",
+        "muscle_protein_synthesis": "Increases MPS by 30-50% when combined with exercise"
+      },
+      "references": [
+        {
+          "authors": "Deng et al.",
+          "year": 2024,
+          "key_findings": "Leucine supplementation enhances protein synthesis in aging individuals"
+        }
+      ]
+    }
+  },
+  
+  "breakthrough_research": {
+    "AgeXtend_AI_antiaging": {
+      "title": "AgeXtend: AI-driven discovery of anti-aging molecules",
+      "authors": "Arora et al.",
+      "year": 2024,
+      "journal": "Nature Aging",
+      "doi": "10.1038/s43587-024-00763-4",
+      "key_innovation": "利用AI/机器学习预测具有抗衰老潜力的天然分子",
+      "identified_molecules": [
+        {
+          "name": "Curcumin",
+          "name_zh": "姜黄素",
+          "mechanism": "Anti-inflammatory, antioxidant",
+          "food_sources": ["Turmeric", "Curry"]
+        },
+        {
+          "name": "Spermidine",
+          "name_zh": "亚精胺",
+          "mechanism": "Induces autophagy, improves mitochondrial function",
+          "food_sources": ["Wheat germ", "Soybeans", "Aged cheese", "Mushrooms"]
+        }
+      ],
+      "app_application": "可在App的【饮食建议】板块标注【AI甄选抗衰食材】并引用此研究作为背书"
+    },
+    
+    "blood_metabolic_clock": {
+      "title": "Blood cell metabolic atlas in aging",
+      "authors": "Zeng et al.",
+      "year": 2024,
+      "journal": "Nature Aging",
+      "doi": "10.1038/s43587-024-00669-1",
+      "key_innovation": "血液中的代谢物（如尿苷）水平可以直接反映衰老程度",
+      "key_metabolites": [
+        {
+          "name": "Uridine",
+          "name_zh": "尿苷",
+          "role": "Marker of aging, supplementation may restore stem cell vitality",
+          "food_sources": ["Mushrooms", "Broccoli", "Organ meats", "Beer yeast"]
+        }
+      ],
+      "clinical_markers": {
+        "uric_acid": "Associated with metabolic syndrome and inflammation",
+        "nucleotides": "Reflect cellular energy state and repair capacity"
+      },
+      "app_application": "如果App对接体检数据，可重点分析尿酸和尿苷相关指标；建议用户多吃富含核苷酸的食物"
+    },
+    
+    "energy_expenditure_aging_index": {
+      "title": "Energy Expenditure Aging Index (EEAI)",
+      "authors": "Shen et al.",
+      "year": 2024,
+      "journal": "Chinese Medicine",
+      "doi": "10.1186/s13020-024-00927-9",
+      "key_innovation": "首个基于能量消耗的衰老指数，使用代谢笼参数评估生物学年龄",
+      "key_findings": [
+        "Natural aging results in progressive decline in energy expenditure (EE)",
+        "Respiratory Exchange Ratio (RER) increases from ~0.75 to ~0.85 with age, indicating shift from fat to glucose utilization",
+        "Age-related decline in EE correlates with visceral fat accumulation and hepatic steatosis",
+        "BZBS treatment reversed age-related decline in EE by ~50%",
+        "BZBS enhanced PPAR signaling, fatty acid β-oxidation, and cholesterol metabolism",
+        "BZBS suppressed IL-17/TNF inflammatory pathways and SASP"
+      ],
+      "metabolic_parameters": {
+        "EE_decline": "Progressive decline with age",
+        "RER_increase": "0.75 (young) → 0.85 (old), indicating metabolic inflexibility",
+        "diurnal_rhythm_disruption": "Loss of circadian metabolic patterns"
+      },
+      "therapeutic_implications": {
+        "interventions": "Traditional Chinese medicine (BZBS) can reverse metabolic aging",
+        "mechanisms": ["Enhanced lipid metabolism", "Improved mitochondrial function", "Suppressed inflammaging"],
+        "biomarkers": "EEAI provides non-invasive longitudinal monitoring vs DNA methylation clocks"
+      }
+    }
+  },
+  
+  "app_implementation_recommendations": {
+    "user_intake_questionnaire": {
+      "primary_concerns": [
+        {
+          "zh": "容易疲劳/精力不足",
+          "en": "Easy fatigue/Low energy",
+          "maps_to": "mitochondrial_dysfunction",
+          "ai_recommendation": "有氧运动 + Omega-3补充"
+        },
+        {
+          "zh": "腹部容易长肉",
+          "en": "Abdominal fat accumulation",
+          "maps_to": "insulin_resistance + hormonal_inflammaging",
+          "ai_recommendation": "16:8间歇性禁食 + 控制碳水"
+        },
+        {
+          "zh": "肌肉松弛/力量下降",
+          "en": "Muscle weakness/Strength decline",
+          "maps_to": "sarcopenia",
+          "ai_recommendation": "抗阻训练 + 蛋白质补充"
+        },
+        {
+          "zh": "恢复速度慢",
+          "en": "Slow recovery",
+          "maps_to": "mitochondrial_dysfunction + oxidative_stress",
+          "ai_recommendation": "Zone 2有氧 + 抗氧化食物"
+        }
+      ]
+    },
+    
+    "personalized_analysis_logic": {
+      "age_30_35": {
+        "focus": "预防性干预",
+        "priority": ["保持肌肉量", "建立运动习惯", "优化饮食结构"]
+      },
+      "age_35_40": {
+        "focus": "代谢维持",
+        "priority": ["抗阻+有氧结合", "控制炎症", "补充关键营养素"]
+      },
+      "age_40_45": {
+        "focus": "积极逆转",
+        "priority": ["高强度间歇", "间歇性禁食", "靶向补充剂"]
+      }
+    }
+  },
+  
+  "reference_database": [
+    {
+      "id": 1,
+      "doi": "10.1111/jgs.17383"
+    },
+    {
+      "id": 4,
+      "doi": "10.1016/j.cell.2021.01.043",
+      "note": "Oxidative Stress"
+    },
+    {
+      "id": 6,
+      "authors": "Chen & Wu",
+      "year": 2024,
+      "url": "https://www.aginganddisease.org/EN/10.14336/AD.2024.0407",
+      "doi": "10.14336/AD.2024.0407",
+      "note": "Muscle & Metabolism - Sarcopenia"
+    },
+    {
+      "id": 8,
+      "authors": "Zeng et al.",
+      "year": 2024,
+      "journal": "Nature Aging",
+      "url": "https://www.nature.com/articles/s43587-024-00669-1",
+      "doi": "10.1038/s43587-024-00669-1",
+      "note": "Blood Metabolomics"
+    },
+    {
+      "id": 10,
+      "authors": "Cabo et al.",
+      "year": 2024,
+      "url": "https://link.springer.com/article/10.1007/s10389-024-02327-7",
+      "doi": "10.1007/s10389-024-02327-7",
+      "note": "Exercise Intervention"
+    },
+    {
+      "id": 17,
+      "authors": "Shen et al.",
+      "year": 2024,
+      "journal": "Chinese Medicine",
+      "url": "https://cmjournal.biomedcentral.com/articles/10.1186/s13020-024-00927-9",
+      "doi": "10.1186/s13020-024-00927-9",
+      "note": "Inflammation & TCM - EEAI, BZBS, IL-17/TNF pathways"
+    },
+    {
+      "id": 25,
+      "doi": "10.1016/S1566-2772(03)00011-2",
+      "note": "Leptin Resistance"
+    },
+    {
+      "id": 35,
+      "authors": "Arora et al.",
+      "year": 2024,
+      "journal": "Nature Aging",
+      "url": "https://www.nature.com/articles/s43587-024-00763-4",
+      "doi": "10.1038/s43587-024-00763-4",
+      "note": "AI for Anti-aging - AgeXtend"
+    },
+    {
+      "id": 41,
+      "doi": "10.1016/j.mad.2020.111383",
+      "note": "Metabolic Reprogramming"
+    },
+    {
+      "id": 43,
+      "authors": "Błaszczyk",
+      "year": 2020,
+      "journal": "Biomolecules",
+      "url": "https://www.mdpi.com/2218-1989/10/11/450",
+      "doi": "10.3390/biom10111508",
+      "note": "Mitochondrial Function"
+    },
+    {
+      "id": 50,
+      "authors": "Wang et al.",
+      "year": 2020,
+      "journal": "Scientific Reports",
+      "doi": "10.1038/s41598-020-65402-5",
+      "note": "Hormonal levels and metabolism"
+    }
+  ]
+}

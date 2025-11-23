@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, Suspense, useEffect } from 'react';
+import { useState, FormEvent, Suspense, useEffect, useRef } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -19,8 +19,22 @@ function LoginFormContent() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [oauthProviderLoading, setOauthProviderLoading] = useState<'twitter' | 'github' | 'wechat' | null>(null);
+  const isEmailLoginRedirectingRef = useRef(false);
   const searchParams = useSearchParams();
   const supabase = createClientSupabaseClient();
+  
+  // 页面加载时检查是否已登录，如果已登录直接跳转
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        console.log('⚡ 检测到已存在的Session，直接跳转');
+        const redirectTo = searchParams.get('redirectedFrom') || '/landing';
+        window.location.href = redirectTo;
+      }
+    };
+    checkExistingSession();
+  }, [supabase.auth, searchParams]);
   
   // 检查 URL 中的错误参数
   useEffect(() => {
@@ -50,12 +64,13 @@ function LoginFormContent() {
     }
   }, [searchParams]);
 
-  // 监听认证状态变化
+  // 监听认证状态变化（主要用于OAuth登录）
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      // 如果是邮箱登录，已经在handleEmailPasswordLogin中处理了重定向，这里跳过
+      if (event === 'SIGNED_IN' && session && !isEmailLoginRedirectingRef.current) {
         console.log('登录成功，用户ID:', session.user.id);
         // 等待一下确保 cookies 同步
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -140,11 +155,19 @@ function LoginFormContent() {
       }
 
       if (data.user && data.session) {
-        console.log('登录成功，用户ID:', data.user.id);
-        // 登录成功，session 已返回
-        // onAuthStateChange 会处理重定向，这里只显示成功消息
-        setMessage({ type: 'success', text: '登录成功，正在验证身份...' });
-        // 不在这里重定向，让 onAuthStateChange 处理
+        console.log('✅ 登录成功，用户ID:', data.user.id);
+        console.log('🔐 Session:', data.session);
+        
+        setMessage({ type: 'success', text: '登录成功！正在跳转...' });
+        
+        // 设置标记，避免onAuthStateChange重复重定向
+        isEmailLoginRedirectingRef.current = true;
+        setIsLoading(false);
+        
+        // 立即重定向到landing主页
+        console.log('🚀 立即跳转到 /landing');
+        window.location.href = '/landing';
+        return;
       } else if (data.user) {
         // 如果只有 user 没有 session，等待 session 设置
         console.log('用户存在但 session 为空，等待 session 设置...');

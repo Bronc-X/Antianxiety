@@ -18,17 +18,21 @@ export async function createServerSupabaseClient() {
           }
         },
         set(name: string, value: string, options: { path?: string; maxAge?: number }) {
+          // Next.js 16: Cookie 写入只能在 Server Actions/Route Handlers 中进行
+          // 在 Server Components 中静默跳过
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {
-            console.error('Error setting cookie:', error);
+            // 静默处理：Server Component 中无法写入 cookie
           }
         },
         remove(name: string, options: { path?: string }) {
+          // Next.js 16: Cookie 删除只能在 Server Actions/Route Handlers 中进行
+          // 在 Server Components 中静默跳过
           try {
             cookieStore.delete({ name, ...options });
           } catch (error) {
-            console.error('Error removing cookie:', error);
+            // 静默处理：Server Component 中无法删除 cookie
           }
         },
       },

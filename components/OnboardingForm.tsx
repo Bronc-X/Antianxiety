@@ -79,8 +79,8 @@ export default function OnboardingForm({ initialData }: OnboardingFormProps) {
         return;
       }
 
-      // 更新成功，重定向到仪表板
-      router.push('/dashboard');
+      // 更新成功，重定向到主页
+      router.push('/landing');
       router.refresh();
     } catch (err) {
       console.error('提交表单时出错:', err);

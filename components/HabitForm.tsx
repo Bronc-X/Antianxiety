@@ -4,9 +4,9 @@ import { useState, FormEvent } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 
-// 习惯表单数据类型定义
+// 习惯表单数据类型定义（兼容新 habits 表）
 interface HabitFormData {
-  habit_name: string;
+  title: string; // 从 habit_name 改为 title
   cue: string;
   response: string;
   reward: string;
@@ -21,7 +21,7 @@ export default function HabitForm() {
   const supabase = createClientSupabaseClient();
 
   const [formData, setFormData] = useState<HabitFormData>({
-    habit_name: '',
+    title: '',
     cue: '',
     response: '',
     reward: '',
@@ -38,7 +38,7 @@ export default function HabitForm() {
     setError(null);
 
     // 验证必填字段
-    if (!formData.habit_name.trim()) {
+    if (!formData.title.trim()) {
       setError('请填写习惯名称');
       setIsLoading(false);
       return;
@@ -57,10 +57,10 @@ export default function HabitForm() {
         return;
       }
 
-      // 插入新习惯到 user_habits 表
-      const { error: insertError } = await supabase.from('user_habits').insert({
+      // 插入新习惯到 habits 表（新表结构）
+      const { error: insertError } = await supabase.from('habits').insert({
         user_id: user.id,
-        habit_name: formData.habit_name.trim(),
+        title: formData.title.trim(),
         cue: formData.cue.trim() || null,
         response: formData.response.trim() || null,
         reward: formData.reward.trim() || null,
@@ -75,7 +75,7 @@ export default function HabitForm() {
 
       // 添加成功，重置表单并刷新页面
       setFormData({
-        habit_name: '',
+        title: '',
         cue: '',
         response: '',
         reward: '',
@@ -125,16 +125,16 @@ export default function HabitForm() {
 
           {/* 习惯名称 */}
           <div>
-            <label htmlFor="habit_name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
               习惯名称 <span className="text-red-500">*</span>
             </label>
             <input
-              id="habit_name"
-              name="habit_name"
+              id="title"
+              name="title"
               type="text"
               required
-              value={formData.habit_name}
-              onChange={(e) => handleChange('habit_name', e.target.value)}
+              value={formData.title}
+              onChange={(e) => handleChange('title', e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               placeholder="例如：下午步行"
             />
@@ -205,7 +205,7 @@ export default function HabitForm() {
               onClick={() => {
                 setIsExpanded(false);
                 setFormData({
-                  habit_name: '',
+                  title: '',
                   cue: '',
                   response: '',
                   reward: '',

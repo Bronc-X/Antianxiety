@@ -9,7 +9,7 @@ import {
 } from '@/lib/aiMemory';
 import { fetchWithRetry, parseApiError } from '@/lib/apiUtils';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 type RoleValue = (typeof AI_ROLES)[keyof typeof AI_ROLES];
 
@@ -44,23 +44,20 @@ interface UserProfileData {
   [key: string]: unknown;
 }
 
-interface DeepSeekUsage {
-  total_tokens?: number;
-  prompt_tokens?: number;
-  completion_tokens?: number;
-  [key: string]: number | undefined;
+interface ClaudeUsage {
+  input_tokens?: number;
+  output_tokens?: number;
 }
 
-interface DeepSeekChoice {
-  message?: {
-    role: RoleValue;
-    content?: string;
-  };
+interface ClaudeContent {
+  type: string;
+  text?: string;
 }
 
-interface DeepSeekResponseBody {
-  choices: DeepSeekChoice[];
-  usage?: DeepSeekUsage;
+interface ClaudeResponseBody {
+  content: ClaudeContent[];
+  usage?: ClaudeUsage;
+  stop_reason?: string;
 }
 
 interface ChatRequestBody {
@@ -70,10 +67,12 @@ interface ChatRequestBody {
 }
 
 /**
- * DeepSeek API 聊天接口
- * 服务端 API 路由，安全地调用 DeepSeek API
+ * Claude API 聊天接口
+ * 服务端 API 路由，安全地调用 Anthropic Claude API
  */
 export async function POST(request: NextRequest) {
+  console.log('📨 收到 AI 聊天请求');
+  
   try {
     // 验证用户身份
     const supabase = await createServerSupabaseClient();
@@ -82,8 +81,15 @@ export async function POST(request: NextRequest) {
       error: authError,
     } = await supabase.auth.getUser();
 
+    console.log('🔐 用户认证状态:', {
+      hasUser: !!user,
+      userId: user?.id,
+      hasError: !!authError
+    });
+
     if (authError || !user) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
+      console.error('❌ 用户未登录或认证失败');
+      return NextResponse.json({ error: '未授权，请先登录' }, { status: 401 });
     }
 
     // 获取请求体
@@ -94,10 +100,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '消息内容不能为空' }, { status: 400 });
     }
 
-    // 检查 DeepSeek API Key
-    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
-    if (!deepseekApiKey) {
-      console.error('DEEPSEEK_API_KEY 未设置');
+    // 检查 Claude API Key
+    const claudeApiKey = process.env.ANTHROPIC_API_KEY;
+    const claudeBaseUrl = process.env.ANTHROPIC_API_BASE || API_CONSTANTS.CLAUDE_API_BASE_URL;
+    
+    // 调试日志
+    console.log('🔍 API配置检查:');
+    console.log('- ANTHROPIC_API_KEY存在:', !!claudeApiKey);
+    console.log('- ANTHROPIC_API_BASE:', claudeBaseUrl);
+    
+    if (!claudeApiKey) {
+      console.error('❌ ANTHROPIC_API_KEY 未设置');
       return NextResponse.json(
         { error: 'AI 服务未配置，请联系管理员' },
         { status: 500 }
@@ -119,47 +132,96 @@ export async function POST(request: NextRequest) {
       // 继续执行，即使记忆检索失败也不影响对话
     }
 
+    // 获取用户执行统计数据
+    let executionStats = null;
+    try {
+      const statsResponse = await fetch(`${request.nextUrl.origin}/api/plans/stats?days=30`, {
+        headers: {
+          Cookie: request.headers.get('cookie') || '',
+        },
+      });
+      if (statsResponse.ok) {
+        const statsResult = await statsResponse.json();
+        executionStats = statsResult.data;
+        console.log('✅ 获取执行统计:', executionStats?.summary);
+      }
+    } catch (error) {
+      console.log('⚠️ 获取执行统计失败:', error);
+    }
+
     // 构建系统提示词（基于平台理念和用户资料）
-    let systemPrompt = buildSystemPrompt(userProfile);
+    let systemPrompt = buildSystemPrompt(userProfile, executionStats);
     
     // 如果有相关记忆，添加到系统提示词中（增强上下文）
     if (relevantMemories.length > 0) {
       const memoryContext = buildContextWithMemories(relevantMemories);
       systemPrompt += memoryContext;
-      systemPrompt += `\n**重要**：以上是用户的历史对话。在回复时，可以引用这些内容，但不要重复说"你之前说过"。直接使用这些信息即可。\n`;
     }
 
-    // 构建消息历史
-    const messages: ConversationMessage[] = [
-      { role: AI_ROLES.SYSTEM, content: systemPrompt },
-      ...(conversationHistory || []).slice(-API_CONSTANTS.CONVERSATION_HISTORY_LIMIT), // 只保留最近N条消息
-      { role: AI_ROLES.USER, content: message },
+    // 构建消息历史（Claude不支持system role in messages，需要单独传递）
+    const messages: Array<{role: 'user' | 'assistant'; content: string}> = [
+      ...(conversationHistory || []).slice(-API_CONSTANTS.CONVERSATION_HISTORY_LIMIT).map(msg => ({
+        role: msg.role === AI_ROLES.SYSTEM ? 'user' as const : msg.role as 'user' | 'assistant',
+        content: msg.content
+      })),
+      { role: 'user' as const, content: message },
     ];
 
-    // 调用 DeepSeek API（带重试机制）
+    // 调用 Claude API（带重试机制）
     let response: Response;
+    const isGPT = API_CONSTANTS.CLAUDE_MODEL.includes('gpt');
+    
     try {
-      response = await fetchWithRetry(
-        `${API_CONSTANTS.DEEPSEEK_API_BASE_URL}/chat/completions`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${deepseekApiKey}`,
+      if (isGPT) {
+        // 使用OpenAI格式（GPT-4）
+        const gptMessages = [
+          { role: 'system', content: systemPrompt },
+          ...messages
+        ];
+        
+        response = await fetchWithRetry(
+          `${claudeBaseUrl}/chat/completions`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${claudeApiKey}`,
+            },
+            body: JSON.stringify({
+              model: API_CONSTANTS.CLAUDE_MODEL,
+              messages: gptMessages,
+              temperature: API_CONSTANTS.CLAUDE_TEMPERATURE,
+              max_tokens: API_CONSTANTS.CLAUDE_MAX_TOKENS,
+            }),
           },
-          body: JSON.stringify({
-            model: API_CONSTANTS.DEEPSEEK_MODEL,
-            messages: messages,
-            temperature: API_CONSTANTS.DEEPSEEK_TEMPERATURE,
-            max_tokens: API_CONSTANTS.DEEPSEEK_MAX_TOKENS,
-            stream: false,
-          }),
-        },
-        3, // 最大重试 3 次
-        1000 // 初始延迟 1 秒
-      );
+          3,
+          1000
+        );
+      } else {
+        // 使用Claude格式
+        response = await fetchWithRetry(
+          `${claudeBaseUrl}/messages`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': claudeApiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: API_CONSTANTS.CLAUDE_MODEL,
+              system: systemPrompt,
+              messages: messages,
+              temperature: API_CONSTANTS.CLAUDE_TEMPERATURE,
+              max_tokens: API_CONSTANTS.CLAUDE_MAX_TOKENS,
+            }),
+          },
+          3,
+          1000
+        );
+      }
     } catch (error) {
-      console.error('DeepSeek API 请求失败（已重试）:', error);
+      console.error('Claude API 请求失败（已重试）:', error);
       const errorInfo = parseApiError(error);
       return NextResponse.json(
         {
@@ -172,12 +234,19 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.text().catch(() => '未知错误');
-      console.error('DeepSeek API 错误:', response.status, errorData);
+      console.error('❌ Claude API 错误详情:');
+      console.error('- Status:', response.status);
+      console.error('- Response:', errorData);
+      console.error('- Request URL:', `${claudeBaseUrl}/messages`);
 
       // 根据错误类型返回不同的错误信息
       let errorMessage = 'AI 服务暂时不可用，请稍后重试';
       if (response.status === 401) {
-        errorMessage = 'AI 服务认证失败，请联系管理员';
+        errorMessage = 'AI 服务认证失败，API Key可能无效';
+        console.error('💡 提示: 请检查 ANTHROPIC_API_KEY 是否正确');
+      } else if (response.status === 403) {
+        errorMessage = '无权访问该模型，请检查API权限';
+        console.error('💡 提示: 确认中转站已开通 Claude 模型');
       } else if (response.status === 429) {
         errorMessage = '请求过于频繁，请稍后再试';
       } else if (response.status >= 500) {
@@ -185,13 +254,21 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: errorMessage, code: response.status.toString() },
+        { error: errorMessage, code: response.status.toString(), details: errorData },
         { status: response.status }
       );
     }
 
-    const data = (await response.json()) as DeepSeekResponseBody;
-    const aiResponse = data.choices[0]?.message?.content || '抱歉，我无法生成回复。';
+    const data = await response.json();
+    let aiResponse: string;
+    
+    if (isGPT) {
+      // GPT格式响应
+      aiResponse = (data as any).choices?.[0]?.message?.content || '抱歉，我无法生成回复。';
+    } else {
+      // Claude格式响应
+      aiResponse = (data as ClaudeResponseBody).content?.[0]?.text || '抱歉，我无法生成回复。';
+    }
 
     // ===== AI 记忆系统：存储新的对话到记忆库 =====
     try {
@@ -207,8 +284,8 @@ export async function POST(request: NextRequest) {
         'assistant',
         aiResponseEmbedding,
         {
-          model: API_CONSTANTS.DEEPSEEK_MODEL,
-          tokens: data.usage?.total_tokens,
+          model: API_CONSTANTS.CLAUDE_MODEL,
+          tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
         }
       );
     } catch (error) {
@@ -246,7 +323,7 @@ export async function POST(request: NextRequest) {
  * 基于平台理念和用户资料生成个性化的系统提示
  * 风格：冷峻、理性、基于第一性原理
  */
-function buildSystemPrompt(userProfile?: UserProfileData | null): string {
+function buildSystemPrompt(userProfile?: UserProfileData | null, executionStats?: any): string {
   let prompt = `你是 No More anxious™ 的健康代理（Health Agent）。你的工作基于生理学第一性原理，不包含情感激励。
 
 **核心原则：**
@@ -299,12 +376,40 @@ function buildSystemPrompt(userProfile?: UserProfileData | null): string {
     }
   }
 
+  // 添加用户执行统计数据
+  if (executionStats && executionStats.summary) {
+    const { summary, total_plans, completions } = executionStats;
+    prompt += `**用户执行数据（近${summary.total_days || 30}天）：**\n`;
+    prompt += `- 活跃计划数：${total_plans || 0}个\n`;
+    prompt += `- 完成记录：${summary.total_completions || 0}次\n`;
+    prompt += `- 完成天数：${summary.completed_days || 0}天\n`;
+    prompt += `- 执行率：${summary.completion_rate || 0}%\n`;
+    
+    if (summary.avg_feeling_score) {
+      prompt += `- 平均感受评分：${summary.avg_feeling_score}/5.0\n`;
+    }
+    
+    // 如果有最近的执行记录，显示趋势
+    if (completions && completions.length > 0) {
+      const recentCompletions = completions.slice(0, 7); // 最近一周
+      const recentCompleted = recentCompletions.filter((c: any) => c.status === 'completed').length;
+      prompt += `- 近一周完成情况：${recentCompleted}/${recentCompletions.length}天\n`;
+    }
+    
+    prompt += `\n**重要：在回答用户时，你应该结合以上执行数据来分析和建议**\n`;
+    prompt += `- 如果执行率低：分析可能的生理/环境障碍，提供降低难度的方案\n`;
+    prompt += `- 如果执行率高：可以适当增加挑战性，但要循序渐进\n`;
+    prompt += `- 如果感受评分低：评估方案是否适合，可能需要调整\n`;
+    prompt += `\n`;
+  }
+
   prompt += `**回复格式要求：**
 - 语言：中文
 - 语调：冷静、客观、直接
 - 结构：事实陈述 → 生理机制 → 可执行建议
 - 禁止：鼓励性语言、情感表达、主观判断
 - 必须：引用数据、基于证据、提供可验证的建议
+- 当用户问及执行情况时：使用上述执行数据进行分析
 
 **回复模板：**
 1. 识别用户状态（基于数据，非情感）
