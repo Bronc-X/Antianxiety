@@ -248,7 +248,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
         }));
 
       // 调用我们的 API 路由
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -276,7 +276,8 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
         });
       }
       
-      return data.response || '抱歉，我无法生成回复。';
+      // RAG端点返回格式: { success: true, data: { answer, sessionId, knowledgeUsed, metadata } }
+      return data.data?.answer || data.response || '抱歉，我无法生成回复。';
     } catch (error) {
       console.error('调用 AI API 时出错:', error);
       // 如果 API 调用失败，返回友好的错误消息

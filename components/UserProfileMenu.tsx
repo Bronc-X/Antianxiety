@@ -130,7 +130,7 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
                   onClick={() => setIsOpen(false)}
                   className="w-full rounded-md border border-[#E7E1D6] bg-white px-3 py-2 text-sm text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors text-left block"
                 >
-                  设置
+                  ⚙️ 个人设置
                 </Link>
               <Link
                 href="/pricing"

@@ -2,6 +2,8 @@ import { getServerSession } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import MarketingNav from '@/components/MarketingNav';
 import LandingContent from '@/components/LandingContent';
+import Link from 'next/link';
+import UserProfileMenu from '@/components/UserProfileMenu';
 
 interface SessionUser {
   id: string;
@@ -102,7 +104,7 @@ export default async function LandingPage() {
         try {
           const habitsResult = await Promise.race<HabitSummary[]>([
             supabase
-              .from('user_habits')
+              .from('habits')
               .select('id')
               .eq('user_id', session.user.id)
               .then(({ data }) => (data || []) as HabitSummary[]),
@@ -113,7 +115,7 @@ export default async function LandingPage() {
             const habitIds = habitsResult.map((habit) => habit.id);
             const habitLogsResult = await Promise.race<HabitLog[]>([
               supabase
-                .from('habit_log')
+                .from('habit_completions')
                 .select('*')
                 .in('habit_id', habitIds)
                 .order('completed_at', { ascending: true })
@@ -153,17 +155,68 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF6EF]">
-      <MarketingNav 
-        user={session?.user || null} 
-        profile={profile ? {
-          full_name: typeof (profile as ProfileRecord).full_name === 'string' 
-            ? (profile as ProfileRecord).full_name as string 
-            : null,
-          avatar_url: typeof (profile as ProfileRecord).avatar_url === 'string' 
-            ? (profile as ProfileRecord).avatar_url as string 
-            : null,
-        } : null} 
-      />
+      {/* 导航栏 */}
+      <nav className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur border-b border-[#E7E1D6]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/landing" className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />
+                <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
+                  No More anxious™
+                </span>
+              </Link>
+            </div>
+            <nav className="hidden md:flex items-center gap-4 text-sm">
+              <a 
+                href="#how" 
+                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+              >
+                核心洞察
+              </a>
+              <a 
+                href="#model" 
+                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+              >
+                模型方法
+              </a>
+              <a 
+                href="#authority" 
+                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+              >
+                权威来源
+              </a>
+              <Link
+                href="/inspiration"
+                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+              >
+                分析报告
+              </Link>
+              <Link
+                href="/plans"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white rounded-lg hover:shadow-lg transition-all"
+              >
+                <span>📋</span>
+                <span>AI计划表</span>
+              </Link>
+              {session?.user && (
+                <UserProfileMenu 
+                  user={session.user} 
+                  profile={profile ? {
+                    full_name: typeof (profile as ProfileRecord).full_name === 'string' 
+                      ? (profile as ProfileRecord).full_name as string 
+                      : null,
+                    avatar_url: typeof (profile as ProfileRecord).avatar_url === 'string' 
+                      ? (profile as ProfileRecord).avatar_url as string 
+                      : null,
+                  } : null}
+                />
+              )}
+            </nav>
+          </div>
+        </div>
+      </nav>
+
       <LandingContent 
         user={session?.user || null} 
         profile={landingProfile} 

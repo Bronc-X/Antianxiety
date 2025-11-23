@@ -5,10 +5,10 @@ import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import BeliefScoreModal from './BeliefScoreModal';
 
-// 习惯数据类型定义
+// 习惯数据类型定义（兼容新 habits 表）
 interface Habit {
   id: number;
-  habit_name: string;
+  title: string; // 从 habit_name 改为 title
   cue: string | null;
   response: string | null;
   reward: string | null;
@@ -41,14 +41,14 @@ export default function HabitList({ habits, userId }: HabitListProps) {
       .channel(`habit-sync-${userId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'user_habits', filter: `user_id=eq.${userId}` },
+        { event: '*', schema: 'public', table: 'habits', filter: `user_id=eq.${userId}` },
         () => {
           router.refresh();
         }
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'habit_log' },
+        { event: '*', schema: 'public', table: 'habit_completions' },
         (payload) => {
           const newHabitId = (payload.new as { habit_id?: number } | null)?.habit_id;
           const oldHabitId = (payload.old as { habit_id?: number } | null)?.habit_id;
@@ -98,12 +98,12 @@ export default function HabitList({ habits, userId }: HabitListProps) {
         throw new Error('无法获取用户信息，请重新登录');
       }
 
-      // 开始事务：更新 belief_score 并创建 habit_log 记录
+      // 开始事务：更新 belief_score 并创建 habit_completions 记录
       // 由于 Supabase 不支持事务，我们需要分别执行两个操作
 
-      // 1. 更新 user_habits 表的 belief_score
+      // 1. 更新 habits 表的 belief_score
       const { error: updateError } = await supabase
-        .from('user_habits')
+        .from('habits')
         .update({ belief_score: score })
         .eq('id', selectedHabit.id)
         .eq('user_id', user.id)
@@ -142,11 +142,12 @@ export default function HabitList({ habits, userId }: HabitListProps) {
         throw new Error(errorMessage);
       }
 
-      // 2. 在 habit_log 表中创建新记录
+      // 2. 在 habit_completions 表中创建新记录
       const { error: insertError } = await supabase
-        .from('habit_log')
+        .from('habit_completions')
         .insert({
           habit_id: selectedHabit.id,
+          user_id: user.id, // habit_completions 表需要 user_id
           belief_score_snapshot: score,
           completed_at: new Date().toISOString(),
         })
@@ -208,7 +209,7 @@ export default function HabitList({ habits, userId }: HabitListProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <h4 className="text-base font-medium text-gray-900">
-                    {habit.habit_name}
+                    {habit.title}
                   </h4>
                   {habit.belief_score !== null && (
                     <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
@@ -257,7 +258,7 @@ export default function HabitList({ habits, userId }: HabitListProps) {
       {selectedHabit && (
         <BeliefScoreModal
           isOpen={isModalOpen}
-          habitName={selectedHabit.habit_name}
+          habitName={selectedHabit.title}
           onClose={handleCloseModal}
           onSubmit={handleSubmitBeliefScore}
         />

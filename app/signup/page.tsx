@@ -83,10 +83,10 @@ export default function SignupPage() {
           text: '注册成功！请查收邮件以验证您的账户。',
         });
 
-        // 如果用户已自动登录，重定向到仪表板
+        // 如果用户已自动登录，重定向到主页
         if (data.session) {
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/landing');
             router.refresh();
           }, 2000);
         }

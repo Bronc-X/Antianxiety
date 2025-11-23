@@ -29,19 +29,22 @@ export default async function InspirationPage() {
       <nav className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-4">
-              <a href="/dashboard" className="text-xl font-semibold text-gray-900">
-                NoMoreAnxious
+            <div className="flex items-center gap-3">
+              <a href="/landing" className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />
+                <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
+                  No More anxious™
+                </span>
               </a>
               <span className="text-sm text-gray-500">/</span>
               <span className="text-sm text-gray-600">灵感</span>
             </div>
             <div className="flex items-center gap-4">
               <a
-                href="/dashboard"
-                className="text-sm text-gray-600 hover:text-gray-900"
+                href="/landing"
+                className="text-sm text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
-                返回仪表板
+                返回主页
               </a>
               <span className="text-sm text-gray-600">{user.email}</span>
               <LogoutButton />

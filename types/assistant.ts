@@ -8,10 +8,15 @@ export interface AIAnalysisResult {
 
 export interface MicroHabit {
   name?: string;
+  name_en?: string;
   cue?: string;
+  cue_en?: string;
   response?: string;
+  response_en?: string;
   timing?: string;
+  timing_en?: string;
   rationale?: string;
+  rationale_en?: string;
 }
 
 export interface AIRecommendationPlan {

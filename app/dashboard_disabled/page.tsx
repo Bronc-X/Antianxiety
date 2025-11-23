@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import { findMatchingRule } from '@/lib/agentUtils';
 import { autoGroupData } from '@/lib/chartUtils';
+import Link from 'next/link';
 import LogoutButton from '@/components/LogoutButton';
 import HabitForm from '@/components/HabitForm';
 import HabitList from '@/components/HabitList';
@@ -10,6 +11,8 @@ import HabitList from '@/components/HabitList';
 import { HabitCompletionChart, BeliefScoreChart } from '@/components/LazyCharts';
 import PersonalizedFeed from '@/components/PersonalizedFeed';
 import AnimateOnView from '@/components/AnimateOnView';
+import AIReminderList from '@/components/AIReminderList';
+import DashboardPlans from '@/components/DashboardPlans';
 
 export const runtime = 'edge';
 // 标记为动态路由，因为使用了 cookies
@@ -59,11 +62,11 @@ export default async function DashboardPage() {
     console.error('查找推荐规则时出错:', error);
   }
 
-  // 获取用户的习惯列表
+  // 获取用户的习惯列表（使用新 habits 表）
   let habits = [];
   try {
     const { data, error } = await supabase
-      .from('user_habits')
+      .from('habits')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -90,7 +93,7 @@ export default async function DashboardPage() {
 
     if (habitIds.length > 0) {
       const { data, error } = await supabase
-        .from('habit_log')
+        .from('habit_completions')
         .select('*')
         .in('habit_id', habitIds)
         .order('completed_at', { ascending: true });
@@ -145,8 +148,23 @@ export default async function DashboardPage() {
       <nav className="border-b border-[#E7E1D6] bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-[#0B3D2E]">No More anxious™</h1>
+            <div className="flex items-center gap-4 sm:gap-8">
+              <h1 className="text-lg sm:text-xl font-semibold text-[#0B3D2E]">No More anxious™</h1>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Link
+                  href="/dashboard"
+                  className="text-sm font-medium text-[#0B3D2E]/70 hover:text-[#0B3D2E] transition-colors"
+                >
+                  主页
+                </Link>
+                <Link
+                  href="/plans"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-medium bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white rounded-lg hover:shadow-lg transition-all"
+                >
+                  <span>📊</span>
+                  <span className="hidden sm:inline">计划表</span>
+                </Link>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-[#0B3D2E]/70">{user.email}</span>
@@ -159,96 +177,9 @@ export default async function DashboardPage() {
       {/* 主要内容 */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
-          {/* 欢迎信息 */}
+          {/* AI方案计划表 - 唯一显示的内容 */}
           <AnimateOnView>
-            <div className="rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold text-[#0B3D2E]">欢迎回来</h2>
-              <p className="mt-2 text-[#0B3D2E]/80">
-              {profile?.username
-                ? `你好，${profile.username}！`
-                : '开始建立您的健康习惯之旅'}
-            </p>
-          </div>
-          </AnimateOnView>
-
-          {/* 专属代理建议 */}
-          {matchedRule && (
-            <AnimateOnView>
-              <div className="rounded-lg border border-[#0B3D2E]/20 bg-[#0B3D2E]/5 p-6 shadow-sm">
-                <h3 className="text-xl font-semibold text-[#0B3D2E] mb-4">
-                您的专属代理建议
-              </h3>
-                <p className="text-base leading-7 text-[#0B3D2E]/90 whitespace-pre-line">
-                {matchedRule.recommendation_long}
-              </p>
-            </div>
-            </AnimateOnView>
-          )}
-
-          {/* 用户资料信息 */}
-          {profile && (
-            <AnimateOnView>
-              <div className="rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-medium text-[#0B3D2E]">您的资料</h3>
-              <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                    <dt className="text-sm font-medium text-[#0B3D2E]/70">用户名</dt>
-                    <dd className="mt-1 text-sm text-[#0B3D2E]">{profile.username || '未设置'}</dd>
-                </div>
-                {profile.age && (
-                  <div>
-                      <dt className="text-sm font-medium text-[#0B3D2E]/70">年龄</dt>
-                      <dd className="mt-1 text-sm text-[#0B3D2E]">{profile.age} 岁</dd>
-                  </div>
-                )}
-                {profile.primary_concern && (
-                  <div>
-                      <dt className="text-sm font-medium text-[#0B3D2E]/70">主要关注</dt>
-                      <dd className="mt-1 text-sm text-[#0B3D2E]">{profile.primary_concern}</dd>
-                  </div>
-                )}
-                {profile.activity_level && (
-                  <div>
-                      <dt className="text-sm font-medium text-[#0B3D2E]/70">活动水平</dt>
-                      <dd className="mt-1 text-sm text-[#0B3D2E]">{profile.activity_level}</dd>
-                  </div>
-                )}
-                {profile.circadian_rhythm && (
-                  <div>
-                      <dt className="text-sm font-medium text-[#0B3D2E]/70">昼夜节律</dt>
-                      <dd className="mt-1 text-sm text-[#0B3D2E]">{profile.circadian_rhythm}</dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-            </AnimateOnView>
-          )}
-
-          {/* 图表板块 */}
-          {(chartData.completionData.length > 0 || chartData.beliefData.length > 0) && (
-            <AnimateOnView>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {chartData.completionData.length > 0 && (
-                <HabitCompletionChart data={chartData.completionData} />
-              )}
-              {chartData.beliefData.length > 0 && (
-                <BeliefScoreChart data={chartData.beliefData} />
-              )}
-            </div>
-            </AnimateOnView>
-          )}
-
-          {/* 习惯板块 */}
-          <AnimateOnView>
-          <div className="space-y-4">
-            <HabitForm />
-            <HabitList habits={habits} userId={user.id} />
-          </div>
-          </AnimateOnView>
-
-          {/* 个性化信息流板块 */}
-          <AnimateOnView>
-          <PersonalizedFeed limit={10} />
+            <DashboardPlans userId={user.id} />
           </AnimateOnView>
         </div>
       </main>

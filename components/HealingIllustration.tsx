@@ -29,6 +29,7 @@ export default function HealingIllustration({ variant = 'leaf', className = '' }
             stroke="#0B3D2E"
             strokeWidth="2"
             strokeOpacity="0.3"
+            initial={{ pathLength: 0.5 }}
             animate={{
               pathLength: [0.5, 1, 0.5],
             }}
@@ -61,6 +62,7 @@ export default function HealingIllustration({ variant = 'leaf', className = '' }
             stroke="#0B3D2E"
             strokeWidth="2"
             strokeOpacity="0.2"
+            initial={{ d: 'M0 25 Q25 15, 50 25 T100 25' }}
             animate={{
               d: [
                 'M0 25 Q25 15, 50 25 T100 25',
@@ -118,6 +120,7 @@ export default function HealingIllustration({ variant = 'leaf', className = '' }
             stroke="#0B3D2E"
             strokeWidth="2"
             strokeOpacity="0.3"
+            initial={{ r: 30 }}
             animate={{
               r: [30, 35, 30],
             }}

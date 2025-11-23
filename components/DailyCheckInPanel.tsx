@@ -184,6 +184,9 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
       notes: formState.notes || null,
     };
 
+    console.log('=== 保存每日记录 ===');
+    console.log('保存 payload:', payload);
+    
     const { data, error } = await supabase
       .from('daily_wellness_logs')
       .upsert(payload, { onConflict: 'user_id,log_date' })
@@ -191,11 +194,19 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
       .single();
 
     if (error) {
-      console.error('保存每日记录失败:', error);
-      setToast('保存失败，请稍后重试。');
+      console.error('保存每日记录失败 - 详细错误:', {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      setToast(`保存失败：${error.message || '请稍后重试'}`);
       setIsSaving(false);
       return;
     }
+    
+    console.log('保存成功:', data);
 
     setLogs((prev) => {
       const otherLogs = prev.filter((log) => log.log_date !== todayKey);

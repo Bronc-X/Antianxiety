@@ -12,11 +12,14 @@
     "pages:deploy": "npm run pages:build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.1",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.80.0",
+    "dotenv": "^17.2.3",
     "framer-motion": "^12.23.24",
     "next": "16.0.1",
+    "openai": "^6.9.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-tweet": "^3.2.2",

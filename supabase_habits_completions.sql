@@ -13,15 +13,26 @@ CREATE TABLE IF NOT EXISTS public.habits (
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL, -- 习惯标题（例如："10分钟冥想"）
   description TEXT, -- 习惯描述
+  
+  -- 兼容旧 user_habits 表的习惯循环字段
+  cue TEXT, -- 线索（习惯循环的触发条件）
+  response TEXT, -- 反应（习惯循环的行为）
+  reward TEXT, -- 奖励（习惯循环的奖励机制）
+  belief_score INTEGER CHECK (belief_score >= 1 AND belief_score <= 10), -- 信念分数 1-10
+  
   min_resistance_level INTEGER NOT NULL DEFAULT 3 CHECK (min_resistance_level >= 1 AND min_resistance_level <= 5), -- 最小阻力等级 1-5
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 添加注释
-COMMENT ON TABLE public.habits IS '习惯定义表，符合 README 架构要求';
+COMMENT ON TABLE public.habits IS '习惯定义表，符合 README 架构要求，兼容旧 user_habits 表结构';
 COMMENT ON COLUMN public.habits.title IS '习惯标题（例如："10分钟冥想"）';
 COMMENT ON COLUMN public.habits.description IS '习惯描述';
+COMMENT ON COLUMN public.habits.cue IS '习惯循环的线索/触发条件（兼容旧表）';
+COMMENT ON COLUMN public.habits.response IS '习惯循环的反应/行为（兼容旧表）';
+COMMENT ON COLUMN public.habits.reward IS '习惯循环的奖励机制（兼容旧表）';
+COMMENT ON COLUMN public.habits.belief_score IS '用户对习惯有效性的信念分数 1-10（兼容旧表）';
 COMMENT ON COLUMN public.habits.min_resistance_level IS '最小阻力等级（1-5），1 表示最容易，5 表示最难';
 
 -- 创建索引
@@ -59,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.habit_completions (
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   completed_at TIMESTAMPTZ DEFAULT NOW(), -- 完成时间
   user_notes TEXT, -- 用户备注（可选）
+  belief_score_snapshot INTEGER CHECK (belief_score_snapshot >= 1 AND belief_score_snapshot <= 10), -- 完成时的信念分数快照
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -66,6 +78,7 @@ CREATE TABLE IF NOT EXISTS public.habit_completions (
 COMMENT ON TABLE public.habit_completions IS '习惯打卡表，记录用户完成习惯的时间';
 COMMENT ON COLUMN public.habit_completions.completed_at IS '完成时间';
 COMMENT ON COLUMN public.habit_completions.user_notes IS '用户备注（可选）';
+COMMENT ON COLUMN public.habit_completions.belief_score_snapshot IS '完成时的信念分数快照（1-10），用于贝叶斯计算';
 
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_habit_completions_habit_id ON public.habit_completions(habit_id);

@@ -23,6 +23,7 @@ interface HealthProfileFormProps {
     caffeine_intake?: string | null;
     alcohol_intake?: string | null;
     smoking_status?: string | null;
+    metabolic_concerns?: string[] | null;
   };
 }
 
@@ -47,6 +48,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
     caffeine_intake: initialData?.caffeine_intake || '',
     alcohol_intake: initialData?.alcohol_intake || '',
     smoking_status: initialData?.smoking_status || '',
+    metabolic_concerns: initialData?.metabolic_concerns || [],
   });
 
   const totalSteps = 3;
@@ -55,9 +57,22 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
+  };
+
+  const toggleMetabolicConcern = (concern: string) => {
+    setFormData(prev => {
+      const current = prev.metabolic_concerns as string[];
+      const isSelected = current.includes(concern);
+      return {
+        ...prev,
+        metabolic_concerns: isSelected
+          ? current.filter(c => c !== concern)
+          : [...current, concern]
+      };
+    });
   };
 
   const validateStep = (step: number): boolean => {
@@ -584,6 +599,83 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* 代谢健康困扰 */}
+          <div>
+            <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
+              代谢健康困扰 <span className="text-[#0B3D2E]/60 text-xs ml-1">多选，帮助AI精准分析</span>
+            </label>
+            <p className="text-xs text-[#0B3D2E]/60 mb-3">
+              基于2024年最新代谢衰老研究，选择您当前的主要困扰
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                { 
+                  value: 'easy_fatigue', 
+                  label: '🔋 容易疲劳 / 精力不足',
+                  mechanism: '线粒体功能障碍',
+                  desc: 'ATP生成减少，可能与久坐或肌肉量不足有关'
+                },
+                { 
+                  value: 'belly_fat', 
+                  label: '🫄 腹部容易长肉',
+                  mechanism: 'IL-17/TNF炎症通路',
+                  desc: '内脏脂肪积累，可能与胰岛素抵抗有关'
+                },
+                { 
+                  value: 'muscle_loss', 
+                  label: '💪 肌肉松弛 / 力量下降',
+                  mechanism: '肌少症风险',
+                  desc: '30岁后每年流失1-2%肌肉量'
+                },
+                { 
+                  value: 'slow_recovery', 
+                  label: '🏃 恢复速度慢',
+                  mechanism: '线粒体+氧化应激',
+                  desc: '运动后需要较长时间恢复'
+                },
+                { 
+                  value: 'carb_cravings', 
+                  label: '🍚 对碳水渴望增加 / 餐后困倦',
+                  mechanism: '代谢重编程',
+                  desc: '燃料偏好从脂肪转向葡萄糖'
+                },
+              ].map(option => {
+                const isSelected = (formData.metabolic_concerns as string[]).includes(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => toggleMetabolicConcern(option.value)}
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
+                      isSelected
+                        ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                        : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
+                    }`}
+                  >
+                    <div className="font-medium mb-1">{option.label}</div>
+                    <div className={`text-xs ${
+                      isSelected ? 'text-white/70' : 'text-[#0B3D2E]/50'
+                    }`}>
+                      <span className="font-semibold">机制：</span>{option.mechanism}
+                    </div>
+                    <div className={`text-xs mt-0.5 ${
+                      isSelected ? 'text-white/60' : 'text-[#0B3D2E]/40'
+                    }`}>
+                      {option.desc}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {(formData.metabolic_concerns as string[]).length > 0 && (
+              <div className="mt-3 p-3 bg-[#0B3D2E]/5 rounded-lg border border-[#0B3D2E]/10">
+                <div className="text-xs text-[#0B3D2E]/70">
+                  ✨ 已选择 {(formData.metabolic_concerns as string[]).length} 项困扰，AI将为您制定针对性干预方案
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">
