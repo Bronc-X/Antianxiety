@@ -449,7 +449,26 @@ export async function chatWithRAG(request: ChatRequest): Promise<ChatResponse> {
   
   // 4. 组装上下文
   const contextData = assembleContextData(knowledgeMatches, request.language || 'zh');
+  
+  console.log('\n🧠 生成System Prompt...');
   const systemPrompt = generateSystemPrompt(request.userContext);
+  
+  // 🚨 关键检查：System Prompt中是否包含CRITICAL CONTEXT
+  if (request.userContext?.current_focus) {
+    const hasCriticalContext = systemPrompt.includes('CRITICAL CONTEXT');
+    console.log('🚨 CRITICAL CONTEXT注入检查:', hasCriticalContext ? '✅ 已注入' : '❌ 未注入');
+    console.log('📝 current_focus内容:', request.userContext.current_focus);
+    
+    // 显示System Prompt的关键部分（前500字符）
+    const promptPreview = systemPrompt.substring(0, 500);
+    if (promptPreview.includes(request.userContext.current_focus)) {
+      console.log('✅ 确认: current_focus已出现在System Prompt中');
+    } else {
+      console.warn('⚠️ WARNING: current_focus未出现在System Prompt预览中！');
+    }
+  } else {
+    console.warn('⚠️ WARNING: userContext.current_focus为空，无法注入CRITICAL CONTEXT');
+  }
   
   // 5. 生成回复
   const generationStart = Date.now();

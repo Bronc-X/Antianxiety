@@ -51,7 +51,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
     metabolic_concerns: initialData?.metabolic_concerns || [],
   });
 
-  const totalSteps = 3;
+  const totalSteps = 2;
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,27 +77,6 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
   const validateStep = (step: number): boolean => {
     if (step === 0) {
-      if (!formData.gender) {
-        setError('请选择性别');
-        return false;
-      }
-      if (!formData.birth_date) {
-        setError('请选择出生日期');
-        return false;
-      }
-      if (!formData.height_cm || parseFloat(formData.height_cm) <= 0) {
-        setError('请输入有效的身高');
-        return false;
-      }
-      if (!formData.weight_kg || parseFloat(formData.weight_kg) <= 0) {
-        setError('请输入有效的体重');
-        return false;
-      }
-      if (!formData.activity_level) {
-        setError('请选择活动水平');
-        return false;
-      }
-    } else if (step === 1) {
       if (!formData.primary_goal) {
         setError('请选择主要健康目标');
         return false;
@@ -137,12 +116,6 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       const payload = {
         id: userId,
         username: userId.slice(0, 8),
-        gender: formData.gender || null,
-        birth_date: formData.birth_date || null,
-        height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
-        weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
-        activity_level: formData.activity_level || null,
-        body_fat_percentage: formData.body_fat_percentage ? parseFloat(formData.body_fat_percentage) : null,
         primary_goal: formData.primary_goal || null,
         target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : null,
         weekly_goal_rate: formData.weekly_goal_rate || null,
@@ -155,18 +128,12 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          gender: formData.gender,
-          birth_date: formData.birth_date,
-          height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
-          weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
-          activity_level: formData.activity_level,
-          body_fat_percentage: formData.body_fat_percentage ? parseFloat(formData.body_fat_percentage) : null,
           primary_goal: formData.primary_goal,
           target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : null,
           weekly_goal_rate: formData.weekly_goal_rate,
-          sleep_hours: formData.sleep_hours ? parseFloat(formData.sleep_hours) : null,
-          stress_level: formData.stress_level ? parseInt(formData.stress_level) : null,
-          energy_level: formData.energy_level ? parseInt(formData.energy_level) : null,
+          sleep_hours: formData.sleep_hours ? Math.round(parseFloat(formData.sleep_hours) * 10) / 10 : null,
+          stress_level: formData.stress_level ? parseInt(formData.stress_level, 10) : null,
+          energy_level: formData.energy_level ? parseInt(formData.energy_level, 10) : null,
           exercise_frequency: formData.exercise_frequency,
           caffeine_intake: formData.caffeine_intake,
           alcohol_intake: formData.alcohol_intake,
@@ -210,136 +177,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       {currentStep === 0 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">模块一：核心基础指标</h2>
-            <p className="text-sm text-[#0B3D2E]/70 mb-6">这些数据用于计算基础代谢率和个性化健康建议</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              性别 <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: 'male', label: '男' },
-                { value: 'female', label: '女' },
-                { value: 'prefer_not', label: '暂不透露' },
-              ].map(option => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleChange('gender', option.value)}
-                  className={`px-4 py-2 rounded-lg border transition-all ${
-                    formData.gender === option.value
-                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              出生日期 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={formData.birth_date}
-              onChange={(e) => handleChange('birth_date', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-[#E7E1D6] focus:border-[#0B3D2E] focus:ring-1 focus:ring-[#0B3D2E] outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                身高 (厘米) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                value={formData.height_cm}
-                onChange={(e) => handleChange('height_cm', e.target.value)}
-                placeholder="170"
-                className="w-full px-4 py-2 rounded-lg border border-[#E7E1D6] focus:border-[#0B3D2E] focus:ring-1 focus:ring-[#0B3D2E] outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                当前体重 (公斤) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                value={formData.weight_kg}
-                onChange={(e) => handleChange('weight_kg', e.target.value)}
-                placeholder="65"
-                className="w-full px-4 py-2 rounded-lg border border-[#E7E1D6] focus:border-[#0B3D2E] focus:ring-1 focus:ring-[#0B3D2E] outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              日常活动量 <span className="text-red-500">*</span>
-            </label>
-            <div className="space-y-2">
-              {[
-                { value: 'sedentary', label: '久坐型', desc: '大部分时间坐着（如：办公室职员、程序员）' },
-                { value: 'light', label: '轻度活跃', desc: '少量站立和行走（如：教师、客服）' },
-                { value: 'moderate', label: '中度活跃', desc: '需经常站立和行走（如：服务员、快递员）' },
-                { value: 'active', label: '高度活跃', desc: '大量体力劳动（如：建筑工人、健身教练）' },
-              ].map(option => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleChange('activity_level', option.value)}
-                  className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
-                    formData.activity_level === option.value
-                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                  }`}
-                >
-                  <div className="font-medium">{option.label}</div>
-                  <div className={`text-xs mt-1 ${formData.activity_level === option.value ? 'text-white/80' : 'text-[#0B3D2E]/60'}`}>
-                    {option.desc}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              体脂率 (%) <span className="text-[#0B3D2E]/60 text-xs ml-1">可选</span>
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              value={formData.body_fat_percentage}
-              onChange={(e) => handleChange('body_fat_percentage', e.target.value)}
-              placeholder="如您有智能体脂秤，可在此输入"
-              className="w-full px-4 py-2 rounded-lg border border-[#E7E1D6] focus:border-[#0B3D2E] focus:ring-1 focus:ring-[#0B3D2E] outline-none"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleNext}
-            className="w-full bg-[#0B3D2E] text-white py-3 rounded-lg hover:bg-[#0a3629] transition-colors font-medium"
-          >
-            下一步：目标设定
-          </button>
-        </div>
-      )}
-
-      {currentStep === 1 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">模块二：目标设定</h2>
+            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">模块一：目标设定</h2>
             <p className="text-sm text-[#0B3D2E]/70 mb-6">设定您的健康目标，AI将为您制定个性化计划</p>
           </div>
 
@@ -433,16 +271,16 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
               onClick={handleNext}
               className="flex-1 bg-[#0B3D2E] text-white py-3 rounded-lg hover:bg-[#0a3629] transition-colors font-medium"
             >
-              下一步：生活习惯
+              下一步
             </button>
           </div>
         </div>
       )}
 
-      {currentStep === 2 && (
+      {currentStep === 1 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">模块三：生活习惯</h2>
+            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">模块二：生活习惯</h2>
             <p className="text-sm text-[#0B3D2E]/70 mb-6">这些数据将帮助AI更准确地分析您的健康状况</p>
           </div>
 

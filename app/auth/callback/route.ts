@@ -102,7 +102,24 @@ export async function GET(request: NextRequest) {
         
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (user && !userError) {
-          console.log('Session 验证成功，准备重定向到:', next);
+          console.log('Session 验证成功，用户ID:', user.id);
+          
+          // ========================================
+          // CRITICAL: 检查用户是否需要完成问卷
+          // ========================================
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('metabolic_profile')
+            .eq('id', user.id)
+            .single();
+          
+          // 如果profile不存在或metabolic_profile为空，重定向到问卷
+          if (!profile || !profile.metabolic_profile || Object.keys(profile.metabolic_profile).length === 0) {
+            console.log('用户未完成问卷，重定向到 /onboarding');
+            return NextResponse.redirect(new URL('/onboarding', request.url));
+          }
+          
+          console.log('用户已完成问卷，重定向到:', next);
           const redirectUrl = new URL(next, request.url);
           return NextResponse.redirect(redirectUrl);
         } else {

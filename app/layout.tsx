@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import RouteTransition from "@/components/RouteTransition";
 import MotionProvider from "@/components/MotionProvider";
 import AIAssistantFloatingButton from "@/components/AIAssistantFloatingButton";
+import GlobalNav from "@/components/GlobalNav";
 import { I18nProvider } from "@/lib/i18n";
 
 const geistSans = Geist({
@@ -21,6 +22,19 @@ export const metadata: Metadata = {
   description: "通过建立微小、可持续的日常习惯来对抗新陈代谢衰退，核心是缓解心理焦虑，而非强制打卡。",
 };
 
+/**
+ * Mobile Viewport Configuration
+ * CRITICAL for iOS: user-scalable=no prevents zoom on input focus
+ * viewport-fit=cover ensures safe area insets on notched devices
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,6 +48,7 @@ export default function RootLayout({
       >
         <I18nProvider>
         <MotionProvider>
+          <GlobalNav />
           <RouteTransition>{children}</RouteTransition>
           <AIAssistantFloatingButton />
         </MotionProvider>

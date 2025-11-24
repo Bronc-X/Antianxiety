@@ -24,20 +24,24 @@ export default function OnboardingFlowClient({ userId }: OnboardingFlowClientPro
       // 2. 生成AI人格上下文
       const personaContext = generatePersonaContext(metabolicProfile);
 
-      // 3. 保存到 Supabase
+      // 3. 保存到 Supabase（使用upsert确保profile存在）
       const supabase = createClientSupabaseClient();
-      const { error } = await supabase
+      
+      // 只保存最小必需字段（metabolic_profile）
+      // 其他字段在migration执行后再添加
+      const { error: upsertError } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: userId,
           metabolic_profile: metabolicProfile,
-          ai_persona_context: personaContext,
-          onboarding_completed_at: new Date().toISOString(),
-        })
-        .eq('id', userId);
+        }, {
+          onConflict: 'id',
+          ignoreDuplicates: false,
+        });
 
-      if (error) {
-        console.error('保存问卷结果失败:', error);
-        alert('保存失败，请重试');
+      if (upsertError) {
+        console.error('保存问卷结果失败:', upsertError);
+        alert(`保存失败：${upsertError.message || '请重试'}`);
         setIsSubmitting(false);
         return;
       }

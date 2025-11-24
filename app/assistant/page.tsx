@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { redirect } from 'next/navigation';
 import HealthProfileForm from '@/components/HealthProfileForm';
 import AIAnalysisDisplay from '@/components/AIAnalysisDisplay';
 import DailyCheckInPanel from '@/components/DailyCheckInPanel';
@@ -62,32 +63,16 @@ export default async function AssistantPage({
   }
 
   // 获取用户资料
-  let profile: ProfileRecord | null = null;
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single<ProfileRecord>();
 
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single<ProfileRecord>();
-
-    if (error) {
-      console.error('获取用户资料时出错:', error);
-      // 如果查询出错，可能是表不存在或用户资料不存在，创建默认资料
-      profile = {
-        id: user.id,
-        ai_profile_completed: false,
-      };
-    } else {
-      profile = data;
-    }
-  } catch (error) {
-    console.error('获取用户资料时出错:', error);
-    // 出错时创建默认资料
-    profile = {
-      id: user.id,
-      ai_profile_completed: false,
-    };
+  // 如果profile不存在，重定向到问卷
+  if (profileError || !profile) {
+    console.error('Profile不存在，重定向到问卷:', profileError);
+    redirect('/onboarding');
   }
 
   // 如果用户未完成资料收集，显示表单
