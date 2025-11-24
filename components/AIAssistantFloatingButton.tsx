@@ -20,7 +20,32 @@ export default function AIAssistantFloatingButton() {
   const [isHovered, setIsHovered] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [profile, setProfile] = useState<AIAssistantProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const supabase = createClientSupabaseClient();
+
+  // 检查用户登录状态
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsAuthenticated(!!user);
+      } catch (error) {
+        console.error('检查登录状态失败:', error);
+        setIsAuthenticated(false);
+      }
+    };
+
+    checkAuth();
+
+    // 监听登录状态变化
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   // 加载用户资料
   useEffect(() => {
@@ -47,6 +72,11 @@ export default function AIAssistantFloatingButton() {
       loadProfile();
     }
   }, [isChatOpen, supabase]);
+
+  // 如果未登录，不渲染按钮
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <>

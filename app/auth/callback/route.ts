@@ -72,6 +72,17 @@ export async function GET(request: NextRequest) {
           status: exchangeError.status,
           name: exchangeError.name,
         });
+        
+        // 检查是否是OTP过期错误
+        const errorMessage = exchangeError.message?.toLowerCase() || '';
+        if (errorMessage.includes('expired') || errorMessage.includes('invalid')) {
+          // 构建包含详细错误信息的URL（使用hash以便客户端JavaScript读取）
+          const loginUrl = new URL('/login', request.url);
+          loginUrl.searchParams.set('error', 'oauth_error');
+          loginUrl.hash = `error=access_denied&error_code=otp_expired&error_description=${encodeURIComponent('Email link is invalid or has expired')}`;
+          return NextResponse.redirect(loginUrl);
+        }
+        
         return NextResponse.redirect(new URL(`/login?error=invalid_token&details=${encodeURIComponent(exchangeError.message)}`, request.url));
       }
 

@@ -1,0 +1,956 @@
+'use client';
+
+import { useState } from 'react';
+import { UserStateAnalysis, RecommendedTask } from '@/types/logic';
+import { CheckCircle2, Battery, Moon, Activity, Wind, TrendingUp, Info, Footprints, Dumbbell, Sun } from 'lucide-react';
+
+// 定义 Props (合并旧的和新的)
+
+interface LandingContentProps {
+  user: any;
+  profile: any;
+  habitLogs: any[];
+  dailyLogs: any[];
+  // 新增
+  userState: UserStateAnalysis;
+  recommendedTask: RecommendedTask;
+}
+
+export default function LandingContent({ 
+  user, 
+  profile, 
+  userState, 
+  recommendedTask 
+}: LandingContentProps) {
+  
+  const [taskCompleted, setTaskCompleted] = useState(false);
+
+  // 图标映射
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'Moon': return <Moon className="w-8 h-8 text-[#0B3D2E]" />;
+      case 'Activity': return <Activity className="w-8 h-8 text-[#0B3D2E]" />;
+      case 'Wind': return <Wind className="w-8 h-8 text-[#0B3D2E]" />;
+      case 'Footprints': return <Footprints className="w-8 h-8 text-[#0B3D2E]" />;
+      case 'Dumbbell': return <Dumbbell className="w-8 h-8 text-[#0B3D2E]" />;
+      case 'Sun': return <Sun className="w-8 h-8 text-[#0B3D2E]" />;
+      default: return <Activity className="w-8 h-8 text-[#0B3D2E]" />;
+    }
+  };
+  
+  const moodboardImages = [
+    {
+      src: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80',
+      caption: '凌晨 5:30 的第一口深呼吸',
+      audio: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // 冥想音乐 - 需要替换为实际音频URL
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+      caption: '麦理浩径大海',
+      audio: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', // 海浪声 - 需要替换为实际音频URL
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80',
+      caption: '静态水面，内心不再汹涌',
+      audio: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', // 雨声 - 需要替换为实际音频URL
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80',
+      caption: '夕阳的港口',
+      audio: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', // 风声 - 需要替换为实际音频URL
+    },
+  ];
+
+  const handleImageClick = async (index: number) => {
+    const audio = audioRefs.current[index];
+    if (!audio) return;
+
+    // 如果点击的是正在播放的图片，暂停
+    if (playingIndex === index) {
+      audio.pause();
+      setPlayingIndex(null);
+    } else {
+      // 暂停其他正在播放的音频
+      if (playingIndex !== null) {
+        const prevAudio = audioRefs.current[playingIndex];
+        if (prevAudio) {
+          prevAudio.pause();
+          prevAudio.currentTime = 0;
+        }
+      }
+      // 播放当前音频
+      try {
+        await audio.play();
+        setPlayingIndex(index);
+      } catch (error) {
+        console.error(`音频播放失败 (${index}):`, error);
+        // 如果播放失败，不设置 playingIndex，用户可以看到错误
+      }
+    }
+  };
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayLog = safeDailyLogs.find((log) => log.log_date === todayKey);
+  const lastLog = safeDailyLogs[0];
+  const formatLogDate = (value: string) => {
+    try {
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        return value;
+      }
+      return parsed.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' });
+    } catch {
+      return value;
+    }
+  };
+  const lastLogText = lastLog ? formatLogDate(lastLog.log_date) : '暂无历史记录';
+  const todayStatusText = todayLog ? '今日记录已完成' : '今日尚未记录';
+  const reminderTime = profile?.daily_checkin_time ? String(profile.daily_checkin_time).slice(0, 5) : null;
+  const displayName =
+    (profile?.full_name && String(profile.full_name).trim().length > 0
+      ? String(profile.full_name).trim()
+      : undefined) ||
+    (user?.email ? user.email.split('@')[0] : undefined) ||
+    '用户';
+
+  return (
+    <>
+      {user && profile && (
+        <>
+          {/* SECTION 1: State Awareness & Permission */}
+          <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+            <AnimatedSection inView variant="fadeUp">
+              <div className="rounded-3xl border border-[#0F392B]/10 bg-gradient-to-br from-[#FFFBF0] to-[#F5F1E8] p-8 shadow-sm">
+                <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+                  {/* Left Side: Greeting + Weather */}
+                  <div className="space-y-4 lg:flex-1">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-[#0F392B]/50">状态感知</span>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <h2 className="text-3xl font-semibold text-[#0F392B] leading-tight">{displayName}，</h2>
+                      <WeatherGreeting />
+                    </div>
+                    <p className="text-sm text-[#1F2937] leading-relaxed">
+                      {todayStatusText} · 最近记录：{todayLog ? '今天' : lastLog ? lastLogText : '暂无历史数据'}
+                    </p>
+                  </div>
+
+                  {/* Right Side: Body Energy Battery */}
+                  <div className="lg:flex-1 lg:max-w-md">
+                    <div className="rounded-2xl border border-[#0F392B]/10 bg-white/80 backdrop-blur p-6">
+                      {/* Body Mode Badge */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0F392B]/10 to-[#0F392B]/5 flex items-center justify-center">
+                            {(() => {
+                              const lastSevenLogs = safeDailyLogs.filter(log => {
+                                const logDate = new Date(log.log_date);
+                                const sevenDaysAgo = new Date();
+                                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                return logDate >= sevenDaysAgo;
+                              }).slice(0, 7);
+                              
+                              const stressSum = lastSevenLogs.reduce((sum, log) => 
+                                log.stress_level ? sum + log.stress_level : sum, 0);
+                              const stressCount = lastSevenLogs.filter(log => log.stress_level).length;
+                              const avgStress = stressCount > 0 ? stressSum / stressCount : null;
+                              
+                              const sleepSum = lastSevenLogs.reduce((sum, log) => 
+                                log.sleep_duration_minutes ? sum + (log.sleep_duration_minutes / 60) : sum, 0);
+                              const sleepCount = lastSevenLogs.filter(log => log.sleep_duration_minutes).length;
+                              const avgSleep = sleepCount > 0 ? sleepSum / sleepCount : null;
+                              
+                              const isRecoveryMode = (avgStress !== null && avgStress >= 7) || (avgSleep !== null && avgSleep < 6.5);
+                              
+                              return isRecoveryMode ? (
+                                <svg className="w-6 h-6 text-[#0F392B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                </svg>
+                              ) : (
+                                <svg className="w-6 h-6 text-[#0F392B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                              );
+                            })()}
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-wider text-[#1F2937]/60">Current Mode</p>
+                            <p className="text-lg font-semibold text-[#0F392B]">
+                              {(() => {
+                                const lastSevenLogs = safeDailyLogs.filter(log => {
+                                  const logDate = new Date(log.log_date);
+                                  const sevenDaysAgo = new Date();
+                                  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                  return logDate >= sevenDaysAgo;
+                                }).slice(0, 7);
+                                
+                                const stressSum = lastSevenLogs.reduce((sum, log) => 
+                                  log.stress_level ? sum + log.stress_level : sum, 0);
+                                const stressCount = lastSevenLogs.filter(log => log.stress_level).length;
+                                const avgStress = stressCount > 0 ? stressSum / stressCount : null;
+                                
+                                const sleepSum = lastSevenLogs.reduce((sum, log) => 
+                                  log.sleep_duration_minutes ? sum + (log.sleep_duration_minutes / 60) : sum, 0);
+                                const sleepCount = lastSevenLogs.filter(log => log.sleep_duration_minutes).length;
+                                const avgSleep = sleepCount > 0 ? sleepSum / sleepCount : null;
+                                
+                                return (avgStress !== null && avgStress >= 7) || (avgSleep !== null && avgSleep < 6.5) 
+                                  ? '🌿 Recovery Mode' 
+                                  : '⚡ Prime Mode';
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Permission to Rest Logic */}
+                      <div className="rounded-xl bg-[#0F392B]/5 border border-[#0F392B]/10 p-4">
+                        <p className="text-sm text-[#1F2937] leading-relaxed">
+                          {(() => {
+                            const lastSevenLogs = safeDailyLogs.filter(log => {
+                              const logDate = new Date(log.log_date);
+                              const sevenDaysAgo = new Date();
+                              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                              return logDate >= sevenDaysAgo;
+                            }).slice(0, 7);
+                            
+                            const stressSum = lastSevenLogs.reduce((sum, log) => 
+                              log.stress_level ? sum + log.stress_level : sum, 0);
+                            const stressCount = lastSevenLogs.filter(log => log.stress_level).length;
+                            const avgStress = stressCount > 0 ? stressSum / stressCount : null;
+                            
+                            const sleepSum = lastSevenLogs.reduce((sum, log) => 
+                              log.sleep_duration_minutes ? sum + (log.sleep_duration_minutes / 60) : sum, 0);
+                            const sleepCount = lastSevenLogs.filter(log => log.sleep_duration_minutes).length;
+                            const avgSleep = sleepCount > 0 ? sleepSum / sleepCount : null;
+                            
+                            const isRecoveryMode = (avgStress !== null && avgStress >= 7) || (avgSleep !== null && avgSleep < 6.5);
+                            
+                            if (isRecoveryMode) {
+                              return (
+                                <>
+                                  <span className="font-semibold text-[#0F392B]">检测到高压力或睡眠不足。</span>
+                                  {' '}今天的目标是保存。
+                                  <span className="block mt-2 text-[#0F392B]/80">
+                                    允许自己暂停高强度运动，专注于恢复。
+                                  </span>
+                                </>
+                              );
+                            } else {
+                              return (
+                                <>
+                                  <span className="font-semibold text-[#0F392B]">你的身体处于工作状态。</span>
+                                  {' '}今天是推进目标的好时机。
+                                  <span className="block mt-2 text-[#0F392B]/80">
+                                    保持当前节奏，继续建立健康习惯。
+                                  </span>
+                                </>
+                              );
+                            }
+                          })()}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-[#0F392B]/10">
+                        <Link
+                          href="/assistant?panel=daily"
+                          className="inline-flex items-center gap-2 text-sm font-medium text-[#0F392B] hover:text-[#0F392B]/70 transition-colors"
+                        >
+                          <span>记录今日状态</span>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </AnimatedSection>
+          </section>
+
+          {/* SECTION 2: The One Thing - Hero Area */}
+          <TheOneThingHero userState={userState} recommendedTask={recommendedTask} />
+
+          {/* SECTION 3: Trends & Insights */}
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+            <PersonalizedLandingContent habitLogs={safeHabitLogs} profile={profile} dailyLogs={safeDailyLogs} />
+          </section>
+        </>
+      )}
+
+      {/* Slogan Section - 居中显示 */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 relative overflow-hidden">
+        {/* 治愈插图装饰 */}
+        <div className="absolute top-10 left-10 opacity-20">
+          <HealingIllustration variant="leaf" />
+        </div>
+        <div className="absolute bottom-10 right-10 opacity-20">
+          <HealingIllustration variant="circle" />
+        </div>
+        <div className="absolute top-1/2 left-1/4 opacity-15">
+          <HealingIllustration variant="breath" />
+        </div>
+        <AnimatedSection inView variant="fadeUp" className="text-center relative z-10">
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="inline-block">
+              {['我', '们', '是'].map((char, idx) => (
+                <motion.span
+                  key={idx}
+                  className="text-base sm:text-lg text-[#0B3D2E]/80 font-medium inline-block cursor-default"
+                  whileHover={{ scale: 1.3, y: -2 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  style={{ display: 'inline-block' }}
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-[#0B3D2E] tracking-tight">
+              {['No', 'More', 'anxious'].map((word, idx) => (
+                <motion.span
+                  key={idx}
+                  className="inline-block cursor-default"
+                  whileHover={{ scale: 1.15, y: -3 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  style={{ display: 'inline-block', marginRight: '0.2em' }}
+                >
+                  {word}
+                </motion.span>
+              ))}
+              <motion.sup
+                className="text-2xl sm:text-3xl md:text-4xl align-super inline-block cursor-default"
+                whileHover={{ scale: 1.4, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                ™
+              </motion.sup>
+            </h1>
+            <div className="mt-8 max-w-2xl mx-auto">
+              <p className="text-xl sm:text-2xl md:text-3xl italic text-[#0B3D2E] font-light leading-relaxed">
+                {['我们的逻辑很简单：', '通过解决焦虑，', '来解锁身体的潜能。'].map((phrase, idx) => (
+                  <motion.span
+                    key={idx}
+                    className="inline-block cursor-default"
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    style={{ display: 'inline-block' }}
+                  >
+                    {phrase}
+                  </motion.span>
+                ))}
+              </p>
+              <motion.div
+                className="mt-4 text-sm sm:text-base text-[#0B3D2E]/60 font-medium inline-block cursor-default"
+                whileHover={{ scale: 1.2, x: 5 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                — ASD
+              </motion.div>
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* Hero */}
+      <section className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${user && profile ? 'pt-6' : 'pt-10'}`}>
+        <AnimatedSection inView variant="fadeUp" className="grid lg:grid-cols-2 gap-8 items-center">
+          <div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-[#0B3D2E]">
+              冷峻的退行性年龄伴侣
+            </h1>
+
+            <p className="mt-4 text-base leading-7 text-[#0B3D2E]/80">
+              不贩卖希望，只给生理真相。我们让你知道每天的皮质醇、睡眠、代谢到底发生了什么，应该如何最低成本回应。
+            </p>
+
+            <div className="mt-4 space-y-2 text-sm text-[#0B3D2E]">
+              {[
+                '☑ 不灌鸡汤：所有建议都基于生理指标和第一性原理',
+                '☑ 不做作业簿：习惯建议都遵循“最小阻力”',
+                '☑ 不忘记你：AI 记忆系统永远在线，不会 Reset',
+              ].map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </div>
+
+            <div className="mt-5 rounded-lg border border-[#E7E1D6] bg-[#0B3D2E]/5 p-4">
+              <p className="text-base leading-7 text-[#0B3D2E] font-semibold">
+                我们只做一件事：通过“解决焦虑”作为领先指标，来改写你的睡眠、代谢、心率变异度这些滞后指标。
+              </p>
+            </div>
+
+            {/* 版本对比 */}
+            <div id="pricing" className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 scroll-mt-20">
+              {/* Free版 */}
+              <div className="rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm flex flex-col">
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-semibold text-[#0B3D2E] mb-2">Free版</h3>
+                  <div className="text-3xl font-bold text-[#0B3D2E]">￥0</div>
+                </div>
+                <ul className="space-y-3 text-sm text-[#0B3D2E]/80 flex-1">
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>有限次数 AI 助理问答</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>每日状态速记（睡眠/压力/情绪）</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>7 日历史回顾</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>Web 端访问 + 公开社区内容</span>
+                  </li>
+                </ul>
+                <button className="mt-auto rounded-md border border-[#E7E1D6] bg-white text-[#0B3D2E] px-4 py-2 text-sm font-medium hover:bg-[#FAF6EF] transition-colors">
+                  免费使用
+                </button>
+              </div>
+
+              {/* 先行版 */}
+              <Link href="/pricing?plan=lifetime" className="rounded-lg border-2 border-[#0B3D2E] bg-gradient-to-br from-[#0B3D2E]/5 to-white p-6 shadow-md relative flex flex-col cursor-pointer hover:shadow-lg transition-all">
+                <div className="absolute top-0 right-0 bg-[#0B3D2E] text-white text-xs px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                  限时
+                </div>
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-semibold text-[#0B3D2E] mb-2">先行版</h3>
+                  <div className="text-3xl font-bold text-[#0B3D2E]">￥99</div>
+                  <div className="text-xs text-[#0B3D2E]/60 mt-1">一次性 · 永久使用</div>
+              </div>
+                <ul className="space-y-3 text-sm text-[#0B3D2E]/80 flex-1">
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>Pro 全部权益</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>深度生理信号分析（皮质醇 / 节律）</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>个性化信息推送（相关性 &gt; 4.5/5）</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>AI 助理极速记忆系统</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>智能提醒（最小阻力习惯）</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>专家级数据分析与洞察</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>Beta 功能优先体验</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>专属 Onboarding 支持</span>
+                  </li>
+                </ul>
+                <button className="mt-auto rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white px-4 py-2 text-sm font-medium hover:shadow-md transition-all">
+                  锁定先行版
+                </button>
+              </Link>
+
+              {/* Pro版 */}
+              <Link href="/pricing?plan=pro" className="rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm flex flex-col cursor-pointer hover:shadow-lg transition-all">
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-semibold text-[#0B3D2E] mb-2">Pro版</h3>
+                  <div className="text-3xl font-bold text-[#0B3D2E]">
+                    ￥15<span className="text-base font-normal text-[#0B3D2E]/60">/月</span>
+                  </div>
+              </div>
+                <ul className="space-y-3 text-sm text-[#0B3D2E]/80 flex-1">
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>Free 权益全部开放</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>AI 助理对话 + 贝叶斯信念曲线</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>智能提醒（最小阻力习惯）</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>个性化信息推送</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>深度生理信号分析（节律）</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>数据分析与洞察</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#0B3D2E] mr-2">✓</span>
+                    <span>优先客服支持</span>
+                  </li>
+                </ul>
+                <button className="mt-auto rounded-md border border-[#0B3D2E] bg-white text-[#0B3D2E] px-4 py-2 text-sm font-medium hover:bg-[#0B3D2E] hover:text-white transition-colors">
+                  立即订阅
+                </button>
+              </Link>
+            </div>
+
+            <div className="mt-6 flex items-center gap-3">
+              {!user && (
+                <>
+                  <Link href="#cta" className="rounded-md bg-[#0B3D2E] text-white px-4 py-2 text-sm hover:bg-[#0a3629]">
+                    获取早期访问权限
+                  </Link>
+                  <Link href="#debug" className="text-sm text-[#0B3D2E] underline">
+                    准备好 No More anxious™ 了吗？
+                  </Link>
+                </>
+              )}
+              {user && (
+                <Link
+                  href="/assistant"
+                  className="rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white px-4 py-2 text-sm hover:shadow-md transition-all"
+                >
+                  进入 AI 助理
+                </Link>
+              )}
+            </div>
+            {!user && <p className="mt-2 text-xs text-[#0B3D2E]/60">加入Beta候补名单。</p>}
+          </div>
+          <div className="bg-[#FFFDF8] border border-[#E7E1D6] rounded-lg p-4 relative">
+            {/* 治愈插图装饰 */}
+            <div className="absolute top-2 right-2 opacity-10">
+              <HealingIllustration variant="wave" className="w-16 h-8" />
+            </div>
+            <StatCurve />
+            <p className="mt-2 text-xs text-[#0B3D2E]/60">
+              基于您的Ai助手对日常活动水平，您的基础数据表现，以及日常你的问题汇总，经过算法来呈现您身体状态的改善。
+            </p>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="rounded-md border border-[#E7E1D6] bg-white p-3">
+                <div className="text-xs text-[#0B3D2E]/60">代谢恢复</div>
+                <div className="mt-1 text-sm font-medium text-[#0B3D2E]">↑ 12%</div>
+              </div>
+              <div className="rounded-md border border-[#E7E1D6] bg-white p-3">
+                <div className="text-xs text-[#0B3D2E]/60">睡眠质量</div>
+                <div className="mt-1 text-sm font-medium text-[#0B3D2E]">↑ 9%</div>
+              </div>
+              <div className="rounded-md border border-[#E7E1D6] bg-white p-3">
+                <div className="text-xs text-[#0B3D2E]/60">焦虑基线</div>
+                <div className="mt-1 text-sm font-medium text-[#0B3D2E]">↓ 18%</div>
+              </div>
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* Moodboard imagery */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+        <AnimatedSection inView variant="fadeUp" className="rounded-3xl border border-[#E7E1D6] bg-white/70 backdrop-blur">
+          <div className="flex flex-col gap-6 p-6 sm:p-10">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-[#0B3D2E]/60">Calm Visuals</p>
+              <h3 className="text-2xl sm:text-3xl font-semibold text-[#0B3D2E]">我们始终对抗贩卖焦虑的始作俑者</h3>
+              <p className="mt-2 text-sm text-[#0B3D2E]/70">
+                这些画面来自 No More anxious™ 的灵感板，强调低噪声、深呼吸和晨光。点击图片。用冥想的意识提示你：身体需要慢一点。
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
+              {moodboardImages.map((shot, index) => (
+                <div key={shot.src} className="relative">
+                  <div
+                    onClick={() => handleImageClick(index)}
+                    className={`relative overflow-hidden rounded-2xl border border-[#E7E1D6]/70 bg-[#FAF6EF] h-48 cursor-pointer transition-all duration-300 ${
+                      playingIndex === index ? 'ring-2 ring-[#0B3D2E] ring-opacity-50' : 'hover:scale-105'
+                    }`}
+                  >
+                    <Image
+                      src={shot.src}
+                      alt=""
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-700"
+                      priority={index === 0}
+                    />
+                    {/* 半透明播放按钮 - 始终显示 */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="rounded-full bg-[#0B3D2E]/60 backdrop-blur-sm p-4 transition-all duration-300 hover:bg-[#0B3D2E]/80">
+                        {playingIndex === index ? (
+                          // 暂停图标
+                          <svg
+                            className="w-8 h-8 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        ) : (
+                          // 播放图标
+                          <svg
+                            className="w-8 h-8 text-white ml-1"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <audio
+                    ref={(el) => {
+                      audioRefs.current[index] = el;
+                    }}
+                    src={shot.audio}
+                    loop
+                    preload="none"
+                    onEnded={() => setPlayingIndex(null)}
+                    onError={(e) => {
+                      console.error(`音频加载失败 (${index}):`, e);
+                      setPlayingIndex(null);
+                    }}
+                    onLoadedData={() => {
+                      // 音频加载成功，但不自动播放
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* Insights title (kept), cards removed */}
+      <section id="how" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 scroll-mt-20">
+        <AnimatedSection inView variant="fadeUp">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[#0B3D2E] leading-tight">
+            <span className="block">健康产业是&quot;噪音&quot;。</span>
+            <span className="block">生理信号是&quot;真相&quot;。</span>
+          </h2>
+          <div className="mt-6 grid md:grid-cols-3 gap-4 items-stretch">
+            {/* 认知负荷 */}
+            <div className="group rounded-2xl p-[1px] bg-gradient-to-br from-[#E7E1D6] to-transparent h-full">
+              <motion.div
+                whileHover={{ scale: 1.04, translateY: -2 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md transition-all group-hover:shadow-lg h-full flex flex-col overflow-hidden"
+              >
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-[0.05]"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, #0B3D2E 1px, transparent 1px), linear-gradient(to bottom, #0B3D2E 1px, transparent 1px)',
+                    backgroundSize: '18px 18px',
+                  }}
+                />
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Cognitive Load</div>
+                <div className="mt-1 text-xl font-medium text-[#0B3D2E]">&quot;认知负荷&quot;已满。</div>
+                <div className="mt-3 text-[#0B3D2E]/80 space-y-4 leading-relaxed">
+                  <p className="mb-3">你知道有氧和力量训练；你懂得区分优质的蛋白质、脂肪和碳水。你明白要保证充足的睡眠。</p>
+                  <p className="mb-3">但身体仍然像一个失控的&quot;黑匣子&quot;。</p>
+                  <p>你发现，只是更努力地去坚持这些&quot;规则&quot;，并不是最终的答案。</p>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* 打卡游戏 */}
+            <div className="group rounded-2xl p-[1px] bg-gradient-to-br from-[#E7E1D6] to-transparent h-full">
+              <motion.div
+                whileHover={{ scale: 1.04, translateY: -2 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md transition-all group-hover:shadow-lg h-full flex flex-col overflow-hidden"
+              >
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-[0.05]"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, #0B3D2E 1px, transparent 1px), linear-gradient(to bottom, #0B3D2E 1px, transparent 1px)',
+                    backgroundSize: '18px 18px',
+                  }}
+                />
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Habit Streaks</div>
+                <div className="mt-1 text-xl font-medium text-[#0B3D2E]">打卡游戏好玩吗？</div>
+                <p className="mt-3 text-[#0B3D2E]/80 leading-relaxed mb-4">
+                  许多健康App依赖&quot;羞耻感&quot;和&quot;强制打卡&quot;。功能越来越多，认知负荷越来越重，却不触及&quot;根本原因&quot;。你的身体并没有崩溃，它只是在诚实地对压力做出反应。
+                </p>
+              </motion.div>
+            </div>
+
+            {/* 信号 */}
+            <div className="group rounded-2xl p-[1px] bg-gradient-to-br from-[#E7E1D6] to-transparent h-full">
+              <motion.div
+                whileHover={{ scale: 1.04, translateY: -2 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md transition-all group-hover:shadow-lg h-full flex flex-col overflow-hidden"
+              >
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-[0.05]"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, #0B3D2E 1px, transparent 1px), linear-gradient(to bottom, #0B3D2E 1px, transparent 1px)',
+                    backgroundSize: '18px 18px',
+                  }}
+                />
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">The Signal</div>
+                <div className="mt-1 text-xl font-medium text-[#0B3D2E]">信号：接受生理真相。</div>
+                <p className="mt-3 text-[#0B3D2E]/80 leading-relaxed">
+                  我们承认新陈代谢的不可逆趋势，但可以选择&quot;反应&quot;。先解决&quot;焦虑&quot;（领先指标），自然改善&quot;身体机能&quot;（滞后指标）。不对抗真相，与真相和解。
+                </p>
+              </motion.div>
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* Core Solution Section (moved below insights) */}
+      <section id="model" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 scroll-mt-20">
+        <AnimatedSection inView variant="fadeUp">
+          <div className="rounded-2xl border border-[#E7E1D6] bg-[#FFFDF8] p-6">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-[#0B3D2E]">解决思路</h2>
+            <p className="mt-2 text-sm text-[#0B3D2E]/70">这是 No More anxious™ 的核心方法论。</p>
+            <div className="mt-6 grid md:grid-cols-3 gap-4 items-stretch">
+              {/* Card 1 */}
+              <motion.div
+                whileHover={{ scale: 1.06, translateY: -2 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-md hover:shadow-lg overflow-hidden"
+              >
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-[0.06]"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, #0B3D2E 1px, transparent 1px), linear-gradient(to bottom, #0B3D2E 1px, transparent 1px)',
+                    backgroundSize: '18px 18px',
+                  }}
+                />
+                <div className="pointer-events-none absolute right-3 top-3 h-5 w-5 rounded-sm bg-[#0B3D2E]/10 border border-[#0B3D2E]/20" />
+
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Agent</div>
+                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">您的专属&quot;健康代理&quot;</h3>
+                <p className="mt-3 text-[#0B3D2E]/80 leading-relaxed mb-3">这不是一个AI聊天机器人。</p>
+                <p className="mt-2 text-[#0B3D2E] font-semibold leading-relaxed mb-3">它冷血，因为它只会基于唯一的规则：&quot;生理真相&quot;。</p>
+                <p className="mt-2 text-[#0B3D2E]/80 leading-relaxed">
+                  它不会说&quot;加油！&quot;。它会说：&quot;你现在感到焦虑，意味着你的皮质醇已达峰值。一个5分钟的步行是为了&nbsp;&apos;代谢&apos;&nbsp;你的压力激素。&quot;
+                </p>
+                <div className="mt-4">
+                  <Link
+                    href="/assistant"
+                    className="group relative inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] shadow-[0_0_24px_rgba(11,61,46,0.35)] hover:shadow-[0_0_36px_rgba(11,61,46,0.5)] transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40"
+                  >
+                    <span className="absolute inset-0 rounded-md ring-1 ring-white/10" />
+                    <span className="relative">点击进入你的 AI 助理</span>
+                    <span className="pointer-events-none absolute -inset-px rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,0.10), rgba(255,255,255,0))' }} />
+                    <span className="pointer-events-none absolute left-[-30%] top-0 h-full w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent transform translate-x-0 group-hover:translate-x-[260%] transition-transform duration-1000 ease-out" />
+                  </Link>
+                </div>
+
+                <motion.div
+                  className="mt-6 rounded-xl border border-[#E7E1D6] bg-[#FAF6EF] p-3"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                >
+                  <div className="text-xs font-semibold text-[#0B3D2E]">皮质醇响应方程</div>
+                  <div className="mt-1 font-mono text-sm text-[#0B3D2E]">dC/dt = -λ·C(t) + I(t)</div>
+                  <p className="mt-1 text-[11px] text-[#0B3D2E]/70">
+                    λ 控制焦虑激素的自然衰减，输入 I(t) 代表 5 分钟步行等最小干预，帮助把峰值皮质醇拉回基线。
+                  </p>
+                </motion.div>
+              </motion.div>
+
+              {/* Card 2 */}
+              <motion.div
+                whileHover={{ scale: 1.02, translateY: -1 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-md hover:shadow-lg overflow-hidden h-full flex flex-col"
+              >
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-[0.06]"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, #0B3D2E 1px, transparent 1px), linear-gradient(to bottom, #0B3D2E 1px, transparent 1px)',
+                    backgroundSize: '18px 18px',
+                  }}
+                />
+                <div className="pointer-events-none absolute right-3 top-3 h-5 w-5 rounded-sm bg-[#0B3D2E]/10 border border-[#0B3D2E]/20" />
+
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Bayesian</div>
+                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">&quot;贝叶斯信念&quot;循环</h3>
+                <p className="mt-3 text-[#0B3D2E]/80 leading-relaxed">
+                  我们从来不为&quot;打卡天数&quot;而焦虑。我们只关心&quot;信念强度&quot;。每次行动后，你将评估：&quot;这在起作用的确信度(1-10)&quot;。我们帮你可视化&quot;信心曲线&quot;。
+                </p>
+                <div className="mt-auto pt-4 text-xs text-[#0B3D2E]/60">
+                  参考：后验置信度随可验证信号更新（Bayes&apos; theorem，
+                  <a className="underline" href="https://en.wikipedia.org/wiki/Bayes%27_theorem" target="_blank" rel="noreferrer">
+                    https://en.wikipedia.org/wiki/Bayes%27_theorem
+                  </a>
+                  ）
+                </div>
+                <motion.div
+                  className="mt-4 rounded-xl border border-[#E7E1D6] bg-[#FAF6EF] p-3 font-mono text-sm text-[#0B3D2E]"
+                  animate={{ scale: [1, 1.02, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                >
+                  <div>P(H∣D) = [P(D∣H)·P(H)] / P(D)</div>
+                  <div className="mt-1 text-[11px] text-[#0B3D2E]/70">
+                    每次习惯完成即是新的 D，后验信念提高 → 曲线抬升；若错过记录，先验自动衰减。
+                </div>
+                </motion.div>
+              </motion.div>
+
+              {/* Card 3 */}
+              <motion.div
+                whileHover={{ scale: 1.06, translateY: -2 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-md hover:shadow-lg overflow-hidden h-full flex flex-col"
+              >
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-[0.06]"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(to right, #0B3D2E 1px, transparent 1px), linear-gradient(to bottom, #0B3D2E 1px, transparent 1px)',
+                    backgroundSize: '18px 18px',
+                  }}
+                />
+                <div className="pointer-events-none absolute right-3 top-3 h-5 w-5 rounded-sm bg-[#0B3D2E]/10 border border-[#0B3D2E]/20" />
+
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Minimum Dose</div>
+                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">最低有效剂量</h3>
+                <p className="mt-3 text-[#0B3D2E]/80">
+                  你不需要每天锻炼1小时，那太累了。你只需要在&quot;线索&quot;出现时，执行&quot;最低阻力&quot;的&quot;反应&quot;（如步行5分钟）。我们帮你识别并建立这些&quot;微习惯&quot;，直到它们成为&quot;自动脚本&quot;。
+                </p>
+                <div className="mt-auto pt-4 text-xs text-[#0B3D2E]/60">
+                  参考：运动与奖赏/上瘾机制综述（NCBI，
+                  <a className="underline" href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3181597/" target="_blank" rel="noreferrer">
+                    https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3181597/
+                  </a>
+                  ）
+                </div>
+                <div className="mt-4">
+                  <motion.svg
+                    viewBox="0 0 140 80"
+                    className="w-full h-20"
+                  >
+                    <motion.path
+                      d="M5 70 C35 60 55 45 70 40 C95 32 115 20 135 15"
+                      fill="none"
+                      stroke="#0B3D2E"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        repeatType: 'reverse',
+                        ease: 'easeInOut',
+                      }}
+                    />
+                  </motion.svg>
+                  <div className="mt-1 font-mono text-xs text-[#0B3D2E]">
+                    Δhabit = k · e<sup>−r</sup>
+                  </div>
+                  <p className="text-[11px] text-[#0B3D2E]/70">
+                    r 为阻力等级，阻力越低，增益越快（指数衰减）；每个微习惯都沿着这条最小阻力曲线被强化。
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* Authority Feed (static) */}
+      <section id="authority" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 scroll-mt-20">
+        <AnimatedSection inView variant="fadeUp" className="rounded-xl border border-[#E7E1D6] bg-white p-6">
+          <h2 className="text-2xl font-semibold text-[#0B3D2E]">一个没有&quot;噪音&quot;的信息流。</h2>
+          <p className="mt-3 text-[#0B3D2E]/80">
+            我们从 X、顶级权威健康研报、Reddit 热议组等为您精选了该领域最顶尖的生理学家、神经科学家和表现专家的核心见解。
+            没有励志名言，没有低效&quot;技巧&quot;，只有可执行的数据和第一性原理。
+            <span className="block mt-1 text-[#0B3D2E]/60 text-xs">
+              (The internet is 99% noise and 1% signal. We&apos;ve done the filtering for you. We curate core insights from top physiologists, neuroscientists, and performance experts on X (formerly Twitter). No motivational quotes, no inefficient &apos;hacks.&apos; Just actionable data and first principles.)
+            </span>
+          </p>
+          <div className="mt-4">
+            <XFeed variant="bare" compact columns={2} limit={4} />
+          </div>
+          <div className="mt-4 rounded-md border border-[#E7E1D6] bg-[#FFFDF8] p-4">
+            <div className="text-xs text-[#0B3D2E]/60">参考阅读</div>
+            <div className="mt-2 text-sm text-[#0B3D2E]/90">胆固醇过低与心理健康风险的相关性综述（英文）。</div>
+            <a
+              className="mt-2 inline-block text-xs text-[#0B3D2E] underline"
+              href="https://www.healthline.com/health/cholesterol-can-it-be-too-low"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Healthline：Can My Cholesterol Be Too Low?
+            </a>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* CTA with code vibe */}
+      {!user && (
+        <section id="cta" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 scroll-mt-20">
+          <AnimatedSection inView variant="springScaleIn" className="rounded-xl border border-[#E7E1D6] bg-white p-6">
+            <h3 className="text-xl font-semibold text-[#0B3D2E]">准备好 No More anxious™ 了吗？</h3>
+            <p className="mt-2 text-[#0B3D2E]/80">获取抢先体验版。</p>
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              className="mt-4 grid sm:grid-cols-[1fr_auto] gap-3"
+            >
+              <input
+                type="email"
+                placeholder="your@email"
+                className="w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 font-mono text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20"
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-[#0B3D2E] px-4 py-2 text-sm text-white hover:bg-[#0a3629]"
+              >
+                加入候补名单
+              </button>
+            </form>
+            <div className="mt-3 text-xs text-[#0B3D2E]/60 font-mono">
+              {'//'} 仅收集邮箱。提交即表示同意我们的隐私政策。
+            </div>
+          </AnimatedSection>
+        </section>
+      )}
+
+      {/* Footer */}
+      <footer className="border-t border-[#E7E1D6] bg-[#FAF6EF]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-xs text-[#0B3D2E]/70 flex flex-col sm:flex-row gap-2 sm:gap-4">
+          <div>© 2025 NMa</div>
+          <div className="flex flex-wrap gap-3">
+            <Link href="#model" className="hover:text-[#0B3D2E]">科学模型</Link>
+            <Link href="/privacy" className="hover:text-[#0B3D2E]">隐私政策</Link>
+            <Link href="/terms" className="hover:text-[#0B3D2E]">服务条款</Link>
+            <Link href="/contact" className="hover:text-[#0B3D2E]">联系我们</Link>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
+}
+

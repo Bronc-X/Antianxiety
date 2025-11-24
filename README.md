@@ -29,8 +29,8 @@
 
 * `[🚧 开发中]` **AI 助手** – 进度 `[████████████████░░░] 85%`，核心对话+方案生成已完成  
   * ✅ Web UI (`AIAssistantChat` / `AIAssistantFloatingChat`)  
-  * ✅ 会话接口 `/api/ai/chat`：Claude + DeepSeek双模型、记忆检索、上下文拼接  
-  * ✅ 记忆系统：`ai_memory` 表、向量存储、sessionId管理、历史加载  
+  * ✅ 会话接口 `/api/ai/chat`：Claude + Openai双模型、记忆检索、上下文拼接  
+  * ✅ 记忆系统：`ai_memory` 表、向量存储(embedding还需要再加)、sessionId管理、历史加载  
   * ✅ AI方案生成：自动识别方案+确认保存机制  
   * ✅ 对话记忆：50条历史上下文注入  
   * ⏳ 预测型建议 / 任务编排尚未实现（需要事件触发 + 定时任务联动）  
@@ -46,13 +46,16 @@
   * ⏳ 内容质量打分 / 去噪逻辑待落地  
   * ⏳ iOS 端 UI 未接入
 
-* `[✅ 已实现]` **贝叶斯信念循环** – 进度 `[████████████████████] 100%`  
-  * ✅ SQL: `supabase_bayesian_functions.sql`、`user_metrics`、触发器函数全部创建  
-  * ✅ 图表：`HabitCompletionChart`, `BeliefScoreChart`，Dashboard 已可显示历史数据  
-  * ✅ **Web 前端已迁移到新 `habits/habit_completions` 表，触发器已激活**  
-  * ✅ 兼容旧数据：新表添加 cue/response/reward/belief_score 字段  
+* `[🚧 开发中]` **贝叶斯信念循环** – 进度 `[████████████████░░░] 85%` ⚠️ 数据流待验证  
+  * ✅ SQL函数: `calculate_belief_curve_score()`, `calculate_confidence_score()` 已编写  
+  * ✅ 触发器代码: `trigger_update_user_metrics_on_habit_completion` 已编写  
+  * ✅ 表结构: `user_metrics` 表已创建  
+  * ✅ 图表组件: `BeliefScoreChart` 已实现  
+  * ⚠️ **数据流未验证**: habit_completions → trigger → user_metrics 未确认打通  
+  * ⚠️ **前端使用模拟数据**: 图表显示硬编码数据 `[50,53,51,54,56,59]`，未读取真实计算结果  
+  * ⏳ 需要验证: 触发器是否在数据库中执行，user_metrics 是否有数据  
   * ⏳ Onboarding 过程仍缺少信念问卷 & 先验值校准  
-  * ⏳ iOS 端图表尚未联调
+  * 📊 **诊断工具**: `/public/test-bayesian-flow.html` + `BAYESIAN_DATA_FLOW_DIAGNOSTIC.md`
 
 * `[✅ 已实现]` **AI 方案闭环系统** – 进度 `[███████████████████] 100%` ✨核心功能  
   * ✅ AI方案生成与解析：`plan-parser.ts` 自动识别方案  

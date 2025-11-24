@@ -36,31 +36,67 @@ function LoginFormContent() {
     checkExistingSession();
   }, [supabase.auth, searchParams]);
   
-  // 检查 URL 中的错误参数
+  // 检查 URL 中的错误参数（支持 query 和 hash）
   useEffect(() => {
     const error = searchParams.get('error');
     const details = searchParams.get('details');
-    if (error) {
+    
+    // 也检查 URL hash 中的错误（Supabase 邮件链接错误会在 hash 中）
+    let hashError = null;
+    let errorCode = null;
+    let errorDescription = null;
+    
+    if (window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      hashError = hashParams.get('error');
+      errorCode = hashParams.get('error_code');
+      errorDescription = hashParams.get('error_description');
+    }
+    
+    const finalError = error || hashError;
+    
+    if (finalError) {
       let errorMessage = '登录失败，请稍后再试。';
-      if (error === 'invalid_token') {
+      
+      // 优先处理具体的 error_code
+      if (errorCode === 'otp_expired') {
+        errorMessage = '邮箱验证链接已过期。请重新登录或注册，我们会发送新的验证邮件。';
+      } else if (errorCode === 'access_denied') {
+        errorMessage = '访问被拒绝。验证链接可能已失效，请重新尝试。';
+      } else if (finalError === 'invalid_token') {
         errorMessage = '登录验证失败，请重新尝试登录。';
-      } else if (error === 'server_error') {
+      } else if (finalError === 'server_error') {
         errorMessage = details ? `服务器错误：${decodeURIComponent(details)}` : '服务器错误，请稍后再试。';
-      } else if (error === 'oauth_error') {
-        errorMessage = '第三方登录授权失败，请重试。';
-      } else if (error === 'no_session') {
+      } else if (finalError === 'oauth_error') {
+        // 如果是 OAuth 错误，尝试显示更详细的信息
+        if (errorDescription) {
+          const decodedDesc = decodeURIComponent(errorDescription.replace(/\+/g, ' '));
+          errorMessage = `第三方登录失败：${decodedDesc}`;
+        } else {
+          errorMessage = '第三方登录授权失败，请重试。';
+        }
+      } else if (finalError === 'no_session') {
         errorMessage = '登录会话创建失败，请重试。';
-      } else if (error === 'no_code') {
+      } else if (finalError === 'no_code') {
         errorMessage = '缺少授权码，请重新登录。';
-      } else if (error === 'session_error') {
+      } else if (finalError === 'session_error') {
         errorMessage = '会话获取失败，请重试。';
-      } else if (error === 'session_validation_failed') {
+      } else if (finalError === 'session_validation_failed') {
         errorMessage = '登录状态验证失败，请重新登录。';
+      } else if (errorDescription) {
+        // 如果有详细描述，优先显示
+        errorMessage = decodeURIComponent(errorDescription.replace(/\+/g, ' '));
       }
+      
       setMessage({
         type: 'error',
         text: errorMessage,
       });
+      
+      // 清理 URL 中的错误参数（可选）
+      if (window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
     }
   }, [searchParams]);
 
@@ -244,21 +280,14 @@ function LoginFormContent() {
         </AnimatedSection>
 
         <AnimatedSection variant="fadeUp">
-          <div className="rounded-2xl border border-[#0B3D2E]/20 bg-gradient-to-r from-[#0B3D2E] via-[#06261c] to-[#020f0b] p-[1px] shadow-[0_20px_60px_rgba(11,61,46,0.2)]">
-            <div className="rounded-2xl bg-[#FAF6EF] px-6 py-4 text-center text-[#0B3D2E]">
-              <p className="text-base font-semibold tracking-wide">
-                我们将始终履行对抗贩卖焦虑的行为。
-              </p>
-            </div>
+          <div className="text-center px-6 py-2">
+            <p className="text-sm text-[#0B3D2E]/60 italic">
+              我们将始终履行对抗贩卖焦虑的行为。
+            </p>
           </div>
         </AnimatedSection>
 
         <AnimatedSection variant="fadeUp" className="mt-8">
-          {/* 登录方式：邮箱/密码（Magic Link 已移除） */}
-          <div className="mb-6">
-            <div className="text-sm font-medium text-[#0B3D2E]">邮箱/密码 登录</div>
-          </div>
-
           {/* 消息提示 */}
           {message && (
             <div
@@ -289,7 +318,7 @@ function LoginFormContent() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                className="mt-1 block w-full rounded-xl border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
                 placeholder="your@email.com"
               />
             </div>
@@ -318,7 +347,7 @@ function LoginFormContent() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                className="mt-1 block w-full rounded-xl border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
                 placeholder="••••••••"
               />
             </div>
@@ -326,7 +355,7 @@ function LoginFormContent() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? '处理中...' : '登录'}
             </button>
@@ -422,7 +451,7 @@ function LoginFormContent() {
                     required
                     value={forgotPasswordEmail}
                     onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                    className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                    className="mt-1 block w-full rounded-xl border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
                     placeholder="your@email.com"
                   />
                 </div>
@@ -430,7 +459,7 @@ function LoginFormContent() {
                   <button
                     type="submit"
                     disabled={isSendingReset}
-                    className="flex-1 rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isSendingReset ? '发送中...' : '发送验证码'}
                   </button>
@@ -441,7 +470,7 @@ function LoginFormContent() {
                       setForgotPasswordEmail('');
                       setMessage(null);
                     }}
-                    className="rounded-md border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors"
+                    className="rounded-xl border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors"
                   >
                     取消
                   </button>

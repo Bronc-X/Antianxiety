@@ -54,3 +54,153 @@ body {
     font-size: 16px !important; /* 防止 iOS 自动缩放 */
   }
 }
+
+/* ==========================================
+   ORGANIC DESIGN ENHANCEMENTS
+   ========================================== */
+
+/* 1. Breathing Blob Animation */
+@keyframes blob {
+  0% { 
+    transform: translate(0px, 0px) scale(1); 
+    opacity: 0.03;
+  }
+  33% { 
+    transform: translate(30px, -50px) scale(1.1); 
+    opacity: 0.04;
+  }
+  66% { 
+    transform: translate(-20px, 20px) scale(0.9); 
+    opacity: 0.02;
+  }
+  100% { 
+    transform: translate(0px, 0px) scale(1); 
+    opacity: 0.03;
+  }
+}
+
+@keyframes blob-reverse {
+  0% { 
+    transform: translate(0px, 0px) scale(1); 
+    opacity: 0.03;
+  }
+  33% { 
+    transform: translate(-20px, 30px) scale(1.05); 
+    opacity: 0.04;
+  }
+  66% { 
+    transform: translate(25px, -15px) scale(0.95); 
+    opacity: 0.025;
+  }
+  100% { 
+    transform: translate(0px, 0px) scale(1); 
+    opacity: 0.03;
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite ease-in-out;
+}
+
+.animate-blob-reverse {
+  animation: blob-reverse 9s infinite ease-in-out;
+  animation-delay: 2s;
+}
+
+/* 2. Glassmorphism Enhancements */
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.glass-card-strong {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06);
+}
+
+/* 3. Soft Shadow Presets */
+.shadow-soft {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-soft-lg {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+}
+
+/* 4. Organic Texture Overlay */
+.texture-topographic {
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 35px,
+      rgba(11, 61, 46, 0.02) 35px,
+      rgba(11, 61, 46, 0.02) 70px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 35px,
+      rgba(11, 61, 46, 0.02) 35px,
+      rgba(11, 61, 46, 0.02) 70px
+    );
+}
+
+/* 5. Breathing Background Container */
+.breathing-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: #FAF6EF;
+}
+
+.breathing-background::before,
+.breathing-background::after {
+  content: '';
+  position: absolute;
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+}
+
+.breathing-background::before {
+  top: -200px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(11, 61, 46, 0.08) 0%, transparent 70%);
+  animation: blob 7s infinite ease-in-out;
+}
+
+.breathing-background::after {
+  bottom: -300px;
+  right: -150px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, transparent 70%);
+  animation: blob-reverse 9s infinite ease-in-out;
+  animation-delay: 2s;
+}
+
+/* 6. Hover Effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* 7. Smooth Transitions */
+.transition-organic {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
