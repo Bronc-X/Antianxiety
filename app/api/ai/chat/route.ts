@@ -38,9 +38,21 @@ interface AIRecommendationPlan {
   micro_habits?: AIMicroHabit[];
 }
 
+interface MetabolicProfile {
+  energy_pattern?: string;
+  sleep_pattern?: string;
+  body_pattern?: string;
+  stress_pattern?: string;
+  psychology?: string;
+  overall_score?: number;
+  severity?: string;
+}
+
 interface UserProfileData {
   ai_analysis_result?: AIAnalysisResult | null;
   ai_recommendation_plan?: AIRecommendationPlan | null;
+  metabolic_profile?: MetabolicProfile | null;
+  ai_persona_context?: string | null;
   [key: string]: unknown;
 }
 
@@ -349,6 +361,26 @@ function buildSystemPrompt(userProfile?: UserProfileData | null, executionStats?
 
   // 如果有用户资料，添加个性化信息
   if (userProfile) {
+    // 优先使用 metabolic_profile + ai_persona_context（新问卷系统）
+    if (userProfile.metabolic_profile || userProfile.ai_persona_context) {
+      prompt += `**用户代谢档案（来自问卷诊断）：**\n`;
+      
+      if (userProfile.ai_persona_context) {
+        // 直接注入AI生成的人格上下文
+        prompt += userProfile.ai_persona_context + '\n\n';
+      } else if (userProfile.metabolic_profile) {
+        // 如果没有预生成的上下文，从 metabolic_profile 手动构建
+        const mp = userProfile.metabolic_profile;
+        prompt += `- 症状严重程度：${mp.severity === 'high' ? '高' : mp.severity === 'medium' ? '中等' : '轻微'}\n`;
+        prompt += `- 能量模式：${mp.energy_pattern}\n`;
+        prompt += `- 睡眠模式：${mp.sleep_pattern}\n`;
+        prompt += `- 身体模式：${mp.body_pattern}\n`;
+        prompt += `- 压力耐受：${mp.stress_pattern}\n`;
+        prompt += `- 心理状态：${mp.psychology}\n\n`;
+      }
+    }
+    
+    // 兼容旧版 ai_analysis_result
     if (userProfile.ai_analysis_result) {
       const analysis = userProfile.ai_analysis_result;
       prompt += `**用户生理情况分析：**\n`;
@@ -375,6 +407,18 @@ function buildSystemPrompt(userProfile?: UserProfileData | null, executionStats?
       }
     }
   }
+
+  // ⚠️ CRITICAL: 数据完整性和诚实性规则
+  prompt += `\n**🔒 数据完整性原则（必须严格遵守）：**\n`;
+  prompt += `1. **只使用真实数据**：你有两类数据：\n`;
+  prompt += `   - "代谢档案"：来自用户的问卷诊断（长期特征）\n`;
+  prompt += `   - "每日日志"：用户记录的睡眠、压力、能量等数据（短期状态）\n`;
+  prompt += `2. **不编造数值**：\n`;
+  prompt += `   - ❌ 如果用户没记录今天的睡眠，不要说"你昨晚睡了7小时"\n`;
+  prompt += `   - ❌ 不要估算或假设任何未记录的数据\n`;
+  prompt += `   - ✅ 明确告知："我需要你今天的健康日记数据才能分析当前状态"\n`;
+  prompt += `3. **引导记录**：如果用户提问但缺少必要数据，礼貌地要求他们先记录\n`;
+  prompt += `   - 例如："要给你准确的睡眠建议，我需要知道你最近几天的实际睡眠时长。请先完成健康日记记录。"\n\n`;
 
   // 添加用户执行统计数据
   if (executionStats && executionStats.summary) {

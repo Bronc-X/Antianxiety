@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>贝叶斯数据流检查工具</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #FAF6EF;
+    }
+    .header {
+      background: linear-gradient(135deg, #0B3D2E 0%, #06261c 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+    .section {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #E7E1D6;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-left: 10px;
+    }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.warning { background: #fff3cd; color: #856404; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .status.info { background: #d1ecf1; color: #0c5460; }
+    button {
+      background: linear-gradient(135deg, #0B3D2E 0%, #06261c 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+      border: 1px solid #e0e0e0;
+    }
+    .log {
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .check-item {
+      padding: 15px;
+      margin: 10px 0;
+      border-left: 4px solid #E7E1D6;
+      background: #fafafa;
+      border-radius: 4px;
+    }
+    h2 { color: #0B3D2E; margin-top: 0; }
+    h3 { color: #0B3D2E; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 style="margin:0;">🔍 贝叶斯数据流诊断工具</h1>
+    <p style="margin:10px 0 0 0; opacity:0.9;">检查 habit_completions → trigger → user_metrics 数据流</p>
+  </div>
+
+  <div class="section">
+    <h2>步骤1: 连接配置</h2>
+    <p>从浏览器环境检查数据流（需要登录）</p>
+    <button onclick="checkAuth()">检查登录状态</button>
+    <div id="auth-status"></div>
+  </div>
+
+  <div class="section">
+    <h2>步骤2: 数据表检查</h2>
+    <div class="check-item">
+      <h3>检查 user_metrics 表</h3>
+      <button onclick="checkUserMetrics()">查询 user_metrics</button>
+      <div id="metrics-result"></div>
+    </div>
+    <div class="check-item">
+      <h3>检查 habit_completions 表</h3>
+      <button onclick="checkHabitCompletions()">查询 habit_completions</button>
+      <div id="completions-result"></div>
+    </div>
+    <div class="check-item">
+      <h3>检查 habits 表</h3>
+      <button onclick="checkHabits()">查询 habits</button>
+      <div id="habits-result"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>步骤3: 触发器测试</h2>
+    <p>⚠️ 此操作会创建一条测试记录</p>
+    <button onclick="testTrigger()" id="test-trigger-btn">创建测试打卡并检查触发器</button>
+    <div id="trigger-result"></div>
+  </div>
+
+  <div class="section">
+    <h2>步骤4: 诊断报告</h2>
+    <button onclick="generateReport()">生成完整报告</button>
+    <div id="report-result"></div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.80.0/+esm';
+
+    const supabaseUrl = 'YOUR_SUPABASE_URL'; // 从控制台获取
+    const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; // 从控制台获取
+    
+    // 尝试从环境变量读取
+    const envUrl = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000' 
+      : window.location.origin;
+    
+    let supabase;
+    try {
+      // 尝试使用页面的配置
+      const metaUrl = document.querySelector('meta[name="supabase-url"]');
+      const metaKey = document.querySelector('meta[name="supabase-key"]');
+      
+      if (metaUrl && metaKey) {
+        supabase = createClient(metaUrl.content, metaKey.content);
+      }
+    } catch (e) {
+      console.error('Supabase初始化失败:', e);
+    }
+
+    window.checkAuth = async function() {
+      const el = document.getElementById('auth-status');
+      el.innerHTML = '<p class="log">检查中...</p>';
+      
+      if (!supabase) {
+        el.innerHTML = `<div class="status error">未配置</div><p class="log">请在页面中添加 Supabase 配置或在代码中设置URL和Key</p>`;
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        
+        if (data.user) {
+          el.innerHTML = `
+            <div class="status success">已登录</div>
+            <pre class="log">用户ID: ${data.user.id}\n邮箱: ${data.user.email}</pre>
+          `;
+        } else {
+          el.innerHTML = `<div class="status warning">未登录</div><p class="log">请先登录应用</p>`;
+        }
+      } catch (error) {
+        el.innerHTML = `<div class="status error">错误</div><pre class="log">${error.message}</pre>`;
+      }
+    };
+
+    window.checkUserMetrics = async function() {
+      const el = document.getElementById('metrics-result');
+      el.innerHTML = '<p class="log">查询中...</p>';
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_metrics')
+          .select('*')
+          .order('date', { ascending: false })
+          .limit(10);
+        
+        if (error) throw error;
+        
+        el.innerHTML = `
+          <div class="status ${data.length > 0 ? 'success' : 'warning'}">
+            ${data.length > 0 ? `找到 ${data.length} 条记录` : '表为空'}
+          </div>
+          <pre class="log">${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        el.innerHTML = `<div class="status error">查询失败</div><pre class="log">${error.message}</pre>`;
+      }
+    };
+
+    window.checkHabitCompletions = async function() {
+      const el = document.getElementById('completions-result');
+      el.innerHTML = '<p class="log">查询中...</p>';
+      
+      try {
+        const { data, error } = await supabase
+          .from('habit_completions')
+          .select('*')
+          .order('completed_at', { ascending: false })
+          .limit(10);
+        
+        if (error) throw error;
+        
+        el.innerHTML = `
+          <div class="status ${data.length > 0 ? 'success' : 'warning'}">
+            ${data.length > 0 ? `找到 ${data.length} 条记录` : '表为空'}
+          </div>
+          <pre class="log">${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        el.innerHTML = `<div class="status error">查询失败</div><pre class="log">${error.message}</pre>`;
+      }
+    };
+
+    window.checkHabits = async function() {
+      const el = document.getElementById('habits-result');
+      el.innerHTML = '<p class="log">查询中...</p>';
+      
+      try {
+        const { data, error } = await supabase
+          .from('habits')
+          .select('*')
+          .limit(5);
+        
+        if (error) throw error;
+        
+        el.innerHTML = `
+          <div class="status ${data.length > 0 ? 'success' : 'warning'}">
+            ${data.length > 0 ? `找到 ${data.length} 个习惯` : '没有习惯'}
+          </div>
+          <pre class="log">${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        el.innerHTML = `<div class="status error">查询失败</div><pre class="log">${error.message}</pre>`;
+      }
+    };
+
+    window.testTrigger = async function() {
+      const el = document.getElementById('trigger-result');
+      const btn = document.getElementById('test-trigger-btn');
+      btn.disabled = true;
+      el.innerHTML = '<p class="log">创建测试记录...</p>';
+      
+      try {
+        // 1. 获取当前用户
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('请先登录');
+
+        // 2. 获取一个习惯
+        const { data: habits, error: habitsError } = await supabase
+          .from('habits')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+        
+        if (habitsError) throw habitsError;
+        if (!habits || habits.length === 0) throw new Error('没有找到习惯，请先创建习惯');
+
+        // 3. 创建打卡记录
+        const { data: completion, error: insertError } = await supabase
+          .from('habit_completions')
+          .insert({
+            habit_id: habits[0].id,
+            user_id: user.id,
+            completed_at: new Date().toISOString(),
+            belief_score_snapshot: 7.5
+          })
+          .select();
+        
+        if (insertError) throw insertError;
+
+        el.innerHTML += `<div class="status success">✓ 已创建打卡记录</div>`;
+        el.innerHTML += `<pre class="log">${JSON.stringify(completion, null, 2)}</pre>`;
+
+        // 4. 等待2秒，让触发器执行
+        el.innerHTML += '<p class="log">等待触发器执行（2秒）...</p>';
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // 5. 检查 user_metrics 是否更新
+        const { data: metrics, error: metricsError } = await supabase
+          .from('user_metrics')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', new Date().toISOString().split('T')[0])
+          .single();
+        
+        if (metricsError && metricsError.code !== 'PGRST116') throw metricsError;
+
+        if (metrics) {
+          el.innerHTML += `<div class="status success">✓ 触发器工作正常！</div>`;
+          el.innerHTML += `<pre class="log">user_metrics 已更新:\n${JSON.stringify(metrics, null, 2)}</pre>`;
+        } else {
+          el.innerHTML += `<div class="status error">✗ 触发器未执行</div>`;
+          el.innerHTML += `<p class="log">user_metrics 表未更新。请检查触发器是否创建。</p>`;
+        }
+
+      } catch (error) {
+        el.innerHTML += `<div class="status error">测试失败</div><pre class="log">${error.message}</pre>`;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    window.generateReport = async function() {
+      const el = document.getElementById('report-result');
+      el.innerHTML = '<p class="log">生成报告中...</p>';
+      
+      const report = {
+        timestamp: new Date().toISOString(),
+        checks: []
+      };
+
+      try {
+        // 检查1: 用户认证
+        const { data: userData } = await supabase.auth.getUser();
+        report.checks.push({
+          name: '用户认证',
+          status: userData.user ? 'success' : 'error',
+          message: userData.user ? `已登录 (${userData.user.email})` : '未登录'
+        });
+
+        if (!userData.user) {
+          el.innerHTML = `<div class="status error">请先登录</div>`;
+          return;
+        }
+
+        // 检查2: user_metrics 表
+        const { data: metrics, error: metricsError } = await supabase
+          .from('user_metrics')
+          .select('*')
+          .eq('user_id', userData.user.id);
+        
+        report.checks.push({
+          name: 'user_metrics 表',
+          status: metricsError ? 'error' : (metrics.length > 0 ? 'success' : 'warning'),
+          message: metricsError ? metricsError.message : `${metrics.length} 条记录`,
+          data: metrics
+        });
+
+        // 检查3: habit_completions 表
+        const { data: completions, error: completionsError } = await supabase
+          .from('habit_completions')
+          .select('*')
+          .eq('user_id', userData.user.id);
+        
+        report.checks.push({
+          name: 'habit_completions 表',
+          status: completionsError ? 'error' : (completions.length > 0 ? 'success' : 'warning'),
+          message: completionsError ? completionsError.message : `${completions.length} 条记录`,
+          data: completions
+        });
+
+        // 生成诊断结论
+        let conclusion = '';
+        if (completions.length > 0 && metrics.length === 0) {
+          conclusion = '🔴 数据流问题：有打卡记录但无指标数据，触发器可能未创建或未执行';
+        } else if (completions.length > 0 && metrics.length > 0) {
+          conclusion = '✅ 数据流正常：触发器正常工作';
+        } else if (completions.length === 0) {
+          conclusion = '⚠️ 无测试数据：请先完成习惯打卡';
+        }
+
+        report.conclusion = conclusion;
+
+        // 显示报告
+        el.innerHTML = `
+          <h3>${conclusion}</h3>
+          <pre class="log">${JSON.stringify(report, null, 2)}</pre>
+        `;
+
+      } catch (error) {
+        el.innerHTML = `<div class="status error">生成报告失败</div><pre class="log">${error.message}</pre>`;
+      }
+    };
+
+    // 页面加载时自动检查
+    window.addEventListener('load', () => {
+      console.log('贝叶斯数据流检查工具已加载');
+      console.log('请在开发者工具中设置 supabaseUrl 和 supabaseKey');
+    });
+  </script>
+</body>
+</html>

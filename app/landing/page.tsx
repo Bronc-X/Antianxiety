@@ -4,6 +4,8 @@ import MarketingNav from '@/components/MarketingNav';
 import LandingContent from '@/components/LandingContent';
 import Link from 'next/link';
 import UserProfileMenu from '@/components/UserProfileMenu';
+import { determineUserMode, getRecommendedTask, getLatestDailyLog } from '@/lib/health-logic';
+import { EnrichedDailyLog } from '@/types/logic';
 
 interface SessionUser {
   id: string;
@@ -26,23 +28,12 @@ interface DailyWellnessLog {
   [key: string]: unknown;
 }
 
-interface HabitSummary {
-  id: number;
-}
-
-interface HabitLog {
-  habit_id: number;
-  completed_at: string;
-  [key: string]: unknown;
-}
-
 export const dynamic = 'force-dynamic';
 
 export default async function LandingPage() {
   // 初始化默认值
   let session: LandingSession = null;
   let profile: ProfileRecord | null = null;
-  let habitLogs: HabitLog[] = [];
   let dailyLogs: DailyWellnessLog[] = [];
 
   // 获取 session，失败也不阻塞
@@ -60,36 +51,32 @@ export default async function LandingPage() {
     console.error('获取 session 失败:', error);
   }
 
-  // 如果有 session，尝试获取数据，但设置严格的超时
+  // 简化数据获取 - 新布局只需要 profile 和最新 1 条 dailyLog
   if (session?.user) {
     try {
       const supabase = await createServerSupabaseClient();
 
-      // 使用 Promise.allSettled 确保即使一个失败也不阻塞
-      const profilePromise = Promise.race<ProfileRecord | null>([
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single<ProfileRecord>()
-          .then(({ data, error }) => (!error && data ? data : null)),
-        new Promise<ProfileRecord | null>((resolve) => setTimeout(() => resolve(null), 3000)),
-      ]);
-
-      const dailyLogsPromise = Promise.race<DailyWellnessLog[]>([
-        supabase
-          .from('daily_wellness_logs')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('log_date', { ascending: false })
-          .limit(14)
-          .then(({ data, error }) => (!error && data ? data : [])),
-        new Promise<DailyWellnessLog[]>((resolve) => setTimeout(() => resolve([]), 3000)),
-      ]);
-
+      // 并行获取 profile 和最新 dailyLog（1秒超时）
       const [profileResult, dailyLogsResult] = await Promise.allSettled([
-        profilePromise,
-        dailyLogsPromise,
+        Promise.race<ProfileRecord | null>([
+          supabase
+            .from('profiles')
+            .select('full_name, primary_concern, metabolic_profile, ai_persona_context')
+            .eq('id', session.user.id)
+            .single<ProfileRecord>()
+            .then(({ data, error }) => (!error && data ? data : null)),
+          new Promise<ProfileRecord | null>((resolve) => setTimeout(() => resolve(null), 1000)),
+        ]),
+        Promise.race<DailyWellnessLog[]>([
+          supabase
+            .from('daily_wellness_logs')
+            .select('log_date, sleep_hours, sleep_duration_minutes, stress_level, hrv, exercise_duration_minutes')
+            .eq('user_id', session.user.id)
+            .order('log_date', { ascending: false })
+            .limit(1)
+            .then(({ data, error }) => (!error && data ? data : [])),
+          new Promise<DailyWellnessLog[]>((resolve) => setTimeout(() => resolve([]), 1000)),
+        ]),
       ]);
 
       if (profileResult.status === 'fulfilled') {
@@ -98,60 +85,27 @@ export default async function LandingPage() {
       if (dailyLogsResult.status === 'fulfilled') {
         dailyLogs = Array.isArray(dailyLogsResult.value) ? dailyLogsResult.value : [];
       }
-
-      // 如果获取到 profile，再尝试获取习惯数据（非阻塞）
-      if (profile) {
-        try {
-          const habitsResult = await Promise.race<HabitSummary[]>([
-            supabase
-              .from('habits')
-              .select('id')
-              .eq('user_id', session.user.id)
-              .then(({ data }) => (data || []) as HabitSummary[]),
-            new Promise<HabitSummary[]>((resolve) => setTimeout(() => resolve([]), 2000)),
-          ]);
-
-          if (habitsResult.length > 0) {
-            const habitIds = habitsResult.map((habit) => habit.id);
-            const habitLogsResult = await Promise.race<HabitLog[]>([
-              supabase
-                .from('habit_completions')
-                .select('*')
-                .in('habit_id', habitIds)
-                .order('completed_at', { ascending: true })
-                .then(({ data }) => (data || []) as HabitLog[]),
-              new Promise<HabitLog[]>((resolve) => setTimeout(() => resolve([]), 2000)),
-            ]);
-            habitLogs = habitLogsResult;
-          }
-        } catch (error) {
-          console.error('获取习惯数据失败:', error);
-        }
-      }
     } catch (error) {
       console.error('数据获取失败:', error);
-      // 即使失败也继续渲染页面
     }
   }
 
   // 确保返回页面，即使数据获取失败
   // 转换profile类型以匹配LandingContent期望的类型
   const landingProfile = profile ? {
-    daily_checkin_time: typeof (profile as ProfileRecord).daily_checkin_time === 'string' 
-      ? (profile as ProfileRecord).daily_checkin_time as string 
-      : null,
     full_name: typeof (profile as ProfileRecord).full_name === 'string' 
       ? (profile as ProfileRecord).full_name as string 
       : null,
   } : null;
 
-  // 转换habitLogs类型以匹配LandingContent期望的类型
-  const landingHabitLogs = habitLogs.map((log) => ({
-    id: log.habit_id,
-    habit_id: log.habit_id,
-    completed_at: log.completed_at,
-    belief_score_snapshot: 0, // 默认值，如果需要可以从数据库获取
-  }));
+  // 计算用户状态和推荐任务
+  const latestLog = getLatestDailyLog(dailyLogs as EnrichedDailyLog[]);
+  const userState = determineUserMode(latestLog);
+  
+  // 获取 primary_concern 和 metabolic_profile，处理 profile 可能为 null 的情况
+  const primaryConcern = profile ? (profile as any).primary_concern : null;
+  const metabolicProfile = profile ? (profile as any).metabolic_profile : null;
+  const recommendedTask = getRecommendedTask(userState.mode, primaryConcern, metabolicProfile);
 
   return (
     <div className="min-h-screen bg-[#FAF6EF]">
@@ -168,36 +122,41 @@ export default async function LandingPage() {
               </Link>
             </div>
             <nav className="hidden md:flex items-center gap-4 text-sm">
-              <a 
-                href="#how" 
-                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+              <Link 
+                href="/insights" 
+                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
                 核心洞察
-              </a>
-              <a 
-                href="#model" 
-                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+              </Link>
+              <Link 
+                href="/methodology" 
+                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
                 模型方法
-              </a>
-              <a 
-                href="#authority" 
-                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+              </Link>
+              <Link 
+                href="/sources" 
+                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
                 权威来源
-              </a>
+              </Link>
               <Link
                 href="/assistant"
                 className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
-                分析报告
+                AI 助理
               </Link>
               <Link
                 href="/plans"
+                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+              >
+                计划表
+              </Link>
+              <Link
+                href="/pricing"
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white rounded-lg hover:shadow-lg transition-all"
               >
-                <span>📋</span>
-                <span>AI计划表</span>
+                <span>升级 Pro</span>
               </Link>
               {session?.user && (
                 <UserProfileMenu 
@@ -220,8 +179,10 @@ export default async function LandingPage() {
       <LandingContent 
         user={session?.user || null} 
         profile={landingProfile} 
-        habitLogs={landingHabitLogs} 
-        dailyLogs={dailyLogs} 
+        habitLogs={[]} 
+        dailyLogs={[]} 
+        userState={userState}
+        recommendedTask={recommendedTask}
       />
     </div>
   );

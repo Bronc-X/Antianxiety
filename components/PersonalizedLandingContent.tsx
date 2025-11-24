@@ -55,6 +55,7 @@ interface DailyLogEntry {
   log_date: string;
   sleep_duration_minutes?: number | null;
   stress_level?: number | null;
+  exercise_duration_minutes?: number | null;
 }
 
 interface MicroHabit {
@@ -203,131 +204,95 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
   };
 
   return (
-    <div className="rounded-2xl border border-[#E7E1D6] bg-gradient-to-br from-[#FFFDF8] to-[#FAF6EF] p-6 shadow-sm">
-      <div className="flex flex-col gap-4">
+    <div className="rounded-2xl border border-[#0B3D2E]/10 bg-gradient-to-br from-[#F5F1E8] to-[#FAF6EF] p-6 shadow-sm">
+      <div className="flex flex-col gap-6">
+        {/* Header */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">🔔</span>
-            <h3 className="text-lg font-semibold text-[#0B3D2E]">今日提醒</h3>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0B3D2E]/10 flex items-center justify-center">
+              <svg className="w-5 h-5 text-[#0B3D2E]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-[#0B3D2E]">AI Bio-Rhythm Intervention</h3>
+              <p className="text-xs text-[#0B3D2E]/60">生物节律自动干预</p>
+            </div>
           </div>
-          <p className="mt-1 text-sm text-[#0B3D2E]/70">
-            选择你希望今天接收提醒的活动，选择后今天就会智能提醒。也可以启用AI自动提醒，无需手动选择。
+          <p className="mt-3 text-sm text-[#0B3D2E]/70 leading-relaxed">
+            When enabled, AI will nudge you with the <span className="font-semibold text-[#0B3D2E]">ONE optimal action</span> based on your real-time fatigue levels. No setup required.
           </p>
         </div>
 
-        {/* 提醒时间设置 */}
-        <div className="rounded-lg border border-[#E7E1D6] bg-white px-4 py-3">
-          <label className="block text-sm font-medium text-[#0B3D2E] mb-3">提醒时间</label>
-          <div className="flex gap-3 mb-3">
+        {/* AI Auto-Pilot Toggle */}
+        <div className="rounded-xl border border-[#0B3D2E]/20 bg-white p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-[#0B3D2E] mb-1">
+                {aiAutoMode ? '✨ AI Auto-Pilot is Active' : 'AI Auto-Pilot'}
+              </p>
+              <p className="text-xs text-[#0B3D2E]/60">
+                {aiAutoMode 
+                  ? '根据你的实时疲劳水平，智能推送最优行动' 
+                  : '点击启用，让AI为你选择最佳干预时机'}
+              </p>
+            </div>
             <button
               type="button"
-              onClick={() => {
-                setReminderTimeMode('manual');
-                setAiAutoMode(false);
-              }}
-              disabled={aiAutoMode}
-              className={`px-4 py-2 rounded-md border text-sm transition-colors ${
-                reminderTimeMode === 'manual' && !aiAutoMode
-                  ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
-                  : 'border-[#E7E1D6] bg-white text-[#0B3D2E] hover:border-[#0B3D2E]/40 disabled:opacity-50'
+              onClick={handleEnableAIAuto}
+              className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:ring-offset-2 ${
+                aiAutoMode ? 'bg-[#0B3D2E]' : 'bg-[#E7E1D6]'
               }`}
+              role="switch"
+              aria-checked={aiAutoMode}
             >
-              用户自己设置
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setReminderTimeMode('ai');
-                setAiAutoMode(false);
-              }}
-              disabled={aiAutoMode}
-              className={`px-4 py-2 rounded-md border text-sm transition-colors ${
-                reminderTimeMode === 'ai' && !aiAutoMode
-                  ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
-                  : 'border-[#E7E1D6] bg-white text-[#0B3D2E] hover:border-[#0B3D2E]/40 disabled:opacity-50'
-              }`}
-            >
-              AI推送
-            </button>
-          </div>
-          {reminderTimeMode === 'manual' && !aiAutoMode && (
-            <input
-              type="time"
-              value={manualTime}
-              onChange={(e) => setManualTime(e.target.value)}
-              className="w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20"
-            />
-          )}
-          {reminderTimeMode === 'ai' && !aiAutoMode && (
-            <p className="text-xs text-[#0B3D2E]/60">
-              AI将根据你的日常行为模式和生理信号，自动为你推送最适合的提醒时间。
-            </p>
-          )}
-        </div>
-
-        {/* 活动选择按钮 */}
-        <div>
-          <label className="block text-sm font-medium text-[#0B3D2E] mb-3">选择提醒活动</label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {activities.map((activity) => (
-              <button
-                key={activity.id}
-                type="button"
-                onClick={() => toggleActivity(activity.id)}
-                disabled={aiAutoMode}
-                className={`rounded-lg border px-3 py-2 text-center text-xs font-medium transition-all ${
-                  selectedActivities.has(activity.id) || aiAutoMode
-                    ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
-                    : 'border-[#E7E1D6] bg-white text-[#0B3D2E] hover:border-[#0B3D2E]/40 disabled:opacity-50'
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  aiAutoMode ? 'translate-x-6' : 'translate-x-0'
                 }`}
-              >
-                {activity.label}
-              </button>
-            ))}
+              />
+            </button>
           </div>
-          {selectedActivities.size > 0 && !aiAutoMode && (
-            <p className="mt-2 text-xs text-[#0B3D2E]/60">
-              已选择 {selectedActivities.size} 项，今天将智能提醒你这些活动
-            </p>
-          )}
-          {aiAutoMode && (
-            <p className="mt-2 text-xs text-[#0B3D2E]/60">
-              AI将根据你的日常行为模式和生理信号，自动为你制定最适合的提醒时间和小计量。
-            </p>
-          )}
         </div>
 
-        {/* 保存按钮和消息 */}
+        {/* Status Message */}
+        {aiAutoMode && (
+          <div className="rounded-lg bg-[#0B3D2E]/5 border border-[#0B3D2E]/10 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-[#0B3D2E] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm text-[#0B3D2E] font-medium mb-1">自动模式已启用</p>
+                <p className="text-xs text-[#0B3D2E]/70 leading-relaxed">
+                  AI将自动分析你的睡眠、压力和能量水平，在最佳时机推送单一最优化行动建议（如：5分钟慢走、补充水分等）。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Save Message */}
         {saveMessage && (
-          <div className={`rounded-md px-4 py-2 text-sm ${
+          <div className={`rounded-lg px-4 py-3 text-sm ${
             saveMessage.includes('成功') 
-              ? 'bg-green-50 border border-green-200 text-green-800' 
-              : 'bg-red-50 border border-red-200 text-red-800'
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' 
+              : 'bg-amber-50 border border-amber-200 text-amber-800'
           }`}>
             {saveMessage}
           </div>
         )}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleEnableAIAuto}
-            className={`flex-1 px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
-              aiAutoMode
-                ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
-                : 'border-[#0B3D2E]/30 bg-white text-[#0B3D2E] hover:border-[#0B3D2E] hover:bg-[#FAF6EF]'
-            }`}
-          >
-            {aiAutoMode ? '✓ AI自动提醒已启用' : '🤖 启用AI自动提醒'}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || (selectedActivities.size === 0 && !aiAutoMode)}
-            className="flex-1 px-4 py-2 rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white text-sm font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? '保存中...' : '保存'}
-          </button>
-        </div>
+
+        {/* Save Button */}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white text-sm font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? '保存中...' : '保存设置'}
+        </button>
       </div>
     </div>
   );
@@ -865,87 +830,195 @@ export default function PersonalizedLandingContent({
 
   return (
     <>
+      {/* Section Header */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-[#0F392B] mb-2">Trends & Insights</h2>
+        <p className="text-sm text-[#1F2937]/70 leading-relaxed">
+          观察长期趋势有助于稀释短期焦虑。Seeing long-term trends helps dilute short-term anxiety.
+        </p>
+      </div>
+
+      {/* Weekly Highlight & Optimization Nudge Cards */}
+      <AnimatedSection inView variant="fadeUp" className="mb-8">
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Left Card: Weekly Highlight (Positive Reinforcement) */}
+          <div className="rounded-3xl border border-[#0F392B]/10 bg-gradient-to-br from-emerald-50 to-white p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center">
+                <span className="text-2xl">🏆</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-emerald-800 mb-2">
+                  Weekly Highlight
+                </h3>
+                <p className="text-base text-[#1F2937] leading-relaxed font-medium">
+                  {(() => {
+                    const lastSevenLogs = dailyLogs.filter(log => {
+                      const logDate = new Date(log.log_date);
+                      const sevenDaysAgo = new Date();
+                      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                      return logDate >= sevenDaysAgo;
+                    });
+
+                    const sleepGoalDays = lastSevenLogs.filter(log => 
+                      log.sleep_duration_minutes && log.sleep_duration_minutes / 60 >= 7
+                    ).length;
+
+                    if (sleepGoalDays >= 5) {
+                      return `本周高光：连续${sleepGoalDays}天达成睡眠目标！`;
+                    }
+
+                    const lowStressDays = lastSevenLogs.filter(log => 
+                      log.stress_level && log.stress_level < 5
+                    ).length;
+
+                    if (lowStressDays >= 4) {
+                      return `本周高光：${lowStressDays}天保持低压力状态！`;
+                    }
+
+                    const exerciseDays = lastSevenLogs.filter(log => 
+                      log.exercise_duration_minutes && log.exercise_duration_minutes >= 20
+                    ).length;
+
+                    if (exerciseDays >= 3) {
+                      return `本周高光：完成${exerciseDays}次有效运动！`;
+                    }
+
+                    return '继续积累，你的每一个努力都在复利。';
+                  })()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Card: Optimization Nudge (Gentle Attribution) */}
+          <div className="rounded-3xl border border-[#0F392B]/10 bg-gradient-to-br from-amber-50 to-white p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center">
+                <span className="text-2xl">💡</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-amber-800 mb-2">
+                  Optimization Nudge
+                </h3>
+                <p className="text-base text-[#1F2937] leading-relaxed font-medium">
+                  {(() => {
+                    const lastSevenLogs = dailyLogs.filter(log => {
+                      const logDate = new Date(log.log_date);
+                      const sevenDaysAgo = new Date();
+                      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                      return logDate >= sevenDaysAgo;
+                    });
+
+                    const stressSum = lastSevenLogs.reduce((sum, log) => 
+                      log.stress_level ? sum + log.stress_level : sum, 0);
+                    const stressCount = lastSevenLogs.filter(log => log.stress_level).length;
+                    const avgStress = stressCount > 0 ? stressSum / stressCount : null;
+
+                    if (avgStress !== null && avgStress >= 7) {
+                      return '优化建议：压力水平上升，可能是因为咖啡因摄入过晚？';
+                    }
+
+                    const sleepSum = lastSevenLogs.reduce((sum, log) => 
+                      log.sleep_duration_minutes ? sum + (log.sleep_duration_minutes / 60) : sum, 0);
+                    const sleepCount = lastSevenLogs.filter(log => log.sleep_duration_minutes).length;
+                    const avgSleep = sleepCount > 0 ? sleepSum / sleepCount : null;
+
+                    if (avgSleep !== null && avgSleep < 6.5) {
+                      return '优化建议：睡眠不足，建议晚上9点后降低蓝光曝露。';
+                    }
+
+                    return '保持当前节奏，你的指标处于良好范围。';
+                  })()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AnimatedSection>
+
       <AnimatedSection inView variant="fadeUp" className="mt-8">
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center">
-              <div className="flex flex-col items-center gap-3">
-                <div className="relative h-60 w-28">
-                  <svg width="120" height="240" viewBox="0 0 120 240" className="h-full w-full" style={{ filter: 'drop-shadow(0 2px 4px rgba(11, 61, 46, 0.1))' }}>
-                  <defs>
-                      {/* 人体轮廓clipPath */}
-                      <clipPath id={`bodyClip-${bodyFunctionScore}`}>
-                      <circle cx="60" cy="30" r="26" />
-                      <rect x="35" y="52" width="50" height="70" rx="25" />
-                      <rect x="42" y="120" width="36" height="90" rx="18" />
-                    </clipPath>
-                      {/* 水填充渐变 */}
-                      <linearGradient id={`waterGradient-${bodyFunctionScore}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0B3D2E" stopOpacity="0.9" />
-                        <stop offset="50%" stopColor="#0B3D2E" stopOpacity="0.7" />
-                        <stop offset="100%" stopColor="#0B3D2E" stopOpacity="0.5" />
-                    </linearGradient>
-                  </defs>
-                    
-                    {/* 背景（浅色人体轮廓） */}
-                    <g clipPath={`url(#bodyClip-${bodyFunctionScore})`}>
-                      <rect width="120" height="240" fill="#0B3D2E" opacity="0.08" />
-                    </g>
-                    
-                    {/* 水填充效果 - 从底部向上填充 */}
-                    {waterHeight > 0 && (
-                      <g clipPath={`url(#bodyClip-${bodyFunctionScore})`}>
-                  <rect
-                    x="0"
-                          y={240 - waterHeight}
-                    width="120"
-                          height={waterHeight}
-                          fill={`url(#waterGradient-${bodyFunctionScore})`}
-                        />
-                      </g>
-                    )}
-                    
-                    {/* 人体轮廓线 */}
-                    <circle cx="60" cy="30" r="26" fill="none" stroke="#0B3D2E" strokeWidth="2.5" opacity="0.4" />
-                    <rect x="35" y="52" width="50" height="70" rx="25" fill="none" stroke="#0B3D2E" strokeWidth="2.5" opacity="0.4" />
-                    <rect x="42" y="120" width="36" height="90" rx="18" fill="none" stroke="#0B3D2E" strokeWidth="2.5" opacity="0.4" />
-                </svg>
-                </div>
-                {/* 得分和Body Score文字放在人体简图下方 */}
-                <div className="flex flex-col items-center">
-                  <span className="text-3xl font-semibold text-[#0B3D2E]">{Math.round(bodyFunctionScore)}</span>
-                  <span className="text-[10px] uppercase tracking-widest text-[#0B3D2E]/60 mt-0.5">Body Score</span>
+          <div className="rounded-2xl border border-[#0B3D2E]/10 bg-gradient-to-br from-[#F5F1E8] to-[#FAF6EF] p-6 shadow-sm">
+            <div className="flex flex-col gap-6">
+              {/* Header */}
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#0B3D2E]/10 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#0B3D2E]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-[#0B3D2E]">Current Body Mode</h3>
+                    <p className="text-xs text-[#0B3D2E]/60">当前身体状态</p>
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 space-y-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-[#0B3D2E]">身体机能指数</h3>
-                  <p className="mt-1 text-sm text-[#0B3D2E]/70">{scoreLabel}</p>
-                </div>
-                <ul className="space-y-2 text-sm text-[#0B3D2E]/80">
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#0B3D2E]" />
-                    <span>睡眠节奏：{sleepSummary}</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#0B3D2E]" />
-                    <span>压力等级：{stressSummary}</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#0B3D2E]" />
-                    <span>能量充沛度：{energySummary}</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#0B3D2E]" />
-                    <span>运动频率：{exerciseSummary}</span>
-                  </li>
-                </ul>
-                {chronicConditions.length > 0 && (
-                  <div className="rounded-lg border border-[#E7E1D6] bg-[#FAF6EF] px-3 py-2 text-xs text-[#0B3D2E]/70">
-                    <span className="font-medium text-[#0B3D2E]">基础状况：</span>
-                    {chronicConditions.join('、')}
+
+              {/* Energy Wave Animation */}
+              <div className="relative h-32 rounded-xl bg-white/50 border border-[#0B3D2E]/10 overflow-hidden">
+                <svg className="w-full h-full" viewBox="0 0 400 120" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#0B3D2E" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#0B3D2E" stopOpacity="0.05" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d={`M0 ${120 - (bodyFunctionScore * 0.8)} Q100 ${120 - (bodyFunctionScore * 1.0)} 200 ${120 - (bodyFunctionScore * 0.8)} T400 ${120 - (bodyFunctionScore * 0.8)} V120 H0 Z`}
+                    fill="url(#waveGradient)"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-xs uppercase tracking-widest text-[#0B3D2E]/50 mb-1">Energy Level</p>
+                    <p className="text-2xl font-semibold text-[#0B3D2E]">
+                      {(() => {
+                        if (bodyFunctionScore >= 85) return "🔥 High Performance";
+                        if (bodyFunctionScore >= 70) return "✨ Balanced";
+                        if (bodyFunctionScore >= 55) return "🌿 Recovery Focus";
+                        return "💆 Deep Rest Mode";
+                      })()}
+                    </p>
                   </div>
-                )}
+                </div>
+              </div>
+
+              {/* Single Actionable Advice */}
+              <div className="rounded-xl border border-[#0B3D2E]/20 bg-white p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#0B3D2E]/10 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-[#0B3D2E]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium uppercase tracking-wider text-[#0B3D2E]/60 mb-1">Recommended Action</p>
+                    <p className="text-sm text-[#0B3D2E] leading-relaxed">
+                      {(() => {
+                        const sleepHours = profile?.sleep_hours ? Number(profile.sleep_hours) : null;
+                        const stressLevel = profile?.stress_level ? Number(profile.stress_level) : null;
+                        const energyLevel = profile?.energy_level ? Number(profile.energy_level) : null;
+
+                        // 找出最低的指标并给出单一建议
+                        if (sleepHours !== null && sleepHours < 6) {
+                          return "🌙 Focus on Sleep tonight to recharge. Aim for 7-8 hours to support recovery and metabolic health.";
+                        }
+                        if (stressLevel !== null && stressLevel >= 7) {
+                          return "🚶 Take a 5-minute slow walk to metabolize cortisol. Your stress hormones are elevated.";
+                        }
+                        if (energyLevel !== null && energyLevel <= 4) {
+                          return "🧘 10-minute gentle stretching or meditation. Low energy signals need for active recovery.";
+                        }
+                        if (bodyFunctionScore < 60) {
+                          return "💧 Prioritize hydration and light movement. Small actions compound into significant recovery.";
+                        }
+                        return "✅ Maintain your current rhythm. Your body is in a stable state. Keep consistent with sleep and stress management.";
+                      })()}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

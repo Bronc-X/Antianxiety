@@ -66,15 +66,18 @@ export default function PlanListWithActions({ initialPlans, onPlanDeleted }: Pla
   };
 
   const getPlanTypeIcon = (type: string) => {
-    const icons: { [key: string]: string } = {
-      exercise: '🏃',
-      diet: '🥗',
-      sleep: '😴',
-      stress: '🧘',
-      social: '👥',
-      hobby: '🎨',
+    // 使用简洁的文本图标代替emoji，更专业
+    const iconMap: { [key: string]: { icon: string; color: string } } = {
+      exercise: { icon: '🏃', color: 'bg-blue-100 text-blue-700' },
+      diet: { icon: '🥗', color: 'bg-green-100 text-green-700' },
+      sleep: { icon: '🌙', color: 'bg-indigo-100 text-indigo-700' },
+      stress: { icon: '🧘', color: 'bg-purple-100 text-purple-700' },
+      social: { icon: '👥', color: 'bg-pink-100 text-pink-700' },
+      hobby: { icon: '🎨', color: 'bg-orange-100 text-orange-700' },
+      metabolism: { icon: '⚡', color: 'bg-yellow-100 text-yellow-700' },
+      recovery: { icon: '💪', color: 'bg-red-100 text-red-700' },
     };
-    return icons[type] || '📋';
+    return iconMap[type] || { icon: '📋', color: 'bg-gray-100 text-gray-700' };
   };
 
   const getDifficultyStars = (difficulty: number) => {
@@ -118,8 +121,8 @@ export default function PlanListWithActions({ initialPlans, onPlanDeleted }: Pla
               >
                 <div className="flex items-start gap-4">
                   {/* 类型图标 */}
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#0B3D2E]/10 flex items-center justify-center text-2xl">
-                    {getPlanTypeIcon(plan.plan_type)}
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${getPlanTypeIcon(plan.plan_type).color}`}>
+                    {getPlanTypeIcon(plan.plan_type).icon}
                   </div>
 
                   {/* 内容 */}
@@ -150,8 +153,11 @@ export default function PlanListWithActions({ initialPlans, onPlanDeleted }: Pla
                         创建于 {new Date(plan.created_at).toLocaleDateString('zh-CN')}
                       </span>
                       {plan.status === 'active' && (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                          进行中
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          已添加
                         </span>
                       )}
                     </div>
