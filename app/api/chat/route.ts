@@ -17,40 +17,72 @@ interface RequestBody {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('\n📨 收到 AI 聊天请求');
+  console.log('\n' + '='.repeat(80));
+  console.log('📨 AI 聊天请求开始 - Sequential Execution Pipeline');
+  console.log('='.repeat(80));
+  
   try {
-    // 1. 认证检查
+    // ==========================================
+    // STEP 0: 认证检查
+    // ==========================================
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    console.log('🔐 用户认证:', { hasUser: !!user, userId: user?.id, authError: authError?.message });
-    
     if (authError || !user) {
-      console.error('❌ 认证失败');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      console.error('❌ STEP 0 FAILED: 认证失败');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    console.log('✅ STEP 0: 认证成功 -', user.id);
     
-    // 2. 解析请求
+    // 解析请求
     const body: RequestBody = await request.json();
-    
     if (!body.message || body.message.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Message cannot be empty' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
     }
+    console.log('📝 用户问题:', body.message);
     
-    // 3. 获取用户profile（用于生成个性化System Prompt）
-    const { data: profile } = await supabase
+    // ==========================================
+    // STEP 1: FETCH "THE MEMORY" (User Profile)
+    // ==========================================
+    console.log('\n🧠 STEP 1: 获取用户档案 (THE MEMORY)...');
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('age, gender, metabolic_concerns, activity_level, stress_level, energy_level')
+      .select('age, gender, primary_concern, activity_level, stress_level, energy_level, ai_persona_context, primary_goal, ai_personality, current_focus, full_name')
       .eq('id', user.id)
       .single();
     
-    // 4. 获取对话历史（最近5轮）
+    if (profileError) {
+      console.error('⚠️ Profile查询错误:', profileError);
+    }
+    
+    if (!profile) {
+      console.error('❌ STEP 1 FAILED: Profile not found, using safety defaults');
+      // 使用安全默认值
+    }
+    
+    // 详细日志：显示所有关键设置
+    console.log('✅ STEP 1 完成: User Profile loaded');
+    console.log('  📋 基础信息:', {
+      full_name: profile?.full_name || '未设置',
+      age: profile?.age,
+      gender: profile?.gender
+    });
+    console.log('  🎯 AI调优设置 (CRITICAL):');
+    console.log('    - current_focus:', profile?.current_focus || '❌ NULL');
+    console.log('    - ai_personality:', profile?.ai_personality || '❌ NULL');
+    console.log('    - primary_goal:', profile?.primary_goal || '❌ NULL');
+    console.log('    - ai_persona_context:', profile?.ai_persona_context ? '✅ 已生成' : '❌ NULL');
+    
+    // 🚨 安全检查：如果current_focus为空，发出警告
+    if (!profile?.current_focus) {
+      console.warn('⚠️ WARNING: current_focus is NULL - AI将无法知道用户的特殊健康状况！');
+      console.warn('⚠️ 请检查：1) 数据库字段是否存在 2) 用户是否在设置中填写了内容');
+    }
+    
+    // ==========================================
+    // STEP 2: 获取对话历史
+    // ==========================================
+    console.log('\n💬 STEP 2: 获取对话历史...');
     let conversationHistory: ChatMessage[] = [];
     if (body.sessionId) {
       const { data: history } = await supabase
@@ -68,30 +100,47 @@ export async function POST(request: NextRequest) {
         })).reverse();
       }
     }
+    console.log('✅ STEP 2 完成: 对话历史条数:', conversationHistory.length);
     
-    // 5. 调用RAG系统
-    console.log('💬 用户问题:', body.message);
-    console.log('📚 对话历史条数:', conversationHistory.length);
+    // ==========================================
+    // STEP 3: 组装用户上下文 (THE BRAIN INPUT)
+    // ==========================================
+    console.log('\n🔧 STEP 3: 组装用户上下文...');
+    const userContext = profile ? {
+      age: profile.age,
+      gender: profile.gender,
+      metabolic_concerns: profile.primary_concern ? [profile.primary_concern] : undefined,
+      activity_level: profile.activity_level,
+      stress_level: profile.stress_level,
+      energy_level: profile.energy_level,
+      // CRITICAL: Settings Dashboard字段
+      ai_persona_context: profile.ai_persona_context,
+      primary_goal: profile.primary_goal,
+      ai_personality: profile.ai_personality,
+      current_focus: profile.current_focus
+    } : undefined;
     
+    console.log('✅ STEP 3 完成: UserContext assembled');
+    console.log('  🚨 CRITICAL FIELDS:');
+    console.log('    - current_focus:', userContext?.current_focus || '❌ MISSING');
+    console.log('    - ai_personality:', userContext?.ai_personality || '❌ MISSING');
+    
+    // ==========================================
+    // STEP 4: 调用RAG系统 (FETCH KNOWLEDGE + GENERATE)
+    // ==========================================
+    console.log('\n🚀 STEP 4: 调用RAG系统...');
     const chatRequest: ChatRequest = {
       userId: user.id,
       sessionId: body.sessionId,
       userQuestion: body.message,
       conversationHistory,
-      userContext: profile ? {
-        age: profile.age,
-        gender: profile.gender,
-        metabolic_concerns: profile.metabolic_concerns,
-        activity_level: profile.activity_level,
-        stress_level: profile.stress_level,
-        energy_level: profile.energy_level
-      } : undefined,
+      userContext,
       language: body.language || 'zh'
     };
     
-    console.log('🚀 调用RAG系统...');
     const response = await chatWithRAG(chatRequest);
-    console.log('✅ RAG响应成功');
+    console.log('✅ STEP 4 完成: RAG响应成功');
+    console.log('='.repeat(80));
     
     // 6. 返回响应
     return NextResponse.json({

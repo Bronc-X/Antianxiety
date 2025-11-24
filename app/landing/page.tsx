@@ -1,9 +1,7 @@
 import { getServerSession } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import MarketingNav from '@/components/MarketingNav';
+import { redirect } from 'next/navigation';
 import LandingContent from '@/components/LandingContent';
-import Link from 'next/link';
-import UserProfileMenu from '@/components/UserProfileMenu';
 import { determineUserMode, getRecommendedTask, getLatestDailyLog } from '@/lib/health-logic';
 import { EnrichedDailyLog } from '@/types/logic';
 
@@ -51,7 +49,7 @@ export default async function LandingPage() {
     console.error('获取 session 失败:', error);
   }
 
-  // 简化数据获取 - 新布局只需要 profile 和最新 1 条 dailyLog
+  // 简化数据获取 - 需要 profile、最新 dailyLog 和 active plans
   if (session?.user) {
     try {
       const supabase = await createServerSupabaseClient();
@@ -90,6 +88,20 @@ export default async function LandingPage() {
     }
   }
 
+  // ========================================
+  // CRITICAL: 强制性问卷检查
+  // 如果用户已登录但未完成问卷，立即重定向
+  // ========================================
+  if (session?.user && profile) {
+    const metabolicProfile = (profile as any).metabolic_profile;
+    
+    // 检查是否完成问卷：metabolic_profile必须存在且非空
+    if (!metabolicProfile || typeof metabolicProfile !== 'object' || Object.keys(metabolicProfile).length === 0) {
+      console.log('用户未完成问卷，重定向到 /onboarding');
+      redirect('/onboarding');
+    }
+  }
+
   // 确保返回页面，即使数据获取失败
   // 转换profile类型以匹配LandingContent期望的类型
   const landingProfile = profile ? {
@@ -109,73 +121,6 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF6EF]">
-      {/* 导航栏 */}
-      <nav className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur border-b border-[#E7E1D6]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/landing" className="flex items-center gap-3">
-                <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />
-                <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
-                  No More anxious™
-                </span>
-              </Link>
-            </div>
-            <nav className="hidden md:flex items-center gap-4 text-sm">
-              <Link 
-                href="/insights" 
-                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
-              >
-                核心洞察
-              </Link>
-              <Link 
-                href="/methodology" 
-                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
-              >
-                模型方法
-              </Link>
-              <Link 
-                href="/sources" 
-                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
-              >
-                权威来源
-              </Link>
-              <Link
-                href="/assistant"
-                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
-              >
-                AI 助理
-              </Link>
-              <Link
-                href="/plans"
-                className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
-              >
-                计划表
-              </Link>
-              <Link
-                href="/pricing"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white rounded-lg hover:shadow-lg transition-all"
-              >
-                <span>升级 Pro</span>
-              </Link>
-              {session?.user && (
-                <UserProfileMenu 
-                  user={session.user} 
-                  profile={profile ? {
-                    full_name: typeof (profile as ProfileRecord).full_name === 'string' 
-                      ? (profile as ProfileRecord).full_name as string 
-                      : null,
-                    avatar_url: typeof (profile as ProfileRecord).avatar_url === 'string' 
-                      ? (profile as ProfileRecord).avatar_url as string 
-                      : null,
-                  } : null}
-                />
-              )}
-            </nav>
-          </div>
-        </div>
-      </nav>
-
       <LandingContent 
         user={session?.user || null} 
         profile={landingProfile} 

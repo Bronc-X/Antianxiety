@@ -126,18 +126,18 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
                   </div>
                 </div>
                 <Link
-                  href="/assistant"
+                  href="/settings"
                   onClick={() => setIsOpen(false)}
                   className="w-full rounded-md border border-[#E7E1D6] bg-white px-3 py-2 text-sm text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors text-left block"
                 >
                   ⚙️ 个人设置
                 </Link>
               <Link
-                href="/pricing"
+                href="/onboarding/upgrade?from=menu"
                 onClick={() => setIsOpen(false)}
                 className="w-full rounded-md border border-[#0B3D2E] bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-3 py-2 text-sm text-white hover:shadow-md transition-all text-left block font-medium"
                 >
-                升级订阅
+                🚀 升级订阅
               </Link>
                 <button
                   onClick={handleLogout}

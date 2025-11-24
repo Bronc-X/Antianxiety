@@ -15,27 +15,50 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
-    const payload = {
+    // 确保正确的类型转换
+    const payload: Record<string, unknown> = {
       id: user.id,
       username: user.id.slice(0, 8),
-      gender: body.gender || null,
-      birth_date: body.birth_date || null,
-      height_cm: body.height_cm || null,
-      weight_kg: body.weight_kg || null,
-      activity_level: body.activity_level || null,
-      body_fat_percentage: body.body_fat_percentage || null,
-      primary_goal: body.primary_goal || null,
-      target_weight_kg: body.target_weight_kg || null,
-      weekly_goal_rate: body.weekly_goal_rate || null,
-      sleep_hours: body.sleep_hours || null,
-      stress_level: body.stress_level || null,
-      energy_level: body.energy_level || null,
-      exercise_frequency: body.exercise_frequency || null,
-      caffeine_intake: body.caffeine_intake || null,
-      alcohol_intake: body.alcohol_intake || null,
-      smoking_status: body.smoking_status || null,
       ai_profile_completed: true,
     };
+
+    // 只添加提供的字段
+    if (body.gender !== undefined) payload.gender = body.gender;
+    if (body.birth_date !== undefined) payload.birth_date = body.birth_date;
+    if (body.activity_level !== undefined) payload.activity_level = body.activity_level;
+    
+    // 浮点数字段
+    if (body.height_cm !== undefined && body.height_cm !== null) {
+      payload.height_cm = typeof body.height_cm === 'number' ? body.height_cm : parseFloat(body.height_cm);
+    }
+    if (body.weight_kg !== undefined && body.weight_kg !== null) {
+      payload.weight_kg = typeof body.weight_kg === 'number' ? body.weight_kg : parseFloat(body.weight_kg);
+    }
+    if (body.body_fat_percentage !== undefined && body.body_fat_percentage !== null) {
+      payload.body_fat_percentage = typeof body.body_fat_percentage === 'number' ? body.body_fat_percentage : parseFloat(body.body_fat_percentage);
+    }
+    if (body.target_weight_kg !== undefined && body.target_weight_kg !== null) {
+      payload.target_weight_kg = typeof body.target_weight_kg === 'number' ? body.target_weight_kg : parseFloat(body.target_weight_kg);
+    }
+    if (body.sleep_hours !== undefined && body.sleep_hours !== null) {
+      payload.sleep_hours = typeof body.sleep_hours === 'number' ? body.sleep_hours : parseFloat(body.sleep_hours);
+    }
+    
+    // 整数字段
+    if (body.stress_level !== undefined && body.stress_level !== null) {
+      payload.stress_level = typeof body.stress_level === 'number' ? Math.round(body.stress_level) : parseInt(body.stress_level, 10);
+    }
+    if (body.energy_level !== undefined && body.energy_level !== null) {
+      payload.energy_level = typeof body.energy_level === 'number' ? Math.round(body.energy_level) : parseInt(body.energy_level, 10);
+    }
+    
+    // 字符串字段
+    if (body.primary_goal !== undefined) payload.primary_goal = body.primary_goal;
+    if (body.weekly_goal_rate !== undefined) payload.weekly_goal_rate = body.weekly_goal_rate;
+    if (body.exercise_frequency !== undefined) payload.exercise_frequency = body.exercise_frequency;
+    if (body.caffeine_intake !== undefined) payload.caffeine_intake = body.caffeine_intake;
+    if (body.alcohol_intake !== undefined) payload.alcohol_intake = body.alcohol_intake;
+    if (body.smoking_status !== undefined) payload.smoking_status = body.smoking_status;
 
     const { data, error } = await supabase
       .from('profiles')

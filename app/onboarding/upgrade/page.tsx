@@ -1,8 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Sparkles, Zap, Brain, TrendingUp, Lock, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * 升级页面（营销漏斗中的关键转化页）
@@ -11,19 +11,35 @@ import { useState } from 'react';
  */
 export default function UpgradePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSkipping, setIsSkipping] = useState(false);
+  const [returnPath, setReturnPath] = useState('/onboarding/profile');
+
+  useEffect(() => {
+    // 检查来源：如果有 from 参数或 returnTo 参数，使用它
+    const from = searchParams.get('from');
+    const returnTo = searchParams.get('returnTo');
+    
+    if (returnTo) {
+      setReturnPath(returnTo);
+    } else if (from === 'landing' || from === 'menu') {
+      // 从landing页或菜单进入，返回landing
+      setReturnPath('/landing');
+    }
+    // 否则保持默认的 /onboarding/profile（onboarding流程）
+  }, [searchParams]);
 
   const handleSubscribe = () => {
     // TODO: 集成支付系统（Stripe/Paddle）
     console.log('🚀 用户点击订阅按钮');
-    // 暂时跳转到个人资料页面
-    router.push('/onboarding/profile');
+    // 暂时跳转到返回路径
+    router.push(returnPath);
   };
 
   const handleSkip = () => {
     setIsSkipping(true);
-    console.log('⏭️ 用户跳过升级');
-    router.push('/onboarding/profile');
+    console.log('⏭️ 用户跳过升级，返回:', returnPath);
+    router.push(returnPath);
   };
 
   return (

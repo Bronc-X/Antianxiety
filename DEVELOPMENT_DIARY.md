@@ -1,5 +1,159 @@
 # 开发日志
 
+## 2025-11-24 晚间 - AI Context Pipeline 重构 + Dashboard 交互升级
+
+### 核心更新
+
+#### 1. AI Context-Aware Brain
+- Sequential Execution Pipeline 重构完成
+- CRITICAL CONTEXT 注入（current_focus优先级最高）
+- 3种AI性格：strict_coach, gentle_friend, science_nerd
+- 完整的调试日志系统
+
+#### 2. Dashboard 交互升级
+- 呼吸工具模态框（全屏+彩花效果）
+- 信息抽屉（状态详情）
+- 额外习惯系统（完成后奖励）
+- 条件渲染趋势卡片（修复假数据）
+
+#### 3. 导航和页面
+- 添加我的计划导航入口
+- 计划详情页完善
+- Landing页面优化
+
+### 明日待办
+
+#### 视觉升维
+- [ ] Mesh Gradient 呼吸背景
+- [ ] 毛玻璃质感优化
+- [ ] 纹理细节
+
+#### 2. 新增"生物能量"板块 (Bio-Energy Lab)
+
+**目标：** 搭建 Pro 用户专属的"科学修仙"板块。
+
+- [ ] **页面架构**: 新建 `app/energy/page.tsx`
+  - Hero区域：标题"Bio-Energy Lab: 科学修仙实验室"
+  - Subtitle："基于线粒体生物发生、神经可塑性的实修训练系统"
+  - 两栏布局：左侧Tab切换，右侧内容区
+  
+- [ ] **Tab 分区**: 分为 "The Science" (科学原理) 和 "Practice" (实修训练)
+  - **The Science Tab（免费）**：
+    - 原理解释：线粒体ATP生成、NAD+提升、自噬机制
+    - 引用权威研究：Huberman Lab, Peter Attia, David Sinclair
+    - 可视化图表：能量代谢路径、昼夜节律影响
+    - 任何用户都能访问，建立信任和科学背书
+  - **Practice Tab（Pro锁定）**：
+    - 实修训练计划：冷暴露协议、呼吸训练、光照疗法
+    - 每日训练打卡：记录完成情况
+    - 进度追踪：能量水平、恢复能力的量化评估
+    - 高级协议：间歇性禁食窗口、NAD+补充方案、红光疗法
+  
+- [ ] **Pro 锁逻辑**: 实现非会员只能看原理、点击训练跳转付费页
+  - 免费用户点击Practice Tab时：
+    - 显示模糊预览（Blur效果）
+    - 弹出Modal："解锁Pro获取完整训练协议"
+    - CTA按钮："立即升级 Pro" → 跳转到 `/onboarding/upgrade?from=energy`
+  - Pro用户：
+    - 完整访问所有训练内容
+    - 显示"Pro Member"徽章
+    - 可以保存自定义训练方案
+  - 技术实现：
+    - 查询 `profiles.subscription_status` 判断权限
+    - 使用 `<ProGate>` 组件包裹付费内容
+    - Middleware检查：确保API端点也受保护
+
+- [ ] **设计风格**:
+  - 科技感：深色背景 + 荧光绿色点缀
+  - 卡片样式：类似"训练仓"的容器感
+  - 动画：能量粒子漂浮效果（canvas或CSS）
+  - 图标：使用Lucide的Zap、Activity、TrendingUp等
+
+#### 移动端
+- [ ] Capacitor初始化
+- [ ] 静态导出配置
+- [ ] 安全区域适配
+- [ ] 真机运行测试
+
+---
+
+## 2025-11-24 下午 - 重大架构升级：严格数据完整性 + 有机设计
+
+### 🎯 核心更新
+
+#### 1. 严格数据完整性架构
+- ✅ **新营销漏斗**：问卷 → Pro升级页 → 个人资料 → 仪表板
+- ✅ **数据映射**：无日志 = 空状态（不伪造数据）
+- ✅ **诚实AI**：不编造未记录的数据
+- ✅ **严格验证**：`lib/data-mapping.ts` 数据完整性检查
+
+#### 2. 有机设计系统
+- ✅ **呼吸背景**：雾气般的渐变球体动画（纯CSS，60fps）
+- ✅ **玻璃态卡片**：Glassmorphism 效果（毛玻璃+半透明）
+- ✅ **Hero卡片纹理**：地形图水印 + 巨型图标
+- ✅ **Editorial排版**：衬线字体 + 更大标题
+- ✅ **150+行CSS动画**：GPU加速，性能优化
+
+#### 3. 新增页面（5个）
+- ✅ `/onboarding/upgrade` - Pro订阅转化页
+- ✅ `/onboarding/profile` - 个人资料设置
+- ✅ `/analysis` - AI分析报告页
+- ✅ `/brain-viz-preview` - 大脑3D可视化
+- ✅ `/insights`, `/methodology`, `/sources` - 营销内容独立页
+
+#### 4. 组件优化
+- ✅ **OnboardingFlow**：沉浸式问卷体验（65行重构）
+- ✅ **EmptyRadarChart**：数据空状态组件（139行）
+- ✅ **BrainAnatomyVisualization**：医学级脑区可视化（459行）
+- ✅ **LandingContent**：有机设计升级（大幅简化）
+- ✅ **TheOneThingHero**：新增主打功能展示组件
+
+#### 5. 核心逻辑（3个新模块）
+- ✅ `lib/data-mapping.ts`：严格数据验证（278行）
+- ✅ `lib/health-logic.ts`：基线任务逻辑（329行）
+- ✅ `lib/questions.ts`：问卷系统（282行）
+- ✅ `types/logic.ts`：类型系统扩展（43行）
+
+#### 6. 数据库升级
+- ✅ 添加 `metabolic_profile` 表
+- ✅ 添加 `ai_persona_context` 表
+- ✅ 创建 `daily_logs` 表 + RLS策略
+- ✅ profiles表新增字段：height, weight, age, gender
+
+#### 7. 修复
+- ✅ 邮箱验证链接过期处理（优雅降级）
+- ✅ OAuth错误友好提示
+- ✅ RLS策略优化
+
+#### 8. 文档（15个技术文档）
+- ✅ `STRICT_DATA_INTEGRITY_IMPLEMENTATION.md` - 数据完整性实施
+- ✅ `ORGANIC_DESIGN_UPGRADE.md` - 有机设计指南
+- ✅ `ONBOARDING_QUESTIONNAIRE_INTEGRATION.md` - 问卷集成
+- ✅ `HEALTH_LOGIC_INTEGRATION_2025-11-24.md` - 健康逻辑
+- ✅ `BRAIN_VISUALIZATION_DOCS.md` - 脑区可视化
+- ✅ `BAYESIAN_FIX_GUIDE.md` - 贝叶斯分析修复
+- ✅ `PERFORMANCE_OPTIMIZATION_2025-11-24.md` - 性能优化
+- ✅ 以及8个其他详细技术文档
+
+### 📊 代码统计
+- **文件变更**：52个文件
+- **新增代码**：11,728行
+- **删除代码**：1,262行
+- **净增长**：+10,466行
+
+### 🚀 性能优化
+- ✅ 纯CSS动画（60fps）
+- ✅ GPU加速（transform3d）
+- ✅ 严格数据验证减少无效渲染
+- ✅ 组件懒加载优化
+
+### 提交记录
+- Commit: `8156b54`
+- 时间: 2025-11-24 13:47
+- 消息: "feat: major architecture upgrade - strict data integrity + organic design"
+
+---
+
 ## 2025-11-23 晚间 - 重大修复与优化
 
 ### 核心修复

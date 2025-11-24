@@ -60,43 +60,50 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
           </div>
           <nav className="hidden md:flex items-center gap-4 text-sm">
             <LanguageSwitcher />
-            <a 
-              href="#how" 
-              onClick={(e) => handleAnchorClick(e, '#how')}
-              className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
-            >
-              {t('nav.core')}
-            </a>
-            <a 
-              href="#model" 
-              onClick={(e) => handleAnchorClick(e, '#model')}
-              className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
-            >
-              {t('nav.model')}
-            </a>
-            <a 
-              href="#authority" 
-              onClick={(e) => handleAnchorClick(e, '#authority')}
-              className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
-            >
-              {t('nav.authority')}
-            </a>
-            <a 
-              href="#pricing" 
-              onClick={(e) => handleAnchorClick(e, '#pricing')}
-              className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
-            >
-              {t('nav.pricing')}
-            </a>
+            
+            {/* 已登录用户：显示功能导航 */}
             {user ? (
               <>
-                <Link
-                  href="/assistant"
-                  className="inline-flex items-center rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-white hover:shadow-md transition-all"
+                <a 
+                  href="#how" 
+                  onClick={(e) => handleAnchorClick(e, '#how')}
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
                 >
-                  {t('nav.assistant')}
+                  核心功能
+                </a>
+                <a 
+                  href="#model" 
+                  onClick={(e) => handleAnchorClick(e, '#model')}
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+                >
+                  科学模型
+                </a>
+                <a 
+                  href="#authority" 
+                  onClick={(e) => handleAnchorClick(e, '#authority')}
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+                >
+                  权威洞察
+                </a>
+                <Link
+                  href="/analysis"
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                >
+                  AI分析报告
                 </Link>
-              <UserProfileMenu user={user} profile={profile} />
+                <Link
+                  href="/plans"
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                >
+                  我的计划
+                </Link>
+                <Link
+                  href="/onboarding/upgrade?from=landing"
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                >
+                  升级
+                </Link>
+                <UserProfileMenu user={user} profile={profile} />
               </>
             ) : (
               <>
