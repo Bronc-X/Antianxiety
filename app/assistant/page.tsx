@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import HealthProfileForm from '@/components/HealthProfileForm';
 import AIAnalysisDisplay from '@/components/AIAnalysisDisplay';
 import DailyCheckInPanel from '@/components/DailyCheckInPanel';
+import EnhancedDailyCheckIn from '@/components/EnhancedDailyCheckIn';
 import Link from 'next/link';
 
 export const runtime = 'edge';
@@ -52,12 +53,10 @@ export default async function AssistantPage({
             </div>
           </div>
         </nav>
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-          <DailyCheckInPanel 
-            initialProfile={profileData || { id: user.id }}
-            initialLogs={logsData || []}
-          />
-        </div>
+        <EnhancedDailyCheckIn 
+          initialProfile={profileData || { id: user.id }}
+          initialLogs={logsData || []}
+        />
       </div>
     );
   }
