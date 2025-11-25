@@ -319,7 +319,7 @@ export default function LandingContent({
           }`}
           onClick={() => {
             if (!trendAnalysis.hasEnoughData) {
-              router.push('/assistant');
+              router.push('/assistant?panel=daily');
             }
           }}
         >
