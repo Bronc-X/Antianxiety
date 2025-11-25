@@ -305,17 +305,17 @@ export default function AnalysisClientView({ profile }: AnalysisClientViewProps)
         {/* SECTION 2: 右侧行动栈 (1/3 宽度) - 替代原来的 Grid */}
         <div className="space-y-6">
           
-          {/* AI 总结卡 */}
+          {/* 🔄 7天代谢重置训练营 */}
           <div className="bg-[#0B3D2E] text-[#FFFBF0] p-6 rounded-[2rem] relative overflow-hidden">
             <Brain className="w-12 h-12 text-white/10 absolute top-4 right-4" />
-            <h3 className="text-lg font-medium mb-4 relative z-10">AI 策略生成</h3>
+            <h3 className="text-lg font-medium mb-4 relative z-10">🔄 7天代谢重置训练营</h3>
             <p className="text-white/80 text-sm leading-relaxed relative z-10 mb-6">
-              基于上述短板，本周策略应从"高强度输出"转向"内环境修复"。不要强迫自己早起。
+              基于您的身体状态分析，7天集中训练帮您从"高强度消耗"模式转换到"深层恢复"模式。
             </p>
             <div className="space-y-3 relative z-10">
-              <StrategyItem text="推迟早餐至 10:00 (间歇断食)" />
-              <StrategyItem text="睡前 1h 补充镁 (修复神经)" />
-              <StrategyItem text="暂停 HIIT，改为 Zone 2" />
+              <StrategyItem text="📅 生物钟调节训练：延迟进食至10:00（间歇性禁食）" />
+              <StrategyItem text="🌙 深度睡眠训练：睡前1小时镁元素补充" />
+              <StrategyItem text="🏃 有氧基础重建：暂停高强度，专注Zone 2训练" />
             </div>
           </div>
 
@@ -344,10 +344,10 @@ export default function AnalysisClientView({ profile }: AnalysisClientViewProps)
           <div className="mb-6">
             <h2 className="text-2xl font-medium text-[#0B3D2E] mb-2 flex items-center gap-2">
               <Zap className="w-6 h-6 text-amber-500" />
-              AI甄选抗衰食材
+              🌿 21天逆龄食材训练手册
             </h2>
             <p className="text-sm text-[#0B3D2E]/60">
-              基于Nature Aging 2024 AgeXtend研究 - AI预测具有抗衰潜力的分子
+              基于Nature Aging 2024研究 - 21天系统性食材训练，重建身体年轻化机制
             </p>
           </div>
 
@@ -403,9 +403,9 @@ export default function AnalysisClientView({ profile }: AnalysisClientViewProps)
                     <Lock className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#0B3D2E] mb-1">解锁完整抗衰食材库</h3>
+                    <h3 className="text-lg font-semibold text-[#0B3D2E] mb-1">🌿 解锁完整21天食材训练</h3>
                     <p className="text-sm text-[#0B3D2E]/70">
-                      升级至 Pro 查看 <span className="font-bold text-amber-600">20+</span> 个AI预测的抗衰分子及其食物来源
+                      升级至 Pro 获得 <span className="font-bold text-amber-600">20+</span> 种经科学验证的逆龄食材完整训练方案
                     </p>
                   </div>
                 </div>
