@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import AnalysisClientView from './AnalysisClientView';
+import ProfileIncompleteView from './ProfileIncompleteView';
 
 /**
  * AI 代谢分析报告页面 (Server Component)
@@ -11,26 +12,58 @@ import AnalysisClientView from './AnalysisClientView';
  * 
  * CRITICAL: 
  * 1. 首次进入检查用户是否完成个人设置（身高、体重、年龄）
- * 2. 未完成则引导到 /onboarding/profile
+ * 2. 未完成则显示引导页面，而不是直接重定向
  * 3. 已完成则显示新版分析报告
  */
 
 export const dynamic = 'force-dynamic';
+
+interface ProfileData {
+  height?: number | null;
+  weight?: number | null;
+  age?: number | null;
+  gender?: string | null;
+}
 
 export default async function AIAnalysisPage() {
   const { user } = await requireAuth();
   const supabase = await createServerSupabaseClient();
 
   // 检查用户是否完成了个人设置
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('height, weight, age, gender')
     .eq('id', user.id)
     .single();
 
-  // 如果未完成个人设置，引导到设置页面
-  if (!profile || !profile.height || !profile.weight || !profile.age) {
+  // 如果查询出错，重定向到profile设置
+  if (error) {
+    console.error('获取用户profile失败:', error);
     redirect('/onboarding/profile');
+  }
+
+  // 检查必需字段
+  const requiredFields = [
+    { key: 'height', label: '身高' },
+    { key: 'weight', label: '体重' }, 
+    { key: 'age', label: '年龄' }
+  ];
+
+  const missingFields: string[] = [];
+  const completedFields: string[] = [];
+
+  requiredFields.forEach(field => {
+    const value = profile?.[field.key as keyof ProfileData];
+    if (!value) {
+      missingFields.push(field.label);
+    } else {
+      completedFields.push(field.label);
+    }
+  });
+
+  // 如果有缺失字段，显示引导页面而不是直接重定向
+  if (missingFields.length > 0) {
+    return <ProfileIncompleteView missingFields={missingFields} completedFields={completedFields} />;
   }
 
   // 已完成设置，显示分析报告

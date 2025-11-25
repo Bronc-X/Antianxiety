@@ -23,7 +23,7 @@ export default function ProfileSetupPage() {
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
 
-  // 检查用户是否已登录
+  // 检查用户是否已登录以及是否已完成设置
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -32,7 +32,22 @@ export default function ProfileSetupPage() {
         router.push('/login');
         return;
       }
+      
       setUserId(user.id);
+      
+      // 检查用户是否已完成个人资料设置
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('height, weight, age')
+        .eq('id', user.id)
+        .single();
+      
+      // 如果用户已完成设置，直接跳转到主页
+      if (profile && profile.height && profile.weight && profile.age) {
+        console.log('用户已完成个人资料设置，跳转到主页');
+        router.push('/landing');
+        return;
+      }
     };
     checkUser();
   }, [supabase, router]);

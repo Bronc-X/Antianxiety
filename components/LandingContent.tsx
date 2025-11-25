@@ -5,6 +5,9 @@ import { UserStateAnalysis, RecommendedTask } from '@/types/logic';
 import { CheckCircle2, Battery, Moon, Activity, Wind, TrendingUp, Info, Footprints, Dumbbell, Sun, Droplets, BookOpen, Hourglass, Lightbulb } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BreathingModal from './BreathingModal';
+import DynamicHealthTips from './DynamicHealthTips';
+import { analyzeHealthTrends, getTrendIcon, getTrendColor } from '@/lib/trend-analysis';
+import { useRouter } from 'next/navigation';
 
 // 定义 Props (合并旧的和新的)
 interface LandingContentProps {
@@ -27,6 +30,10 @@ export default function LandingContent({
   recommendedTask,
   plans = []
 }: LandingContentProps) {
+  const router = useRouter();
+  
+  // 分析健康趋势
+  const trendAnalysis = analyzeHealthTrends(dailyLogs || []);
   
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [showBreathingModal, setShowBreathingModal] = useState(false);
@@ -304,20 +311,38 @@ export default function LandingContent({
 
       {/* SECTION 3: 长期趋势 (Long-term Insight) - 条件渲染 */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 左卡片：趋势或数据积累中 */}
+        {/* 左卡片：智能趋势分析 */}
         <motion.div 
           whileHover={{ scale: 1.02 }}
-          className="glass-card rounded-3xl p-6 hover-lift transition-organic"
+          className={`glass-card rounded-3xl p-6 hover-lift transition-organic ${
+            !trendAnalysis.hasEnoughData ? 'cursor-pointer hover:bg-[#FAF6EF]' : ''
+          }`}
+          onClick={() => {
+            if (!trendAnalysis.hasEnoughData) {
+              router.push('/assistant');
+            }
+          }}
         >
-          {Array.isArray(dailyLogs) && dailyLogs.length >= 3 ? (
+          {trendAnalysis.hasEnoughData ? (
             <>
               <div className="flex items-center gap-2 mb-2 text-[#0B3D2E]/60 text-sm">
                 <TrendingUp className="w-4 h-4" />
-                <span>本周高光</span>
+                <span>趋势洞察 · {trendAnalysis.dataPoints}天数据</span>
               </div>
-              <p className="text-lg font-medium text-[#0B3D2E]">
-                你的<span className="text-emerald-700">深度睡眠时间</span>比上周提升了 12%。
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-2xl">{getTrendIcon(trendAnalysis.primary)}</span>
+                <p className={`text-lg font-medium ${getTrendColor(trendAnalysis.primary)}`}>
+                  {trendAnalysis.primary.description}
+                </p>
+              </div>
+              <p className="text-sm text-[#0B3D2E]/70 leading-relaxed">
+                {trendAnalysis.primary.insight}
               </p>
+              {trendAnalysis.secondary && (
+                <p className="text-xs text-[#0B3D2E]/60 mt-2">
+                  另外，{trendAnalysis.secondary.description.toLowerCase()}
+                </p>
+              )}
             </>
           ) : (
             <>
@@ -326,39 +351,23 @@ export default function LandingContent({
                 <span>数据积累中</span>
               </div>
               <p className="text-lg font-medium text-[#0B3D2E]">
-                记录<span className="text-emerald-700"> {Math.max(0, 3 - (dailyLogs?.length || 0))} 天</span>后即可查看趋势分析
+                记录<span className="text-emerald-700"> {Math.max(0, 3 - (dailyLogs?.length || 0))} 天</span>后即可查看智能趋势分析
               </p>
+              <p className="text-sm text-[#0B3D2E]/70 mt-2">
+                将为您分析睡眠、运动、压力和心情的变化趋势
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-xs text-[#0B3D2E]/60">
+                <span>💡 点击卡片记录今日数据</span>
+              </div>
             </>
           )}
         </motion.div>
         
-        {/* 右卡片：建议或快速提示 */}
-        <motion.div 
-          whileHover={{ scale: 1.02 }}
-          className="glass-card rounded-3xl p-6 hover-lift transition-organic"
-        >
-          {habitLogs && habitLogs.length >= 3 ? (
-            <>
-              <div className="flex items-center gap-2 mb-2 text-[#0B3D2E]/60 text-sm">
-                <Info className="w-4 h-4" />
-                <span>代谢洞察</span>
-              </div>
-              <p className="text-lg font-medium text-[#0B3D2E]">
-                你的<span className="text-amber-700">皮质醇模式</span>显示压力在合理范围。
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 mb-2 text-[#0B3D2E]/60 text-sm">
-                <Lightbulb className="w-4 h-4" />
-                <span>健康小贴士</span>
-              </div>
-              <p className="text-lg font-medium text-[#0B3D2E]">
-                早晨阳光可以<span className="text-emerald-700">重置皮质醇节律</span>，改善睡眠质量。
-              </p>
-            </>
-          )}
-        </motion.div>
+        {/* 右卡片：动态健康贴士 */}
+        <DynamicHealthTips 
+          userProfile={profile}
+          recentLogs={dailyLogs}
+        />
       </section>
 
       {/* SECTION 4: 核心功能 */}

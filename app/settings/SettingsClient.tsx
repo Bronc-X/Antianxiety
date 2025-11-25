@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { User, Activity, Brain, CreditCard, Save, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2, Share2 } from 'lucide-react';
 import { updateSettings } from '../actions/settings';
 import { useRouter } from 'next/navigation';
 
@@ -12,9 +13,20 @@ interface SettingsClientProps {
 
 export default function SettingsClient({ user, profile }: SettingsClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'body' | 'ai' | 'account'>('body');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Handle URL tab parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'body' || tab === 'ai' || tab === 'account') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -60,35 +72,59 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
     }
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: '请选择图片文件' });
+      return;
+    }
+
+    // 验证文件大小 (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage({ type: 'error', text: '图片大小不能超过2MB' });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setMessage(null);
+
+    try {
+      // TODO: 实现文件上传到云存储 (Supabase Storage)
+      // 这里暂时用 base64 来模拟
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        handleChange('avatar_url', base64);
+        setMessage({ type: 'success', text: '头像上传成功！请记得保存设置。' });
+        setIsUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      setMessage({ type: 'error', text: '头像上传失败，请重试' });
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleSocialConnect = (platform: string) => {
+    // TODO: 实现社交平台OAuth连接
+    console.log(`连接到 ${platform}`);
+    setMessage({ type: 'success', text: `正在连接到 ${platform}...` });
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF6EF]">
       {/* Header */}
       <div className="border-b border-[#E7E1D6] bg-white">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-[#0B3D2E]">设置中心</h1>
-              <p className="mt-1 text-sm text-[#0B3D2E]/60">
-                配置您的健康档案和 AI 助手行为
-              </p>
-            </div>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#0B3D2E] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0a3629] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  保存中...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  保存设置
-                </>
-              )}
-            </button>
+          <div>
+            <h1 className="text-2xl font-semibold text-[#0B3D2E]">设置中心</h1>
+            <p className="mt-1 text-sm text-[#0B3D2E]/60">
+              配置您的健康档案和 AI 助手行为
+            </p>
           </div>
 
           {/* Message Banner */}
@@ -238,6 +274,27 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 </div>
               )}
             </div>
+            
+            {/* Save Button for Body Tab */}
+            <div className="flex justify-center">
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0B3D2E] px-8 py-3 text-sm font-semibold text-white hover:bg-[#0a3629] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    保存设置
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
@@ -351,6 +408,27 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 />
               </div>
             </div>
+            
+            {/* Save Button for AI Tab */}
+            <div className="flex justify-center">
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0B3D2E] px-8 py-3 text-sm font-semibold text-white hover:bg-[#0a3629] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    保存设置
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
@@ -361,6 +439,53 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
               <h2 className="text-lg font-semibold text-[#0B3D2E] mb-6">账号信息</h2>
 
               <div className="space-y-6">
+                {/* Avatar Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
+                    头像设置
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-[#F2F7F5] border-2 border-[#E7E1D6] flex items-center justify-center">
+                        {formData.avatar_url ? (
+                          <img
+                            src={formData.avatar_url}
+                            alt="头像"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-8 h-8 text-[#0B3D2E]/40" />
+                        )}
+                      </div>
+                      {isUploadingAvatar && (
+                        <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleAvatarUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingAvatar}
+                        className="inline-flex items-center gap-2 px-4 py-2 border border-[#E7E1D6] rounded-lg text-sm font-medium text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors disabled:opacity-50"
+                      >
+                        <Camera className="w-4 h-4" />
+                        {isUploadingAvatar ? '上传中...' : '更换头像'}
+                      </button>
+                      <p className="mt-1 text-xs text-[#0B3D2E]/50">
+                        支持 JPG、PNG 格式，文件大小不超过 2MB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
                     邮箱地址
@@ -400,9 +525,92 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
               <p className="text-sm text-[#0B3D2E]/70 mb-4">
                 升级到 Pro 解锁完整的 AI 分析报告和高级功能
               </p>
-              <button className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white hover:shadow-lg transition-all">
+              <button 
+                onClick={() => router.push('/onboarding/upgrade?from=settings')}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white hover:shadow-lg transition-all"
+              >
                 <CreditCard className="w-4 h-4" />
                 升级到 Pro
+              </button>
+            </div>
+
+            {/* Social Platform Binding */}
+            <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-[#0B3D2E]">社交平台绑定</h2>
+                <div className="flex items-center gap-2 text-sm text-[#0B3D2E]/60">
+                  <Share2 className="w-4 h-4" />
+                  <span>跨平台分享</span>
+                </div>
+              </div>
+              <p className="text-sm text-[#0B3D2E]/70 mb-6">
+                连接您的社交平台账号，便于快速登录和分享健康成果
+              </p>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {[
+                  { name: 'X (Twitter)', icon: '𝕏', color: 'bg-black', connected: false },
+                  { name: 'Google', icon: 'G', color: 'bg-red-500', connected: false },
+                  { name: 'GitHub', icon: '', color: 'bg-gray-800', connected: false },
+                  { name: '微信', icon: '微', color: 'bg-green-500', connected: false },
+                  { name: '抖音', icon: '抖', color: 'bg-red-600', connected: false },
+                  { name: 'Reddit', icon: 'r/', color: 'bg-orange-500', connected: false },
+                ].map((platform) => (
+                  <button
+                    key={platform.name}
+                    onClick={() => handleSocialConnect(platform.name)}
+                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                      platform.connected
+                        ? 'border-green-200 bg-green-50'
+                        : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/30 hover:bg-[#FAF6EF]'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-full ${platform.color} flex items-center justify-center text-white font-bold text-lg`}>
+                      {platform.icon || platform.name.charAt(0)}
+                    </div>
+                    <span className="text-sm font-medium text-[#0B3D2E]">{platform.name}</span>
+                    {platform.connected ? (
+                      <span className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full"></span>
+                    ) : (
+                      <Link2 className="w-3 h-3 text-[#0B3D2E]/40" />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-6 p-4 bg-[#F8F9FA] rounded-xl border border-[#E7E1D6]">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-blue-600 text-xs">ℹ</span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-[#0B3D2E] mb-1">数据安全保障</h4>
+                    <p className="text-xs text-[#0B3D2E]/60 leading-relaxed">
+                      我们仅获取必要的公开信息用于账户验证，不会存储或分享您的敏感数据。您可以随时解绑任何平台。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Save Button for Account Tab */}
+            <div className="flex justify-center">
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0B3D2E] px-8 py-3 text-sm font-semibold text-white hover:bg-[#0a3629] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    保存设置
+                  </>
+                )}
               </button>
             </div>
           </div>

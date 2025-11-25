@@ -25,6 +25,9 @@ export default function UpgradePage() {
     } else if (from === 'landing' || from === 'menu') {
       // 从landing页或菜单进入，返回landing
       setReturnPath('/landing');
+    } else if (from === 'settings') {
+      // 从设置页面进入，返回设置页面
+      setReturnPath('/settings');
     }
     // 否则保持默认的 /onboarding/profile（onboarding流程）
   }, [searchParams]);
