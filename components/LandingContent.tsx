@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { UserStateAnalysis, RecommendedTask } from '@/types/logic';
-import { CheckCircle2, Battery, Moon, Activity, Wind, TrendingUp, Info, Footprints, Dumbbell, Sun, Droplets, BookOpen, Hourglass, Lightbulb } from 'lucide-react';
+import { CheckCircle2, Battery, Moon, Activity, Wind, TrendingUp, Info, Footprints, Dumbbell, Sun, Droplets, BookOpen, Hourglass, Lightbulb, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BreathingModal from './BreathingModal';
 import DynamicHealthTips from './DynamicHealthTips';
 import { analyzeHealthTrends, getTrendIcon, getTrendColor } from '@/lib/trend-analysis';
 import { useRouter } from 'next/navigation';
+import { calculateEnergyLevel, convertLogToEnergyInput, getEnergyLabel } from '@/lib/energy-calculator';
 
 // 定义 Props (合并旧的和新的)
 interface LandingContentProps {
@@ -34,6 +35,15 @@ export default function LandingContent({
   
   // 分析健康趋势
   const trendAnalysis = analyzeHealthTrends(dailyLogs || []);
+  
+  // 计算真实能量值（基于最新日志数据）
+  const energyData = useMemo(() => {
+    const latestLog = dailyLogs && dailyLogs.length > 0 ? dailyLogs[0] : null;
+    const input = convertLogToEnergyInput(latestLog);
+    const breakdown = calculateEnergyLevel(input);
+    const label = getEnergyLabel(breakdown.totalScore);
+    return { breakdown, label, hasData: latestLog !== null };
+  }, [dailyLogs]);
   
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [showBreathingModal, setShowBreathingModal] = useState(false);
@@ -95,15 +105,36 @@ export default function LandingContent({
             </p>
           </div>
           
-          {/* 身体电池可视化 */}
-          <div className="flex flex-col items-end">
+          {/* 身体电池可视化 - 可点击查看详情 */}
+          <motion.div 
+            className="flex flex-col items-end cursor-pointer group"
+            onClick={() => router.push('/energy-breakdown')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${userState.color}`}>
-                {userState.batteryLevel}% 能量值
+              <span className={`text-sm font-medium ${energyData.label.color}`}>
+                {energyData.breakdown.totalScore}% 能量值
               </span>
-              <Battery className={`w-6 h-6 ${userState.color}`} />
+              {/* 电池图标 - 填充与数值同步 */}
+              <div className="relative">
+                <Battery className={`w-8 h-8 ${energyData.label.color}`} />
+                {/* 电池填充层 */}
+                <div 
+                  className="absolute top-[6px] left-[4px] h-[12px] rounded-sm transition-all duration-500"
+                  style={{ 
+                    width: `${Math.max(2, energyData.breakdown.totalScore * 0.18)}px`,
+                    backgroundColor: energyData.breakdown.totalScore >= 60 ? '#0B3D2E' : 
+                                     energyData.breakdown.totalScore >= 40 ? '#d97706' : '#dc2626'
+                  }}
+                />
+              </div>
             </div>
-          </div>
+            <div className="flex items-center gap-1 text-xs text-[#0B3D2E]/50 group-hover:text-[#0B3D2E]/70 transition-colors mt-1">
+              <span>查看详情</span>
+              <ChevronRight className="w-3 h-3" />
+            </div>
+          </motion.div>
         </div>
 
         {/* 状态洞察 (Insight) */}
