@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
 import ProAntiAgingFoods from './ProAntiAgingFoods';
+import DeepInferenceModal from './DeepInferenceModal';
+import { Brain } from 'lucide-react';
 
 type Language = 'en' | 'zh';
 
@@ -88,6 +90,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
   const [progress, setProgress] = useState(0);
   const [language, setLanguage] = useState<Language>('en');
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
+  const [showDeepInference, setShowDeepInference] = useState(false);
   
   useEffect(() => {
     const duration = 2500;
@@ -549,8 +552,25 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
               <span className="text-xs font-semibold text-[#0B3D2E] min-w-[40px] text-right">{analysis.confidence_score || 75}%</span>
             </div>
           </div>
+          
+          {/* AI 深度推演按钮 */}
+          <button
+            onClick={() => setShowDeepInference(true)}
+            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#0B3D2E] to-[#1a5c4a] text-white rounded-xl font-medium hover:shadow-lg transition-all"
+          >
+            <Brain className="w-5 h-5" />
+            <span>{t('View AI Deep Inference', '查看 AI 深度推演')}</span>
+          </button>
         </div>
       </div>
+      
+      {/* 深度推演模态框 */}
+      <DeepInferenceModal
+        isOpen={showDeepInference}
+        onClose={() => setShowDeepInference(false)}
+        analysisResult={analysis}
+        recentLogs={[]}
+      />
 
       {/* 8维指标详情 */}
       <div className="bg-white border border-[#E7E1D6] rounded-lg p-8 shadow-sm">

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { generatePlanName, type PersonalizedPlanName } from '@/lib/plan-naming';
 
 interface Plan {
   title: string;
@@ -13,10 +14,67 @@ interface Plan {
 interface AIPlanCardProps {
   plans: Plan[];
   onConfirm: (selectedPlan: Plan) => void;
+  userContext?: {
+    primaryConcern?: string;
+    metabolicType?: string;
+    targetOutcome?: string;
+    aiPersonality?: 'cute_pet' | 'strict_coach' | 'gentle_friend' | 'science_nerd' | 'default';
+  };
 }
 
-export default function AIPlanCard({ plans, onConfirm }: AIPlanCardProps) {
+/**
+ * 从方案内容中提取关注点关键词
+ */
+function extractConcernFromContent(content: string): string {
+  const keywords: Record<string, string> = {
+    '减重': 'weight_loss',
+    '减脂': 'fat_loss',
+    '燃脂': 'fat_loss',
+    '瘦身': 'weight_loss',
+    '压力': 'stress_management',
+    '焦虑': 'stress_management',
+    '放松': 'stress_management',
+    '睡眠': 'sleep_improvement',
+    '失眠': 'sleep_improvement',
+    '安眠': 'sleep_improvement',
+    '能量': 'energy_boost',
+    '精力': 'energy_boost',
+    '疲劳': 'energy_boost',
+    '活力': 'energy_boost',
+    '增肌': 'muscle_gain',
+    '肌肉': 'muscle_gain',
+    '力量': 'strength',
+  };
+  
+  for (const [keyword, concern] of Object.entries(keywords)) {
+    if (content.includes(keyword)) {
+      return concern;
+    }
+  }
+  
+  return 'general';
+}
+
+export default function AIPlanCard({ plans, onConfirm, userContext }: AIPlanCardProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  // 为每个方案生成个性化名称（根据 AI 风格）
+  const personalizedNames = useMemo<PersonalizedPlanName[]>(() => {
+    return plans.map((plan, index) => {
+      // 从方案内容中提取关注点
+      const concern = userContext?.primaryConcern || extractConcernFromContent(plan.content + plan.title);
+      
+      return generatePlanName({
+        primaryConcern: concern,
+        metabolicType: userContext?.metabolicType,
+        targetOutcome: userContext?.targetOutcome,
+        difficulty: plan.difficulty,
+        duration: plan.duration,
+        planIndex: index,
+        aiPersonality: userContext?.aiPersonality, // 传递 AI 风格
+      });
+    });
+  }, [plans, userContext]);
 
   const handleConfirm = () => {
     console.log('🔘 用户点击了确认按钮');
@@ -77,13 +135,21 @@ export default function AIPlanCard({ plans, onConfirm }: AIPlanCardProps) {
             </div>
           </div>
 
-          {/* 方案标题 */}
+          {/* 方案标题 - 使用个性化名称 */}
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-base font-semibold text-[#0B3D2E]">
-              {plan.title}
-            </span>
+            <span className="text-lg mr-1">{personalizedNames[index]?.emoji}</span>
+            <div className="flex flex-col">
+              <span className="text-base font-semibold text-[#0B3D2E]">
+                {personalizedNames[index]?.title || plan.title}
+              </span>
+              {personalizedNames[index]?.subtitle && (
+                <span className="text-xs text-[#0B3D2E]/60">
+                  {personalizedNames[index].subtitle}
+                </span>
+              )}
+            </div>
             {plan.difficulty && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 ml-auto">
                 {plan.difficulty}
               </span>
             )}

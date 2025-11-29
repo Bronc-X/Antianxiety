@@ -7,6 +7,9 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "check-env": "node scripts/check-env.js",
     "pages:build": "npm run build && npx @cloudflare/next-on-pages@1",
     "pages:deploy": "npm run pages:build"
@@ -35,9 +38,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.0.14",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
+    "fast-check": "^4.3.0",
     "tailwindcss": "^4",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.0.14"
   }
 }

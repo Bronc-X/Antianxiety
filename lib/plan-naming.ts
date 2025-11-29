@@ -1,0 +1,451 @@
+// lib/plan-naming.ts
+// 计划命名服务 - 生成个性化的计划名称
+// Requirements: 5.1, 5.2, 5.3
+
+/**
+ * AI 性格风格类型
+ */
+export type AIPersonalityStyle = 'cute_pet' | 'strict_coach' | 'gentle_friend' | 'science_nerd' | 'default';
+
+/**
+ * 计划命名上下文
+ */
+export interface PlanNamingContext {
+  primaryConcern: string;      // 主要关注点
+  metabolicType?: string;      // 代谢类型
+  targetOutcome?: string;      // 目标结果
+  difficulty?: string;         // 难度
+  duration?: string;           // 时长
+  planIndex?: number;          // 计划索引（用于区分多个计划）
+  aiPersonality?: AIPersonalityStyle; // AI 性格风格
+}
+
+/**
+ * 个性化计划名称
+ */
+export interface PersonalizedPlanName {
+  title: string;       // 主标题，如 "晨光唤醒计划"
+  subtitle: string;    // 副标题，如 "7天重置生物钟"
+  emoji: string;       // 表情符号
+}
+
+/**
+ * 禁止使用的通用名称模式
+ */
+export const FORBIDDEN_PATTERNS = [
+  /^方案[一二三四五六七八九十\d]+$/,
+  /^计划[一二三四五六七八九十\d]+$/,
+  /^Plan\s*[A-Z]$/i,
+  /^Plan\s*\d+$/i,
+  /^Option\s*[A-Z\d]+$/i,
+  /^选项[一二三四五六七八九十\d]+$/,
+  /^Scheme\s*\d+$/i,
+  /^Program\s*\d+$/i,
+];
+
+/**
+ * 根据 AI 风格生成不同的命名风格
+ */
+const STYLE_NAME_TRANSFORMS: Record<AIPersonalityStyle, {
+  prefix?: string;
+  suffix?: string;
+  emojis: string[];
+  transform: (title: string, concern: string) => string;
+}> = {
+  'cute_pet': {
+    emojis: ['🐱', '🐾', '🌸', '💕', '✨', '🎀', '🌷', '🍀'],
+    transform: (title, concern) => {
+      const cuteNames: Record<string, string[]> = {
+        weight_loss: ['喵喵轻盈计划', '小猫咪陪你瘦瘦', '软萌燃脂大作战', '猫猫助理减重记'],
+        fat_loss: ['喵喵燃脂计划', '小猫咪塑形记', '软绵绵减脂计划', '猫猫助理瘦身记'],
+        stress_management: ['喵喵放松时光', '小猫咪陪你解压', '软萌减压计划', '猫猫助理治愈记'],
+        stress: ['喵喵舒心计划', '小猫咪抱抱计划', '软绵绵放松记', '猫猫助理安心记'],
+        sleep_improvement: ['喵喵好眠计划', '小猫咪陪你入睡', '软绵绵安眠记', '猫猫助理晚安记'],
+        sleep: ['喵喵晚安计划', '小猫咪睡眠记', '软萌好梦计划', '猫猫助理甜梦记'],
+        energy_boost: ['喵喵元气计划', '小猫咪活力记', '软萌能量大作战', '猫猫助理充电记'],
+        energy: ['喵喵活力计划', '小猫咪精力记', '软绵绵元气记', '猫猫助理能量记'],
+        muscle_gain: ['喵喵力量计划', '小猫咪增肌记', '软萌变强计划', '猫猫助理肌肉记'],
+        strength: ['喵喵强壮计划', '小猫咪力量记', '软萌健身记', '猫猫助理变强记'],
+        general: ['喵喵健康计划', '小猫咪陪伴记', '软萌养生计划', '猫猫助理关爱记'],
+      };
+      const names = cuteNames[concern] || cuteNames.general;
+      return names[Math.floor(Math.random() * names.length)];
+    },
+  },
+  'strict_coach': {
+    emojis: ['💪', '🔥', '⚡', '🎯', '🏆', '💥'],
+    transform: (title, concern) => {
+      const coachNames: Record<string, string[]> = {
+        weight_loss: ['极限燃脂挑战', '铁血减重计划', '魔鬼瘦身训练', '硬核减脂方案'],
+        fat_loss: ['燃脂突击计划', '极限塑形挑战', '铁血减脂方案', '魔鬼燃脂训练'],
+        stress_management: ['压力粉碎计划', '铁血减压方案', '极限放松挑战', '硬核解压训练'],
+        stress: ['压力击破计划', '铁血舒压方案', '极限减压挑战', '硬核放松训练'],
+        sleep_improvement: ['深睡突击计划', '铁血睡眠方案', '极限修复挑战', '硬核安眠训练'],
+        sleep: ['睡眠攻坚计划', '铁血好眠方案', '极限深睡挑战', '硬核修复训练'],
+        energy_boost: ['能量爆发计划', '铁血充能方案', '极限活力挑战', '硬核元气训练'],
+        energy: ['活力突击计划', '铁血能量方案', '极限精力挑战', '硬核充电训练'],
+        muscle_gain: ['肌肉爆发计划', '铁血增肌方案', '极限力量挑战', '硬核塑肌训练'],
+        strength: ['力量突破计划', '铁血强化方案', '极限增肌挑战', '硬核力量训练'],
+        general: ['全面突击计划', '铁血健康方案', '极限蜕变挑战', '硬核优化训练'],
+      };
+      const names = coachNames[concern] || coachNames.general;
+      return names[Math.floor(Math.random() * names.length)];
+    },
+  },
+  'gentle_friend': {
+    emojis: ['🌸', '🌿', '☀️', '🌈', '💫', '🕊️'],
+    transform: (title, concern) => {
+      const gentleNames: Record<string, string[]> = {
+        weight_loss: ['温柔蜕变之旅', '轻盈绽放计划', '柔和减重方案', '温暖瘦身之路'],
+        fat_loss: ['温柔塑形之旅', '轻盈燃脂计划', '柔和减脂方案', '温暖塑身之路'],
+        stress_management: ['心灵疗愈之旅', '温柔解压计划', '柔和放松方案', '温暖舒心之路'],
+        stress: ['心灵舒缓之旅', '温柔减压计划', '柔和安心方案', '温暖治愈之路'],
+        sleep_improvement: ['温柔入梦之旅', '安心好眠计划', '柔和修复方案', '温暖安眠之路'],
+        sleep: ['甜蜜好梦之旅', '温柔睡眠计划', '柔和深睡方案', '温暖晚安之路'],
+        energy_boost: ['活力绽放之旅', '温柔充能计划', '柔和元气方案', '温暖能量之路'],
+        energy: ['元气满满之旅', '温柔活力计划', '柔和精力方案', '温暖充电之路'],
+        muscle_gain: ['力量成长之旅', '温柔增肌计划', '柔和强化方案', '温暖塑肌之路'],
+        strength: ['稳步变强之旅', '温柔力量计划', '柔和增强方案', '温暖进阶之路'],
+        general: ['健康绽放之旅', '温柔养生计划', '柔和调理方案', '温暖健康之路'],
+      };
+      const names = gentleNames[concern] || gentleNames.general;
+      return names[Math.floor(Math.random() * names.length)];
+    },
+  },
+  'science_nerd': {
+    emojis: ['🔬', '📊', '🧬', '⚗️', '📈', '🧪'],
+    transform: (title, concern) => {
+      const scienceNames: Record<string, string[]> = {
+        weight_loss: ['代谢优化协议v1.0', '脂肪氧化增强方案', 'BMR提升计划', '热量赤字系统'],
+        fat_loss: ['脂肪分解协议v2.0', '体脂率优化方案', '脂代谢重编程', '燃脂效率系统'],
+        stress_management: ['皮质醇调控协议', 'HPA轴平衡方案', '应激反应优化', '神经内分泌调节'],
+        stress: ['压力激素调控v1.0', '自主神经平衡方案', '应激系统重置', '皮质醇管理协议'],
+        sleep_improvement: ['昼夜节律重置协议', '褪黑素优化方案', '深睡周期增强', '睡眠架构重建'],
+        sleep: ['睡眠周期优化v2.0', '生物钟校准方案', 'REM增强协议', '睡眠质量系统'],
+        energy_boost: ['线粒体激活协议', 'ATP合成优化方案', '能量代谢增强', '细胞能量系统'],
+        energy: ['线粒体功能优化v1.0', '能量代谢重编程', 'ATP产出增强', '细胞活力协议'],
+        muscle_gain: ['肌肉蛋白合成协议', 'mTOR激活方案', '肌纤维增殖计划', '力量增长系统'],
+        strength: ['肌力增强协议v2.0', '神经肌肉优化方案', '力量输出增强', '肌肉适应系统'],
+        general: ['全身代谢优化协议', '系统性健康方案', '生理功能增强', '综合调控系统'],
+      };
+      const names = scienceNames[concern] || scienceNames.general;
+      return names[Math.floor(Math.random() * names.length)];
+    },
+  },
+  'default': {
+    emojis: ['🌿', '✨', '🎯', '💫'],
+    transform: (title) => title,
+  },
+};
+
+/**
+ * 关注点到名称映射（默认风格）
+ */
+const CONCERN_NAME_MAP: Record<string, { titles: string[]; emojis: string[]; keywords: string[] }> = {
+  // 减重相关
+  weight_loss: {
+    titles: ['轻盈蜕变计划', '代谢激活方案', '燃脂重塑计划', '体态优化方案'],
+    emojis: ['🔥', '⚡', '💪', '🎯'],
+    keywords: ['减重', '燃脂', '代谢', '体态'],
+  },
+  fat_loss: {
+    titles: ['脂肪燃烧计划', '精准减脂方案', '体脂管理计划', '塑形燃脂方案'],
+    emojis: ['🔥', '💪', '🎯', '⚡'],
+    keywords: ['燃脂', '减脂', '塑形', '体脂'],
+  },
+  
+  // 压力管理
+  stress_management: {
+    titles: ['心灵舒缓计划', '压力释放方案', '身心平衡计划', '宁静修复方案'],
+    emojis: ['🧘', '🌿', '☮️', '🕊️'],
+    keywords: ['压力', '放松', '平衡', '舒缓'],
+  },
+  stress: {
+    titles: ['压力调节计划', '心神安宁方案', '情绪平衡计划', '减压修复方案'],
+    emojis: ['🧘', '🌸', '🌊', '🍃'],
+    keywords: ['减压', '调节', '安宁', '平衡'],
+  },
+  
+  // 睡眠改善
+  sleep_improvement: {
+    titles: ['深度睡眠计划', '睡眠修复方案', '安眠重塑计划', '夜间恢复方案'],
+    emojis: ['🌙', '💤', '🌟', '✨'],
+    keywords: ['睡眠', '安眠', '修复', '恢复'],
+  },
+  sleep: {
+    titles: ['晨光唤醒计划', '生物钟重置方案', '优质睡眠计划', '深睡修复方案'],
+    emojis: ['🌅', '🌙', '💤', '🛏️'],
+    keywords: ['睡眠', '生物钟', '唤醒', '深睡'],
+  },
+  
+  // 能量提升
+  energy_boost: {
+    titles: ['能量激活计划', '活力唤醒方案', '精力充沛计划', '元气恢复方案'],
+    emojis: ['⚡', '🌟', '💫', '🔋'],
+    keywords: ['能量', '活力', '精力', '元气'],
+  },
+  energy: {
+    titles: ['全天活力计划', '能量管理方案', '精力优化计划', '活力提升方案'],
+    emojis: ['⚡', '☀️', '🌈', '💪'],
+    keywords: ['活力', '能量', '精力', '提升'],
+  },
+  
+  // 增肌
+  muscle_gain: {
+    titles: ['肌肉塑造计划', '力量增长方案', '增肌强化计划', '体能提升方案'],
+    emojis: ['💪', '🏋️', '🎯', '🔥'],
+    keywords: ['增肌', '力量', '塑造', '强化'],
+  },
+  strength: {
+    titles: ['力量突破计划', '核心强化方案', '体能进阶计划', '肌力提升方案'],
+    emojis: ['💪', '🏆', '⚡', '🎯'],
+    keywords: ['力量', '强化', '突破', '进阶'],
+  },
+  
+  // 通用/综合
+  general: {
+    titles: ['全面健康计划', '身心平衡方案', '健康优化计划', '综合调理方案'],
+    emojis: ['🌿', '🌸', '✨', '🎯'],
+    keywords: ['健康', '平衡', '优化', '调理'],
+  },
+};
+
+/**
+ * 难度到描述映射
+ */
+const DIFFICULTY_MAP: Record<string, string> = {
+  easy: '轻松入门',
+  beginner: '新手友好',
+  medium: '稳步进阶',
+  intermediate: '中级挑战',
+  hard: '高强度挑战',
+  advanced: '专业进阶',
+};
+
+/**
+ * 时长到描述映射
+ */
+const DURATION_MAP: Record<string, string> = {
+  '3days': '3天快速启动',
+  '7days': '7天重塑习惯',
+  '14days': '14天深度改变',
+  '21days': '21天习惯养成',
+  '30days': '30天全面蜕变',
+  '1week': '一周集中突破',
+  '2weeks': '两周稳步提升',
+  '1month': '一月系统调理',
+};
+
+/**
+ * 生成个性化计划名称
+ * 
+ * @param context 命名上下文
+ * @returns 个性化计划名称
+ */
+export function generatePlanName(context: PlanNamingContext): PersonalizedPlanName {
+  const { primaryConcern, metabolicType, targetOutcome, difficulty, duration, planIndex, aiPersonality } = context;
+  
+  // 获取关注点对应的名称配置
+  const concernKey = normalizeConcern(primaryConcern);
+  const nameConfig = CONCERN_NAME_MAP[concernKey] || CONCERN_NAME_MAP.general;
+  
+  // 获取 AI 风格配置
+  const styleConfig = STYLE_NAME_TRANSFORMS[aiPersonality || 'default'] || STYLE_NAME_TRANSFORMS.default;
+  
+  // 根据风格生成标题
+  let title: string;
+  let emoji: string;
+  
+  if (aiPersonality && aiPersonality !== 'default') {
+    // 使用风格特定的命名
+    title = styleConfig.transform(nameConfig.titles[0], concernKey);
+    const emojiIndex = planIndex !== undefined 
+      ? planIndex % styleConfig.emojis.length 
+      : Math.floor(Math.random() * styleConfig.emojis.length);
+    emoji = styleConfig.emojis[emojiIndex];
+  } else {
+    // 使用默认命名
+    const titleIndex = planIndex !== undefined 
+      ? planIndex % nameConfig.titles.length 
+      : Math.floor(Math.random() * nameConfig.titles.length);
+    title = nameConfig.titles[titleIndex];
+    emoji = nameConfig.emojis[titleIndex % nameConfig.emojis.length];
+  }
+  
+  // 如果有代谢类型，可以进一步个性化
+  if (metabolicType) {
+    title = personalizeWithMetabolicType(title, metabolicType);
+  }
+  
+  // 生成副标题（根据风格调整）
+  let subtitle = generateSubtitle(duration, difficulty, targetOutcome, aiPersonality);
+  
+  // 如果副标题为空，使用默认
+  if (!subtitle) {
+    subtitle = getDefaultSubtitle(aiPersonality, nameConfig.keywords[0]);
+  }
+  
+  return {
+    title,
+    subtitle,
+    emoji,
+  };
+}
+
+/**
+ * 根据风格获取默认副标题
+ */
+function getDefaultSubtitle(style?: AIPersonalityStyle, keyword?: string): string {
+  const subtitles: Record<AIPersonalityStyle, string> = {
+    'cute_pet': `猫猫助理为你定制喵~ 💕`,
+    'strict_coach': `铁血教练专属方案`,
+    'gentle_friend': `温柔陪伴你的每一步`,
+    'science_nerd': `基于循证医学的个性化方案`,
+    'default': `专属${keyword || '健康'}方案`,
+  };
+  return subtitles[style || 'default'];
+}
+
+/**
+ * 标准化关注点字符串
+ */
+function normalizeConcern(concern: string): string {
+  if (!concern) return 'general';
+  
+  const normalized = concern.toLowerCase().trim();
+  
+  // 直接匹配
+  if (CONCERN_NAME_MAP[normalized]) {
+    return normalized;
+  }
+  
+  // 关键词匹配
+  if (normalized.includes('weight') || normalized.includes('减重') || normalized.includes('瘦')) {
+    return 'weight_loss';
+  }
+  if (normalized.includes('fat') || normalized.includes('脂肪') || normalized.includes('减脂')) {
+    return 'fat_loss';
+  }
+  if (normalized.includes('stress') || normalized.includes('压力') || normalized.includes('焦虑')) {
+    return 'stress_management';
+  }
+  if (normalized.includes('sleep') || normalized.includes('睡眠') || normalized.includes('失眠')) {
+    return 'sleep_improvement';
+  }
+  if (normalized.includes('energy') || normalized.includes('能量') || normalized.includes('精力') || normalized.includes('疲劳')) {
+    return 'energy_boost';
+  }
+  if (normalized.includes('muscle') || normalized.includes('增肌') || normalized.includes('肌肉')) {
+    return 'muscle_gain';
+  }
+  if (normalized.includes('strength') || normalized.includes('力量')) {
+    return 'strength';
+  }
+  
+  return 'general';
+}
+
+/**
+ * 根据代谢类型个性化标题
+ */
+function personalizeWithMetabolicType(title: string, metabolicType: string): string {
+  const type = metabolicType.toLowerCase();
+  
+  if (type.includes('fast') || type.includes('快速')) {
+    return title.replace('计划', '快代谢计划').replace('方案', '快代谢方案');
+  }
+  if (type.includes('slow') || type.includes('慢速')) {
+    return title.replace('计划', '稳代谢计划').replace('方案', '稳代谢方案');
+  }
+  if (type.includes('mixed') || type.includes('混合')) {
+    return title.replace('计划', '平衡计划').replace('方案', '平衡方案');
+  }
+  
+  return title;
+}
+
+/**
+ * 生成副标题
+ */
+function generateSubtitle(
+  duration?: string, 
+  difficulty?: string, 
+  targetOutcome?: string,
+  style?: AIPersonalityStyle
+): string {
+  const parts: string[] = [];
+  
+  // 时长（根据风格调整表述）
+  if (duration) {
+    let durationText = DURATION_MAP[duration.toLowerCase()] || duration;
+    if (style === 'cute_pet') {
+      durationText = durationText.replace('快速启动', '一起加油喵').replace('重塑习惯', '养成好习惯').replace('深度改变', '慢慢变好');
+    } else if (style === 'strict_coach') {
+      durationText = durationText.replace('快速启动', '极速突破').replace('重塑习惯', '铁血重塑').replace('深度改变', '彻底蜕变');
+    } else if (style === 'science_nerd') {
+      durationText = durationText.replace('快速启动', '短周期干预').replace('重塑习惯', '行为重编程').replace('深度改变', '系统性优化');
+    }
+    parts.push(durationText);
+  }
+  
+  // 难度（根据风格调整表述）
+  if (difficulty) {
+    let difficultyText = DIFFICULTY_MAP[difficulty.toLowerCase()] || difficulty;
+    if (style === 'cute_pet') {
+      difficultyText = difficultyText.replace('轻松入门', '超简单的').replace('新手友好', '小白也能做').replace('高强度挑战', '有点难但猫猫陪你');
+    } else if (style === 'strict_coach') {
+      difficultyText = difficultyText.replace('轻松入门', '热身阶段').replace('新手友好', '基础训练').replace('高强度挑战', '魔鬼级别');
+    } else if (style === 'science_nerd') {
+      difficultyText = difficultyText.replace('轻松入门', '低强度适应期').replace('新手友好', '基线建立阶段').replace('高强度挑战', '高负荷干预');
+    }
+    parts.push(difficultyText);
+  }
+  
+  // 目标结果
+  if (targetOutcome && !parts.length) {
+    parts.push(targetOutcome);
+  }
+  
+  return parts.join(' · ');
+}
+
+/**
+ * 验证计划名称是否符合规范（不使用通用名称）
+ * 
+ * @param name 计划名称
+ * @returns 是否有效
+ */
+export function isValidPlanName(name: string): boolean {
+  if (!name || name.trim().length === 0) {
+    return false;
+  }
+  
+  // 检查是否匹配任何禁止模式
+  for (const pattern of FORBIDDEN_PATTERNS) {
+    if (pattern.test(name.trim())) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+/**
+ * 批量生成多个计划的名称
+ * 
+ * @param context 基础上下文
+ * @param count 计划数量
+ * @returns 计划名称数组
+ */
+export function generateMultiplePlanNames(
+  context: Omit<PlanNamingContext, 'planIndex'>,
+  count: number
+): PersonalizedPlanName[] {
+  const names: PersonalizedPlanName[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    names.push(generatePlanName({ ...context, planIndex: i }));
+  }
+  
+  return names;
+}

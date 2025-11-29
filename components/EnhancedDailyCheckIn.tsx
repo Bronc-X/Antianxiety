@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mic, MicOff, Send, Sparkles, TrendingUp, Calendar, Clock, Battery, Lightbulb } from 'lucide-react';
+import { Mic, MicOff, Send, Sparkles, TrendingUp, Calendar, Clock, Battery, Lightbulb, ChevronDown } from 'lucide-react';
 import AnimatedSection from '@/components/AnimatedSection';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { calculateWeeklyBayesianConfidence, getCurrentWeekConfidence, formatConfidencePercentage, getConfidenceColor, getConfidenceIcon } from '@/lib/bayesian-confidence';
+import Slider from '@/components/ui/Slider';
+import ActivityRing, { calculateRingPercentages } from '@/components/ActivityRing';
 
 // 复用原有的类型定义
 type DailyWellnessLog = {
@@ -98,10 +100,26 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
     sleepDuration: '',
     sleepQuality: '',
     exerciseDuration: '',
+    exerciseType: '',  // 新增：运动类型
     moodStatus: '',
     stressLevel: '',
     notes: '',
   });
+  
+  // 保存成功后显示活动环
+  const [showActivityRing, setShowActivityRing] = useState(false);
+  
+  // 运动类型列表
+  const exerciseTypes = [
+    { id: 'running', name: '跑步', icon: '🏃' },
+    { id: 'walking', name: '步行', icon: '🚶' },
+    { id: 'cycling', name: '骑行', icon: '🚴' },
+    { id: 'swimming', name: '游泳', icon: '🏊' },
+    { id: 'strength', name: '力量训练', icon: '🏋️' },
+    { id: 'yoga', name: '瑜伽', icon: '🧘' },
+    { id: 'hiit', name: 'HIIT', icon: '⚡' },
+    { id: 'other', name: '其他', icon: '🎯' },
+  ];
 
   // 语音识别状态
   const [voiceRecording, setVoiceRecording] = useState<VoiceRecording>({
@@ -179,10 +197,13 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
         sleepDuration: todayLog.sleep_duration_minutes?.toString() || '',
         sleepQuality: todayLog.sleep_quality || '',
         exerciseDuration: todayLog.exercise_duration_minutes?.toString() || '',
+        exerciseType: (todayLog as any).exercise_type || '',  // 加载运动类型
         moodStatus: todayLog.mood_status || '',
         stressLevel: todayLog.stress_level?.toString() || '',
         notes: todayLog.notes || '',
       });
+      // 如果今天已有记录，显示活动环
+      setShowActivityRing(true);
     }
   }, [todayLog]);
 
@@ -281,6 +302,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
       sleep_duration_minutes: formState.sleepDuration ? Number(formState.sleepDuration) : null,
       sleep_quality: formState.sleepQuality || null,
       exercise_duration_minutes: formState.exerciseDuration ? Number(formState.exerciseDuration) : null,
+      exercise_type: formState.exerciseType || null,  // 保存运动类型
       mood_status: formState.moodStatus || null,
       stress_level: formState.stressLevel ? Number(formState.stressLevel) : null,
       notes: formState.notes || null,
@@ -303,12 +325,14 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
       return [data, ...otherLogs].sort((a, b) => (a.log_date < b.log_date ? 1 : -1));
     });
 
-    setToast('✅ 保存成功！数据已更新贝叶斯统计');
+    setToast('✅ 保存成功！数据已更新');
+    setShowActivityRing(true);  // 显示活动环
     setIsSaving(false);
     
+    // 延迟跳转，让用户看到活动环
     setTimeout(() => {
       router.push('/landing');
-    }, 1500);
+    }, 2000);
   };
 
   const updateFormField = (field: keyof typeof formState, value: string) => {
@@ -474,31 +498,25 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
             </div>
 
             <div className="space-y-6">
-              {/* 睡眠时长 */}
+              {/* 睡眠时长 - 滑动条 */}
               <div>
                 <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
-                  睡眠时长 
-                  {formState.sleepDuration && (
-                    <span className="text-[#0B3D2E]/60">
-                      ({(Number(formState.sleepDuration) / 60).toFixed(1)}小时)
-                    </span>
-                  )}
+                  睡眠时长
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {sleepDurationMarks.slice(1, -1).map((mark) => (
-                    <button
-                      key={mark.value}
-                      onClick={() => updateFormField('sleepDuration', mark.value.toString())}
-                      className={`p-3 rounded-xl text-sm font-medium transition-all ${
-                        formState.sleepDuration === mark.value.toString()
-                          ? 'bg-[#0B3D2E] text-white'
-                          : 'bg-[#0B3D2E]/10 text-[#0B3D2E] hover:bg-[#0B3D2E]/20'
-                      }`}
-                    >
-                      {mark.label}
-                    </button>
-                  ))}
-                </div>
+                <Slider
+                  min={180}
+                  max={600}
+                  step={30}
+                  value={formState.sleepDuration ? Number(formState.sleepDuration) : 420}
+                  onChange={(value) => updateFormField('sleepDuration', value.toString())}
+                  formatValue={(v) => `${(v / 60).toFixed(1)} 小时`}
+                  color="#0B3D2E"
+                  marks={[
+                    { value: 180, label: '3h' },
+                    { value: 420, label: '7h' },
+                    { value: 600, label: '10h' },
+                  ]}
+                />
               </div>
 
               {/* 睡眠质量 */}
@@ -521,25 +539,47 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                 </div>
               </div>
 
-              {/* 运动时长 */}
+              {/* 运动时长 - 滑动条 */}
               <div>
                 <label className="block text-sm font-medium text-[#0B3D2E] mb-3">运动时长</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {exerciseDurationMarks.slice(0, 6).map((mark) => (
-                    <button
-                      key={mark.value}
-                      onClick={() => updateFormField('exerciseDuration', mark.value.toString())}
-                      className={`p-3 rounded-xl text-sm font-medium transition-all ${
-                        formState.exerciseDuration === mark.value.toString()
-                          ? 'bg-[#0B3D2E] text-white'
-                          : 'bg-[#0B3D2E]/10 text-[#0B3D2E] hover:bg-[#0B3D2E]/20'
-                      }`}
-                    >
-                      {mark.label}
-                    </button>
-                  ))}
-                </div>
+                <Slider
+                  min={0}
+                  max={120}
+                  step={5}
+                  value={formState.exerciseDuration ? Number(formState.exerciseDuration) : 0}
+                  onChange={(value) => updateFormField('exerciseDuration', value.toString())}
+                  formatValue={(v) => v === 0 ? '未运动' : `${v} 分钟`}
+                  color="#92E82A"
+                  marks={[
+                    { value: 0, label: '0' },
+                    { value: 60, label: '60分钟' },
+                    { value: 120, label: '120分钟' },
+                  ]}
+                />
               </div>
+              
+              {/* 运动类型选择器 */}
+              {Number(formState.exerciseDuration) > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-[#0B3D2E] mb-3">运动类型</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {exerciseTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        onClick={() => updateFormField('exerciseType', type.id)}
+                        className={`p-3 rounded-xl text-center transition-all ${
+                          formState.exerciseType === type.id
+                            ? 'bg-[#92E82A] text-[#0B3D2E] shadow-md'
+                            : 'bg-[#0B3D2E]/10 text-[#0B3D2E] hover:bg-[#0B3D2E]/20'
+                        }`}
+                      >
+                        <div className="text-xl mb-1">{type.icon}</div>
+                        <div className="text-xs font-medium">{type.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 心情状态 */}
               <div>
@@ -561,26 +601,33 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                 </div>
               </div>
 
-              {/* 压力等级 */}
+              {/* 压力等级 - 滑动条 */}
               <div>
                 <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
-                  压力等级 (1=轻松 10=高压)
+                  压力等级
                 </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {stressLevelMarks.map((mark) => (
-                    <button
-                      key={mark.value}
-                      onClick={() => updateFormField('stressLevel', mark.value.toString())}
-                      className={`p-3 rounded-xl text-sm font-medium transition-all ${
-                        formState.stressLevel === mark.value.toString()
-                          ? 'bg-[#0B3D2E] text-white'
-                          : 'bg-[#0B3D2E]/10 text-[#0B3D2E] hover:bg-[#0B3D2E]/20'
-                      }`}
-                    >
-                      {mark.label}
-                    </button>
-                  ))}
-                </div>
+                <Slider
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={formState.stressLevel ? Number(formState.stressLevel) : 5}
+                  onChange={(value) => updateFormField('stressLevel', value.toString())}
+                  formatValue={(v) => {
+                    if (v <= 3) return `${v} - 轻松`;
+                    if (v <= 6) return `${v} - 中等`;
+                    if (v <= 8) return `${v} - 较高`;
+                    return `${v} - 高压`;
+                  }}
+                  color={
+                    Number(formState.stressLevel || 5) <= 3 ? '#10b981' :
+                    Number(formState.stressLevel || 5) <= 6 ? '#f59e0b' : '#ef4444'
+                  }
+                  marks={[
+                    { value: 1, label: '轻松' },
+                    { value: 5, label: '中等' },
+                    { value: 10, label: '高压' },
+                  ]}
+                />
               </div>
 
               {/* 备注 */}
@@ -595,6 +642,21 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                 />
               </div>
             </div>
+
+            {/* 今日已记录提示 */}
+            {todayLog && (
+              <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                <div className="flex items-center gap-2 text-emerald-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-medium">今日已记录</span>
+                </div>
+                <p className="text-sm text-emerald-600 mt-1">
+                  您可以修改数据后重新保存，系统会自动更新记录。
+                </p>
+              </div>
+            )}
 
             {/* 保存按钮 */}
             <div className="mt-8 pt-6 border-t border-[#0B3D2E]/10">
@@ -611,11 +673,26 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                 ) : (
                   <>
                     <Battery className="w-5 h-5" />
-                    <span>保存今日数据</span>
+                    <span>{todayLog ? '更新今日数据' : '保存今日数据'}</span>
                   </>
                 )}
               </button>
             </div>
+            
+            {/* 活动环展示 - 保存成功后显示 */}
+            {showActivityRing && todayLog && (
+              <div className="mt-6 p-6 bg-white border border-[#E7E1D6] rounded-2xl">
+                <h4 className="text-center text-lg font-semibold text-[#0B3D2E] mb-4">今日活动概览</h4>
+                <div className="flex justify-center">
+                  <ActivityRing
+                    {...calculateRingPercentages(todayLog)}
+                    size="md"
+                    showLabels={true}
+                    animated={true}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </AnimatedSection>
 

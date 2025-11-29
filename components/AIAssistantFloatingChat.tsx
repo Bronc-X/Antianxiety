@@ -539,13 +539,28 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
       console.log('📡 API Response status:', response.status);
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         console.error('❌ API错误详情:', errorData);
+        
+        // 根据状态码提供更具体的错误信息
+        if (response.status === 401) {
+          return '您的登录已过期，请刷新页面重新登录。';
+        } else if (response.status === 500) {
+          return '服务器内部错误，请稍后重试。如果问题持续，请联系客服。';
+        } else if (response.status === 503) {
+          return 'AI 服务暂时不可用，请稍后重试。';
+        }
         throw new Error(errorData.error || 'AI 服务暂时不可用');
       }
 
       const data = await response.json();
       console.log('✅ API响应数据:', data);
+      
+      // 检查响应是否成功
+      if (!data.success && data.error) {
+        console.error('❌ API返回错误:', data.error);
+        return `抱歉，${data.error}`;
+      }
       
       // 保存API返回的sessionId
       if (data.data?.sessionId && !sessionId) {
@@ -557,6 +572,12 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
       return data.data?.answer || data.response || '抱歉，我无法生成回复。';
     } catch (error) {
       console.error('❌ 调用 AI API 时出错:', error);
+      
+      // 检查是否是网络错误
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        return '网络连接失败，请检查您的网络连接后重试。';
+      }
+      
       return `抱歉，AI 服务暂时不可用。请稍后重试。`;
     }
   };
