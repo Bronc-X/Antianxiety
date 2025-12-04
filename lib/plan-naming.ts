@@ -5,7 +5,7 @@
 /**
  * AI 性格风格类型
  */
-export type AIPersonalityStyle = 'cute_pet' | 'strict_coach' | 'gentle_friend' | 'science_nerd' | 'default';
+export type AIPersonalityStyle = 'cute_pet' | 'mayo_doctor' | 'gentle_thea' | 'science_phd' | 'default';
 
 /**
  * 计划命名上下文
@@ -72,27 +72,27 @@ const STYLE_NAME_TRANSFORMS: Record<AIPersonalityStyle, {
       return names[Math.floor(Math.random() * names.length)];
     },
   },
-  'strict_coach': {
-    emojis: ['💪', '🔥', '⚡', '🎯', '🏆', '💥'],
+  'mayo_doctor': {
+    emojis: ['🏥', '⚕️', '💊', '🩺', '📋', '🔬'],
     transform: (title, concern) => {
-      const coachNames: Record<string, string[]> = {
-        weight_loss: ['极限燃脂挑战', '铁血减重计划', '魔鬼瘦身训练', '硬核减脂方案'],
-        fat_loss: ['燃脂突击计划', '极限塑形挑战', '铁血减脂方案', '魔鬼燃脂训练'],
-        stress_management: ['压力粉碎计划', '铁血减压方案', '极限放松挑战', '硬核解压训练'],
-        stress: ['压力击破计划', '铁血舒压方案', '极限减压挑战', '硬核放松训练'],
-        sleep_improvement: ['深睡突击计划', '铁血睡眠方案', '极限修复挑战', '硬核安眠训练'],
-        sleep: ['睡眠攻坚计划', '铁血好眠方案', '极限深睡挑战', '硬核修复训练'],
-        energy_boost: ['能量爆发计划', '铁血充能方案', '极限活力挑战', '硬核元气训练'],
-        energy: ['活力突击计划', '铁血能量方案', '极限精力挑战', '硬核充电训练'],
-        muscle_gain: ['肌肉爆发计划', '铁血增肌方案', '极限力量挑战', '硬核塑肌训练'],
-        strength: ['力量突破计划', '铁血强化方案', '极限增肌挑战', '硬核力量训练'],
-        general: ['全面突击计划', '铁血健康方案', '极限蜕变挑战', '硬核优化训练'],
+      const doctorNames: Record<string, string[]> = {
+        weight_loss: ['循证体重管理方案', '梅奥减重干预计划', '医学减重协议', '临床体重优化方案'],
+        fat_loss: ['循证体脂管理方案', '梅奥塑形干预计划', '医学减脂协议', '临床体脂优化方案'],
+        stress_management: ['循证压力管理方案', '梅奥减压干预计划', '医学应激调控协议', '临床压力优化方案'],
+        stress: ['循证舒压方案', '梅奥心理干预计划', '医学减压协议', '临床压力管理方案'],
+        sleep_improvement: ['循证睡眠改善方案', '梅奥睡眠干预计划', '医学睡眠优化协议', '临床睡眠管理方案'],
+        sleep: ['循证睡眠方案', '梅奥安眠干预计划', '医学睡眠协议', '临床睡眠优化方案'],
+        energy_boost: ['循证能量提升方案', '梅奥活力干预计划', '医学能量优化协议', '临床精力管理方案'],
+        energy: ['循证活力方案', '梅奥能量干预计划', '医学精力协议', '临床能量优化方案'],
+        muscle_gain: ['循证增肌方案', '梅奥力量干预计划', '医学肌肉优化协议', '临床增肌管理方案'],
+        strength: ['循证力量方案', '梅奥增强干预计划', '医学力量协议', '临床强化管理方案'],
+        general: ['循证健康管理方案', '梅奥综合干预计划', '医学健康优化协议', '临床健康管理方案'],
       };
-      const names = coachNames[concern] || coachNames.general;
+      const names = doctorNames[concern] || doctorNames.general;
       return names[Math.floor(Math.random() * names.length)];
     },
   },
-  'gentle_friend': {
+  'gentle_thea': {
     emojis: ['🌸', '🌿', '☀️', '🌈', '💫', '🕊️'],
     transform: (title, concern) => {
       const gentleNames: Record<string, string[]> = {
@@ -112,7 +112,7 @@ const STYLE_NAME_TRANSFORMS: Record<AIPersonalityStyle, {
       return names[Math.floor(Math.random() * names.length)];
     },
   },
-  'science_nerd': {
+  'science_phd': {
     emojis: ['🔬', '📊', '🧬', '⚗️', '📈', '🧪'],
     transform: (title, concern) => {
       const scienceNames: Record<string, string[]> = {
@@ -297,10 +297,10 @@ export function generatePlanName(context: PlanNamingContext): PersonalizedPlanNa
  */
 function getDefaultSubtitle(style?: AIPersonalityStyle, keyword?: string): string {
   const subtitles: Record<AIPersonalityStyle, string> = {
-    'cute_pet': `猫猫助理为你定制喵~ 💕`,
-    'strict_coach': `铁血教练专属方案`,
-    'gentle_friend': `温柔陪伴你的每一步`,
-    'science_nerd': `基于循证医学的个性化方案`,
+    'cute_pet': `小猫助理为你定制喵~ 💕`,
+    'mayo_doctor': `梅奥医生循证方案`,
+    'gentle_thea': `温柔陪伴你的每一步`,
+    'science_phd': `基于循证医学的个性化方案`,
     'default': `专属${keyword || '健康'}方案`,
   };
   return subtitles[style || 'default'];
@@ -380,9 +380,9 @@ function generateSubtitle(
     let durationText = DURATION_MAP[duration.toLowerCase()] || duration;
     if (style === 'cute_pet') {
       durationText = durationText.replace('快速启动', '一起加油喵').replace('重塑习惯', '养成好习惯').replace('深度改变', '慢慢变好');
-    } else if (style === 'strict_coach') {
-      durationText = durationText.replace('快速启动', '极速突破').replace('重塑习惯', '铁血重塑').replace('深度改变', '彻底蜕变');
-    } else if (style === 'science_nerd') {
+    } else if (style === 'mayo_doctor') {
+      durationText = durationText.replace('快速启动', '短期干预').replace('重塑习惯', '行为矫正').replace('深度改变', '系统治疗');
+    } else if (style === 'science_phd') {
       durationText = durationText.replace('快速启动', '短周期干预').replace('重塑习惯', '行为重编程').replace('深度改变', '系统性优化');
     }
     parts.push(durationText);
@@ -393,9 +393,9 @@ function generateSubtitle(
     let difficultyText = DIFFICULTY_MAP[difficulty.toLowerCase()] || difficulty;
     if (style === 'cute_pet') {
       difficultyText = difficultyText.replace('轻松入门', '超简单的').replace('新手友好', '小白也能做').replace('高强度挑战', '有点难但猫猫陪你');
-    } else if (style === 'strict_coach') {
-      difficultyText = difficultyText.replace('轻松入门', '热身阶段').replace('新手友好', '基础训练').replace('高强度挑战', '魔鬼级别');
-    } else if (style === 'science_nerd') {
+    } else if (style === 'mayo_doctor') {
+      difficultyText = difficultyText.replace('轻松入门', '低强度起步').replace('新手友好', '循序渐进').replace('高强度挑战', '高强度干预');
+    } else if (style === 'science_phd') {
       difficultyText = difficultyText.replace('轻松入门', '低强度适应期').replace('新手友好', '基线建立阶段').replace('高强度挑战', '高负荷干预');
     }
     parts.push(difficultyText);

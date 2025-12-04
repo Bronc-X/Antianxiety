@@ -153,14 +153,6 @@ export default function MetabolicCodex() {
     zone2Cardio: '二区有氧运动',
     biomarkerScan: '高级生物标志物扫描',
     vagalStimulation: '迷走神经刺激',
-    timeSlots: {
-      '06:00': '06:00',
-      '09:30': '09:30',
-      '12:00-20:00': '12:00-20:00',
-      '16:00': '16:00',
-      '18:00': '18:00',
-      '20:30': '20:30',
-    },
     systemAlert: '*** 系统警报: 皮质醇清除率 -15% ***',
     suggestion: '建议: 深度睡眠窗口延长40分钟',
     newResearch: '新研究加载: "禁食中的线粒体动力学"',
@@ -168,12 +160,12 @@ export default function MetabolicCodex() {
   
   // 动态生成任务数据
   const dailyTasks = [
-    { task: t.morningColdPlunge, time: t.timeSlots['06:00'], status: "done" },
-    { task: t.coherentBreathing, time: t.timeSlots['09:30'], status: "done" },
-    { task: t.intermittentFasting, time: t.timeSlots['12:00-20:00'], status: "active" },
-    { task: t.zone2Cardio, time: t.timeSlots['16:00'], status: "pending" },
-    { task: t.biomarkerScan, time: t.timeSlots['18:00'], status: "locked" },
-    { task: t.vagalStimulation, time: t.timeSlots['20:30'], status: "pending" },
+    { task: t.morningColdPlunge, time: '06:00', status: "done" },
+    { task: t.coherentBreathing, time: '09:30', status: "done" },
+    { task: t.intermittentFasting, time: '12:00-20:00', status: "active" },
+    { task: t.zone2Cardio, time: '16:00', status: "pending" },
+    { task: t.biomarkerScan, time: '18:00', status: "locked" },
+    { task: t.vagalStimulation, time: '20:30', status: "pending" },
   ];
   
   // 切换语言

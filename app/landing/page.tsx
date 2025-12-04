@@ -68,11 +68,11 @@ export default async function LandingPage() {
         Promise.race<DailyWellnessLog[]>([
           supabase
             .from('daily_wellness_logs')
-            .select('log_date, sleep_hours, sleep_duration_minutes, stress_level, hrv, exercise_duration_minutes')
+            .select('id, user_id, log_date, sleep_hours, sleep_duration_minutes, stress_level, hrv, exercise_duration_minutes')
             .eq('user_id', session.user.id)
             .order('log_date', { ascending: false })
             .limit(1)
-            .then(({ data, error }) => (!error && data ? data : [])),
+            .then(({ data, error }) => (!error && data ? data as DailyWellnessLog[] : [])),
           new Promise<DailyWellnessLog[]>((resolve) => setTimeout(() => resolve([]), 1000)),
         ]),
       ]);

@@ -1,0 +1,168 @@
+# Implementation Plan
+
+- [ ] 1. Create Database Schema
+  - [ ] 1.1 Create knowledge_base table with vector support
+    - Create SQL migration for knowledge_base table
+    - Add pgvector extension if not exists
+    - Create ivfflat index for embedding similarity search
+    - Create gin index for keywords array search
+    - _Requirements: 5.1_
+  - [ ] 1.2 Create pre_insights table with RLS
+    - Create SQL migration for pre_insights table
+    - Add unique constraint on (user_id, insight_date)
+    - Enable RLS and create user access policy
+    - _Requirements: 5.2, 5.3_
+  - [ ] 1.3 Create workflow_health monitoring table
+    - Create SQL migration for workflow_health table
+    - Add indexes for quick lookup by workflow_name
+    - _Requirements: 4.4_
+  - [ ]* 1.4 Write property test for unique insight constraint
+    - **Property 10: Unique Insight Per Day**
+    - **Validates: Requirements 5.3**
+
+- [ ] 2. Checkpoint - Ensure database migrations pass
+  - Ensure all migrations execute successfully, ask the user if questions arise.
+
+- [ ] 3. Create Core Utility Functions
+  - [ ] 3.1 Create paper filter utilities
+    - Create `lib/n8n/paper-filter.ts` with `filterByCitations` function
+    - Implement citation threshold filtering (>= 10)
+    - Export types: `SemanticScholarPaper`, `FilterConfig`
+    - _Requirements: 1.2_
+  - [ ]* 3.2 Write property test for citation filter
+    - **Property 1: Paper Citation Filter**
+    - **Validates: Requirements 1.2**
+  - [ ] 3.3 Create Comforting Truth validator
+    - Create `lib/n8n/content-validator.ts` with `validateComfortingTruth` function
+    - Implement forbidden words check and positive framing check
+    - _Requirements: 1.3, 2.3_
+  - [ ]* 3.4 Write property test for Comforting Truth style
+    - **Property 2: Summary Comforting Truth Style**
+    - **Validates: Requirements 1.3, 2.3**
+  - [ ] 3.5 Create embedding utilities
+    - Create `lib/n8n/embedding.ts` with `generateEmbedding` and `validateEmbeddingDimensions`
+    - Implement OpenAI text-embedding-3-small integration
+    - _Requirements: 1.4, 3.2_
+  - [ ]* 3.6 Write property test for embedding dimensions
+    - **Property 3: Embedding Dimension Consistency**
+    - **Validates: Requirements 1.4, 3.2**
+  - [ ] 3.7 Create retry utilities
+    - Create `lib/n8n/retry.ts` with `calculateBackoff` function
+    - Implement exponential backoff logic
+    - _Requirements: 4.3_
+  - [ ]* 3.8 Write property test for exponential backoff
+    - **Property 9: Exponential Backoff Retry**
+    - **Validates: Requirements 4.3**
+
+- [ ] 4. Checkpoint - Ensure all utility tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 5. Create Paper Harvester API Endpoints
+  - [ ] 5.1 Create Semantic Scholar search endpoint
+    - Create `app/api/n8n/papers/search/route.ts`
+    - Implement keyword-based paper search
+    - Apply citation filter before returning results
+    - _Requirements: 1.1, 1.2_
+  - [ ] 5.2 Create paper summary generation endpoint
+    - Create `app/api/n8n/papers/summarize/route.ts`
+    - Implement Claude API call with Comforting Truth prompt
+    - Validate output against style rules
+    - _Requirements: 1.3_
+  - [ ] 5.3 Create paper upsert endpoint
+    - Create `app/api/n8n/papers/upsert/route.ts`
+    - Implement Supabase upsert with paper_id as unique key
+    - Generate embedding and store in same transaction
+    - _Requirements: 1.5, 3.1, 3.3_
+  - [ ]* 5.4 Write property test for upsert idempotency
+    - **Property 4: Paper Upsert Idempotency**
+    - **Validates: Requirements 1.5**
+
+- [ ] 6. Create Daily Insight Generator API Endpoints
+  - [ ] 6.1 Create active users query endpoint
+    - Create `app/api/n8n/users/active/route.ts`
+    - Query users with last_login within 7 days
+    - _Requirements: 2.1_
+  - [ ]* 6.2 Write property test for active user filter
+    - **Property 5: Active User Filter**
+    - **Validates: Requirements 2.1**
+  - [ ] 6.3 Create daily logs fetch endpoint
+    - Create `app/api/n8n/logs/yesterday/route.ts`
+    - Fetch daily_logs for specific user from yesterday
+    - _Requirements: 2.2_
+  - [ ]* 6.4 Write property test for yesterday's data filter
+    - **Property 6: Yesterday's Data Filter**
+    - **Validates: Requirements 2.2**
+  - [ ] 6.5 Create insight generation endpoint
+    - Create `app/api/n8n/insights/generate/route.ts`
+    - Implement Claude API call with user data
+    - Validate insight references data points
+    - _Requirements: 2.3, 2.4_
+  - [ ]* 6.6 Write property test for insight data reference
+    - **Property 7: Insight Data Reference**
+    - **Validates: Requirements 2.4**
+  - [ ] 6.7 Create insight storage endpoint
+    - Create `app/api/n8n/insights/store/route.ts`
+    - Insert to pre_insights with user_id and insight_date
+    - Skip if no daily_logs exist
+    - _Requirements: 2.5, 2.6_
+  - [ ]* 6.8 Write property test for skip users without logs
+    - **Property 8: Skip Users Without Logs**
+    - **Validates: Requirements 2.6**
+
+- [ ] 7. Checkpoint - Ensure all API endpoint tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 8. Create n8n Workflow JSON Files
+  - [ ] 8.1 Create Paper Harvester workflow JSON
+    - Create `n8n/workflows/paper-harvester.json`
+    - Configure cron trigger for Sunday 2AM UTC
+    - Wire up all API endpoints in sequence
+    - Add error handling and logging nodes
+    - _Requirements: 1.1, 1.6_
+  - [ ] 8.2 Create Daily Insight Generator workflow JSON
+    - Create `n8n/workflows/daily-insight-generator.json`
+    - Configure cron trigger for daily 4AM
+    - Wire up user query, log fetch, insight generation, storage
+    - Add conditional logic for users without logs
+    - _Requirements: 2.1, 2.7_
+  - [ ] 8.3 Create Paper Vectorizer workflow JSON
+    - Create `n8n/workflows/paper-vectorizer.json`
+    - Configure cron trigger for Sunday 3AM UTC
+    - Query papers without embeddings and vectorize
+    - _Requirements: 3.1, 3.4_
+
+- [ ] 9. Create Monitoring and Health Check
+  - [ ] 9.1 Create workflow health update endpoint
+    - Create `app/api/n8n/health/update/route.ts`
+    - Update workflow_health table on success/failure
+    - Track consecutive failures for alerting
+    - _Requirements: 4.1, 4.2, 4.4_
+  - [ ] 9.2 Create health check dashboard endpoint
+    - Create `app/api/n8n/health/status/route.ts`
+    - Return current health status of all workflows
+    - _Requirements: 4.1_
+
+- [ ] 10. Create Frontend Integration
+  - [ ] 10.1 Update insight API to use pre_insights
+    - Modify `/api/insight/generate` to check pre_insights first
+    - Fall back to real-time generation if no pre-insight exists
+    - Mark insight as viewed when returned
+    - _Requirements: 2.5_
+  - [ ] 10.2 Update chat API to use knowledge_base
+    - Modify `/api/chat` RAG to include knowledge_base in search
+    - Prioritize papers with higher citation counts
+    - _Requirements: 1.5, 3.3_
+
+- [ ] 11. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 12. Documentation and Deployment Guide
+  - [ ] 12.1 Create n8n deployment documentation
+    - Document n8n self-hosting options (Docker, Railway)
+    - Document environment variables required
+    - Document workflow import process
+    - _Requirements: All_
+  - [ ] 12.2 Update TECH_STACK_AND_WORKFLOW.md
+    - Add n8n deployment instructions
+    - Add workflow monitoring guide
+    - _Requirements: All_

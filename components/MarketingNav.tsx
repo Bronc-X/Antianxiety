@@ -86,10 +86,28 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
                   权威洞察
                 </a>
                 <Link
+                  href="/assistant"
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                >
+                  动态身体报告
+                </Link>
+                <Link
                   href="/analysis"
                   className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
                 >
-                  AI分析报告
+                  向你推荐
+                </Link>
+                <Link
+                  href="/assessment"
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                >
+                  症状评估
+                </Link>
+                <Link
+                  href="/bayesian"
+                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                >
+                  认知天平
                 </Link>
                 <Link
                   href="/plans"

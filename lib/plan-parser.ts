@@ -12,22 +12,33 @@ export interface ParsedPlan {
  */
 export function containsPlans(message: string): boolean {
   console.log('🔍 检测AI消息是否包含方案...');
-  console.log('📝 消息内容预览:', message.substring(0, 200));
+  console.log('📝 消息内容预览:', message.substring(0, 300));
   
   // 排除确认消息
-  if (message.includes('✅') || message.includes('已确认') || message.includes('已添加到')) {
+  if (message.includes('✅ **保存成功') || message.includes('已确认') || message.includes('已添加到您的健康方案')) {
     console.log('❌ 该消息为确认消息，跳过');
     return false;
   }
   
   // 检测关键词：方案、建议、计划等（必须有编号）
   const planKeywords = [
-    /方案\s*[1-9一二三四五]/i,
-    /建议\s*[1-9一二三四五]/i,
+    /方案\s*[1-9一二三四五][\s:：]/i,
+    /建议\s*[1-9一二三四五][\s:：]/i,
+    /计划\s*[1-9一二三四五][\s:：]/i,
+    /选项\s*[1-9一二三四五][\s:：]/i,
+    /\*\*方案\s*[1-9一二三四五]/i,
+    /\*\*建议\s*[1-9一二三四五]/i,
   ];
   
   const hasPlans = planKeywords.some(regex => regex.test(message));
   console.log(hasPlans ? '✅ 检测到方案关键词' : '❌ 未检测到方案关键词');
+  
+  // 额外检查：是否有多个编号的内容块
+  const numberedBlocks = message.match(/(?:方案|建议|计划|选项)\s*[1-9一二三四五]/gi);
+  if (numberedBlocks && numberedBlocks.length >= 2) {
+    console.log(`✅ 检测到 ${numberedBlocks.length} 个编号方案块`);
+    return true;
+  }
   
   return hasPlans;
 }
@@ -38,21 +49,32 @@ export function containsPlans(message: string): boolean {
 export function parsePlans(message: string): ParsedPlan[] {
   const plans: ParsedPlan[] = [];
   
-  // 匹配方案块（支持中文数字和阿拉伯数字）
-  const planRegex = /(?:方案|建议|计划)\s*([1-9一二三四五])[\s:：]([^\n]+)((?:\n(?!方案|建议|计划)[^\n]+)*)/gi;
+  // 方法1：匹配标准格式 "方案1：标题" 或 "**方案1：标题**"
+  const planRegex = /\*{0,2}(?:方案|建议|计划|选项)\s*([1-9一二三四五])[\s:：]+\*{0,2}([^\n*]+)\*{0,2}((?:\n(?!\*{0,2}(?:方案|建议|计划|选项)\s*[1-9一二三四五])[^\n]*)*)/gi;
   
   let match;
   while ((match = planRegex.exec(message)) !== null) {
-    const title = `方案${match[1]}：${match[2].trim()}`;
-    const content = match[3]?.trim() || '';
+    const num = match[1];
+    const titleText = match[2].trim().replace(/\*+/g, '');
+    const title = `方案${num}：${titleText}`;
+    let content = match[3]?.trim() || '';
+    
+    // 清理内容中的 markdown 格式
+    content = content.replace(/^\s*[-•]\s*/gm, '• ');
     
     // 提取难度
-    const difficultyMatch = content.match(/难度[：:]\s*([⭐★☆]+|[1-5]星)/);
+    const difficultyMatch = content.match(/难度[：:]\s*([⭐★☆]+|[1-5]星?)/);
     const difficulty = difficultyMatch ? difficultyMatch[1] : undefined;
     
     // 提取预期时长
     const durationMatch = content.match(/(?:预期|时长|周期)[：:]\s*([^\n]+)/);
     const duration = durationMatch ? durationMatch[1].trim() : undefined;
+    
+    // 从内容中移除难度和预期行，保持内容干净
+    content = content
+      .replace(/难度[：:]\s*[⭐★☆1-5星]+\n?/g, '')
+      .replace(/(?:预期|时长|周期)[：:]\s*[^\n]+\n?/g, '')
+      .trim();
     
     plans.push({
       title,
@@ -62,25 +84,54 @@ export function parsePlans(message: string): ParsedPlan[] {
     });
   }
   
-  // 如果没有匹配到标准格式，尝试分段匹配
+  // 方法2：如果没有匹配到，尝试更宽松的匹配
   if (plans.length === 0) {
-    const sections = message.split(/\n\n+/);
-    sections.forEach((section, index) => {
-      if (section.length > 20 && (section.includes('建议') || section.includes('方案'))) {
-        const lines = section.split('\n');
-        const title = lines[0].trim();
-        const content = lines.slice(1).join('\n').trim();
-        
+    // 尝试匹配 "1. 方案名称" 或 "1、方案名称" 格式
+    const altRegex = /([1-9])[.、]\s*\*{0,2}([^:\n]+)[:\s]*\*{0,2}\n((?:(?![1-9][.、])[^\n]*\n?)*)/gi;
+    
+    while ((match = altRegex.exec(message)) !== null) {
+      const num = match[1];
+      const titleText = match[2].trim().replace(/\*+/g, '');
+      const content = match[3]?.trim() || '';
+      
+      // 只有当标题看起来像方案时才添加
+      if (titleText.length > 2 && titleText.length < 50) {
         plans.push({
-          title: title || `方案${index + 1}`,
+          title: `方案${num}：${titleText}`,
           content,
         });
+      }
+    }
+  }
+  
+  // 方法3：如果还是没有，尝试分段匹配
+  if (plans.length === 0) {
+    const sections = message.split(/\n\n+/);
+    let planIndex = 0;
+    
+    sections.forEach((section) => {
+      if (section.length > 30 && 
+          (section.includes('建议') || section.includes('方案') || section.includes('计划')) &&
+          !section.includes('✅')) {
+        const lines = section.split('\n');
+        const title = lines[0].trim().replace(/\*+/g, '');
+        const content = lines.slice(1).join('\n').trim();
+        
+        if (title && content) {
+          planIndex++;
+          plans.push({
+            title: title.includes('方案') || title.includes('建议') ? title : `方案${planIndex}：${title}`,
+            content,
+          });
+        }
       }
     });
   }
   
   console.log('🔍 解析到的方案数量:', plans.length);
-  console.log('📊 方案详情:', plans);
+  if (plans.length > 0) {
+    console.log('📊 方案详情:', plans.map(p => ({ title: p.title, contentLength: p.content.length })));
+  }
   
   return plans;
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { API_CONSTANTS, AI_ROLES } from '@/lib/config/constants';
+import { getModelPriority } from '@/lib/ai/model-config';
 import {
   generateEmbedding,
   retrieveMemories,
@@ -112,17 +113,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '消息内容不能为空' }, { status: 400 });
     }
 
-    // 检查 Claude API Key
-    const claudeApiKey = process.env.ANTHROPIC_API_KEY;
-    const claudeBaseUrl = process.env.ANTHROPIC_API_BASE || API_CONSTANTS.CLAUDE_API_BASE_URL;
+    // 检查 OpenAI API Key (中转站)
+    const apiKey = process.env.OPENAI_API_KEY;
+    const apiBaseUrl = API_CONSTANTS.CLAUDE_API_BASE_URL;
     
     // 调试日志
     console.log('🔍 API配置检查:');
-    console.log('- ANTHROPIC_API_KEY存在:', !!claudeApiKey);
-    console.log('- ANTHROPIC_API_BASE:', claudeBaseUrl);
+    console.log('- OPENAI_API_KEY存在:', !!apiKey);
+    console.log('- OPENAI_API_BASE:', apiBaseUrl);
     
-    if (!claudeApiKey) {
-      console.error('❌ ANTHROPIC_API_KEY 未设置');
+    if (!apiKey) {
+      console.error('❌ OPENAI_API_KEY 未设置');
       return NextResponse.json(
         { error: 'AI 服务未配置，请联系管理员' },
         { status: 500 }
@@ -179,28 +180,31 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: message },
     ];
 
-    // 调用 Claude API（带重试机制）
-    let response: Response;
-    const isGPT = API_CONSTANTS.CLAUDE_MODEL.includes('gpt');
-    
-    try {
-      if (isGPT) {
-        // 使用OpenAI格式（GPT-4）
-        const gptMessages = [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ];
-        
-        response = await fetchWithRetry(
-          `${claudeBaseUrl}/chat/completions`,
+    // ?? AI API??????? ?? OpenAI ???????????
+    const gptMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ];
+
+    const modelsToTry = getModelPriority('chat');
+
+    let response: Response | null = null;
+    let modelUsed = modelsToTry[0] || API_CONSTANTS.CLAUDE_MODEL;
+    let lastError: any = null;
+    let lastErrorBody = '';
+
+    for (const modelName of modelsToTry) {
+      try {
+        const candidate = await fetchWithRetry(
+          apiBaseUrl,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${claudeApiKey}`,
+              'Authorization': `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-              model: API_CONSTANTS.CLAUDE_MODEL,
+              model: modelName,
               messages: gptMessages,
               temperature: API_CONSTANTS.CLAUDE_TEMPERATURE,
               max_tokens: API_CONSTANTS.CLAUDE_MAX_TOKENS,
@@ -209,35 +213,40 @@ export async function POST(request: NextRequest) {
           3,
           1000
         );
-      } else {
-        // 使用Claude格式
-        response = await fetchWithRetry(
-          `${claudeBaseUrl}/messages`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': claudeApiKey,
-              'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-              model: API_CONSTANTS.CLAUDE_MODEL,
-              system: systemPrompt,
-              messages: messages,
-              temperature: API_CONSTANTS.CLAUDE_TEMPERATURE,
-              max_tokens: API_CONSTANTS.CLAUDE_MAX_TOKENS,
-            }),
-          },
-          3,
-          1000
-        );
+
+        if (candidate.ok) {
+          response = candidate;
+          modelUsed = modelName;
+          break;
+        }
+
+        lastErrorBody = await candidate.text().catch(() => '');
+        lastError = { status: candidate.status, body: lastErrorBody };
+        console.error('AI API 非 2xx 响应', {
+          model: modelName,
+          status: candidate.status,
+          body: lastErrorBody,
+        });
+
+        // 404/400 或 5xx 继续尝试下一个模型
+        if (candidate.status === 404 || candidate.status === 400 || candidate.status >= 500) {
+          continue;
+        }
+
+        response = candidate;
+        modelUsed = modelName;
+        break;
+      } catch (error) {
+        lastError = error;
+        console.error('AI API ????????????', error);
       }
-    } catch (error) {
-      console.error('Claude API 请求失败（已重试）:', error);
-      const errorInfo = parseApiError(error);
+    }
+
+    if (!response) {
+      const errorInfo = parseApiError(lastError);
       return NextResponse.json(
         {
-          error: errorInfo.message || 'AI 服务暂时不可用，请稍后重试',
+          error: errorInfo.message || 'AI ?????????????',
           code: errorInfo.code,
         },
         { status: 503 }
@@ -245,24 +254,23 @@ export async function POST(request: NextRequest) {
     }
 
     if (!response.ok) {
-      const errorData = await response.text().catch(() => '未知错误');
-      console.error('❌ Claude API 错误详情:');
+      const errorData = lastErrorBody || (await response.text().catch(() => '????'));
+      console.error('?AI API ????:');
       console.error('- Status:', response.status);
       console.error('- Response:', errorData);
-      console.error('- Request URL:', `${claudeBaseUrl}/messages`);
+      console.error('- Request URL:', `${apiBaseUrl}/chat/completions`);
 
-      // 根据错误类型返回不同的错误信息
-      let errorMessage = 'AI 服务暂时不可用，请稍后重试';
+      let errorMessage = 'AI ?????????????';
       if (response.status === 401) {
-        errorMessage = 'AI 服务认证失败，API Key可能无效';
-        console.error('💡 提示: 请检查 ANTHROPIC_API_KEY 是否正确');
+        errorMessage = 'AI ???????API Key????';
+        console.error('?? ??: ???OPENAI_API_KEY ????');
       } else if (response.status === 403) {
-        errorMessage = '无权访问该模型，请检查API权限';
-        console.error('💡 提示: 确认中转站已开通 Claude 模型');
+        errorMessage = '???????????API??';
+        console.error('?? ??: ???????????');
       } else if (response.status === 429) {
-        errorMessage = '请求过于频繁，请稍后再试';
+        errorMessage = '????????????';
       } else if (response.status >= 500) {
-        errorMessage = 'AI 服务暂时不可用，请稍后重试';
+        errorMessage = 'AI ?????????????';
       }
 
       return NextResponse.json(
@@ -271,13 +279,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     const data = await response.json();
     let aiResponse: string;
     
-    if (isGPT) {
-      // GPT格式响应
-      aiResponse = (data as any).choices?.[0]?.message?.content || '抱歉，我无法生成回复。';
-    } else {
+    // OpenAI 格式响应
+    aiResponse = (data as any).choices?.[0]?.message?.content || '抱歉，我无法生成回复。';
+    
+    // 兼容旧代码（删除 else 分支）
+    if (false) {
       // Claude格式响应
       aiResponse = (data as ClaudeResponseBody).content?.[0]?.text || '抱歉，我无法生成回复。';
     }
@@ -296,7 +306,7 @@ export async function POST(request: NextRequest) {
         'assistant',
         aiResponseEmbedding,
         {
-          model: API_CONSTANTS.CLAUDE_MODEL,
+          model: modelUsed,
           tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
         }
       );
