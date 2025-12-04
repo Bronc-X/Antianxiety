@@ -2,14 +2,46 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2, Share2 } from 'lucide-react';
+import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2, Share2, Settings, Zap, Sparkles } from 'lucide-react';
 import { updateSettings } from '../actions/settings';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SettingsClientProps {
   user: { id: string; email?: string };
-  profile: any;
+  profile: Profile;
 }
+
+type Profile = {
+  height?: number | string;
+  weight?: number | string;
+  age?: number | string;
+  gender?: string;
+  primary_goal?: string;
+  ai_personality?: string;
+  current_focus?: string;
+  full_name?: string;
+  avatar_url?: string;
+  ai_persona_context?: string | null;
+  ai_settings?: {
+    honesty_level?: number;
+    humor_level?: number;
+  };
+};
+
+type FormState = {
+  height: string | number;
+  weight: string | number;
+  age: string | number;
+  gender: string;
+  primary_goal: string;
+  ai_personality: string;
+  current_focus: string;
+  max_honesty: number;
+  max_humor: number;
+  full_name: string;
+  avatar_url: string;
+};
 
 export default function SettingsClient({ user, profile }: SettingsClientProps) {
   const router = useRouter();
@@ -28,8 +60,39 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
     }
   }, [searchParams]);
 
+  // 从 ai_persona_context 解析诚实度和幽默感设置
+  const parseSettingsFromContext = (context: string | null): { honesty: number; humor: number } => {
+    if (!context) return { honesty: 90, humor: 65 };
+    
+    const honestyMatch = context.match(/诚实度:\s*(\d+)%/);
+    const humorMatch = context.match(/幽默感:\s*(\d+)%/);
+    
+    return {
+      honesty: honestyMatch ? parseInt(honestyMatch[1], 10) : 90,
+      humor: humorMatch ? parseInt(humorMatch[1], 10) : 65,
+    };
+  };
+
+  // 从 ai_settings JSON 或 ai_persona_context 获取设置
+  const getInitialSettings = () => {
+    // 调试日志
+    
+    // 优先使用 ai_settings JSON 字段
+    if (profile?.ai_settings && typeof profile.ai_settings.honesty_level === 'number') {
+      return {
+        honesty: profile.ai_settings.honesty_level,
+        humor: profile.ai_settings.humor_level,
+      };
+    }
+    // 否则从 ai_persona_context 解析
+    const parsed = parseSettingsFromContext(profile?.ai_persona_context);
+    return parsed;
+  };
+
+  const initialSettings = getInitialSettings();
+
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormState>({
     // Body Metrics
     height: profile?.height || '',
     weight: profile?.weight || '',
@@ -38,15 +101,19 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
     
     // AI Tuning - CRITICAL
     primary_goal: profile?.primary_goal || 'maintain_energy',
-    ai_personality: profile?.ai_personality || 'gentle_friend',
+    ai_personality: profile?.ai_personality || 'max',
     current_focus: profile?.current_focus || '',
+    
+    // MAX Settings - 从 ai_settings 或 ai_persona_context 读取
+    max_honesty: initialSettings.honesty,
+    max_humor: initialSettings.humor,
     
     // Account
     full_name: profile?.full_name || '',
     avatar_url: profile?.avatar_url || '',
   });
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setMessage(null);
   };
@@ -111,7 +178,6 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
   const handleSocialConnect = (platform: string) => {
     // TODO: 实现社交平台OAuth连接
-    console.log(`连接到 ${platform}`);
     setMessage({ type: 'success', text: `正在连接到 ${platform}...` });
   };
 
@@ -348,53 +414,23 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 </div>
               </div>
 
-              {/* AI Personality */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
-                  AI 性格 <span className="text-red-500">*</span>
-                </label>
-                <p className="text-xs text-[#0B3D2E]/60 mb-3">
-                  控制 AI 的对话风格和建议严格程度
-                </p>
-                <div className="space-y-3">
-                  {[
-                    {
-                      value: 'cute_pet',
-                      label: '🐱 猫猫助理',
-                      desc: '软萌可爱，用撒娇的方式鼓励你，温暖治愈系陪伴',
-                    },
-                    {
-                      value: 'strict_coach',
-                      label: '严格教练',
-                      desc: '直言不讳，严格督促，适合需要强制约束的用户',
-                    },
-                    {
-                      value: 'gentle_friend',
-                      label: '温和朋友',
-                      desc: '鼓励为主，理解你的困难，适合压力较大的用户',
-                    },
-                    {
-                      value: 'science_nerd',
-                      label: '科学极客',
-                      desc: '数据驱动，详细解释机制，适合喜欢深度学习的用户',
-                    },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleChange('ai_personality', option.value)}
-                      className={`w-full rounded-lg border-2 p-4 text-left transition-all ${
-                        formData.ai_personality === option.value
-                          ? 'border-[#0B3D2E] bg-[#F2F7F5]'
-                          : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/50'
-                      }`}
-                    >
-                      <div className="font-medium text-[#0B3D2E] mb-1">{option.label}</div>
-                      <div className="text-sm text-[#0B3D2E]/60">{option.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* MAX Settings Panel - 白色 UI 风格，幽默感自动决定人格 */}
+              <MaxSettingsPanelWhite 
+                honestyLevel={formData.max_honesty || 90}
+                humorLevel={formData.max_humor || 65}
+                onHonestyChange={(v) => handleChange('max_honesty', v)}
+                onHumorChange={(v) => {
+                  handleChange('max_humor', v);
+                  // 根据幽默感自动设置人格模式
+                  if (v < 33) {
+                    handleChange('ai_personality', 'dr_house');
+                  } else if (v < 66) {
+                    handleChange('ai_personality', 'zen_master');
+                  } else {
+                    handleChange('ai_personality', 'max');
+                  }
+                }}
+              />
 
               {/* Current Focus */}
               <div>
@@ -620,6 +656,283 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// MAX Settings Panel - 白色 UI 风格，带实时反馈
+interface MaxSettingsPanelWhiteProps {
+  honestyLevel: number;
+  humorLevel: number;
+  onHonestyChange: (value: number) => void;
+  onHumorChange: (value: number) => void;
+}
+
+function MaxSettingsPanelWhite({
+  honestyLevel,
+  humorLevel,
+  onHonestyChange,
+  onHumorChange
+}: MaxSettingsPanelWhiteProps) {
+  const [maxFeedback, setMaxFeedback] = useState<string>('系统就绪，等待输入...');
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 获取 Max 实时反馈
+  const fetchMaxFeedback = async (sliderType: 'honesty' | 'humor', value: number) => {
+    setIsLoadingFeedback(true);
+    try {
+      const res = await fetch('/api/max/response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          context: 'slider_change',
+          sliderType,
+          value
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMaxFeedback(data.response?.text || data.message || getLocalFeedback(sliderType, value));
+      } else {
+        setMaxFeedback(getLocalFeedback(sliderType, value));
+      }
+    } catch {
+      setMaxFeedback(getLocalFeedback(sliderType, value));
+    }
+    setIsLoadingFeedback(false);
+  };
+
+  // 本地反馈（API 失败时使用）
+  const getLocalFeedback = (type: 'honesty' | 'humor', value: number): string => {
+    if (type === 'honesty') {
+      if (value >= 90) return '直言不讳模式激活。准备好接受真相了吗？';
+      if (value >= 70) return '诚实度较高，我会直接告诉你需要知道的。';
+      if (value >= 40) return '平衡模式，真相会被适当包装。';
+      return '外交模式启动，我会非常温和地表达。';
+    } else {
+      if (value >= 100) return '🎉 彩蛋解锁！幽默感拉满，准备好笑到肚子疼！';
+      if (value >= 80) return '机智模式全开，每句话都可能是个梗。';
+      if (value >= 50) return '适度幽默，偶尔来点轻松的。';
+      return '严肃专业模式，专注于事实和数据。';
+    }
+  };
+
+  // 处理滑块变化（带防抖）
+  const handleSliderChange = (type: 'honesty' | 'humor', value: number) => {
+    if (type === 'honesty') {
+      onHonestyChange(value);
+    } else {
+      onHumorChange(value);
+    }
+    
+    // 防抖：500ms 后获取反馈
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+    feedbackTimeoutRef.current = setTimeout(() => {
+      fetchMaxFeedback(type, value);
+    }, 500);
+  };
+
+  return (
+    <div className="rounded-xl border border-[#E7E1D6] bg-[#FAFAFA] p-5 space-y-5">
+      {/* 功能说明 */}
+      <div className="bg-white rounded-lg p-4 border border-[#E7E1D6]">
+        <h4 className="text-sm font-medium text-[#0B3D2E] mb-3 flex items-center gap-2">
+          <Settings className="w-4 h-4" />
+          AI 参数调节
+        </h4>
+        <ul className="space-y-2 text-xs text-[#0B3D2E]/70">
+          <li className="flex items-start gap-2">
+            <span className="text-[#C4A77D]">•</span>
+            <span><strong>诚实度滑块</strong>: 0-100，控制 AI 的直接程度</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-[#9CAF88]">•</span>
+            <span><strong>幽默感滑块</strong>: 0-100，100 时触发特殊彩蛋</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-[#0B3D2E]">•</span>
+            <span><strong>实时反馈</strong>: 滑块变化时 AI 会给出评论</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* Max 实时反馈 */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={maxFeedback}
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 5 }}
+          transition={{ duration: 0.2 }}
+          className="bg-white rounded-lg p-4 border border-[#E7E1D6]"
+        >
+          <div className="flex items-start gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              isLoadingFeedback ? 'bg-amber-100' : 'bg-[#F2F7F5]'
+            }`}>
+              {isLoadingFeedback ? (
+                <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+              ) : (
+                <Brain className="w-4 h-4 text-[#0B3D2E]" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-[#0B3D2E]/40 mb-1 uppercase tracking-wide">AI 反馈</p>
+              <p className="text-sm text-[#0B3D2E] leading-relaxed">{maxFeedback}</p>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* 诚实度滑块 */}
+      <div className="bg-white rounded-lg p-4 border border-[#E7E1D6]">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm font-medium text-[#0B3D2E]">诚实度 Honesty</p>
+            <p className="text-xs text-[#0B3D2E]/50">控制 AI 的直接程度</p>
+          </div>
+          <div className="px-3 py-1.5 rounded-lg bg-[#C4A77D]/10">
+            <span className="text-lg font-mono text-[#C4A77D] font-semibold">{honestyLevel}</span>
+            <span className="text-xs ml-0.5 text-[#C4A77D]/70">%</span>
+          </div>
+        </div>
+        <div className="relative h-10 flex items-center">
+          <div className="absolute inset-x-0 h-2 bg-[#E7E1D6] rounded-full overflow-hidden">
+            <motion.div 
+              className="h-full rounded-full bg-gradient-to-r from-[#C4A77D]/60 to-[#C4A77D]"
+              initial={false}
+              animate={{ width: `${honestyLevel}%` }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            />
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={honestyLevel}
+            onChange={(e) => handleSliderChange('honesty', Number(e.target.value))}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          />
+          <motion.div 
+            className="absolute w-5 h-5 rounded-full bg-white border-2 border-[#C4A77D] shadow-md pointer-events-none"
+            initial={false}
+            animate={{ left: `calc(${honestyLevel}% - 10px)` }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-[#0B3D2E]/40 mt-2">
+          <span>外交 Diplomatic</span>
+          <span>直接 Brutal</span>
+        </div>
+      </div>
+
+      {/* 幽默感滑块 + 自动人格指示器 */}
+      <div className="bg-white rounded-lg p-4 border border-[#E7E1D6]">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm font-medium text-[#0B3D2E]">幽默感 Humor</p>
+            <p className="text-xs text-[#0B3D2E]/50">滑动自动切换 Max 人格风格</p>
+          </div>
+          <div className={`px-3 py-1.5 rounded-lg ${humorLevel >= 100 ? 'bg-gradient-to-r from-pink-100 to-amber-100' : 'bg-[#9CAF88]/10'}`}>
+            <span className={`text-lg font-mono font-semibold ${humorLevel >= 100 ? 'text-pink-600' : 'text-[#9CAF88]'}`}>{humorLevel}</span>
+            <span className={`text-xs ml-0.5 ${humorLevel >= 100 ? 'text-pink-400' : 'text-[#9CAF88]/70'}`}>%</span>
+            {humorLevel >= 100 && <span className="ml-1">🎉</span>}
+          </div>
+        </div>
+        <div className="relative h-10 flex items-center">
+          <div className="absolute inset-x-0 h-2 bg-[#E7E1D6] rounded-full overflow-hidden">
+            <motion.div 
+              className={`h-full rounded-full ${
+                humorLevel >= 100 
+                  ? 'bg-gradient-to-r from-pink-400 via-amber-400 to-pink-400' 
+                  : humorLevel < 33
+                    ? 'bg-gradient-to-r from-[#C4A77D]/60 to-[#C4A77D]'
+                    : humorLevel < 66
+                      ? 'bg-gradient-to-r from-[#9CAF88]/60 to-[#9CAF88]'
+                      : 'bg-gradient-to-r from-[#E8DFD0]/60 to-[#E8DFD0]'
+              }`}
+              initial={false}
+              animate={{ width: `${humorLevel}%` }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            />
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={humorLevel}
+            onChange={(e) => handleSliderChange('humor', Number(e.target.value))}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          />
+          <motion.div 
+            className={`absolute w-5 h-5 rounded-full bg-white border-2 shadow-md pointer-events-none ${
+              humorLevel >= 100 ? 'border-pink-500' : humorLevel < 33 ? 'border-[#C4A77D]' : humorLevel < 66 ? 'border-[#9CAF88]' : 'border-[#D4C4A8]'
+            }`}
+            initial={false}
+            animate={{ left: `calc(${humorLevel}% - 10px)` }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-[#0B3D2E]/40 mt-2">
+          <span>严肃 Serious</span>
+          <span>机智 Witty</span>
+        </div>
+        
+        {/* 自动人格指示器 */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={humorLevel < 33 ? 'dr_house' : humorLevel < 66 ? 'zen_master' : 'max'}
+            initial={{ opacity: 0, y: -5, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 5, scale: 0.98 }}
+            transition={{ duration: 0.25 }}
+            className={`mt-4 flex items-center justify-center gap-3 py-3 px-4 rounded-xl border ${
+              humorLevel < 33 
+                ? 'bg-[#C4A77D]/10 border-[#C4A77D]/30' 
+                : humorLevel < 66 
+                  ? 'bg-[#9CAF88]/10 border-[#9CAF88]/30'
+                  : 'bg-[#E8DFD0]/20 border-[#D4C4A8]/30'
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              humorLevel < 33 
+                ? 'bg-[#C4A77D]/20' 
+                : humorLevel < 66 
+                  ? 'bg-[#9CAF88]/20'
+                  : 'bg-[#E8DFD0]/30'
+            }`}>
+              <span className="text-lg">
+                {humorLevel < 33 ? '🏥' : humorLevel < 66 ? '🧘' : '⚡'}
+              </span>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-[#0B3D2E]">
+                {humorLevel < 33 ? 'Dr. House' : humorLevel < 66 ? 'Zen Master' : 'MAX'}
+              </p>
+              <p className={`text-xs ${
+                humorLevel < 33 
+                  ? 'text-[#C4A77D]' 
+                  : humorLevel < 66 
+                    ? 'text-[#9CAF88]'
+                    : 'text-[#B8A888]'
+              }`}>
+                {humorLevel < 33 ? '直接-诊断' : humorLevel < 66 ? '平静-哲学' : '简洁-幽默'}
+              </p>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-center gap-2 pt-2">
+        <Sparkles className="w-3 h-3 text-[#0B3D2E]/30" />
+        <span className="text-[10px] text-[#0B3D2E]/30 tracking-wider">
+          POWERED BY BAYESIAN INFERENCE
+        </span>
       </div>
     </div>
   );

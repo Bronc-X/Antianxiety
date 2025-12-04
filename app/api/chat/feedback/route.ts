@@ -19,7 +19,7 @@ interface FeedbackRequest {
 export async function POST(request: NextRequest) {
   try {
     // 认证检查
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {

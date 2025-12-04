@@ -3,9 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import RouteTransition from "@/components/RouteTransition";
 import MotionProvider from "@/components/MotionProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import AIAssistantFloatingButton from "@/components/AIAssistantFloatingButton";
 import GlobalNav from "@/components/GlobalNav";
 import { I18nProvider } from "@/lib/i18n";
+import { ToastProvider } from "@/components/ui/toast";
+import DevTools from "@/components/DevTools";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,13 +49,18 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <I18nProvider>
-        <MotionProvider>
-          <GlobalNav />
-          <RouteTransition>{children}</RouteTransition>
-          <AIAssistantFloatingButton />
-        </MotionProvider>
-        </I18nProvider>
+        <ThemeProvider>
+          <I18nProvider>
+            <MotionProvider>
+              <ToastProvider>
+                <GlobalNav />
+                <RouteTransition>{children}</RouteTransition>
+                <AIAssistantFloatingButton />
+                <DevTools />
+              </ToastProvider>
+            </MotionProvider>
+          </I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

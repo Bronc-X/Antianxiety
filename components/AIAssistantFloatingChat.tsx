@@ -8,6 +8,35 @@ import type { AIAssistantProfile, ConversationRow, RoleType } from '@/types/assi
 import { ImageUploadIcon, MicrophoneIcon, BrandLogoSimple } from '@/components/ui/Icons';
 import AIPlanCard from '@/components/AIPlanCard';
 import { containsPlans, parsePlans, type ParsedPlan } from '@/lib/plan-parser';
+import { PaperSources } from '@/components/chat/PaperSources';
+
+/**
+ * 从消息内容中移除方案部分，避免重复显示
+ * 当方案会单独显示为卡片时，从文本中移除方案内容
+ */
+function removePlansFromContent(content: string): string {
+  if (!containsPlans(content)) return content;
+  
+  // 移除方案块（方案1：xxx 到下一个方案或结尾）
+  let cleaned = content.replace(
+    /\*{0,2}(?:方案|建议|计划|选项)\s*[1-9一二三四五][\s:：]+\*{0,2}[^\n]*(?:\n(?!\*{0,2}(?:方案|建议|计划|选项)\s*[1-9一二三四五])[^\n]*)*/gi,
+    ''
+  );
+  
+  // 清理多余的空行
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+  
+  // 如果清理后内容太短，返回一个简短的提示
+  if (cleaned.length < 20) {
+    return '根据你的情况，我为你准备了以下方案，请选择一个开始：';
+  }
+  
+  return cleaned;
+}
+import { BrainLoader } from '@/components/lottie/BrainLoader';
+import { AIThinkingLoader } from '@/components/AIThinkingLoader';
+import { MotionButton } from '@/components/motion/MotionButton';
+import { generateActiveInquiry, type DailyLog } from '@/lib/active-inquiry';
 
 // TypeScript 类型定义
 type SpeechRecognitionConstructor = new () => SpeechRecognition;
@@ -47,13 +76,6 @@ interface SpeechRecognitionErrorEvent {
   error: string;
 }
 
-declare global {
-  interface Window {
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-    SpeechRecognition?: SpeechRecognitionConstructor;
-  }
-}
-
 // 使用 SVG 图标替代 lucide-react
 const XIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,10 +106,23 @@ interface Message {
   role: RoleType;
   content: string;
   timestamp: Date;
+  papers?: PaperSource[];  // 论文来源
+  consensus?: { score: number; level: string; rationale?: string };  // 共识度
+}
+
+// 论文来源类型
+interface PaperSource {
+  rank?: number;
+  title: string;
+  citationCount: number;
+  year?: number;
+  url?: string;
+  authorityScore?: number;
 }
 
 interface AIAssistantFloatingChatProps {
   initialProfile?: AIAssistantProfile | null;
+  dailyLogs?: DailyLog[];
   onClose?: () => void;
 }
 
@@ -114,10 +149,11 @@ const extractHabitMemory = (profile?: AIAssistantProfile | null): string | strin
   return null;
 };
 
-export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIAssistantFloatingChatProps) {
+export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = [], onClose }: AIAssistantFloatingChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingAnswer, setIsGeneratingAnswer] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -127,6 +163,8 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
   const [sessionId, setSessionId] = useState<string | null>(null); // 会话ID管理
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClientSupabaseClient();
+  
+
   
   // 处理方案确认
   const handlePlanConfirm = async (selectedPlan: ParsedPlan) => {
@@ -218,6 +256,78 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
     }
   };
   
+  // 处理带修改意见的方案确认 - 直接应用修改并保存，不再需要二次确认
+  const handlePlanConfirmWithModification = async (currentPlan: ParsedPlan, modification: string) => {
+    console.log('📝 用户确认方案并带修改意见:', currentPlan.title);
+    console.log('📝 修改意见:', modification);
+    
+    // 显示加载提示
+    const loadingMessage: Message = {
+      role: 'assistant',
+      content: '⏳ 正在应用修改并保存...',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+    
+    // 直接将修改意见合并到方案内容中，然后保存
+    const modifiedPlan: ParsedPlan = {
+      ...currentPlan,
+      content: `${currentPlan.content}\n\n📝 补充说明：${modification}`,
+    };
+    
+    try {
+      console.log('📤 准备调用 API 保存修改后的方案...');
+      
+      // 调用API保存计划
+      const response = await fetch('/api/plans/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          plans: [modifiedPlan],
+          sessionId: sessionId 
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        // 移除加载消息
+        setMessages(prev => prev.filter(msg => msg.content === '⏳ 正在应用修改并保存...'));
+        throw new Error(result.error || '保存计划失败');
+      }
+      
+      // 移除加载消息
+      setMessages(prev => prev.filter(msg => msg.content !== '⏳ 正在应用修改并保存...'));
+      
+      // 触发全局事件
+      window.dispatchEvent(new CustomEvent('planSaved', { detail: result.data }));
+      
+      // 直接显示成功消息，不需要再次确认
+      const confirmMessage: Message = {
+        role: 'assistant',
+        content: `✅ **保存成功！**\n\n您选择的「${currentPlan.title}」已成功添加至您的健康方案表。\n\n📍 **接下来：**\n1. 前往主页查看您的方案\n2. 每日点击✓勾选记录完成情况\n3. 我将根据您的执行数据为您调整建议`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, confirmMessage]);
+      await saveMessage(confirmMessage);
+      
+    } catch (error) {
+      console.error('❌ 保存失败:', error);
+      
+      // 移除加载消息
+      setMessages(prev => prev.filter(msg => msg.content !== '⏳ 正在应用修改并保存...'));
+      
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: `❌ 抱歉，保存计划失败。请稍后重试。`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
+  };
+  
   // 处理图片上传
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -249,7 +359,7 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
       setIsVoiceSupported(hasSpeechRecognition);
 
       if (hasSpeechRecognition) {
-        const speechWindow = window as Window & {
+        const speechWindow = window as unknown as {
           webkitSpeechRecognition?: SpeechRecognitionConstructor;
           SpeechRecognition?: SpeechRecognitionConstructor;
         };
@@ -315,42 +425,79 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
 
   // 加载对话历史
   const loadConversationHistory = useCallback(async () => {
+    console.log('🔄 开始加载对话历史...');
     try {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
-      if (!user) return;
+      
+      if (authError) {
+        console.error('❌ 获取用户失败:', authError);
+        return;
+      }
+      
+      if (!user) {
+        console.log('⚠️ 用户未登录，跳过加载历史');
+        return;
+      }
+      
+      console.log('👤 当前用户:', user.id);
 
       // 直接加载用户最近的50条对话，不限制session
+      // 按时间倒序获取最新的50条，然后在前端反转顺序
       const { data, error } = await supabase
         .from('chat_conversations')
-        .select('role, content, created_at, session_id')
+        .select('role, content, created_at, session_id, metadata')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(50); // 加载最近的50条
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) {
-        console.error('加载对话历史时出错:', error);
+        console.error('❌ 加载对话历史失败:', error.message, error.details, error.hint);
         return;
       }
 
+      console.log('📊 数据库返回:', data?.length || 0, '条记录');
+
       if (data && data.length > 0) {
-        const historyMessages: Message[] = data.map((msg) => ({
-          role: msg.role as RoleType,
-          content: msg.content,
-          timestamp: new Date(msg.created_at),
-        }));
+        // 反转顺序，让最早的消息在前面
+        const sortedData = [...data].reverse();
+        
+        const historyMessages: Message[] = sortedData.map((msg) => {
+          // 从 metadata 中提取论文和共识度数据
+          const metadata = msg.metadata as { 
+            papers?: PaperSource[]; 
+            consensus?: { score: number; level: string; rationale?: string };
+            timestamp?: string;
+          } | null;
+          
+          return {
+            role: msg.role as RoleType,
+            content: msg.content,
+            timestamp: new Date(msg.created_at),
+            papers: metadata?.papers,
+            consensus: metadata?.consensus,
+          };
+        });
         setMessages(historyMessages);
         
         // 设置最后一条消息的session_id为当前sessionId
-        const lastSessionId = data[data.length - 1].session_id;
-        setSessionId(lastSessionId);
+        const lastSessionId = sortedData[sortedData.length - 1].session_id;
+        if (lastSessionId) {
+          setSessionId(lastSessionId);
+        }
         
-        console.log('✅ 已加载', data.length, '条历史消息');
-        console.log('💾 已保存sessionId:', lastSessionId);
+        console.log('✅ 已加载', sortedData.length, '条历史消息');
+        console.log('📝 最新消息:', sortedData[sortedData.length - 1]?.content?.substring(0, 50) + '...');
+        if (lastSessionId) {
+          console.log('💾 已保存sessionId:', lastSessionId);
+        }
+      } else {
+        console.log('📭 没有历史消息');
       }
     } catch (error) {
-      console.error('加载对话历史时出错:', error);
+      console.error('❌ 加载对话历史异常:', error);
     }
   }, [supabase]);
 
@@ -358,14 +505,20 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
   useEffect(() => {
     const initializeChat = async () => {
       await loadConversationHistory();
+      setHistoryLoaded(true);  // 标记历史加载完成
     };
 
     initializeChat();
   }, [loadConversationHistory]);
 
   // 显示欢迎消息（如果没有历史消息）
+  // 使用 ref 来追踪是否已经尝试加载过历史
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  
   useEffect(() => {
-    if (messages.length === 0 && initialProfile) {
+    // 只有在历史加载完成后，且没有消息时，才显示欢迎消息
+    if (historyLoaded && messages.length === 0 && initialProfile) {
+      console.log('📝 没有历史消息，显示欢迎消息');
       const welcomeMessage = generateWelcomeMessage(initialProfile);
       setMessages([{
         role: 'assistant',
@@ -373,42 +526,39 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
         timestamp: new Date(),
       }]);
     }
-  }, [initialProfile, messages.length]);
+  }, [historyLoaded, initialProfile, messages.length]);
 
   // 自动滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 生成欢迎消息
+  // 生成欢迎消息 (Active Inquiry - 主动询问)
   const generateWelcomeMessage = (profile: AIAssistantProfile): string => {
-    if (!profile) {
-      return `你好，我是你的专属健康代理。\n朋友，我会记住你的习惯偏好，随时等你继续对话。\n\n有什么问题随时问我。`;
-    }
-
-    const analysis = profile.ai_analysis_result;
-    const plan = profile.ai_recommendation_plan;
     const displayName = resolveDisplayName(profile);
-    const habitMemory = extractHabitMemory(profile);
-
-    if (!analysis || !plan) {
-      return `你好，我是你的专属健康代理。\n${displayName}，我会继续跟踪你的微习惯，保持上下文不丢失。\n\n你的资料正在分析中，请稍候。有什么问题随时问我。`;
+    
+    // 使用 Active Inquiry 服务生成基于数据的诊断问题
+    const inquiry = generateActiveInquiry({
+      dailyLogs: dailyLogs,
+      profile: profile ? {
+        full_name: profile.full_name || undefined,
+        nickname: profile.nickname || undefined,
+        preferred_name: profile.preferred_name || undefined
+      } : undefined
+    });
+    
+    // 根据优先级构建消息
+    if (inquiry.priority === 'high' || inquiry.priority === 'medium') {
+      // 高/中优先级：直接提出诊断问题
+      return inquiry.questionZh;
     }
-
-    let message = `你好，我是你的专属健康代理。\n${displayName}，很高兴继续陪你一起复盘。\n`;
-    if (habitMemory) {
-      if (Array.isArray(habitMemory)) {
-        message += `我已经记住你最近专注的习惯：${habitMemory.slice(0, 3).join('、')}。\n\n`;
-      } else {
-        message += `我已经记住你最近的习惯重点：「${habitMemory}」。\n\n`;
-      }
-    } else {
-      message += `我会持续保留你的习惯记忆，确保我们每次对话都在同一上下文里。\n\n`;
+    
+    // 低优先级或无数据：提供上下文问候
+    if (inquiry.dataPoints.length > 0) {
+      return `${inquiry.questionZh}\n\n📊 今日数据：${inquiry.dataPoints.join(' | ')}`;
     }
-    message += `基于你提供的资料，我已经完成了初步分析（置信度：${analysis.confidence_score || 0}%）。\n\n`;
-    message += `有什么问题随时问我。`;
-
-    return message;
+    
+    return inquiry.questionZh;
   };
 
   // 处理语音输入
@@ -463,122 +613,272 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
     setInput('');
     setIsLoading(true);
 
-    // 先调用AI API，获取sessionId
+    // 并行调用 AI API 和论文 API
+    console.log('🚀 开始并行调用 AI 和论文 API, 查询:', currentInput);
+    
+    // 先启动论文搜索（不等待）
+    const papersPromise = fetchPapers(currentInput);
+    
+    // 同时启动 AI 响应
     const aiResponse = await generateAIResponse(currentInput, uploadedImage || undefined);
+    
+    // 等待论文结果
+    const papersResponse = await papersPromise;
+    
+    console.log('📊 论文响应:', JSON.stringify(papersResponse));
+    console.log('📊 AI响应中的论文:', aiResponse.papers);
     
     // 清除已上传的图片
     setUploadedImage(null);
 
+    // 合并论文数据（优先使用单独 API 的结果）
+    const papers = (papersResponse.papers && papersResponse.papers.length > 0)
+      ? papersResponse.papers 
+      : aiResponse.papers;
+    const consensus = papersResponse.consensus || aiResponse.consensus;
+    
+    console.log('📊 最终论文数据:', papers);
+    console.log('📊 论文数量:', papers?.length || 0);
+
     const assistantMessage: Message = {
       role: 'assistant',
-      content: aiResponse,
+      content: aiResponse.content,
       timestamp: new Date(),
+      papers: papers,
+      consensus: consensus,
     };
+    
+    console.log('📊 助手消息中的论文:', assistantMessage.papers?.length || 0, '篇');
 
     setMessages(prev => [...prev, assistantMessage]);
     setIsLoading(false);
+    setIsGeneratingAnswer(false);
 
-    // 现在有sessionId了，保存用户消息和AI回复
+    // 保存用户消息和AI回复
     await saveMessage(userMessage);
     await saveMessage(assistantMessage);
   };
-
-  // 保存消息
-  const saveMessage = async (message: Message) => {
+  
+  // 获取论文数据（单独 API）
+  const fetchPapers = async (query: string): Promise<{
+    papers?: PaperSource[];
+    consensus?: { score: number; level: string; rationale?: string };
+  }> => {
+    console.log('📚 [fetchPapers] 开始调用, 查询:', query);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const url = '/api/chat/papers';
+      console.log('📚 [fetchPapers] 请求 URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      
+      console.log('📚 [fetchPapers] 响应状态:', response.status);
+      
+      if (!response.ok) {
+        console.warn('⚠️ [fetchPapers] API 返回错误:', response.status);
+        return {};
+      }
+      
+      const data = await response.json();
+      console.log('📚 [fetchPapers] 返回数据:', JSON.stringify(data).substring(0, 200));
+      
+      if (data.papers && data.papers.length > 0) {
+        const papers = data.papers.map((p: any) => ({
+          rank: p.rank,
+          title: p.title,
+          citationCount: p.citationCount,
+          year: p.year,
+          url: p.url,
+        }));
+        console.log('📚 [fetchPapers] 解析后论文数:', papers.length);
+        return {
+          papers,
+          consensus: data.consensus,
+        };
+      }
+      
+      console.log('📚 [fetchPapers] 没有论文数据');
+      return {};
+    } catch (error) {
+      console.error('❌ [fetchPapers] 调用失败:', error);
+      return {};
+    }
+  };
 
-      // 如果没有sessionId，跳过（不应该发生，因为AI API已经返回sessionId）
-      if (!sessionId) {
-        console.warn('⚠️ 没有sessionId，无法保存消息');
+  // 保存消息 - 即使没有 sessionId 也保存
+  const saveMessage = async (message: Message) => {
+    console.log('💾 开始保存消息:', message.role, message.content.substring(0, 30) + '...');
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('❌ 保存消息 - 获取用户失败:', authError);
+        return;
+      }
+      
+      if (!user) {
+        console.error('❌ 保存消息 - 用户未登录');
         return;
       }
 
-      const { error } = await supabase
+      // 构建插入数据，session_id 可选
+      const insertData: {
+        user_id: string;
+        role: string;
+        content: string;
+        metadata: Record<string, unknown>;
+        session_id?: string;
+      } = {
+        user_id: user.id,
+        role: message.role,
+        content: message.content,
+        metadata: {
+          timestamp: message.timestamp.toISOString(),
+          papers: message.papers || [],
+          consensus: message.consensus || null,
+        },
+      };
+
+      // 如果有 sessionId，添加到数据中
+      if (sessionId) {
+        insertData.session_id = sessionId;
+      }
+
+      console.log('📤 插入数据:', { 
+        user_id: user.id, 
+        role: message.role, 
+        content_length: message.content.length,
+        has_session: !!sessionId 
+      });
+
+      const { data, error } = await supabase
         .from('chat_conversations')
-        .insert({
-          user_id: user.id,
-          session_id: sessionId,
-          role: message.role,
-          content: message.content,
-          metadata: {
-            timestamp: message.timestamp.toISOString(),
-          },
-        });
+        .insert(insertData)
+        .select('id');
       
       if (error) {
-        console.error('❌ 保存消息失败:', error);
+        console.error('❌ 保存消息失败:', error.message, error.details, error.hint, error.code);
       } else {
-        console.log('✅ 消息已保存到数据库');
+        console.log('✅ 消息已保存到数据库, ID:', data?.[0]?.id, sessionId ? `(session: ${sessionId})` : '(无session)');
       }
     } catch (error) {
       console.error('❌ 保存消息异常:', error);
     }
   };
 
-  // 生成 AI 回复
-  const generateAIResponse = async (userInput: string, imageData?: string): Promise<string> => {
+  // 生成 AI 回复 (适配新的流式 API)
+  // 返回包含内容和论文数据的对象
+  interface AIResponseResult {
+    content: string;
+    papers?: PaperSource[];
+    consensus?: { score: number; level: string; rationale?: string };
+  }
+  
+  const generateAIResponse = async (userInput: string, imageData?: string): Promise<AIResponseResult> => {
     try {
-      // 不传递conversationHistory，让后端从数据库加载
-      // 这样可以确保使用完整的历史记录
+      // 构建消息数组 (新 API 格式)
+      const chatMessages = [
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: userInput }
+      ];
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userInput,
-          sessionId: sessionId, // 传递sessionId以继续对话
-          // conversationHistory: 不传递，让后端从数据库加载
-          userProfile: initialProfile,
-          image: imageData, // 传递图片数据
+          messages: chatMessages
         }),
       });
 
       console.log('📡 API Response status:', response.status);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ API错误详情:', errorData);
-        
         // 根据状态码提供更具体的错误信息
         if (response.status === 401) {
-          return '您的登录已过期，请刷新页面重新登录。';
+          return { content: '您的登录已过期，请刷新页面重新登录。' };
+        } else if (response.status === 403) {
+          return { content: '内容已过滤：让我们专注于您的健康与平静。' };
         } else if (response.status === 500) {
-          return '服务器内部错误，请稍后重试。如果问题持续，请联系客服。';
-        } else if (response.status === 503) {
-          return 'AI 服务暂时不可用，请稍后重试。';
+          return { content: '服务器内部错误，请稍后重试。' };
         }
-        throw new Error(errorData.error || 'AI 服务暂时不可用');
+        return { content: 'AI 服务暂时不可用，请稍后重试。' };
       }
 
-      const data = await response.json();
-      console.log('✅ API响应数据:', data);
+      // 读取论文和共识度数据（从 headers）
+      // 注意：必须在读取 body 之前获取 headers
+      let papers: PaperSource[] | undefined;
+      let consensus: { score: number; level: string; rationale?: string } | undefined;
       
-      // 检查响应是否成功
-      if (!data.success && data.error) {
-        console.error('❌ API返回错误:', data.error);
-        return `抱歉，${data.error}`;
+      // 打印所有响应 headers 用于调试
+      console.log('📋 响应 Headers:');
+      response.headers.forEach((value, key) => {
+        console.log(`  ${key}: ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}`);
+      });
+      
+      const papersHeader = response.headers.get('x-neuromind-papers');
+      const consensusHeader = response.headers.get('x-neuromind-consensus');
+      const searchStatus = response.headers.get('x-neuromind-search-status');
+      
+      console.log('🔍 搜索状态:', searchStatus);
+      console.log('📚 论文 Header 原始值:', papersHeader ? papersHeader.substring(0, 200) : 'null');
+      
+      if (papersHeader) {
+        try {
+          // 解码 Base64 编码的 JSON
+          const decodedPapers = Buffer.from(papersHeader, 'base64').toString('utf-8');
+          papers = JSON.parse(decodedPapers);
+          console.log('📚 收到论文数据:', papers?.length, '篇');
+          if (papers && papers.length > 0) {
+            console.log('📚 第一篇论文:', papers[0].title);
+          }
+        } catch (e) {
+          console.warn('解析论文数据失败:', e);
+        }
+      } else {
+        console.log('⚠️ 没有收到论文 header');
       }
       
-      // 保存API返回的sessionId
-      if (data.data?.sessionId && !sessionId) {
-        setSessionId(data.data.sessionId);
-        console.log('💾 已保存sessionId:', data.data.sessionId);
+      if (consensusHeader) {
+        try {
+          // 解码 Base64 编码的 JSON
+          const decodedConsensus = Buffer.from(consensusHeader, 'base64').toString('utf-8');
+          consensus = JSON.parse(decodedConsensus);
+          console.log('🎯 共识度:', consensus?.level, `(${((consensus?.score || 0) * 100).toFixed(0)}%)`);
+        } catch (e) {
+          console.warn('解析共识度数据失败:', e);
+        }
       }
-      
-      // RAG端点返回格式: { success: true, data: { answer, sessionId, knowledgeUsed, metadata } }
-      return data.data?.answer || data.response || '抱歉，我无法生成回复。';
+
+      // 读取流式响应
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullResponse += decoder.decode(value, { stream: true });
+      }
+
+      console.log('✅ AI响应完成');
+      return { 
+        content: fullResponse || '抱歉，我无��生成回复。',
+        papers,
+        consensus
+      };
     } catch (error) {
       console.error('❌ 调用 AI API 时出错:', error);
       
-      // 检查是否是网络错误
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        return '网络连接失败，请检查您的网络连接后重试。';
+        return { content: '网络连接失败，请检查您的网络连接后重试。' };
       }
       
-      return `抱歉，AI 服务暂时不可用。请稍后重试。`;
+      return { content: '抱歉，AI 服务暂时不可用。请稍后重试。' };
     }
   };
 
@@ -655,7 +955,11 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
                         : 'bg-white text-[#0B3D2E] border border-[#E7E1D6]'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap text-base sm:text-sm leading-relaxed">{message.content}</div>
+                    <div className="whitespace-pre-wrap text-base sm:text-sm leading-relaxed">
+                      {message.role === AI_ROLES.ASSISTANT && containsPlans(message.content)
+                        ? removePlansFromContent(message.content)
+                        : message.content}
+                    </div>
                     <div className={`text-xs mt-1.5 sm:mt-1 ${message.role === AI_ROLES.USER ? 'text-white/70' : 'text-[#0B3D2E]/60'}`}>
                       {message.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                     </div>
@@ -666,7 +970,25 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
                     <AIPlanCard
                       plans={parsePlans(message.content)}
                       onConfirm={handlePlanConfirm}
+                      onConfirmWithModification={handlePlanConfirmWithModification}
                     />
+                  )}
+                  
+                  {/* 论文来源展示 */}
+                  {message.role === AI_ROLES.ASSISTANT && message.papers && message.papers.length > 0 && (
+                    <div className="mt-2">
+                      <PaperSources 
+                        papers={message.papers.map(p => ({
+                          paperId: p.url || `paper-${p.rank}`,
+                          title: p.title,
+                          citationCount: p.citationCount,
+                          url: p.url || '#',
+                          year: p.year,
+                        }))}
+                        defaultExpanded={false}
+                        maxVisible={3}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -677,66 +999,15 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start"
               >
-                <div className="relative px-4 py-3 bg-white rounded-lg border-2 border-[#E7E1D6]">
-                  {/* 跑马灯 SVG - 沿着矩形边框路径 */}
-                  <svg 
-                    className="absolute inset-0 w-full h-full pointer-events-none"
-                    style={{ overflow: 'visible' }}
-                  >
-                    <defs>
-                      {/* 深绿到浅绿渐变 */}
-                      <linearGradient id="border-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="transparent" />
-                        <stop offset="20%" stopColor="#A7F3D0" stopOpacity="0.3" />
-                        <stop offset="40%" stopColor="#34D399" stopOpacity="0.6" />
-                        <stop offset="50%" stopColor="#10B981" stopOpacity="0.9" />
-                        <stop offset="60%" stopColor="#059669" stopOpacity="0.9" />
-                        <stop offset="70%" stopColor="#047857" stopOpacity="0.7" />
-                        <stop offset="80%" stopColor="#065F46" stopOpacity="0.5" />
-                        <stop offset="90%" stopColor="#064E3B" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="transparent" />
-                      </linearGradient>
-                    </defs>
-                    
-                    {/* 矩形边框路径 */}
-                    <rect
-                      x="0"
-                      y="0"
-                      width="100%"
-                      height="100%"
-                      rx="8"
-                      fill="none"
-                      stroke="url(#border-gradient)"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeDasharray="100 300"
-                    >
-                      {/* 三圈变速循环动画 */}
-                      <animate
-                        attributeName="stroke-dashoffset"
-                        values="0; -400; -400; -800; -800; -1200"
-                        dur="4.3s"
-                        keyTimes="0; 0.186; 0.186; 0.488; 0.488; 1"
-                        repeatCount="indefinite"
-                      />
-                    </rect>
-                  </svg>
-                  
-                  {/* 文字 */}
-                  <motion.span
-                    animate={{
-                      opacity: [0.6, 1, 0.6],
-                    }}
-                    transition={{
-                      duration: 4.3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="relative z-10 text-sm font-semibold text-[#0B3D2E]"
-                  >
-                    No More anxious
-                  </motion.span>
-                </div>
+                <MarqueeBorderBox isActive={isGeneratingAnswer}>
+                  <div className="bg-white rounded-xl px-4 py-4 shadow-sm">
+                    <AIThinkingLoader 
+                      size="sm" 
+                      showProgress={true} 
+                      onGeneratingStart={() => setIsGeneratingAnswer(true)}
+                    />
+                  </div>
+                </MarqueeBorderBox>
               </motion.div>
             )}
             <div ref={messagesEndRef} />
@@ -811,14 +1082,17 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
               )}
             </div>
           </div>
-          <button
+          <MotionButton
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="rounded-lg bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-5 py-3 sm:px-4 sm:py-2 text-white shadow-md active:shadow-lg sm:hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation min-w-[48px] sm:min-w-0"
+            variant="default"
+            size="default"
+            className="rounded-lg bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-5 py-3 sm:px-4 sm:py-2 text-white shadow-md min-w-[48px] sm:min-w-0"
+            hapticFeedback={true}
             aria-label="发送"
           >
             <SendIcon className="w-5 h-5 sm:w-4 sm:h-4" />
-          </button>
+          </MotionButton>
         </form>
         {isRecording && (
           <div className="mt-2 text-xs text-center text-red-500 animate-pulse">
@@ -840,3 +1114,86 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
   );
 }
 
+
+// 跑马灯边框组件 - 非匀速绿色渐变效果
+function MarqueeBorderBox({ children, isActive }: { children: React.ReactNode; isActive: boolean }) {
+  if (!isActive) {
+    return (
+      <div className="rounded-xl border border-[#E7E1D6]">
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative rounded-xl p-[2px] overflow-hidden">
+      {/* 跑马灯边框 - 三圈变速动画 */}
+      <div className="absolute inset-0 rounded-xl">
+        {/* 第一圈 - 快速 */}
+        <motion.div
+          className="absolute inset-0 rounded-xl"
+          style={{
+            background: 'conic-gradient(from 0deg, transparent 0%, #22c55e 10%, #10b981 20%, #059669 30%, transparent 40%)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{
+            duration: 1.2,
+            repeat: Infinity,
+            ease: [0.4, 0, 0.2, 1], // 非匀速 - 先快后慢
+          }}
+        />
+        {/* 第二圈 - 中速 */}
+        <motion.div
+          className="absolute inset-0 rounded-xl"
+          style={{
+            background: 'conic-gradient(from 120deg, transparent 0%, #0B3D2E 8%, #22c55e 16%, transparent 24%)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: [0.25, 0.1, 0.25, 1], // 非匀速 - 平滑变速
+          }}
+        />
+        {/* 第三圈 - 慢速 */}
+        <motion.div
+          className="absolute inset-0 rounded-xl"
+          style={{
+            background: 'conic-gradient(from 240deg, transparent 0%, #059669 5%, #10b981 10%, #22c55e 15%, transparent 20%)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: [0.65, 0, 0.35, 1], // 非匀速 - 慢启快停
+          }}
+        />
+      </div>
+      
+      {/* 内容区域 */}
+      <div className="relative rounded-xl bg-white">
+        {children}
+      </div>
+      
+      {/* 发光效果 */}
+      <motion.div
+        className="absolute inset-0 rounded-xl pointer-events-none"
+        style={{
+          boxShadow: '0 0 20px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(34, 197, 94, 0.1)',
+        }}
+        animate={{
+          boxShadow: [
+            '0 0 15px rgba(34, 197, 94, 0.2), inset 0 0 15px rgba(34, 197, 94, 0.05)',
+            '0 0 25px rgba(34, 197, 94, 0.4), inset 0 0 25px rgba(34, 197, 94, 0.15)',
+            '0 0 15px rgba(34, 197, 94, 0.2), inset 0 0 15px rgba(34, 197, 94, 0.05)',
+          ],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+    </div>
+  );
+}

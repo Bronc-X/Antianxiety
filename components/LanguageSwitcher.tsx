@@ -1,20 +1,32 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 
 export default function LanguageSwitcher() {
   const { language, setLanguage } = useI18n();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const toggleLanguage = () => {
     setLanguage(language === 'zh' ? 'en' : 'zh');
   };
 
+  // Prevent hydration mismatch by using consistent initial render
+  const label = mounted 
+    ? `切换到${language === 'zh' ? 'English' : '中文'}`
+    : '切换语言';
+
   return (
     <button
       onClick={toggleLanguage}
       className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-[#0B3D2E]/10 transition-colors"
-      aria-label={`切换到${language === 'zh' ? 'English' : '中文'}`}
-      title={`切换到${language === 'zh' ? 'English' : '中文'}`}
+      aria-label={label}
+      title={label}
+      suppressHydrationWarning
     >
       {/* 简笔地球图标 */}
       <svg

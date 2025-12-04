@@ -1,0 +1,42 @@
+{
+  "$schema": "https://kiro.dev/schemas/hooks.json",
+  "hooks": [
+    {
+      "id": "doc-reminder-on-complete",
+      "name": "Documentation Reminder",
+      "description": "Reminds to update documentation and collect marketing assets after task completion",
+      "trigger": {
+        "type": "on-agent-complete"
+      },
+      "action": {
+        "type": "send-message",
+        "message": "📋 **文档更新提醒**\n\n请检查以下事项：\n\n1. **营销素材**: 如果刚完成的任务涉及 UI 变更，请截图/录屏并更新 `MARKETING_ASSETS.md`\n2. **开发日志**: 如果这是今天的最后一个任务，请更新 `DEVELOPMENT_DIARY.md`\n3. **README**: 如果完成了重大功能，请更新 `README.md`\n\n⚠️ 查看 `MARKETING_ASSETS.md` 中是否有逾期的 TODO 素材需要处理。"
+      }
+    },
+    {
+      "id": "startup-checklist",
+      "name": "Daily Startup Checklist",
+      "description": "Reminds to complete daily startup checklist on new session",
+      "trigger": {
+        "type": "on-session-create"
+      },
+      "action": {
+        "type": "send-message",
+        "message": "🌅 **每日开工检查清单**\n\n开始工作前，请完成以下检查：\n\n- [ ] 阅读 `PROJECT_CONSTITUTION.md` 核心理念\n- [ ] 查看 `DEVELOPMENT_DIARY.md` 最近进展\n- [ ] 检查 `MARKETING_ASSETS.md` 待处理素材\n\n如有逾期素材（超过3天），请优先处理！"
+      }
+    },
+    {
+      "id": "ui-file-save-reminder",
+      "name": "UI File Save Reminder",
+      "description": "Reminds to capture marketing assets when UI files are saved",
+      "trigger": {
+        "type": "on-file-save",
+        "pattern": "components/**/*.tsx"
+      },
+      "action": {
+        "type": "send-message",
+        "message": "📸 **UI 组件已保存**\n\n如果这个组件有可见的 UI 变更，请考虑：\n- 截图保存到 `public/marketing/`\n- 或添加 TODO 到 `MARKETING_ASSETS.md`"
+      }
+    }
+  ]
+}

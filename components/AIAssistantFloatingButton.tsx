@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import type { AIAssistantProfile } from '@/types/assistant';
+import { MotionButton } from '@/components/motion/MotionButton';
 
 // 使用 Next.js dynamic 懒加载浮窗聊天组件，减少初始 bundle
 const AIAssistantFloatingChat = dynamic(() => import('./AIAssistantFloatingChat'), {
@@ -84,15 +85,16 @@ export default function AIAssistantFloatingButton() {
         className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <motion.button
+        <MotionButton
           onClick={() => setIsChatOpen(true)}
-          className="flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-5 py-4 sm:px-6 sm:py-4 text-white shadow-lg active:shadow-xl sm:hover:shadow-xl transition-all touch-manipulation min-h-[56px] sm:min-h-0"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          variant="primary"
+          size="lg"
+          className="flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-5 py-4 sm:px-6 sm:py-4 text-white shadow-lg min-h-[56px] sm:min-h-0"
+          hapticFeedback={true}
         >
           <span className="text-base sm:text-lg font-semibold">AI 助理</span>
           <AnimatePresence>
@@ -108,7 +110,7 @@ export default function AIAssistantFloatingButton() {
               </motion.span>
             )}
           </AnimatePresence>
-        </motion.button>
+        </MotionButton>
       </motion.div>
 
       <AnimatePresence>

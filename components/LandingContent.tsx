@@ -1,549 +1,635 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { UserStateAnalysis, RecommendedTask } from '@/types/logic';
-import { CheckCircle2, Battery, Moon, Activity, Wind, TrendingUp, Info, Footprints, Dumbbell, Sun, Droplets, BookOpen, Hourglass, Lightbulb, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import BreathingModal from './BreathingModal';
-import DynamicHealthTips from './DynamicHealthTips';
-import { analyzeHealthTrends, getTrendIcon, getTrendColor } from '@/lib/trend-analysis';
-import { useRouter } from 'next/navigation';
-import { calculateEnergyLevel, convertLogToEnergyInput, getEnergyLabel } from '@/lib/energy-calculator';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { BrainLoader } from '@/components/lottie/BrainLoader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-// 定义 Props (合并旧的和新的)
+import { 
+  Brain,
+  ExternalLink,
+  Sparkles,
+  AlertTriangle,
+  Moon,
+  Activity
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MotionButton } from '@/components/motion/MotionButton';
+import { DailyTasksCard } from '@/components/DailyTasksCard';
+import { ConsensusMeter, ConsensusIndicator } from '@/components/ConsensusMeter';
+import { WisdomCarousel } from '@/components/WisdomCarousel';
+import { DailyCheckin } from '@/components/DailyCheckin';
+import { CalibrationInput, GeneratedTask } from '@/lib/calibration-service';
+import AnimatedSection from '@/components/AnimatedSection';
+import XFeed from '@/components/XFeed';
+import DailyQuestionnaire from '@/components/DailyQuestionnaire';
+
 interface LandingContentProps {
   user: any;
   profile: any;
-  habitLogs: any[];
+  userState: any;
+  recommendedTask: any;
   dailyLogs: any[];
-  // 新增
-  userState: UserStateAnalysis;
-  recommendedTask: RecommendedTask;
-  plans?: any[]; // 用户计划
+  habitLogs: any[];
 }
 
-export default function LandingContent({ 
-  user, 
-  profile, 
-  dailyLogs,
-  habitLogs,
-  userState, 
-  recommendedTask,
-  plans = []
+
+
+export default function LandingContent({
+  user,
+  profile,
+  dailyLogs
 }: LandingContentProps) {
-  const router = useRouter();
-  
-  // 分析健康趋势
-  const trendAnalysis = analyzeHealthTrends(dailyLogs || []);
-  
-  // 计算真实能量值（基于最新日志数据）
-  const energyData = useMemo(() => {
-    const latestLog = dailyLogs && dailyLogs.length > 0 ? dailyLogs[0] : null;
-    const input = convertLogToEnergyInput(latestLog);
-    const breakdown = calculateEnergyLevel(input);
-    const label = getEnergyLabel(breakdown.totalScore);
-    return { breakdown, label, hasData: latestLog !== null };
-  }, [dailyLogs]);
-  
-  const [taskCompleted, setTaskCompleted] = useState(false);
-  const [showBreathingModal, setShowBreathingModal] = useState(false);
-  const [showInfoDrawer, setShowInfoDrawer] = useState(false);
-  const [showBonusHabits, setShowBonusHabits] = useState(false);
-  const [completedBonusHabits, setCompletedBonusHabits] = useState<Set<number>>(new Set());
+  // Insight State
+  const [insight, setInsight] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 额外习惯列表
-  const bonusHabits = [
-    { icon: <Droplets className="w-6 h-6" />, name: '喝水 500ml', duration: '2分钟' },
-    { icon: <BookOpen className="w-6 h-6" />, name: '阅读 10 页', duration: '15分钟' },
-  ];
 
-  // 切换额外习惯完成状态
-  const toggleBonusHabit = (index: number) => {
-    setCompletedBonusHabits(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
-      } else {
-        newSet.add(index);
+  
+  // Anomaly Detection State
+  const [showAnomalyCard, setShowAnomalyCard] = useState(false);
+  const [anomalyQuestion, setAnomalyQuestion] = useState('');
+  
+  // Daily Calibration State
+  const [showCalibrationSheet, setShowCalibrationSheet] = useState(false);
+  const [todayTask, setTodayTask] = useState<GeneratedTask | null>(null);
+
+  // Real Biometrics from dailyLogs
+  const latestLog = dailyLogs?.[0];
+  const previousLog = dailyLogs?.[1];
+  const biometrics = {
+    sleep: latestLog?.sleep_hours,
+    hrv: latestLog?.hrv,
+    stress: latestLog?.stress_level,
+  };
+  const hasData = biometrics.sleep !== undefined || biometrics.hrv !== undefined;
+
+  // Detect HRV Anomaly (>15% drop)
+  useEffect(() => {
+    if (latestLog?.hrv && previousLog?.hrv) {
+      const hrvDrop = (previousLog.hrv - latestLog.hrv) / previousLog.hrv;
+      if (hrvDrop > 0.15) {
+        setShowAnomalyCard(true);
+        setAnomalyQuestion(`你的 HRV 下降了 ${Math.round(hrvDrop * 100)}%。昨晚是否有以下情况？`);
       }
-      return newSet;
-    });
+    }
+  }, [latestLog, previousLog]);
+
+  // Check if Daily Calibration needed (every day)
+  useEffect(() => {
+    if (!user) return;
+    
+    const today = new Date().toDateString();
+    const lastCalibration = localStorage.getItem('nma_daily_calibration');
+    
+    // Show calibration sheet if not done today
+    if (lastCalibration !== today) {
+      const timer = setTimeout(() => {
+        setShowCalibrationSheet(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  // Handle calibration complete
+  const handleCalibrationComplete = (result: { input: CalibrationInput; task: GeneratedTask }) => {
+    setTodayTask(result.task);
+    // 保存任务到 localStorage
+    localStorage.setItem('nma_today_task', JSON.stringify(result.task));
+    console.log('Calibration complete:', result);
+  };
+  
+  // 页面加载时恢复今日任务
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const lastCalibration = localStorage.getItem('nma_daily_calibration');
+    
+    // 如果今天已完成校准，恢复任务
+    if (lastCalibration === today) {
+      const savedTask = localStorage.getItem('nma_today_task');
+      if (savedTask) {
+        try {
+          setTodayTask(JSON.parse(savedTask));
+        } catch (e) {
+          console.error('Failed to parse saved task:', e);
+        }
+      }
+    }
+  }, []);
+
+  // Generate Insight (Real AI Data Only)
+  useEffect(() => {
+    if (!hasData) {
+      setIsLoading(false);
+      return;
+    }
+
+    const generateInsight = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/insight/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sleep_hours: biometrics.sleep,
+            hrv: biometrics.hrv,
+            stress_level: biometrics.stress,
+          })
+        });
+
+        if (response.ok) {
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let text = '';
+          while (reader) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            text += decoder.decode(value, { stream: true });
+          }
+          setInsight(text || null);
+        }
+      } catch (err) {
+        console.error('Insight generation failed:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    generateInsight();
+  }, [hasData, biometrics.sleep, biometrics.hrv, biometrics.stress]);
+
+
+
+  const handleAnomalyAnswer = (trigger: string) => {
+    console.log('Anomaly trigger:', trigger);
+    setShowAnomalyCard(false);
   };
 
-  // 图标映射
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Moon': return <Moon className="w-8 h-8 text-[#0B3D2E]" />;
-      case 'Activity': return <Activity className="w-8 h-8 text-[#0B3D2E]" />;
-      case 'Wind': return <Wind className="w-8 h-8 text-[#0B3D2E]" />;
-      case 'Footprints': return <Footprints className="w-8 h-8 text-[#0B3D2E]" />;
-      case 'Dumbbell': return <Dumbbell className="w-8 h-8 text-[#0B3D2E]" />;
-      case 'Sun': return <Sun className="w-8 h-8 text-[#0B3D2E]" />;
-      default: return <Activity className="w-8 h-8 text-[#0B3D2E]" />;
-    }
-  };
+
 
   return (
-    <>
-      {/* ORGANIC DESIGN: Breathing Background */}
-      <div className="breathing-background" aria-hidden="true" />
-      
-      <main className="max-w-3xl mx-auto px-4 py-8 space-y-8 relative">
+    <div className="min-h-screen bg-[#FAF6EF] p-4 pb-24 md:pb-4">
+      {/* Header */}
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">
+          你好，{profile?.full_name || profile?.nickname || '朋友'}
+        </h1>
+        <p className="text-gray-500">让我们找到今天的平衡。</p>
+      </header>
+
+      {/* Wisdom Carousel */}
+      <div className="max-w-4xl mx-auto mb-4">
+        <WisdomCarousel autoPlay={true} interval={8000} />
+      </div>
+
+      {/* Dashboard Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
         
-        {/* SECTION 1: 状态感知 (Permission to Rest) */}
-        <section className="glass-card rounded-3xl p-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-serif text-[#0B3D2E]">
-              {profile?.full_name || user?.email?.split('@')[0] || 'Broncin'}, 早安
-            </h1>
-            <p className="text-[#0B3D2E]/70 mt-1 text-sm">
-              今日天气适宜，你的身体处于 
-              <span className={`font-bold ml-1 ${userState.color}`}>
-                {userState.label}
-              </span>
-            </p>
-          </div>
-          
-          {/* 身体电池可视化 - 可点击查看详情 */}
-          <motion.div 
-            className="flex flex-col items-end cursor-pointer group"
-            onClick={() => router.push('/energy-breakdown')}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${energyData.label.color}`}>
-                {energyData.breakdown.totalScore}% 能量值
-              </span>
-              {/* 电池图标 - 填充与数值同步 */}
-              <div className="relative">
-                <Battery className={`w-8 h-8 ${energyData.label.color}`} />
-                {/* 电池填充层 */}
-                <div 
-                  className="absolute top-[6px] left-[4px] h-[12px] rounded-sm transition-all duration-500"
-                  style={{ 
-                    width: `${Math.max(2, energyData.breakdown.totalScore * 0.18)}px`,
-                    backgroundColor: energyData.breakdown.totalScore >= 60 ? '#0B3D2E' : 
-                                     energyData.breakdown.totalScore >= 40 ? '#d97706' : '#dc2626'
-                  }}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-[#0B3D2E]/50 group-hover:text-[#0B3D2E]/70 transition-colors mt-1">
-              <span>查看详情</span>
-              <ChevronRight className="w-3 h-3" />
-            </div>
-          </motion.div>
-        </div>
-
-        {/* 状态洞察 (Insight) */}
-        <div className={`mt-4 p-4 rounded-2xl text-sm leading-relaxed ${
-          userState.mode === 'RECOVERY' ? 'bg-amber-50 text-amber-900' : 'bg-[#F2F7F5] text-[#0B3D2E]'
-        }`}>
-          <div className="flex gap-2">
-            <Info className="w-4 h-4 mt-0.5 shrink-0" />
-            <p>{userState.insight}</p>
-          </div>
-          {/* 偷懒许可 */}
-          {userState.permissionToRest && (
-            <p className="mt-2 font-medium border-t border-amber-200/50 pt-2">
-              💡 提示：检测到高负荷，今天允许暂停一切高强度打卡，安心休息。
-            </p>
-          )}
-        </div>
-      </section>
-
-      {/* SECTION 2: 唯一核心任务 (The One Thing) - HERO CARD */}
-      <section>
-        <div className="flex items-center justify-between mb-3 px-2">
-          <h2 className="text-[#0B3D2E] font-medium opacity-80 uppercase tracking-wider text-xs">
-            Today's Core Mission
-          </h2>
-        </div>
-        
-        <AnimatePresence mode="wait">
-          {!showBonusHabits ? (
+        {/* Anomaly Card (Conditional) */}
+        <AnimatePresence>
+          {showAnomalyCard && (
             <motion.div
-              key="main-task"
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              onClick={() => {
-                console.log('🎯 点击任务卡片:', recommendedTask.taskName);
-                // 如果是呼吸练习，打开模态框（多关键词匹配）
-                const breathingKeywords = ['呼吸', 'breathing', 'Breathing', 'breath'];
-                const isBreathingTask = breathingKeywords.some(keyword => 
-                  recommendedTask.taskName?.toLowerCase().includes(keyword.toLowerCase())
-                );
-                
-                if (isBreathingTask) {
-                  console.log('✅ 检测到呼吸任务，打开模态框');
-                  setShowBreathingModal(true);
-                } else {
-                  console.log('⚪ 普通任务，标记完成');
-                  setTaskCompleted(!taskCompleted);
-                }
-              }}
-              className={`
-                relative group cursor-pointer transition-organic hover-lift overflow-hidden
-                glass-card-strong rounded-[2rem] p-8 border-2
-                ${taskCompleted ? 'border-[#0B3D2E] bg-[#F2F7F5]/80' : 'border-transparent hover:border-[#0B3D2E]/20'}
-              `}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="md:col-span-2"
             >
-          {/* ORGANIC DESIGN: Topographic Texture Watermark */}
-          <div className="absolute inset-0 texture-topographic opacity-50 pointer-events-none" />
-          <div className="absolute bottom-0 right-0 w-64 h-64 opacity-5 pointer-events-none">
-            <Activity className="w-full h-full text-[#0B3D2E]" />
-          </div>
-          <div className="flex items-center gap-6">
-            {/* 左侧大图标 */}
-            <div className={`
-              p-4 rounded-2xl transition-colors
-              ${taskCompleted ? 'bg-[#0B3D2E] text-white' : 'bg-[#FAF6EF]'}
-            `}>
-              {taskCompleted ? <CheckCircle2 className="w-8 h-8" /> : getIcon(recommendedTask.icon)}
-            </div>
-
-            {/* 中间文字 */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-1">
-                <h3 className={`text-3xl font-bold transition-all ${taskCompleted ? 'text-[#0B3D2E] line-through opacity-50' : 'text-[#0B3D2E]'}`}>
-                  {recommendedTask.taskName}
-                </h3>
-                <span className="text-sm font-normal px-3 py-1 bg-[#FAF6EF] rounded-full text-[#0B3D2E]/70 border border-[#E7E1D6]">
-                  {recommendedTask.duration}
-                </span>
-              </div>
-              
-              {/* The "Why" Tag - 赋予意义 */}
-              <p className={`text-sm mt-2 transition-opacity ${taskCompleted ? 'opacity-40' : 'text-[#0B3D2E]/60'}`}>
-                <span className="font-semibold text-[#0B3D2E]/80">Why: </span> 
-                {recommendedTask.reason}
-              </p>
-            </div>
-
-            {/* 右侧 Checkbox 模拟 */}
-            <div className={`
-              w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all
-              ${taskCompleted ? 'border-[#0B3D2E] bg-[#0B3D2E]' : 'border-[#E7E1D6] group-hover:border-[#0B3D2E]/50'}
-            `}>
-              {taskCompleted && <CheckCircle2 className="w-5 h-5 text-white" />}
-            </div>
-          </div>
-          
-          {/* 完成后的鼓励语 */}
-          {taskCompleted && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px] rounded-[2rem]"
-            >
-              <div className="text-center space-y-4">
-                <span className="text-xl font-bold text-[#0B3D2E] bg-white px-6 py-2 rounded-full shadow-lg border border-[#E7E1D6] inline-block">
-                  今日核心已达成，你很棒！🎉
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowBonusHabits(true);
-                  }}
-                  className="text-sm text-[#0B3D2E]/70 hover:text-[#0B3D2E] underline"
-                >
-                  查看额外习惯 →
-                </button>
-              </div>
-            </motion.div>
-          )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="bonus-habits"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="glass-card-strong rounded-[2rem] p-8 border-2 border-emerald-500/30"
-            >
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-[#0B3D2E] mb-2">太棒了！核心任务完成</h3>
-                <p className="text-[#0B3D2E]/60">选择一个额外习惯继续提升</p>
-              </div>
-              
-              <div className="space-y-3">
-                {bonusHabits.map((habit, idx) => {
-                  const isCompleted = completedBonusHabits.has(idx);
-                  return (
-                    <motion.div
-                      key={idx}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: idx * 0.1 }}
-                      onClick={() => toggleBonusHabit(idx)}
-                      className={`flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer ${
-                        isCompleted 
-                          ? 'bg-emerald-50 border-emerald-500 shadow-sm' 
-                          : 'bg-white border-[#E7E1D6] hover:border-emerald-500/50 hover:shadow-md'
-                      }`}
-                    >
-                      <div className={`p-3 rounded-lg transition-colors ${
-                        isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-50 text-emerald-700'
-                      }`}>
-                        {habit.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className={`font-semibold transition-all ${
-                          isCompleted ? 'text-[#0B3D2E] line-through opacity-60' : 'text-[#0B3D2E]'
-                        }`}>
-                          {habit.name}
-                        </h4>
-                        <p className="text-sm text-[#0B3D2E]/60">{habit.duration}</p>
-                      </div>
-                      <motion.div
-                        animate={{ scale: isCompleted ? 1 : 1 }}
-                        transition={{ type: 'spring', stiffness: 500 }}
+              <Card className="bg-amber-50 border-amber-200 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-amber-700 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    检测到变化
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-amber-800 mb-3">{anomalyQuestion}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['🍷 饮酒', '🍜 晚餐过晚', '😰 压力大', '都没有'].map((label, i) => (
+                      <MotionButton
+                        key={i}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAnomalyAnswer(['alcohol', 'late_meal', 'stress', 'none'][i])}
+                        className="text-xs"
                       >
-                        <CheckCircle2 className={`w-6 h-6 transition-colors ${
-                          isCompleted ? 'text-emerald-600' : 'text-[#E7E1D6]'
-                        }`} />
-                      </motion.div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              {/* 完成统计 */}
-              {completedBonusHabits.size > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 text-center p-3 bg-emerald-50 rounded-xl"
-                >
-                  <p className="text-sm font-medium text-emerald-700">
-                    🎉 已完成 {completedBonusHabits.size} / {bonusHabits.length} 个额外习惯！
-                  </p>
-                </motion.div>
-              )}
-
-              <button
-                onClick={() => setShowBonusHabits(false)}
-                className="mt-4 w-full text-center text-sm text-[#0B3D2E]/50 hover:text-[#0B3D2E] transition-colors"
-              >
-                返回主任务
-              </button>
+                        {label}
+                      </MotionButton>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* 次要任务折叠区 (不再显示列表，只给一个安心的提示) */}
-        <div className="mt-4 text-center">
-          <p className="text-xs text-[#0B3D2E]/40">
-            其他的补剂与日常打卡已自动收纳，无需焦虑。
-          </p>
-        </div>
-      </section>
-
-      {/* SECTION 3: 长期趋势 (Long-term Insight) - 条件渲染 */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 左卡片：智能趋势分析 */}
-        <motion.div 
-          whileHover={{ scale: 1.02 }}
-          className={`glass-card rounded-3xl p-6 hover-lift transition-organic ${
-            !trendAnalysis.hasEnoughData ? 'cursor-pointer hover:bg-[#FAF6EF]' : ''
-          }`}
-          onClick={() => {
-            if (!trendAnalysis.hasEnoughData) {
-              router.push('/assistant?panel=daily');
-            }
-          }}
-        >
-          {trendAnalysis.hasEnoughData ? (
-            <>
-              <div className="flex items-center gap-2 mb-2 text-[#0B3D2E]/60 text-sm">
-                <TrendingUp className="w-4 h-4" />
-                <span>趋势洞察 · {trendAnalysis.dataPoints}天数据</span>
-              </div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl">{getTrendIcon(trendAnalysis.primary)}</span>
-                <p className={`text-lg font-medium ${getTrendColor(trendAnalysis.primary)}`}>
-                  {trendAnalysis.primary.description}
-                </p>
-              </div>
-              <p className="text-sm text-[#0B3D2E]/70 leading-relaxed">
-                {trendAnalysis.primary.insight}
-              </p>
-              {trendAnalysis.secondary && (
-                <p className="text-xs text-[#0B3D2E]/60 mt-2">
-                  另外，{trendAnalysis.secondary.description.toLowerCase()}
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 mb-2 text-[#0B3D2E]/60 text-sm">
-                <Hourglass className="w-4 h-4" />
-                <span>数据积累中</span>
-              </div>
-              <p className="text-lg font-medium text-[#0B3D2E]">
-                记录<span className="text-emerald-700"> {Math.max(0, 3 - (dailyLogs?.length || 0))} 天</span>后即可查看智能趋势分析
-              </p>
-              <p className="text-sm text-[#0B3D2E]/70 mt-2">
-                将为您分析睡眠、运动、压力和心情的变化趋势
-              </p>
-              <div className="mt-4 flex items-center gap-2 text-xs text-[#0B3D2E]/60">
-                <span>💡 点击卡片记录今日数据</span>
-              </div>
-            </>
-          )}
-        </motion.div>
-        
-        {/* 右卡片：动态健康贴士 */}
-        <DynamicHealthTips 
-          userProfile={profile}
-          recentLogs={dailyLogs}
-        />
-      </section>
-
-      {/* SECTION 4: 核心功能 */}
-      <section id="how" className="glass-card rounded-3xl p-8 scroll-mt-20">
-        <h2 className="text-2xl font-bold text-[#0B3D2E] mb-6">核心功能</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-3">
-            <div className="p-3 rounded-2xl bg-[#F2F7F5] w-fit">
-              <Activity className="w-6 h-6 text-[#0B3D2E]" />
-            </div>
-            <h3 className="font-semibold text-[#0B3D2E]">智能状态感知</h3>
-            <p className="text-sm text-[#0B3D2E]/70">基于生理指标实时评估你的身体能量水平，给出个性化的休息建议</p>
-          </div>
-          <div className="space-y-3">
-            <div className="p-3 rounded-2xl bg-[#F2F7F5] w-fit">
-              <CheckCircle2 className="w-6 h-6 text-[#0B3D2E]" />
-            </div>
-            <h3 className="font-semibold text-[#0B3D2E]">唯一核心任务</h3>
-            <p className="text-sm text-[#0B3D2E]/70">每天只推荐一个最重要的健康任务，避免焦虑，专注当下</p>
-          </div>
-          <div className="space-y-3">
-            <div className="p-3 rounded-2xl bg-[#F2F7F5] w-fit">
-              <TrendingUp className="w-6 h-6 text-[#0B3D2E]" />
-            </div>
-            <h3 className="font-semibold text-[#0B3D2E]">长期趋势洞察</h3>
-            <p className="text-sm text-[#0B3D2E]/70">追踪你的健康数据变化，发现改善模式，持续优化生活方式</p>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 5: 科学模型 */}
-      <section id="model" className="glass-card rounded-3xl p-8 scroll-mt-20">
-        <h2 className="text-2xl font-bold text-[#0B3D2E] mb-6">科学模型</h2>
-        <div className="space-y-6">
-          <div className="border-l-4 border-[#0B3D2E] pl-4">
-            <h3 className="font-semibold text-[#0B3D2E] mb-2">代谢类型理论</h3>
-            <p className="text-sm text-[#0B3D2E]/70">
-              基于 William Wolcott 的代谢分型理论，识别你的独特代谢模式（快速、慢速或混合型），
-              提供精准的营养和生活方式建议。
-            </p>
-          </div>
-          <div className="border-l-4 border-[#0B3D2E] pl-4">
-            <h3 className="font-semibold text-[#0B3D2E] mb-2">昼夜节律优化</h3>
-            <p className="text-sm text-[#0B3D2E]/70">
-              整合光照、进食时间和运动节奏，帮助你建立健康的昼夜节律，改善睡眠质量和精力水平。
-            </p>
-          </div>
-          <div className="border-l-4 border-[#0B3D2E] pl-4">
-            <h3 className="font-semibold text-[#0B3D2E] mb-2">压力恢复系统</h3>
-            <p className="text-sm text-[#0B3D2E]/70">
-              基于 HRV（心率变异性）和主观压力评估，动态调整恢复策略，避免过度训练和倦怠。
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 6: 权威洞察 */}
-      <section id="authority" className="glass-card rounded-3xl p-8 scroll-mt-20">
-        <h2 className="text-2xl font-bold text-[#0B3D2E] mb-6">权威洞察</h2>
-        <div className="space-y-6">
-          <div className="p-6 bg-[#F2F7F5] rounded-2xl">
-            <p className="text-sm text-[#0B3D2E]/60 mb-2">来自 Andrew Huberman 教授</p>
-            <p className="text-[#0B3D2E] italic leading-relaxed">
-              "早晨的光照摄入是调节昼夜节律最强大的工具之一。在醒来后的 30-60 分钟内获得自然光照，
-              可以显著改善睡眠质量、情绪和认知功能。"
-            </p>
-          </div>
-          <div className="p-6 bg-[#F2F7F5] rounded-2xl">
-            <p className="text-sm text-[#0B3D2E]/60 mb-2">来自功能医学研究</p>
-            <p className="text-[#0B3D2E] italic leading-relaxed">
-              "个体化营养的关键在于理解代谢类型。没有一种饮食方案适合所有人，
-              只有找到适合自己代谢模式的营养策略，才能实现最佳健康状态。"
-            </p>
-          </div>
-          <div className="p-6 bg-[#F2F7F5] rounded-2xl">
-            <p className="text-sm text-[#0B3D2E]/60 mb-2">来自睡眠科学研究</p>
-            <p className="text-[#0B3D2E] italic leading-relaxed">
-              "深度睡眠和 REM 睡眠对身心恢复都至关重要。通过优化睡眠环境、管理压力和保持规律作息，
-              可以提高睡眠质量，进而改善整体健康水平。"
-            </p>
-          </div>
-        </div>
-      </section>
-      
-      </main>
-
-      {/* 呼吸模态框 */}
-      <BreathingModal 
-        isOpen={showBreathingModal}
-        onClose={() => setShowBreathingModal(false)}
-        onComplete={() => {
-          setTaskCompleted(true);
-          setShowBonusHabits(true);
-        }}
-      />
-
-      {/* 信息抽屉 */}
-      <AnimatePresence>
-        {showInfoDrawer && (
+        {/* AI 个性化洞察卡片 - 基于校准数据生成 */}
+        {todayTask && (
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl p-6 max-h-[70vh] overflow-y-auto"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="md:col-span-2"
           >
-            <div className="max-w-2xl mx-auto">
-              <button
-                onClick={() => setShowInfoDrawer(false)}
-                className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                ✕
-              </button>
-              
-              <h3 className="text-2xl font-bold text-[#0B3D2E] mb-4">你的状态详情</h3>
-              
-              <div className="space-y-4">
-                <div className="p-4 bg-emerald-50 rounded-xl">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-semibold text-[#0B3D2E]">恢复指数</span>
-                    <span className="text-2xl font-bold text-emerald-700">80%</span>
-                  </div>
-                  <p className="text-sm text-[#0B3D2E]/70">基于你昨晚 7 小时的睡眠时长</p>
+            <Card className={`shadow-sm ${
+              todayTask.mode === 'low_energy'
+                ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100'
+                : 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-100'
+            }`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  {todayTask.mode === 'low_energy' ? (
+                    <>
+                      <Moon className="w-4 h-4 text-indigo-500" />
+                      <span className="text-indigo-600">身体信号解读</span>
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-4 h-4 text-emerald-500" />
+                      <span className="text-emerald-600">今日身体洞察</span>
+                    </>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {todayTask.mode === 'low_energy' 
+                    ? `你的身体正在发出休息信号。${todayTask.description} 这是身体自我保护的智慧表现，不是懈怠。`
+                    : `根据你的生物数据分析：${todayTask.description} 你的身体正处于良好的调节状态。`
+                  }
+                </p>
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <span className={`px-2 py-0.5 rounded-full ${
+                    todayTask.mode === 'low_energy' 
+                      ? 'bg-indigo-100 text-indigo-600' 
+                      : 'bg-emerald-100 text-emerald-600'
+                  }`}>
+                    {todayTask.mode === 'low_energy' ? '恢复模式' : '平衡模式'}
+                  </span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-500">基于今日校准数据</span>
                 </div>
-                
-                <div className="p-4 bg-blue-50 rounded-xl">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-semibold text-[#0B3D2E]">压力水平</span>
-                    <span className="text-2xl font-bold text-blue-700">低</span>
-                  </div>
-                  <p className="text-sm text-[#0B3D2E]/70">HRV 显示你的自律神经平衡良好</p>
-                </div>
-                
-                <div className="p-4 bg-amber-50 rounded-xl">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-semibold text-[#0B3D2E]">趋势</span>
-                    <span className="text-2xl font-bold text-amber-700">稳定</span>
-                  </div>
-                  <p className="text-sm text-[#0B3D2E]/70">过去 7 天表现持续向好</p>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
-      </AnimatePresence>
-    </>
+
+        {/* AI Insight Card */}
+        <Card className="md:col-span-2 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-sm border-emerald-100">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-emerald-600 flex items-center gap-2">
+              <Brain className="w-4 h-4" /> 
+              每日洞察
+              <Sparkles className="w-3 h-3 text-amber-500" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <BrainLoader />
+            ) : insight ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <p className="text-sm text-gray-700 leading-relaxed">{insight}</p>
+                <div className="mt-3 flex items-center gap-2 text-xs text-emerald-600/70">
+                  <span className="px-2 py-0.5 bg-emerald-100 rounded-full">认知重构</span>
+                  <span>•</span>
+                  <span>基于你的生物数据生成</span>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="py-4 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <Brain className="w-6 h-6 text-emerald-400" />
+                </div>
+                <p className="text-sm text-gray-500">记录你的第一条数据，解锁个性化洞察</p>
+                <MotionButton 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3"
+                  onClick={() => setShowCalibrationSheet(true)}
+                  hapticFeedback
+                >
+                  开始记录
+                </MotionButton>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Daily Questionnaire Card */}
+        <DailyQuestionnaire 
+          userId={user?.id}
+          onComplete={(answers) => {
+            console.log('问卷完成:', answers);
+            // 触发 AI 重新分析
+            setIsLoading(true);
+            setTimeout(() => setIsLoading(false), 1000);
+          }}
+        />
+
+        {/* Quick Actions - Assessment & Bayesian */}
+        <Card className="md:col-span-2 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              健康工具
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Assessment Entry */}
+              <Link href="/assessment">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-emerald-700">症状评估</p>
+                      <p className="text-xs text-emerald-600/70">AI 驱动的健康问诊</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+
+              {/* Bayesian Entry */}
+              <Link href="/bayesian">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                      <Brain className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-indigo-700">认知天平</p>
+                      <p className="text-xs text-indigo-600/70">贝叶斯信念循环</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Daily Tasks Card - 整合生物电压调节和任务计划 */}
+        <DailyTasksCard 
+          stressLevel={biometrics.stress ?? 5}
+          energyLevel={biometrics.sleep && biometrics.sleep > 6 ? 6 : 4}
+          onTaskStart={(task) => {
+            console.log('开始任务:', task);
+            // 可以打开详细指导弹窗
+          }}
+          onTaskComplete={(taskId) => {
+            console.log('完成任务:', taskId);
+          }}
+        />
+
+
+
+        {/* Scientific Consensus Card */}
+        <Card className="md:col-span-2 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              科学共识
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-4">
+              <ConsensusMeter percentage={72} metaAnalysisCount={8} />
+              <div className="space-y-2">
+                <a
+                  href="https://pubmed.ncbi.nlm.nih.gov/32668052/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 group"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="text-blue-500 text-sm">📄</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-blue-600 group-hover:underline line-clamp-1">
+                      Sleep and HRV: A Systematic Review
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <ConsensusIndicator percentage={85} />
+                      <span className="text-[10px] text-gray-400">PubMed</span>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-blue-500" />
+                </a>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Daily Calibration Dialog */}
+      <DailyCheckin
+        open={showCalibrationSheet}
+        onOpenChange={setShowCalibrationSheet}
+        onComplete={handleCalibrationComplete}
+        weeklyRecords={dailyLogs?.map(log => ({
+          sleep_hours: log.sleep_hours || 7,
+          stress_level: log.stress_level > 6 ? 'high' : log.stress_level > 3 ? 'medium' : 'low',
+          exercise_intention: 'moderate' as const,
+          timestamp: log.created_at,
+        })) || []}
+      />
+
+      {/* ========== 核心功能 Section (#how) ========== */}
+      <section id="how" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 scroll-mt-20">
+        <AnimatedSection inView variant="fadeUp">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[#0B3D2E] leading-tight">
+            <span className="block">健康产业是&quot;噪音&quot;。</span>
+            <span className="block">生理信号是&quot;真相&quot;。</span>
+          </h2>
+          <div className="mt-6 grid md:grid-cols-3 gap-4 items-stretch">
+            {/* 认知负荷 */}
+            <div className="group rounded-2xl p-[1px] bg-gradient-to-br from-[#E7E1D6] to-transparent h-full">
+              <motion.div
+                whileHover={{ scale: 1.04, translateY: -2 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md transition-all group-hover:shadow-lg h-full flex flex-col overflow-hidden"
+              >
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Cognitive Load</div>
+                <div className="mt-1 text-xl font-medium text-[#0B3D2E]">&quot;认知负荷&quot;已满。</div>
+                <div className="mt-3 text-[#0B3D2E]/80 space-y-4 leading-relaxed">
+                  <p className="mb-3">你知道有氧和力量训练；你懂得区分优质的蛋白质、脂肪和碳水。你明白要保证充足的睡眠。</p>
+                  <p className="mb-3">但身体仍然像一个失控的&quot;黑匣子&quot;。</p>
+                  <p>你发现，只是更努力地去坚持这些&quot;规则&quot;，并不是最终的答案。</p>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* 打卡游戏 */}
+            <div className="group rounded-2xl p-[1px] bg-gradient-to-br from-[#E7E1D6] to-transparent h-full">
+              <motion.div
+                whileHover={{ scale: 1.04, translateY: -2 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md transition-all group-hover:shadow-lg h-full flex flex-col overflow-hidden"
+              >
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Habit Streaks</div>
+                <div className="mt-1 text-xl font-medium text-[#0B3D2E]">打卡游戏好玩吗？</div>
+                <p className="mt-3 text-[#0B3D2E]/80 leading-relaxed mb-4">
+                  许多健康App依赖&quot;羞耻感&quot;和&quot;强制打卡&quot;。功能越来越多，认知负荷越来越重，却不触及&quot;根本原因&quot;。你的身体并没有崩溃，它只是在诚实地对压力做出反应。
+                </p>
+              </motion.div>
+            </div>
+
+            {/* 信号 */}
+            <div className="group rounded-2xl p-[1px] bg-gradient-to-br from-[#E7E1D6] to-transparent h-full">
+              <motion.div
+                whileHover={{ scale: 1.04, translateY: -2 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md transition-all group-hover:shadow-lg h-full flex flex-col overflow-hidden"
+              >
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">The Signal</div>
+                <div className="mt-1 text-xl font-medium text-[#0B3D2E]">信号：接受生理真相。</div>
+                <p className="mt-3 text-[#0B3D2E]/80 leading-relaxed">
+                  我们承认新陈代谢的不可逆趋势，但可以选择&quot;反应&quot;。先解决&quot;焦虑&quot;（领先指标），自然改善&quot;身体机能&quot;（滞后指标）。不对抗真相，与真相和解。
+                </p>
+              </motion.div>
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* ========== 科学模型 Section (#model) ========== */}
+      <section id="model" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 scroll-mt-20">
+        <AnimatedSection inView variant="fadeUp">
+          <div className="rounded-2xl border border-[#E7E1D6] bg-[#FFFDF8] p-6">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-[#0B3D2E]">解决思路</h2>
+            <p className="mt-2 text-sm text-[#0B3D2E]/70">这是 No More anxious™ 的核心方法论。</p>
+            <div className="mt-6 grid md:grid-cols-3 gap-4 items-stretch">
+              {/* Card 1: Agent */}
+              <motion.div
+                whileHover={{ scale: 1.06, translateY: -2 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-md hover:shadow-lg overflow-hidden"
+              >
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Agent</div>
+                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">您的专属&quot;健康代理&quot;</h3>
+                <p className="mt-3 text-[#0B3D2E]/80 leading-relaxed mb-3">这不是一个AI聊天机器人。</p>
+                <p className="mt-2 text-[#0B3D2E] font-semibold leading-relaxed mb-3">它冷血，因为它只会基于唯一的规则：&quot;生理真相&quot;。</p>
+                <p className="mt-2 text-[#0B3D2E]/80 leading-relaxed">
+                  它不会说&quot;加油！&quot;。它会说：&quot;你现在感到焦虑，意味着你的皮质醇已达峰值。一个5分钟的步行是为了&nbsp;&apos;代谢&apos;&nbsp;你的压力激素。&quot;
+                </p>
+                <motion.div
+                  className="mt-6 rounded-xl border border-[#E7E1D6] bg-[#FAF6EF] p-3"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                >
+                  <div className="text-xs font-semibold text-[#0B3D2E]">皮质醇响应方程</div>
+                  <div className="mt-1 font-mono text-sm text-[#0B3D2E]">dC/dt = -λ·C(t) + I(t)</div>
+                  <p className="mt-1 text-[11px] text-[#0B3D2E]/70">
+                    λ 控制焦虑激素的自然衰减，输入 I(t) 代表 5 分钟步行等最小干预。
+                  </p>
+                </motion.div>
+              </motion.div>
+
+              {/* Card 2: Bayesian */}
+              <motion.div
+                whileHover={{ scale: 1.02, translateY: -1 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-md hover:shadow-lg overflow-hidden h-full flex flex-col"
+              >
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Bayesian</div>
+                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">&quot;贝叶斯信念&quot;循环</h3>
+                <p className="mt-3 text-[#0B3D2E]/80 leading-relaxed">
+                  我们从来不为&quot;打卡天数&quot;而焦虑。我们只关心&quot;信念强度&quot;。每次行动后，你将评估：&quot;这在起作用的确信度(1-10)&quot;。我们帮你可视化&quot;信心曲线&quot;。
+                </p>
+                <div className="mt-auto pt-4 text-xs text-[#0B3D2E]/60">
+                  参考：后验置信度随可验证信号更新（Bayes&apos; theorem）
+                </div>
+                <motion.div
+                  className="mt-4 rounded-xl border border-[#E7E1D6] bg-[#FAF6EF] p-3 font-mono text-sm text-[#0B3D2E]"
+                  animate={{ scale: [1, 1.02, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                >
+                  <div>P(H∣D) = [P(D∣H)·P(H)] / P(D)</div>
+                  <div className="mt-1 text-[11px] text-[#0B3D2E]/70">
+                    每次习惯完成即是新的 D，后验信念提高 → 曲线抬升。
+                  </div>
+                </motion.div>
+              </motion.div>
+
+              {/* Card 3: Minimum Dose */}
+              <motion.div
+                whileHover={{ scale: 1.06, translateY: -2 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="relative rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-md hover:shadow-lg overflow-hidden h-full flex flex-col"
+              >
+                <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60">Minimum Dose</div>
+                <h3 className="mt-1 text-xl font-medium text-[#0B3D2E]">最低有效剂量</h3>
+                <p className="mt-3 text-[#0B3D2E]/80">
+                  你不需要每天锻炼1小时，那太累了。你只需要在&quot;线索&quot;出现时，执行&quot;最低阻力&quot;的&quot;反应&quot;（如步行5分钟）。我们帮你识别并建立这些&quot;微习惯&quot;。
+                </p>
+                <div className="mt-auto pt-4">
+                  <motion.svg viewBox="0 0 140 80" className="w-full h-20">
+                    <motion.path
+                      d="M5 70 C35 60 55 45 70 40 C95 32 115 20 135 15"
+                      fill="none"
+                      stroke="#0B3D2E"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 4, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
+                    />
+                  </motion.svg>
+                  <div className="mt-1 font-mono text-xs text-[#0B3D2E]">
+                    Δhabit = k · e<sup>−r</sup>
+                  </div>
+                  <p className="text-[11px] text-[#0B3D2E]/70">
+                    r 为阻力等级，阻力越低，增益越快。
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* ========== 权威洞察 Section (#authority) ========== */}
+      <section id="authority" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 scroll-mt-20">
+        <AnimatedSection inView variant="fadeUp" className="rounded-xl border border-[#E7E1D6] bg-white p-6">
+          <h2 className="text-2xl font-semibold text-[#0B3D2E]">一个没有&quot;噪音&quot;的信息流。</h2>
+          <p className="mt-3 text-[#0B3D2E]/80">
+            我们从 X、顶级权威健康研报、Reddit 热议组等为您精选了该领域最顶尖的生理学家、神经科学家和表现专家的核心见解。
+            没有励志名言，没有低效&quot;技巧&quot;，只有可执行的数据和第一性原理。
+          </p>
+          <div className="mt-4">
+            <XFeed variant="bare" compact columns={2} limit={4} />
+          </div>
+          <div className="mt-4 rounded-md border border-[#E7E1D6] bg-[#FFFDF8] p-4">
+            <div className="text-xs text-[#0B3D2E]/60">参考阅读</div>
+            <div className="mt-2 text-sm text-[#0B3D2E]/90">胆固醇过低与心理健康风险的相关性综述（英文）。</div>
+            <a
+              className="mt-2 inline-block text-xs text-[#0B3D2E] underline"
+              href="https://www.healthline.com/health/cholesterol-can-it-be-too-low"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Healthline：Can My Cholesterol Be Too Low?
+            </a>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[#E7E1D6] bg-[#FAF6EF] mt-16">
+        <div className="mx-auto max-w-4xl px-4 py-6 text-xs text-[#0B3D2E]/70 flex gap-4">
+          <span>© 2025 NMa</span>
+          <Link href="/privacy" className="hover:text-[#0B3D2E]">隐私政策</Link>
+          <Link href="/terms" className="hover:text-[#0B3D2E]">服务条款</Link>
+        </div>
+      </footer>
+    </div>
   );
 }

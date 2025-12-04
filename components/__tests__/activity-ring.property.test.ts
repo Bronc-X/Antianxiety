@@ -208,10 +208,13 @@ describe('Slider Value Binding - Property Tests', () => {
   it('should calculate percentage correctly', () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: 0, max: 100 }),
+        fc.integer({ min: 0, max: 99 }),
         fc.integer({ min: 100, max: 200 }),
         fc.integer({ min: 0, max: 200 }),
         (min, max, value) => {
+          // 确保 max > min 避免除以 0
+          if (max <= min) return true;
+          
           const clampedValue = Math.max(min, Math.min(max, value));
           const percentage = ((clampedValue - min) / (max - min)) * 100;
           

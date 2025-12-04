@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
+import { MotionButton } from '@/components/motion/MotionButton';
+import { BrainLoader } from '@/components/lottie/BrainLoader';
 import { AI_ROLES } from '@/lib/config/constants';
 import type { AIAssistantProfile, ConversationRow, RoleType } from '@/types/assistant';
 
@@ -125,10 +127,10 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 生成欢迎消息
+  // 生成欢迎消息 - Max 风格
   const generateWelcomeMessage = (profile: AIAssistantProfile): string => {
     if (!profile) {
-      return `你好，我是你的专属健康代理。\n朋友，我会记住你的习惯偏好，随时等你继续对话。\n\n有什么问题随时问我。`;
+      return `Systems nominal. I'm Max, your Bio-Operating System Co-pilot.\n\nData suggests you're ready to calibrate. Proceed?`;
     }
 
     const analysis = profile.ai_analysis_result;
@@ -137,10 +139,10 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
     const habitMemory = extractHabitMemory(profile);
 
     if (!analysis || !plan) {
-      return `你好，我是你的专属健康代理。\n${displayName}，我会继续跟踪你的微习惯，保持上下文不丢失。\n\n你的资料正在分析中，请稍候。有什么问题随时问我。`;
+      return `System detects: ${displayName}. Bio-metrics loading.\n\nProcessing your profile data. Stand by for calibration.`;
     }
 
-    let message = `你好，我是你的专属健康代理。\n${displayName}，很高兴继续陪你一起复盘。\n`;
+    let message = `Systems nominal. ${displayName}, resuming session.\n`;
     if (habitMemory) {
       if (Array.isArray(habitMemory)) {
         message += `我已经记住你最近专注的习惯：${habitMemory.slice(0, 3).join('、')}。\n\n`;
@@ -171,8 +173,8 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       });
     }
 
-    message += `记住，我们不会要求你"打卡"。每次行动后，问问自己："这对我有帮助吗？"（1-10分）。\n\n`;
-    message += `有什么问题随时问我。`;
+    message += `Data suggests: No streak tracking required. Post-action, rate effectiveness (1-10).\n\n`;
+    message += `System ready. Awaiting input.`;
 
     return message;
   };
@@ -291,9 +293,9 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
         <div className="rounded-lg border border-[#E7E1D6] bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-[#0B3D2E]">你的专属健康代理</h1>
+              <h1 className="text-2xl font-semibold text-[#0B3D2E]">Max</h1>
               <p className="mt-1 text-sm text-[#0B3D2E]/70">
-                基于生理真相，提供冷静、科学的建议
+                Bio-Operating System Co-pilot
               </p>
             </div>
             {usageInfo && (
@@ -318,7 +320,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       <div className="flex-1 overflow-y-auto rounded-lg border border-[#E7E1D6] bg-white p-4 mb-4">
         {messages.length === 0 ? (
           <div className="text-center text-[#0B3D2E]/60 py-8">
-            <p>开始与你的 AI 助理对话吧</p>
+            <p>System ready. Awaiting input.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -343,12 +345,8 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-[#FAF6EF] border border-[#E7E1D6] rounded-lg px-4 py-2">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-[#0B3D2E]/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 bg-[#0B3D2E]/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 bg-[#0B3D2E]/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
+                <div className="bg-[#FAF6EF] border border-[#E7E1D6] rounded-lg px-4 py-3">
+                  <BrainLoader />
                 </div>
               </div>
             )}
@@ -367,13 +365,17 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
           className="flex-1 rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-4 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20"
           disabled={isLoading}
         />
-        <button
+        <MotionButton
           type="submit"
           disabled={isLoading || !input.trim()}
-          className="rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-6 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50"
+          loading={isLoading}
+          variant="primary"
+          size="md"
+          className="bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-6"
+          hapticFeedback={true}
         >
           发送
-        </button>
+        </MotionButton>
       </form>
     </div>
   );

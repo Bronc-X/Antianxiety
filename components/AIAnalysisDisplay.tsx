@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
-import ProAntiAgingFoods from './ProAntiAgingFoods';
 import DeepInferenceModal from './DeepInferenceModal';
 import { Brain } from 'lucide-react';
 
@@ -754,11 +753,6 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
           </div>
         </div>
       )}
-
-      {/* Pro版功能：AI甄选抗衰食材 */}
-      <div className="mt-6">
-        <ProAntiAgingFoods />
-      </div>
 
       {/* 修改按钮 */}
       <div className="text-center">
