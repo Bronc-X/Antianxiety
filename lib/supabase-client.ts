@@ -16,3 +16,6 @@ export function createClientSupabaseClient() {
   );
 }
 
+
+// Alias for backward compatibility
+export const createClient = createClientSupabaseClient;

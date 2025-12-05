@@ -102,7 +102,7 @@ function parseSettingsFromContext(aiPersonaContext: string | null): { honesty_le
  */
 function buildDynamicPersonaPrompt(
   personality: string,
-  aiSettings: { honesty_level: number; humor_level: number; mode: string } | null,
+  aiSettings: { honesty_level?: number; humor_level?: number; mode?: string } | null,
   aiPersonaContext?: string | null
 ): string {
   // 优先使用 ai_settings，如果不存在则从 ai_persona_context 解析
@@ -327,17 +327,20 @@ function buildUserContext(
     parts.push(`\n[WEEKLY TREND - 近期趋势]`);
     
     // 计算平均值
-    const avgSleep = recentBioData
-      .filter(d => d.sleep_hours != null)
-      .reduce((sum, d) => sum + d.sleep_hours, 0) / recentBioData.filter(d => d.sleep_hours != null).length;
+    const sleepData = recentBioData.filter(d => d.sleep_hours != null);
+    const avgSleep = sleepData.length > 0 
+      ? sleepData.reduce((sum, d) => sum + (d.sleep_hours || 0), 0) / sleepData.length 
+      : NaN;
     
-    const avgStress = recentBioData
-      .filter(d => d.stress_level != null)
-      .reduce((sum, d) => sum + d.stress_level, 0) / recentBioData.filter(d => d.stress_level != null).length;
+    const stressData = recentBioData.filter(d => d.stress_level != null);
+    const avgStress = stressData.length > 0 
+      ? stressData.reduce((sum, d) => sum + (d.stress_level || 0), 0) / stressData.length 
+      : NaN;
     
-    const avgHrv = recentBioData
-      .filter(d => d.hrv != null)
-      .reduce((sum, d) => sum + d.hrv, 0) / recentBioData.filter(d => d.hrv != null).length;
+    const hrvData = recentBioData.filter(d => d.hrv != null);
+    const avgHrv = hrvData.length > 0 
+      ? hrvData.reduce((sum, d) => sum + (d.hrv || 0), 0) / hrvData.length 
+      : NaN;
     
     parts.push(`📊 近 ${recentBioData.length} 天数据：`);
     if (!isNaN(avgSleep)) parts.push(`   - 平均睡眠: ${avgSleep.toFixed(1)}小时`);
@@ -349,8 +352,15 @@ function buildUserContext(
       const recent3 = recentBioData.slice(0, 3);
       const older3 = recentBioData.slice(-3);
       
-      const recentAvgStress = recent3.filter(d => d.stress_level != null).reduce((s, d) => s + d.stress_level, 0) / 3;
-      const olderAvgStress = older3.filter(d => d.stress_level != null).reduce((s, d) => s + d.stress_level, 0) / 3;
+      const recent3Stress = recent3.filter(d => d.stress_level != null);
+      const older3Stress = older3.filter(d => d.stress_level != null);
+      
+      const recentAvgStress = recent3Stress.length > 0 
+        ? recent3Stress.reduce((s, d) => s + (d.stress_level || 0), 0) / recent3Stress.length 
+        : 0;
+      const olderAvgStress = older3Stress.length > 0 
+        ? older3Stress.reduce((s, d) => s + (d.stress_level || 0), 0) / older3Stress.length 
+        : 0;
       
       if (recentAvgStress > olderAvgStress + 1.5) {
         parts.push(`📈 趋势警告：近期压力水平上升，建议关注恢复`);
@@ -730,7 +740,7 @@ export async function POST(req: Request) {
     
     const dynamicPersonaPrompt = buildDynamicPersonaPrompt(
       selectedPersonality, 
-      userProfile?.ai_settings,
+      userProfile?.ai_settings || null,
       userProfile?.ai_persona_context
     );
     

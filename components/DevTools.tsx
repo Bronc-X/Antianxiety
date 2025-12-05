@@ -2,9 +2,11 @@
 
 /**
  * DevTools Component
- * Integrates React Grab for component inspection in development mode
+ * Shows development mode indicator and React Grab toggle button
+ * React Grab is loaded via script tag in layout.tsx
  * 
- * Click any component while holding Alt/Option to open source in Kiro IDE
+ * Click the button or press Ctrl+Shift+C to activate
+ * Alt+Click any element to copy component context
  * 
  * @module components/DevTools
  */
@@ -12,54 +14,69 @@
 import { useEffect, useState } from 'react';
 
 export function DevTools() {
-  const [isEnabled, setIsEnabled] = useState(false);
+  const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
     // Only enable in development
     if (process.env.NODE_ENV !== 'development') return;
 
-    // Dynamic import to avoid bundling in production
-    const initReactGrab = async () => {
-      try {
-        const { grab } = await import('react-grab');
-        
-        // Configure for Kiro IDE
-        // kiro:// URL scheme opens files in Kiro
-        grab({
-          // Use kiro:// URL scheme for Kiro IDE
-          // Format: kiro://file/{path}:{line}:{column}
-          editor: (file, line, column) => {
-            // Try kiro:// scheme first, fallback to vscode://
-            const kiroUrl = `kiro://file/${file}:${line}:${column}`;
-            const vscodeUrl = `vscode://file/${file}:${line}:${column}`;
-            
-            // Attempt to open in Kiro, fallback to VS Code
-            window.location.href = kiroUrl;
-          }
-        });
-        
-        setIsEnabled(true);
-        console.log('🔍 React Grab enabled - Alt+Click to inspect components');
-      } catch (error) {
-        console.warn('React Grab initialization failed:', error);
+    // Listen for state changes from React Grab
+    const checkState = () => {
+      const grab = (window as any).__REACT_GRAB__;
+      if (grab) {
+        setIsActive(grab.isActive?.() || false);
       }
     };
 
-    initReactGrab();
+    // Check state periodically
+    const interval = setInterval(checkState, 500);
+    
+    // Keyboard shortcut: Ctrl+Shift+C
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        toggleGrab();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
-  // Show indicator in development
-  if (!isEnabled || process.env.NODE_ENV !== 'development') {
+  const toggleGrab = () => {
+    const grab = (window as any).__REACT_GRAB__;
+    if (grab) {
+      if (grab.isActive?.()) {
+        grab.deactivate?.();
+        setIsActive(false);
+      } else {
+        grab.activate?.();
+        setIsActive(true);
+      }
+    }
+  };
+
+  // Hide in production
+  if (process.env.NODE_ENV !== 'development') {
     return null;
   }
 
   return (
-    <div 
-      className="fixed bottom-4 left-4 z-[9999] px-2 py-1 bg-[#0B3D2E] text-white text-xs rounded-full opacity-50 hover:opacity-100 transition-opacity pointer-events-none"
-      title="Alt+Click to inspect components"
+    <button
+      onClick={toggleGrab}
+      className={`fixed bottom-4 left-4 z-[9999] px-3 py-1.5 text-white text-xs rounded-full transition-all cursor-pointer ${
+        isActive 
+          ? 'bg-emerald-600 opacity-100 shadow-lg' 
+          : 'bg-[#0B3D2E] opacity-60 hover:opacity-100'
+      }`}
+      title="Ctrl+Shift+C to toggle | Alt+Click to inspect"
     >
-      🔍 Dev Mode
-    </div>
+      🔍 {isActive ? 'Grab Active' : 'Dev Mode'}
+    </button>
   );
 }
 

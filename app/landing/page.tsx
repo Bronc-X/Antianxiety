@@ -59,7 +59,7 @@ export default async function LandingPage() {
         Promise.race<ProfileRecord | null>([
           supabase
             .from('profiles')
-            .select('full_name, primary_concern, metabolic_profile, ai_persona_context')
+            .select('full_name, username, primary_concern, metabolic_profile, ai_persona_context')
             .eq('id', session.user.id)
             .single<ProfileRecord>()
             .then(({ data, error }) => (!error && data ? data : null)),
@@ -107,6 +107,9 @@ export default async function LandingPage() {
   const landingProfile = profile ? {
     full_name: typeof (profile as ProfileRecord).full_name === 'string' 
       ? (profile as ProfileRecord).full_name as string 
+      : null,
+    username: typeof (profile as ProfileRecord).username === 'string'
+      ? (profile as ProfileRecord).username as string
       : null,
   } : null;
 

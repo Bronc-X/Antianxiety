@@ -89,17 +89,23 @@ export function useBayesianNudge(): UseBayesianNudgeReturn {
         async (payload) => {
           const { new: completion } = payload;
           
-          if (completion) {
+          if (completion && completion.habit_id) {
             // 获取习惯类型
-            const { data: habit } = await supabase
+            const { data: habit, error } = await supabase
               .from('habits')
               .select('name, category')
               .eq('id', completion.habit_id)
               .single();
 
+            if (error) {
+              console.warn('⚠️ Failed to fetch habit:', error.message);
+              return;
+            }
+
             if (habit) {
-              // 映射习惯类别到 action_type
-              const actionType = mapHabitToActionType(habit.category || habit.name);
+              // 映射习惯类别到 action_type - ensure we have a valid string
+              const categoryOrName = habit.category ?? habit.name ?? 'default';
+              const actionType = mapHabitToActionType(categoryOrName);
               await triggerNudge(actionType, completion.duration_minutes);
             }
           }
@@ -122,7 +128,11 @@ export function useBayesianNudge(): UseBayesianNudgeReturn {
 /**
  * 将习惯类别映射到 action_type
  */
-function mapHabitToActionType(category: string): string {
+function mapHabitToActionType(category: string | undefined | null): string {
+  if (!category) {
+    return 'default';
+  }
+
   const mapping: Record<string, string> = {
     breathing: 'breathing_exercise',
     meditation: 'meditation',

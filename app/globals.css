@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* ==========================================
+   DUAL-LAYER TYPOGRAPHY SYSTEM
+   ========================================== */
+
+/* Smiley Sans (得意黑) - CDN Font Face */
+@font-face {
+  font-family: "Smiley Sans";
+  src: url("https://cdn.jsdelivr.net/npm/smiley-sans@2.0.1/download/SmileySans-Oblique.ttf.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Shadcn UI Color System - Light Mode */
 :root {
   /* Core Colors - Design Spec */
@@ -95,8 +108,9 @@
   --color-ring: hsl(var(--ring));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans", "Microsoft YaHei", sans-serif;
+  --font-heading: var(--font-inter), "Inter", "Smiley Sans", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -108,9 +122,143 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  /* Dual-Layer: Body text - Inter + System Chinese Fonts */
+  font-family: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans", "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================
+   MOTION.DEV INSPIRED TYPOGRAPHY
+   Bold, High-Contrast, Modern
+   ========================================== */
+
+/* Headings - Bold & Impactful */
+h1:not(.text-gradient):not(.text-gradient-accent), 
+h2:not(.text-gradient):not(.text-gradient-accent), 
+h3:not(.text-gradient):not(.text-gradient-accent), 
+h4:not(.text-gradient):not(.text-gradient-accent), 
+h5:not(.text-gradient):not(.text-gradient-accent), 
+h6:not(.text-gradient):not(.text-gradient-accent), 
+.brand-text:not(.text-gradient):not(.text-gradient-accent) {
+  font-family: var(--font-inter), "Inter", "Smiley Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #0B3D2E !important; /* Forest Green - 品牌主色 */
+  -webkit-text-fill-color: #0B3D2E !important; /* 防止被 gradient 覆盖 */
+  background: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+}
+
+/* Hero Title - Extra Bold */
+h1, .hero-title {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.0;
+}
+
+/* Gradient Text Effect - 仅在明确使用 .text-gradient 类时生效 */
+.text-gradient {
+  background: linear-gradient(135deg, #0B3D2E 0%, #1a6b4a 50%, #F59E0B 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Accent Gradient - More Vibrant */
+.text-gradient-accent {
+  background: linear-gradient(90deg, #F59E0B 0%, #f97316 50%, #ef4444 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Highlight Text with Underline Effect */
+.text-highlight {
+  position: relative;
+  display: inline-block;
+}
+
+.text-highlight::after {
+  content: '';
+  position: absolute;
+  bottom: 0.1em;
+  left: 0;
+  width: 100%;
+  height: 0.3em;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.4) 0%, rgba(245, 158, 11, 0.1) 100%);
+  z-index: -1;
+  border-radius: 2px;
+}
+
+/* Large Display Text */
+.display-text {
+  font-size: clamp(2.5rem, 8vw, 6rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: #0a0a0a;
+}
+
+/* Subtitle - Clean & Readable */
+.subtitle {
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.6;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Code/Tech Style Text */
+.tech-text {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.875em;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  color: #0B3D2E;
+}
+
+/* Animated Underline on Hover */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.3s ease;
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Badge/Tag Style */
+.badge-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 1em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(11, 61, 46, 0.1);
+  color: #0B3D2E;
+  border-radius: 9999px;
 }
 
 /* 移动端优化 */
@@ -137,6 +285,60 @@ body {
   textarea {
     font-size: 16px !important; /* 防止 iOS 自动缩放 */
   }
+}
+
+/* ==========================================
+   浏览器自动填充样式覆盖
+   防止 Chrome/Safari 自动填充变色
+   ========================================== */
+
+/* 方法1: 使用 box-shadow 覆盖背景 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 9999px #FFFDF8 inset !important;
+  box-shadow: 0 0 0 9999px #FFFDF8 inset !important;
+  -webkit-text-fill-color: #0B3D2E !important;
+  caret-color: #0B3D2E !important;
+  background-color: #FFFDF8 !important;
+  border-color: #E7E1D6 !important;
+  transition: background-color 600000s 0s, color 600000s 0s !important;
+}
+
+/* 方法2: 使用动画延迟技巧 */
+@keyframes autofill-fix {
+  0%, 100% {
+    background: #FFFDF8;
+    color: #0B3D2E;
+  }
+}
+
+input:-webkit-autofill {
+  animation-name: autofill-fix;
+  animation-fill-mode: both;
+}
+
+/* Firefox 自动填充 */
+input:-moz-autofill,
+textarea:-moz-autofill,
+select:-moz-autofill {
+  background-color: #FFFDF8 !important;
+  color: #0B3D2E !important;
+}
+
+/* 全局 input 样式确保文字颜色 */
+input, textarea, select {
+  color: #0B3D2E;
+  caret-color: #0B3D2E;
 }
 
 /* ==========================================
@@ -287,4 +489,43 @@ body {
 /* 7. Smooth Transitions */
 .transition-organic {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+/* ==========================================
+   CONTRAST SAFETY RULES
+   防止白底白字问题
+   ========================================== */
+
+/* 确保浅色背景上的文字可见 */
+.bg-white,
+.bg-card,
+.bg-background,
+.bg-secondary,
+.bg-muted,
+[class*="bg-white"],
+[class*="bg-gray-50"],
+[class*="bg-slate-50"] {
+  color: hsl(var(--foreground));
+}
+
+/* 确保 glass-card 内文字可见 */
+.glass-card,
+.glass-card-strong {
+  color: hsl(var(--foreground));
+}
+
+/* 确保卡片内容文字可见 */
+.bg-card *:not([class*="text-"]):not([class*="bg-primary"]):not([class*="bg-destructive"]) {
+  color: inherit;
+}
+
+/* 强制深色文字的安全类 */
+.text-safe {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* 确保 popover 内文字可见 */
+[data-radix-popper-content-wrapper] {
+  color: hsl(var(--foreground));
 }

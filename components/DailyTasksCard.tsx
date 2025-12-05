@@ -46,6 +46,32 @@ const ICON_MAP: Record<IconName, React.ReactNode> = {
   sparkles: <Sparkles className="w-4 h-4" />
 };
 
+// 能量动画组件（只保留呼吸脉动和能量球，无闪电图标）
+function EnergyAnimation({ energyLevel = 5 }: { energyLevel?: number }) {
+  const getEnergyColor = (level: number) => {
+    if (level >= 7) return { primary: '#22c55e', secondary: '#10b981' };
+    if (level >= 4) return { primary: '#eab308', secondary: '#f59e0b' };
+    return { primary: '#ef4444', secondary: '#f97316' };
+  };
+  
+  const colors = getEnergyColor(energyLevel);
+  const animationDuration = 4 - (energyLevel / 10) * 1.5;
+  
+  return (
+    <div className="relative w-16 h-16">
+      {/* 核心能量球 */}
+      <motion.div
+        className="absolute inset-2 rounded-full"
+        style={{
+          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+        }}
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{ duration: animationDuration, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </div>
+  );
+}
+
 // 默认任务列表
 const DEFAULT_TASKS: Omit<Task, 'completed'>[] = [
   {
@@ -87,52 +113,7 @@ const DEFAULT_TASKS: Omit<Task, 'completed'>[] = [
 ];
 
 
-// 能量动画组件
-function EnergyAnimation({ energyLevel = 5 }: { energyLevel?: number }) {
-  const getEnergyColor = (level: number) => {
-    if (level >= 7) return { primary: '#22c55e', secondary: '#10b981' };
-    if (level >= 4) return { primary: '#eab308', secondary: '#f59e0b' };
-    return { primary: '#ef4444', secondary: '#f97316' };
-  };
-  
-  const colors = getEnergyColor(energyLevel);
-  const animationDuration = 4 - (energyLevel / 10) * 1.5;
-  
-  return (
-    <div className="relative w-16 h-16">
-      {/* 呼吸脉动 */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: `radial-gradient(circle, ${colors.primary}30 0%, transparent 70%)`,
-        }}
-        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-        transition={{ duration: animationDuration, repeat: Infinity, ease: "easeInOut" }}
-      />
-      
-      {/* 核心能量球 */}
-      <motion.div
-        className="absolute inset-2 rounded-full flex items-center justify-center"
-        style={{
-          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-          boxShadow: `0 0 15px ${colors.primary}50`,
-        }}
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: animationDuration, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <Zap className="w-5 h-5 text-white" />
-      </motion.div>
-      
-      {/* 能量数值 */}
-      <div 
-        className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-bold"
-        style={{ color: colors.primary }}
-      >
-        {energyLevel}/10
-      </div>
-    </div>
-  );
-}
+
 
 // 任务项组件
 function TaskItem({ 
