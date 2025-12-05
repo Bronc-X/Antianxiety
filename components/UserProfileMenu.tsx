@@ -102,7 +102,7 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
             transition={{ duration: 0.2 }}
             className="absolute right-0 mt-2 w-64 rounded-lg border border-[#E7E1D6] bg-white shadow-lg z-50"
           >
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3" style={{ color: '#0B3D2E' }}>
                 <div className="flex items-center gap-3 pb-3 border-b border-[#E7E1D6]">
                   {avatarUrl ? (
                     <Image
@@ -119,16 +119,20 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-[#0B3D2E] truncate">
-                    {displayName || '未设置姓名'}
+                    <div className="text-sm font-medium truncate flex items-center gap-1.5" style={{ color: '#0B3D2E' }}>
+                      <span>{displayName || '未设置姓名'}</span>
+                      <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded shadow-sm flex-shrink-0">
+                        PRO
+                      </span>
                     </div>
-                    <div className="text-xs text-[#0B3D2E]/60 truncate">{user.email}</div>
+                    <div className="text-xs truncate" style={{ color: 'rgba(11, 61, 46, 0.6)' }}>{user.email}</div>
                   </div>
                 </div>
                 <Link
                   href="/settings"
                   onClick={() => setIsOpen(false)}
-                  className="w-full rounded-md border border-[#E7E1D6] bg-white px-3 py-2 text-sm text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors text-left block"
+                  className="w-full rounded-md border border-[#E7E1D6] bg-white px-3 py-2 text-sm hover:bg-[#FAF6EF] transition-colors text-left block"
+                  style={{ color: '#0B3D2E' }}
                 >
                   ⚙️ 个人设置
                 </Link>
@@ -142,7 +146,8 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
                 <button
                   onClick={handleLogout}
                   type="button"
-                  className="w-full rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                  className="w-full rounded-md border border-red-200 bg-white px-3 py-2 text-sm hover:bg-red-50 transition-colors text-left"
+                  style={{ color: '#dc2626' }}
                 >
                   退出登录
                 </button>

@@ -61,7 +61,7 @@ const BASE_CORRECTIONS: Record<string, number> = {
  * 
  * **Validates: Requirements 4.1, 4.4**
  */
-export function calculateNudgeCorrection(actionType: string, duration?: number): number {
+function calculateNudgeCorrection(actionType: string, duration?: number): number {
   let correction = BASE_CORRECTIONS[actionType] || BASE_CORRECTIONS.default;
   
   // 根据持续时间调整

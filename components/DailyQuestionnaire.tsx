@@ -171,15 +171,15 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   // 加载状态
   if (isLoading) {
     return (
-      <Card className="shadow-sm bg-white border-gray-100">
+      <Card className="shadow-sm bg-[#FFFDF8] border-[#E7E1D6]">
         <CardContent className="py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center animate-pulse">
-              <ClipboardList className="w-5 h-5 text-gray-400" />
+            <div className="w-10 h-10 rounded-full bg-[#F3F4F6] flex items-center justify-center animate-pulse">
+              <ClipboardList className="w-5 h-5 text-[#9CA3AF]" />
             </div>
             <div className="space-y-1">
-              <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
-              <div className="h-3 w-32 bg-gray-50 rounded animate-pulse" />
+              <div className="h-4 w-24 bg-[#E5E7EB] rounded animate-pulse" />
+              <div className="h-3 w-32 bg-[#F3F4F6] rounded animate-pulse" />
             </div>
           </div>
         </CardContent>
@@ -190,15 +190,15 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   // 已完成状态
   if (isCompleted) {
     return (
-      <Card className="shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-100">
+      <Card className="shadow-sm bg-[#FFFDF8] border-[#E7E1D6]">
         <CardContent className="py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-              <Check className="w-5 h-5 text-emerald-600" />
+            <div className="w-10 h-10 rounded-full bg-[#9CAF88]/20 flex items-center justify-center">
+              <Check className="w-5 h-5 text-[#0B3D2E]" />
             </div>
             <div>
-              <p className="text-sm font-medium text-emerald-700">今日问卷已完成</p>
-              <p className="text-xs text-emerald-600/70">AI 正在分析你的数据...</p>
+              <p className="text-sm font-medium text-[#0B3D2E]">今日问卷已完成</p>
+              <p className="text-xs text-[#0B3D2E]/70">AI 正在分析你的数据...</p>
             </div>
           </div>
         </CardContent>
@@ -210,7 +210,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   if (!isExpanded) {
     return (
       <Card 
-        className="shadow-sm bg-white cursor-pointer hover:shadow-md transition-all border-amber-100"
+        className="shadow-sm bg-[#FFFDF8] cursor-pointer hover:shadow-md transition-all border-amber-100"
         onClick={() => setIsExpanded(true)}
       >
         <CardContent className="py-4">
@@ -220,11 +220,11 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
                 <ClipboardList className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-800">每日状态问卷</p>
-                <p className="text-xs text-gray-500">7 个问题 · 约 1 分钟</p>
+                <p className="text-sm font-medium text-[#1F2937]">每日状态问卷</p>
+                <p className="text-xs text-[#6B7280]">7 个问题 · 约 1 分钟</p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
           </div>
         </CardContent>
       </Card>
@@ -233,19 +233,19 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
 
   // 展开状态 - 问卷进行中
   return (
-    <Card className="shadow-md bg-white border-amber-100">
+    <Card className="shadow-md bg-[#FFFDF8] border-amber-100">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-amber-600 flex items-center justify-between">
           <span className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4" />
             每日状态问卷
           </span>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-[#6B7280]">
             {currentIndex + 1} / {todayQuestions.length}
           </span>
         </CardTitle>
         {/* 进度条 */}
-        <div className="h-1 bg-gray-100 rounded-full overflow-hidden mt-2">
+        <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mt-2">
           <motion.div
             className="h-full bg-gradient-to-r from-amber-400 to-orange-400"
             initial={{ width: 0 }}
@@ -264,7 +264,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <p className="text-base font-medium text-gray-800 mb-4">
+            <p className="text-base font-medium text-[#1F2937] mb-4">
               {currentQuestion.question}
             </p>
             
@@ -278,7 +278,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
                     className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left ${
                       isSelected
                         ? 'bg-amber-500 text-white shadow-md'
-                        : 'bg-gray-50 text-gray-700 hover:bg-amber-50 border border-gray-100'
+                        : 'bg-[#F9FAFB] text-[#374151] hover:bg-amber-50 border border-[#E5E7EB]'
                     }`}
                   >
                     {option}
@@ -296,11 +296,10 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
             animate={{ opacity: 1, y: 0 }}
             className="mt-4"
           >
-            <MotionButton
+            <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-medium"
-              hapticFeedback
+              className="w-full py-3 bg-[#0B3D2E] hover:bg-[#0a3629] text-white rounded-xl font-medium transition-colors disabled:opacity-50"
             >
               {isSubmitting ? (
                 '提交中...'
@@ -310,14 +309,14 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
                   完成问卷，生成 AI 洞察
                 </span>
               )}
-            </MotionButton>
+            </button>
           </motion.div>
         )}
 
         {/* 收起按钮 */}
         <button
           onClick={() => setIsExpanded(false)}
-          className="w-full mt-3 text-xs text-gray-400 hover:text-gray-600"
+          className="w-full mt-3 text-xs text-[#9CA3AF] hover:text-[#6B7280]"
         >
           稍后再填
         </button>

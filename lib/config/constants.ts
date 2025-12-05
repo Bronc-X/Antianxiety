@@ -27,9 +27,9 @@ export const HEALTH_METRICS = {
 export const LANGUAGES = { EN: 'en', ZH: 'zh' } as const;
 
 export const API_CONSTANTS = {
-  CLAUDE_API_BASE_URL: 'https://aicanapi.com/v1/chat/completions',
-  CLAUDE_MODEL: process.env.AI_MODEL || 'claude-sonnet-4-5-20250929',
-  CLAUDE_MODEL_FALLBACK: process.env.AI_MODEL_FALLBACK || 'gpt-5.1-medium',
+  CLAUDE_API_BASE_URL: process.env.ANTHROPIC_API_BASE || 'https://api.anthropic.com/v1/messages',
+  CLAUDE_MODEL: process.env.AI_MODEL || 'claude-3-5-sonnet-20241022',
+  CLAUDE_MODEL_FALLBACK: process.env.AI_MODEL_FALLBACK || 'claude-3-5-haiku-20241022',
   EMBEDDING_MODEL: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
   CLAUDE_TEMPERATURE: 0.7,
   CLAUDE_MAX_TOKENS: 2000,

@@ -117,10 +117,10 @@ export function WisdomCarousel({
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="text-center px-8"
             >
-              <p className="text-base font-medium text-gray-800 leading-relaxed mb-2">
+              <p className="text-lg font-light text-[#0B3D2E] leading-relaxed mb-3 tracking-wide">
                 "{currentQuote.text}"
               </p>
-              <p className="text-xs text-gray-500 italic">
+              <p className="text-sm text-[#0B3D2E]/60 font-light tracking-wider">
                 — {currentQuote.source}
               </p>
             </motion.div>

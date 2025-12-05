@@ -23,19 +23,17 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
   const { t } = useI18n();
   
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    // 如果不在landing页面，先跳转到landing页面
     if (pathname !== '/landing') {
       e.preventDefault();
       window.location.href = `/landing${href}`;
       return;
     }
     
-    // 在landing页面，直接滚动到锚点
     e.preventDefault();
     const targetId = href.replace('#', '');
     const element = document.getElementById(targetId);
     if (element) {
-      const offset = 80; // 导航栏高度 + 一些间距
+      const offset = 80;
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
       
@@ -61,65 +59,50 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
           <nav className="hidden md:flex items-center gap-4 text-sm">
             <LanguageSwitcher />
             
-            {/* 已登录用户：显示功能导航 */}
             {user ? (
               <>
-                <a 
-                  href="#how" 
-                  onClick={(e) => handleAnchorClick(e, '#how')}
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
-                >
-                  核心功能
-                </a>
                 <a 
                   href="#model" 
                   onClick={(e) => handleAnchorClick(e, '#model')}
                   className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
                 >
-                  科学模型
-                </a>
-                <a 
-                  href="#authority" 
-                  onClick={(e) => handleAnchorClick(e, '#authority')}
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
-                >
-                  权威洞察
+                  {t('nav.scienceInsight')}
                 </a>
                 <Link
                   href="/assistant"
                   className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
                 >
-                  动态身体报告
+                  {t('nav.assistant')}
                 </Link>
                 <Link
                   href="/analysis"
                   className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
                 >
-                  向你推荐
+                  {t('nav.analysis')}
                 </Link>
                 <Link
                   href="/assessment"
                   className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
                 >
-                  症状评估
+                  {t('nav.assessment')}
                 </Link>
                 <Link
                   href="/bayesian"
                   className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
                 >
-                  认知天平
+                  {t('nav.bayesian')}
                 </Link>
                 <Link
                   href="/plans"
                   className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
                 >
-                  我的计划
+                  {t('nav.plans')}
                 </Link>
                 <Link
                   href="/onboarding/upgrade?from=landing"
                   className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
                 >
-                  升级
+                  {t('nav.upgrade')}
                 </Link>
                 <UserProfileMenu user={user} profile={profile} />
               </>
@@ -143,5 +126,3 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
     </AnimatedSection>
   );
 }
-
-

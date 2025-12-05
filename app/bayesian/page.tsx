@@ -15,11 +15,13 @@ import useSWR from 'swr';
 import { ReframingRitual } from '@/components/max/ReframingRitual';
 import { AnxietyCurve } from '@/components/bayesian/AnxietyCurve';
 import { PassiveNudge } from '@/components/bayesian/PassiveNudge';
+import { HealthDashboardWidget } from '@/components/bayesian/HealthDashboardWidget';
 import { useBayesianNudge } from '@/hooks/useBayesianNudge';
 import { BeliefOutput } from '@/types/max';
 import { MotionButton } from '@/components/motion/MotionButton';
 import { Brain, TrendingDown, Activity, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useI18n } from '@/lib/i18n';
 
 // ============================================
 // Fetcher
@@ -32,6 +34,7 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 // ============================================
 
 export default function BayesianDashboardPage() {
+  const { t, language } = useI18n();
   const [showRitual, setShowRitual] = useState(false);
   const [lastResult, setLastResult] = useState<BeliefOutput | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
@@ -81,8 +84,8 @@ export default function BayesianDashboardPage() {
               <ChevronLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-lg font-medium text-[#0B3D2E]">认知天平</h1>
-              <p className="text-xs text-[#0B3D2E]/40">Bayesian Belief Loop</p>
+              <h1 className="text-lg font-medium text-[#0B3D2E]">{t('bayesian.title')}</h1>
+              <p className="text-xs text-[#0B3D2E]/40">{t('bayesian.subtitle')}</p>
             </div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-[#9CAF88]/10 flex items-center justify-center">
@@ -241,6 +244,16 @@ export default function BayesianDashboardPage() {
             </p>
           </motion.section>
         )}
+
+        {/* 健康仪表盘 Widget */}
+        <motion.section 
+          className="mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <HealthDashboardWidget />
+        </motion.section>
 
         {/* 科学说明 */}
         <motion.section 

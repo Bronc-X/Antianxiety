@@ -149,3 +149,31 @@ export async function searchMemories(
     return [];
   }
 }
+
+
+/**
+ * Submit user feedback for a conversation
+ */
+export async function submitFeedback(
+  conversationId: number,
+  feedback: 'helpful' | 'not_helpful',
+  comment?: string
+): Promise<void> {
+  try {
+    const { error } = await supabaseAdmin
+      .from('chat_feedback')
+      .insert({
+        conversation_id: conversationId,
+        feedback,
+        comment: comment || null,
+        created_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      // If table doesn't exist, just log and continue
+      console.warn('Submit feedback warning:', error.message);
+    }
+  } catch (error) {
+    console.error('Submit feedback failed:', error);
+  }
+}
