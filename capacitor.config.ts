@@ -4,7 +4,15 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * Capacitor 配置文件（在线运行模式）
  *
  * 使用远程 URL 加载 Web 应用，webDir 仅作为占位。
+ * 
+ * 开发模式：使用 localhost:3000（需要 adb reverse）
+ * 生产模式：使用 Vercel 部署的 URL
  */
+const isDev = process.env.NODE_ENV === 'development';
+const productionUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
+  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+  : 'https://project-metabasis.vercel.app';
+
 const config: CapacitorConfig = {
   // 应用唯一标识符
   appId: 'com.nomoreanxious.app',
@@ -15,11 +23,16 @@ const config: CapacitorConfig = {
   // 静态资源占位目录（用于同步流程）
   webDir: 'out',
   
-  server: {
-    // 远程 Web 应用地址（需保持可访问）
-    url: 'https://project-metabasis.vercel.app',
-    // Android 使用 https scheme 以支持现代 Web API
-    androidScheme: 'https'
+  server: isDev ? {
+    // 开发模式：使用 adb reverse 端口转发，模拟器可以用 localhost 访问宿主机
+    url: 'http://localhost:3000',
+    androidScheme: 'http',
+    cleartext: true
+  } : {
+    // 生产模式：使用 Vercel 部署的 URL
+    url: productionUrl,
+    androidScheme: 'https',
+    cleartext: false
   },
   
   // 插件配置
@@ -34,6 +47,18 @@ const config: CapacitorConfig = {
       showSpinner: false,
       // 淡出动画时长
       splashFadeOutDuration: 300
+    },
+    // 网络状态检测
+    Network: {
+      // 自动检测网络状态变化
+    },
+    // 触觉反馈
+    Haptics: {
+      // 默认启用
+    },
+    // 本地存储
+    Preferences: {
+      // 默认启用
     }
   }
 };
