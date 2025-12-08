@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sparkles, Zap, Brain, TrendingUp, Lock, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * 升级页面（营销漏斗中的关键转化页）
@@ -10,6 +11,7 @@ import { useState, useEffect } from 'react';
  * 目标：最大化转化率，但不强制订阅
  */
 export default function UpgradePage() {
+  const { t, language } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSkipping, setIsSkipping] = useState(false);
@@ -59,11 +61,11 @@ export default function UpgradePage() {
         onClick={handleSkip}
         disabled={isSkipping}
         className="absolute top-6 right-6 p-2 text-[#FFFBF0]/40 hover:text-[#FFFBF0]/70 transition-colors z-20 group"
-        aria-label="跳过升级"
+        aria-label={t('upgrade.skipUpgrade')}
       >
         <X className="w-5 h-5" />
         <span className="absolute top-full right-0 mt-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          继续使用免费版
+          {t('upgrade.continueFree')}
         </span>
       </button>
 
@@ -73,18 +75,18 @@ export default function UpgradePage() {
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/20 backdrop-blur-sm border border-amber-400/30 rounded-full mb-6">
             <Sparkles className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-medium text-amber-200">限时优惠</span>
+            <span className="text-sm font-medium text-amber-200">{t('upgrade.limitedOffer')}</span>
           </div>
           
           <h1 className="text-4xl md:text-5xl font-serif font-medium leading-tight mb-4">
-            解锁你的完整<br />
+            {t('upgrade.unlockFull')}<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-400">
-              代谢健康潜力
+              {t('upgrade.metabolicPotential')}
             </span>
           </h1>
           
           <p className="text-lg text-[#FFFBF0]/70 max-w-2xl mx-auto">
-            我们已经分析了你的代谢档案。升级至 <span className="font-semibold text-amber-300">Pro</span> 解锁 AI 个性化方案、实时健康追踪和专属食物推荐。
+            {t('upgrade.analyzed')} <span className="font-semibold text-amber-300">Pro</span> {t('upgrade.unlockAi')}
           </p>
         </div>
 
@@ -92,26 +94,26 @@ export default function UpgradePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 max-w-3xl mx-auto">
           <FeatureCard
             icon={<Brain className="w-6 h-6" />}
-            title="AI 健康代理"
-            description="基于你的代谢档案，AI 每日生成个性化微习惯"
+            title={t('upgrade.aiAgent')}
+            description={t('upgrade.aiAgentDesc')}
             badge="Pro"
           />
           <FeatureCard
             icon={<TrendingUp className="w-6 h-6" />}
-            title="实时健康雷达图"
-            description="可视化你的 6 维代谢指标，追踪每周变化"
+            title={t('upgrade.healthRadar')}
+            description={t('upgrade.healthRadarDesc')}
             badge="Pro"
           />
           <FeatureCard
             icon={<Zap className="w-6 h-6" />}
-            title="抗衰食材推荐"
-            description="基于 Nature Aging 2024 研究的 20+ 分子级食物清单"
+            title={t('upgrade.antiAgingFood')}
+            description={t('upgrade.antiAgingFoodDesc')}
             badge="Pro"
           />
           <FeatureCard
             icon={<Lock className="w-6 h-6" />}
-            title="深度分析报告"
-            description="解锁完整的生理机制解读和干预策略"
+            title={t('upgrade.deepAnalysis')}
+            description={t('upgrade.deepAnalysisDesc')}
             badge="Pro"
           />
         </div>
@@ -120,26 +122,26 @@ export default function UpgradePage() {
         <div className="bg-[#FFFBF0]/10 backdrop-blur-md border border-[#FFFBF0]/20 rounded-3xl p-8 mb-8 max-w-md mx-auto">
           <div className="mb-4">
             <div className="flex items-baseline justify-center gap-2 mb-2">
-              <span className="text-5xl font-bold text-amber-300">¥0</span>
-              <span className="text-[#FFFBF0]/60 line-through">¥99</span>
+              <span className="text-5xl font-bold text-amber-300">{language === 'en' ? '$0' : '¥0'}</span>
+              <span className="text-[#FFFBF0]/60 line-through">{language === 'en' ? '$14' : '¥99'}</span>
             </div>
             <p className="text-sm text-[#FFFBF0]/70">
-              前 <span className="font-semibold text-amber-300">3 天免费试用</span>，随时取消
+              {t('upgrade.freeTrial')}{language === 'zh' ? '，' : ', '}{t('upgrade.cancelAnytime')}
             </p>
           </div>
           
           <div className="space-y-2 text-sm text-left text-[#FFFBF0]/80 mb-6">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-              <span>3天后自动续订：¥99/月</span>
+              <span>{t('upgrade.autoRenew')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-              <span>无缝集成健康数据</span>
+              <span>{t('upgrade.seamlessIntegration')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-              <span>无限制 AI 对话次数</span>
+              <span>{t('upgrade.unlimitedAi')}</span>
             </div>
           </div>
 
@@ -148,11 +150,11 @@ export default function UpgradePage() {
             onClick={handleSubscribe}
             className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 mb-3"
           >
-            开始 3 天免费试用 →
+            {t('upgrade.startTrial')}
           </button>
 
           <p className="text-xs text-[#FFFBF0]/50">
-            试用期内可随时取消，不会扣费
+            {t('upgrade.trialHint')}
           </p>
         </div>
 
@@ -162,16 +164,16 @@ export default function UpgradePage() {
           disabled={isSkipping}
           className="text-sm text-[#FFFBF0]/50 hover:text-[#FFFBF0]/80 underline transition-colors disabled:opacity-50"
         >
-          {isSkipping ? '正在继续...' : '暂时跳过，使用免费版'}
+          {isSkipping ? t('upgrade.skipping') : t('upgrade.skipForNow')}
         </button>
 
         {/* 信任徽章 */}
         <div className="mt-10 flex items-center justify-center gap-6 text-xs text-[#FFFBF0]/40">
-          <span>🔒 安全支付</span>
+          <span>🔒 {t('upgrade.securePayment')}</span>
           <span>|</span>
-          <span>✅ 随时取消</span>
+          <span>✅ {t('upgrade.cancelAnytime')}</span>
           <span>|</span>
-          <span>📧 邮件确认</span>
+          <span>📧 {t('upgrade.emailConfirm')}</span>
         </div>
       </div>
     </div>

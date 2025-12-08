@@ -30,7 +30,13 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
   // 优先使用OpenAI（与Claude配合最佳）
   if (openaiApiKey) {
-    const openAiBase = process.env.OPENAI_API_BASE?.replace(/\/$/, '');
+    // 处理 OPENAI_API_BASE，提取基础 URL（移除 /chat/completions 等路径）
+    let openAiBase = process.env.OPENAI_API_BASE?.replace(/\/$/, '');
+    // 如果 base URL 包含 /chat/completions，提取到 /v1 为止
+    if (openAiBase?.includes('/chat/completions')) {
+      openAiBase = openAiBase.replace('/chat/completions', '');
+    }
+    
     providers.push({
       name: 'OpenAI',
       apiKey: openaiApiKey,
@@ -38,7 +44,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
         process.env.OPENAI_EMBEDDING_API_URL ||
         (openAiBase ? `${openAiBase}/embeddings` : undefined) ||
         'https://api.openai.com/v1/embeddings',
-      model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+      model: process.env.OPENAI_EMBEDDING_MODEL || process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
     });
   }
 

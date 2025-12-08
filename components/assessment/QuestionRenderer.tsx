@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuestionStep } from '@/types/assessment';
-import { Check } from 'lucide-react';
+import { Check, Edit3 } from 'lucide-react';
 
 interface QuestionRendererProps {
   step: QuestionStep;
@@ -16,9 +16,23 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const [textValue, setTextValue] = useState('');
   const [scaleValue, setScaleValue] = useState(5);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customValue, setCustomValue] = useState('');
 
   const handleSingleChoice = (value: string) => {
+    // 如果选择"以上都不是"，显示自定义输入框
+    if (value === 'none_of_above') {
+      setShowCustomInput(true);
+      return;
+    }
     onAnswer(question.id, value);
+  };
+
+  const handleCustomSubmit = () => {
+    if (customValue.trim()) {
+      // 发送自定义描述，让 AI 重新调整问诊方向
+      onAnswer(question.id, `custom: ${customValue.trim()}`);
+    }
   };
 
   const handleMultipleChoice = (value: string) => {
@@ -88,28 +102,87 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
             {/* 单选题 */}
             {question.type === 'single_choice' && question.options && (
               <div className="space-y-3">
-                {question.options.map((option, index) => (
-                  <motion.button
-                    key={option.value}
-                    onClick={() => handleSingleChoice(option.value)}
-                    className="w-full p-4 bg-card border-2 border-border rounded-xl text-left hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-4"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                  >
-                    {option.icon && (
-                      <span className="text-2xl">{option.icon}</span>
-                    )}
-                    <div className="flex-1">
-                      <span className="font-medium text-card-foreground">{option.label}</span>
-                      {option.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{option.description}</p>
-                      )}
-                    </div>
-                  </motion.button>
-                ))}
+                <AnimatePresence mode="wait">
+                  {showCustomInput ? (
+                    // 自定义输入模式
+                    <motion.div
+                      key="custom-input"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-4"
+                    >
+                      <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                        <Edit3 className="w-4 h-4" />
+                        <span className="text-sm">
+                          {language === 'zh' ? '请描述您的实际情况：' : 'Please describe your situation:'}
+                        </span>
+                      </div>
+                      <textarea
+                        value={customValue}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        placeholder={language === 'zh' 
+                          ? '例如：我的症状是...' 
+                          : 'e.g., My symptom is...'}
+                        className="w-full p-4 bg-card border-2 border-border rounded-xl text-card-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors min-h-[100px] resize-none"
+                        autoFocus
+                      />
+                      <div className="flex gap-3">
+                        <motion.button
+                          onClick={() => {
+                            setShowCustomInput(false);
+                            setCustomValue('');
+                          }}
+                          className="flex-1 py-3 bg-muted text-muted-foreground rounded-full font-medium hover:opacity-90 transition-colors"
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {language === 'zh' ? '返回选项' : 'Back'}
+                        </motion.button>
+                        <motion.button
+                          onClick={handleCustomSubmit}
+                          disabled={!customValue.trim()}
+                          className="flex-1 py-3 bg-primary text-primary-foreground rounded-full font-medium hover:opacity-90 transition-colors disabled:opacity-50"
+                          whileTap={{ scale: customValue.trim() ? 0.98 : 1 }}
+                        >
+                          {language === 'zh' ? '提交' : 'Submit'}
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    // 正常选项模式
+                    <motion.div key="options" className="space-y-3">
+                      {question.options.map((option, index) => (
+                        <motion.button
+                          key={option.value}
+                          onClick={() => handleSingleChoice(option.value)}
+                          className={`w-full p-4 bg-card border-2 rounded-xl text-left transition-all flex items-center gap-4 ${
+                            option.value === 'none_of_above' 
+                              ? 'border-dashed border-muted-foreground/50 hover:border-primary' 
+                              : 'border-border hover:border-primary hover:bg-primary/5'
+                          }`}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                        >
+                          {option.icon && (
+                            <span className="text-2xl">{option.icon}</span>
+                          )}
+                          {option.value === 'none_of_above' && (
+                            <Edit3 className="w-5 h-5 text-muted-foreground" />
+                          )}
+                          <div className="flex-1">
+                            <span className="font-medium text-card-foreground">{option.label}</span>
+                            {option.description && (
+                              <p className="text-sm text-muted-foreground mt-1">{option.description}</p>
+                            )}
+                          </div>
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 

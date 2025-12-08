@@ -114,7 +114,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
 
   if (isLoading) {
     return (
-      <div className="min-h-[500px] flex flex-col items-center justify-center space-y-8 bg-white">
+      <div className="min-h-[500px] flex flex-col items-center justify-center space-y-8 bg-white dark:bg-neutral-900">
         <style jsx>{`
           @keyframes breathe {
             0%, 100% { transform: scale(1); opacity: 0.7; }
@@ -149,10 +149,10 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
           </div>
         </div>
         <div className="text-center space-y-2">
-          <div className="text-xl font-semibold text-[#0B3D2E]">
+          <div className="text-xl font-semibold text-[#0B3D2E] dark:text-white">
             Analyzing your health data
           </div>
-          <div className="text-sm text-[#0B3D2E]/70 max-w-md px-4">
+          <div className="text-sm text-[#0B3D2E]/70 dark:text-neutral-400 max-w-md px-4">
             {
               progress < 25 ? 'Parsing physiological indicators' :
               progress < 50 ? 'Evaluating 8-dimensional health status' :
@@ -310,30 +310,30 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <div className="bg-white border border-[#E7E1D6] rounded-lg p-8 shadow-sm">
+      <div className="bg-white dark:bg-neutral-900 border border-[#E7E1D6] dark:border-neutral-800 rounded-lg p-8 shadow-sm">
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-[#0B3D2E] mb-1">{t('Health Analysis Report', '健康分析报告')}</h1>
-            <p className="text-[#1a5c4a]">{t('AI-powered personalized health assessment', '基于AI的个性化健康评估')}</p>
+            <h1 className="text-2xl font-bold text-[#0B3D2E] dark:text-white mb-1">{t('Health Analysis Report', '健康分析报告')}</h1>
+            <p className="text-[#1a5c4a] dark:text-neutral-400">{t('AI-powered personalized health assessment', '基于AI的个性化健康评估')}</p>
           </div>
           <button
             onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
-            className="mr-4 p-2 hover:bg-[#FAF6EF] rounded-lg transition-colors"
+            className="mr-4 p-2 hover:bg-[#FAF6EF] dark:hover:bg-neutral-800 rounded-lg transition-colors"
             title={t('Switch to Chinese', '切换到英文')}
           >
-            <svg className="w-6 h-6 text-[#0B3D2E]/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-[#0B3D2E]/70 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </button>
-          <div className="border border-[#E7E1D6] px-4 py-2 rounded-lg bg-[#FAF6EF]">
-            <div className="text-xs font-medium text-[#1a5c4a] uppercase tracking-wide">{t('Confidence', '置信度')}</div>
-            <div className="text-2xl font-bold text-[#0B3D2E]">{analysis.confidence_score}%</div>
+          <div className="border border-[#E7E1D6] dark:border-neutral-700 px-4 py-2 rounded-lg bg-[#FAF6EF] dark:bg-neutral-800">
+            <div className="text-xs font-medium text-[#1a5c4a] dark:text-neutral-400 uppercase tracking-wide">{t('Confidence', '置信度')}</div>
+            <div className="text-2xl font-bold text-[#0B3D2E] dark:text-white">{analysis.confidence_score}%</div>
           </div>
         </div>
         
         {analysis.confidence_reasons && analysis.confidence_reasons.length > 0 && (
-          <div className="bg-[#FAF6EF] border border-[#E7E1D6] rounded-lg p-4 mt-4">
-            <div className="text-sm font-semibold text-[#0B3D2E] mb-3">{t('Analysis Basis', '分析依据')}</div>
+          <div className="bg-[#FAF6EF] dark:bg-neutral-800 border border-[#E7E1D6] dark:border-neutral-700 rounded-lg p-4 mt-4">
+            <div className="text-sm font-semibold text-[#0B3D2E] dark:text-white mb-3">{t('Analysis Basis', '分析依据')}</div>
             <div className="grid grid-cols-2 gap-2">
               {(language === 'en' ? analysis.confidence_reasons_en : analysis.confidence_reasons)?.map((reason, i) => (
                 <div key={i} className="text-sm text-[#1a5c4a] flex items-start gap-2">
@@ -347,17 +347,17 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
       </div>
 
       {/* Radar Chart - Brand Aligned Style */}
-      <div className="relative overflow-hidden bg-white rounded-2xl border border-[#E7E1D6] shadow-sm hover:shadow-md transition-shadow duration-300">
+      <div className="relative overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl border border-[#E7E1D6] dark:border-neutral-800 shadow-sm hover:shadow-md transition-shadow duration-300">
         {/* Subtle gradient background matching brand */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#FAF6EF] via-white to-[#FAF6EF]/50 z-0"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#FAF6EF] via-white to-[#FAF6EF]/50 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-800 z-0"></div>
         
         <div className="relative z-10 p-12">
           <div className="flex items-start justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-[#0B3D2E] tracking-tight mb-2">
+              <h2 className="text-2xl font-bold text-[#0B3D2E] dark:text-white tracking-tight mb-2">
                 {t('Health Metrics Overview', '健康指标概览')}
               </h2>
-              <p className="text-sm text-[#1a5c4a] font-medium">
+              <p className="text-sm text-[#1a5c4a] dark:text-neutral-400 font-medium">
                 {t('Multi-dimensional physiological analysis with statistical benchmarking', '多维度生理分析与统计基准对比')}
               </p>
             </div>

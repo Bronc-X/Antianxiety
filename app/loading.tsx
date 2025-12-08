@@ -1,11 +1,22 @@
 'use client';
 
+import { useI18n } from '@/lib/i18n';
+
 /**
  * Global Loading Component
  * Simple, calming pulse animation with Cream/Green theme
  * Prevents "White Screen Flash" during page transitions
  */
 export default function Loading() {
+  // Use try-catch to handle cases where i18n context might not be available
+  let loadingText = 'Loading...';
+  try {
+    const { t } = useI18n();
+    loadingText = t('loading.text');
+  } catch {
+    // Fallback if i18n context is not available
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF6EF] flex items-center justify-center">
       <div className="text-center">
@@ -37,7 +48,7 @@ export default function Loading() {
         </div>
 
         {/* Loading text */}
-        <p className="text-sm text-[#0B3D2E]/60 font-medium">Loading...</p>
+        <p className="text-sm text-[#0B3D2E]/60 font-medium">{loadingText}</p>
       </div>
 
       <style jsx>{`

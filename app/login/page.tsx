@@ -151,70 +151,68 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] dark:bg-neutral-950 px-4 py-12 transition-colors">
       <div className="w-full max-w-md space-y-8">
         <AnimatedSection variant="fadeUp" className="text-center">
           <div className="mb-6 flex items-center justify-center gap-3">
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-[#0B3D2E]" />
-              <span className="text-2xl font-extrabold tracking-wide text-[#0B3D2E]">
+              <div className="h-3 w-3 rounded-full bg-[#0B3D2E] dark:bg-white" />
+              <span className="text-2xl font-extrabold tracking-wide text-[#0B3D2E] dark:text-white">
                 No More anxious<sup className="text-xs">™</sup>
               </span>
             </div>
           </div>
-          <h1 className="text-3xl font-semibold" style={{ color: '#0B3D2E', WebkitTextFillColor: '#0B3D2E' }}>{t('login.title')}</h1>
-          <p className="mt-2 text-sm text-[#0B3D2E]/80">{t('login.welcome')}</p>
+          <h1 className="text-3xl font-semibold text-[#0B3D2E] dark:text-white">{t('login.title')}</h1>
+          <p className="mt-2 text-sm text-[#0B3D2E]/80 dark:text-neutral-400">{t('login.welcome')}</p>
         </AnimatedSection>
 
         <AnimatedSection variant="fadeUp">
           <div className="text-center px-6 py-2">
-            <p className="text-sm text-[#0B3D2E]/60 italic">{t('login.promise')}</p>
+            <p className="text-sm text-[#0B3D2E]/60 dark:text-neutral-500 italic">{t('login.promise')}</p>
           </div>
         </AnimatedSection>
 
         <AnimatedSection variant="fadeUp" className="mt-8">
           {message && (
-            <div className={`mb-4 rounded-md p-4 ${message.type === 'success' ? 'bg-[#0B3D2E]/10 text-[#0B3D2E] border border-[#0B3D2E]/20' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            <div className={`mb-4 rounded-md p-4 ${message.type === 'success' ? 'bg-[#0B3D2E]/10 dark:bg-emerald-900/30 text-[#0B3D2E] dark:text-emerald-300 border border-[#0B3D2E]/20 dark:border-emerald-700' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700'}`}>
               <p className="text-sm">{message.text}</p>
             </div>
           )}
 
-          <form onSubmit={handleEmailPasswordLogin} className="space-y-6 rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm">
+          <form onSubmit={handleEmailPasswordLogin} className="space-y-6 rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#0B3D2E]">{t('login.email')}</label>
+              <label htmlFor="email" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('login.email')}</label>
               <input id="email" name="email" type="email" autoComplete="off" required value={email} onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full rounded-xl border border-[#E7E1D6] px-3 py-2 text-sm placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
-                style={{ backgroundColor: '#FFFDF8', color: '#0B3D2E', WebkitTextFillColor: '#0B3D2E' }}
+                className="mt-1 block w-full rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
                 placeholder={t('login.emailPlaceholder')} />
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium text-[#0B3D2E]">{t('login.password')}</label>
-                <button type="button" onClick={() => { setShowForgotPassword(true); setMessage(null); }} className="text-xs text-[#0B3D2E]/70 hover:text-[#0B3D2E] underline">
+                <label htmlFor="password" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('login.password')}</label>
+                <button type="button" onClick={() => { setShowForgotPassword(true); setMessage(null); }} className="text-xs text-[#0B3D2E]/70 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white underline">
                   {t('login.forgotPassword')}
                 </button>
               </div>
               <input id="password" name="password" type="password" autoComplete="off" required value={password} onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded-xl border border-[#E7E1D6] px-3 py-2 text-sm placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
-                style={{ backgroundColor: '#FFFDF8', color: '#0B3D2E', WebkitTextFillColor: '#0B3D2E' }}
+                className="mt-1 block w-full rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
                 placeholder={t('login.passwordPlaceholder')} />
             </div>
             <button type="submit" disabled={isLoading}
-              className="w-full rounded-xl bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50">
+              className="w-full rounded-xl bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 dark:focus:ring-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-50">
               {isLoading ? t('login.processing') : t('login.submit')}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-[#0B3D2E]/70">
+          <p className="mt-6 text-center text-sm text-[#0B3D2E]/70 dark:text-neutral-400">
             {t('login.noAccount')}{' '}
-            <Link href="/signup" className="font-medium text-[#0B3D2E] hover:text-[#0B3D2E]/80 underline">{t('login.signupNow')}</Link>
+            <Link href="/signup" className="font-medium text-[#0B3D2E] dark:text-white hover:text-[#0B3D2E]/80 dark:hover:text-neutral-300 underline">{t('login.signupNow')}</Link>
           </p>
 
           <div className="mt-8">
             <div className="relative flex items-center">
-              <div className="flex-1 border-t border-dashed border-[#E7E1D6]" />
-              <span className="mx-3 text-xs uppercase tracking-widest text-[#0B3D2E]/50">{t('login.orOther')}</span>
-              <div className="flex-1 border-t border-dashed border-[#E7E1D6]" />
+              <div className="flex-1 border-t border-dashed border-[#E7E1D6] dark:border-neutral-700" />
+              <span className="mx-3 text-xs uppercase tracking-widest text-[#0B3D2E]/50 dark:text-neutral-500">{t('login.orOther')}</span>
+              <div className="flex-1 border-t border-dashed border-[#E7E1D6] dark:border-neutral-700" />
             </div>
             <div className="mt-6 flex justify-center gap-4">
               {/* X (Twitter) - 黑色 */}
@@ -243,25 +241,25 @@ function LoginFormContent() {
 
         {showForgotPassword && (
           <AnimatedSection variant="fadeUp" className="mt-4">
-            <div className="rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-[#0B3D2E]">{t('login.resetPassword')}</h3>
-                <button type="button" onClick={() => { setShowForgotPassword(false); setForgotPasswordEmail(''); setMessage(null); }} className="text-[#0B3D2E]/60 hover:text-[#0B3D2E]">✕</button>
+                <h3 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">{t('login.resetPassword')}</h3>
+                <button type="button" onClick={() => { setShowForgotPassword(false); setForgotPasswordEmail(''); setMessage(null); }} className="text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white">✕</button>
               </div>
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div>
-                  <label htmlFor="forgot-email" className="block text-sm font-medium text-[#0B3D2E]">{t('login.registeredEmail')}</label>
+                  <label htmlFor="forgot-email" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('login.registeredEmail')}</label>
                   <input id="forgot-email" type="email" required value={forgotPasswordEmail} onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                    className="mt-1 block w-full rounded-xl border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                    className="mt-1 block w-full rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
                     placeholder={t('login.emailPlaceholder')} />
                 </div>
                 <div className="flex gap-3">
                   <button type="submit" disabled={isSendingReset}
-                    className="flex-1 rounded-xl bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50">
+                    className="flex-1 rounded-xl bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 dark:focus:ring-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-50">
                     {isSendingReset ? t('login.sending') : t('login.sendCode')}
                   </button>
                   <button type="button" onClick={() => { setShowForgotPassword(false); setForgotPasswordEmail(''); setMessage(null); }}
-                    className="rounded-xl border border-[#E7E1D6] bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors">
+                    className="rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-[#0B3D2E] dark:text-white hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors">
                     {t('common.cancel')}
                   </button>
                 </div>
@@ -277,7 +275,7 @@ function LoginFormContent() {
 export default function LoginPage() {
   const { t } = useI18n();
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#FAF6EF]"><div className="text-center"><p className="text-[#0B3D2E]/70">{t('common.loading')}</p></div></div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] dark:bg-neutral-950"><div className="text-center"><p className="text-[#0B3D2E]/70 dark:text-neutral-400">{t('common.loading')}</p></div></div>}>
       <LoginFormContent />
     </Suspense>
   );

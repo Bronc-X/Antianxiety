@@ -39,7 +39,7 @@ export default function WelcomePage() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-1000 overflow-hidden bg-[#FAF6EF]"
+      className="relative min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-1000 overflow-hidden bg-[#FAF6EF] dark:bg-neutral-950"
     >
       {/* 科技波点背景 - 随滑动变化 */}
       <div className="absolute inset-0 pointer-events-none">

@@ -19,6 +19,12 @@ interface AssessmentState {
   error: string | null;
   language: 'zh' | 'en';
   countryCode: string;
+  // 🆕 动态加载状态
+  loadingContext: {
+    lastQuestion?: string;
+    lastAnswer?: string;
+    questionCount: number;
+  };
 }
 
 interface AssessmentContextType extends AssessmentState {
@@ -52,7 +58,8 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
     isLoading: false,
     error: null,
     language: 'zh',
-    countryCode: 'CN'
+    countryCode: 'CN',
+    loadingContext: { questionCount: 0 }
   });
 
   // 检测用户语言
@@ -132,7 +139,20 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
   ) => {
     if (!state.sessionId) return;
 
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    // 🆕 保存当前问题和答案到 loadingContext
+    const currentQuestion = (state.currentStep as QuestionStep)?.question?.text || '';
+    const answerText = typeof value === 'string' ? value : JSON.stringify(value);
+    
+    setState(prev => ({ 
+      ...prev, 
+      isLoading: true, 
+      error: null,
+      loadingContext: {
+        lastQuestion: currentQuestion,
+        lastAnswer: answerText,
+        questionCount: prev.history.length + 1
+      }
+    }));
 
     try {
       const res = await fetch('/api/assessment/next', {

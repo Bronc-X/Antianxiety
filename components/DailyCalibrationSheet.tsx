@@ -243,13 +243,11 @@ export function DailyCalibrationSheet({
                 <ControlCard
                   title="睡眠时长"
                   icon={<Moon className="w-4 h-4 text-emerald-200" />}
-                  accent="from-emerald-500/15 to-teal-500/10"
+                  accent=""
                   value={`${sleepHours}h`}
                   hint="7-8h 为最佳恢复带"
                 >
-                  <div className="relative mt-3">
-                    <div className="absolute inset-0 rounded-full bg-slate-800" />
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400/50 via-sky-400/40 to-indigo-400/50" />
+                  <div className="mt-5 mb-1 space-y-3 relative z-10">
                     <input
                       type="range"
                       min="0"
@@ -257,9 +255,9 @@ export function DailyCalibrationSheet({
                       step="0.5"
                       value={sleepHours}
                       onChange={(e) => setSleepHours(parseFloat(e.target.value))}
-                      className="relative w-full bg-transparent h-2 accent-emerald-400"
+                      className="w-full h-2 accent-emerald-400 cursor-pointer rounded-full appearance-none bg-slate-700/50 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg"
                     />
-                    <div className="flex justify-between text-[11px] text-slate-400 pt-1">
+                    <div className="flex justify-between text-[11px] text-slate-400 px-1 pb-1">
                       <span>0h</span>
                       <span>6h</span>
                       <span>12h</span>
@@ -498,18 +496,18 @@ function ControlCard({
 }) {
   return (
     <div
-      className={`rounded-3xl border border-white/10 bg-white/5 p-4 ring-1 ring-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] bg-gradient-to-br ${accent}`}
+      className={`rounded-3xl border border-white/10 bg-white/5 p-4 pb-5 ring-1 ring-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] ${accent ? `bg-gradient-to-br ${accent}` : ''} relative`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2 relative z-20">
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
             {icon}
           </span>
           {title}
         </div>
-        {value ? <span className="text-sm font-semibold text-white">{value}</span> : null}
+        {value ? <span className="text-sm font-semibold text-white shrink-0">{value}</span> : null}
       </div>
-      {hint && <p className="mt-1 text-xs text-slate-300">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-slate-300 relative z-20">{hint}</p>}
       {children}
     </div>
   );

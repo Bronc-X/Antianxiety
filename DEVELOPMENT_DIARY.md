@@ -1,5 +1,223 @@
 # 开发日志
 
+## 2025-12-08 - AI 问诊系统重大优化
+
+### 🎯 核心更新
+
+#### 1. AI SDK 兼容性修复 ✅
+- ✅ 降级 `ai` SDK 到 4.3.16，`@ai-sdk/openai` 到 1.3.22
+- ✅ 解决中转站 API 不支持 `/responses` 端点的问题
+- ✅ 现在使用标准 `/chat/completions` 端点
+
+#### 2. AI 模型配置优化 ✅
+- ✅ 聊天首选: `deepseek-v3.2-exp` (最快)
+- ✅ 推理首选: `claude-sonnet-4-20250514` (快+准)
+- ✅ 处理 thinking 模型的 `<think>` 标签解析
+
+#### 3. 症状评估系统优化 ✅
+- ✅ 修复重复问题：保存问题文本到 session，确保 AI 看到完整问答历史
+- ✅ 添加 `current_question_text` 字段到数据库
+- ✅ 强化 AI prompt：禁止重复问题，处理自定义输入
+- ✅ 就医建议优化：明确各级别标准，`self_care` 更常用于非严重症状
+
+#### 4. 问诊 UI 优化 ✅
+- ✅ "以上都不是"选项支持自定义输入
+- ✅ "以上都不是"和"我不知道"永远放在选项最后
+- ✅ 高级加载动画：动态显示 AI 实际工作内容
+- ✅ 根据问答进度显示不同状态文案
+
+#### 5. PDF 报告模板重设计 ✅
+- ✅ A4 单页专业医疗报告风格
+- ✅ 顶部品牌装饰条 + 左右分栏布局
+- ✅ 紧急程度横幅 + 主要诊断突出显示
+- ✅ 建议步骤使用数字序号（移除卡通图标）
+- ✅ 打印优化
+
+#### 6. 开发工具 ✅
+- ✅ 创建 `restart-dev.ps1` 一键重启脚本
+- ✅ 添加 `npm run restart` 命令
+
+### 📊 代码统计
+- **修改文件**: 12+ 个
+- **新增文件**: `restart-dev.ps1`, `ADD_CURRENT_QUESTION_TEXT.sql`
+
+### 🚀 下一步计划
+- [ ] 执行 SQL 添加 `current_question_text` 字段
+- [ ] 真机测试症状评估流程
+- [ ] 验证 PDF 导出效果
+
+---
+
+## 2025-12-07 (晚间) - Android 端完善和测试准备
+
+### 🎯 核心更新
+
+#### 1. Android 配置完善 ✅
+- ✅ 创建启动画面 drawable (`splash.xml`)
+  - Warm Cream 背景色 (#FAF6EF)
+  - 支持应用 Logo（可选）
+- ✅ 优化 Capacitor 配置 (`capacitor.config.ts`)
+  - 根据环境变量自动切换开发/生产 URL
+  - 开发模式: `http://localhost:3000`
+  - 生产模式: `https://project-metabasis.vercel.app`
+  - 添加插件配置（Network, Haptics, Preferences）
+- ✅ 验证 styles.xml 配置正确
+  - `AppTheme.NoActionBarLaunch` 主题已配置
+  - 启动画面 drawable 引用正确
+
+#### 2. 测试文档创建 ✅
+- ✅ 创建 `ANDROID_TEST_GUIDE.md` - 完整的测试指南
+  - 环境准备步骤
+  - 详细测试清单（基础功能、AI功能、性能、兼容性）
+  - 常见问题排查
+  - 测试报告模板
+- ✅ 创建 `ANDROID_BUILD_GUIDE.md` - 构建和部署指南
+  - Debug/Release APK 构建流程
+  - App Bundle (AAB) 构建流程
+  - 签名密钥配置
+  - Google Play Store 发布流程
+  - 常见问题解决方案
+
+#### 3. 项目状态总结 ✅
+- ✅ Android 项目结构完整
+- ✅ 品牌色系统已配置
+- ✅ 权限已配置（INTERNET, ACCESS_NETWORK_STATE, VIBRATE）
+- ✅ 启动画面已配置
+- ✅ 网络配置已优化（支持开发和生产环境）
+- ✅ Capacitor 插件已配置（Haptics, Network, Preferences）
+
+### 📊 代码统计
+- **新增文件**: 
+  - `android/app/src/main/res/drawable/splash.xml`
+  - `android/ANDROID_TEST_GUIDE.md`
+  - `android/ANDROID_BUILD_GUIDE.md`
+- **修改文件**: 
+  - `capacitor.config.ts` - 环境变量支持 + 插件配置
+
+### 🚀 下一步计划
+- [ ] 在 Android Studio 中构建 Debug APK
+- [ ] 真机测试（参考 `ANDROID_TEST_GUIDE.md`）
+- [ ] 验证所有功能正常
+- [ ] 修复发现的问题
+- [ ] 准备 Release APK 构建
+
+---
+
+## 2025-12-07 (下午) - Android 项目重建
+
+### 🎯 核心更新
+
+#### 1. Android 项目完全重建 ✅
+- ✅ 删除旧的 `android/` 目录
+- ✅ 使用 `npx cap add android` 重新初始化
+- ✅ 配置品牌色系统 (`colors.xml`)
+  - Primary: #9CAF88 (Sage)
+  - PrimaryDark: #0B3D2E (深绿)
+  - Accent: #C4A77D (Clay)
+  - Background: #FAF6EF (Warm Cream)
+- ✅ 更新启动画面主题 (`styles.xml`)
+- ✅ 添加必要权限 (INTERNET, ACCESS_NETWORK_STATE, VIBRATE)
+- ✅ 更新构建脚本 (`scripts/build-capacitor.js`)
+
+#### 2. 在线运行模式配置 ✅
+- 远程 URL: (http://localhost:3000/landing/)
+- WebView 加载远程应用，无需静态导出
+- Web 更新后用户刷新即可看到最新版本
+
+### 📊 代码统计
+- **重建目录**: `android/`
+- **新增文件**: `colors.xml`
+- **修改文件**: `styles.xml`, `AndroidManifest.xml`, `build-capacitor.js`
+
+### 🚀 下一步计划
+- [x] 完善 Android 配置 ✅
+- [x] 创建测试文档 ✅
+- [ ] 在 Android Studio 中构建 APK
+- [ ] 真机测试
+- [ ] 验证所有功能正常
+
+---
+
+## 2025-12-07 (下午) - 限流中间件实现 + 上线检查清单更新
+
+### 🎯 核心更新
+
+#### 1. API 限流中间件 ✅
+- ✅ 创建 `lib/rate-limiter.ts` - 完整的限流工具库
+- ✅ 更新 `middleware.ts` - 集成限流逻辑到 Next.js 中间件
+- 限流策略：
+  - `/api/chat`: 每用户每天 20 次
+  - `/api/ai/*`: 每用户每小时 50 次
+  - 其他 API: 每用户每分钟 60 次
+- 支持基于用户 ID 或 IP 地址的限流
+- 返回标准 429 响应 + `X-RateLimit-*` 响应头
+
+#### 2. 上线检查清单更新 ✅
+- ✅ 确认 AI 记忆写入流程已实现 (在 `app/api/chat/route.ts` 的 `onFinish` 回调中)
+- ✅ 确认记忆搜索已集成到聊天 (使用 `retrieveMemories` + `buildContextWithMemories`)
+- ✅ 更新 `LAUNCH_CHECKLIST_DEC25.md` 状态
+
+### 📊 代码统计
+- **新增文件**: 1 个 (`lib/rate-limiter.ts`)
+- **修改文件**: 2 个 (`middleware.ts`, `LAUNCH_CHECKLIST_DEC25.md`)
+- **新增代码**: 约 200 行
+
+### 🚀 下一步计划
+- [ ] 内部功能测试
+- [ ] 安卓端构建和测试
+- [ ] 性能优化 + Bug 修复
+
+---
+
+## 2025-12-07 - 深色模式全面实现
+
+### 🎯 核心更新
+
+#### 1. 深色模式全面支持 ✅
+- ✅ 登录页面 (`app/login/page.tsx`) - 完整深色模式支持
+- ✅ 注册页面 (`app/signup/page.tsx`) - 完整深色模式支持
+- ✅ 导航栏 (`components/MarketingNav.tsx`) - 深色模式适配
+- ✅ 用户菜单 (`components/UserProfileMenu.tsx`) - 深色模式适配
+- ✅ 欢迎页面 (`components/WelcomePage.tsx`) - 深色模式背景
+- ✅ 贝叶斯页面 (`app/bayesian/page.tsx`) - 全面深色模式
+- ✅ 助手页面 (`app/assistant/AssistantPageClient.tsx`) - 深色模式
+- ✅ 设置页面 (`app/settings/SettingsClient.tsx`) - 深色模式
+- ✅ 健康仪表盘 (`components/bayesian/HealthDashboardWidget.tsx`) - 深色模式
+- ✅ AI 分析展示 (`components/AIAnalysisDisplay.tsx`) - 深色模式
+- ✅ 语言切换器 (`components/LanguageSwitcher.tsx`) - 深色模式
+- ✅ 智慧轮播 (`components/WisdomCarousel.tsx`) - 深色模式
+- ✅ 新闻流 (`components/InfiniteNewsFeed.tsx`) - 已有深色模式支持
+- ✅ Landing 页面 (`components/LandingContent.tsx`) - 已有深色模式支持
+- ✅ 计划页面 (`app/plans/PlansPageClient.tsx`) - 深色模式
+- ✅ 计划列表 (`components/PlanListWithActions.tsx`) - 深色模式
+- ✅ 分析页面 (`app/analysis/AnalysisClientView.tsx`) - 深色模式
+
+#### 2. 深色模式配色方案
+- 主背景: `dark:bg-neutral-950` (#0a0a0a)
+- 卡片背景: `dark:bg-neutral-900` (#171717)
+- 边框: `dark:border-neutral-800` / `dark:border-neutral-700`
+- 主文字: `dark:text-white`
+- 次要文字: `dark:text-neutral-400`
+- 强调色: `dark:text-emerald-400` (绿色系)
+- 警告色: `dark:text-amber-400` (琥珀色系)
+
+#### 3. 主题切换功能
+- 设置页面已有主题切换卡片 (`ThemeToggleCard`)
+- 支持 "燕麦绿" (浅色) 和 "极简黑" (深色) 两种主题
+- 使用 `next-themes` 进行主题管理
+
+### 📊 代码统计
+- **文件变更**: 18+ 个文件
+- **新增代码**: 约 800 行深色模式样式
+- **修改组件**: 登录、注册、导航、设置、贝叶斯、分析、计划等核心页面
+
+### 🚀 下一步计划
+- [ ] 测试所有页面在深色模式下的可读性
+- [ ] 确保没有白底白字或黑底黑字问题
+- [ ] 优化深色模式下的图表颜色
+
+---
+
 ## 2025-12-05 - UI 优化与组件整合
 
 ### 🎯 核心更新

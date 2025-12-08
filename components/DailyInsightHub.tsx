@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Brain, Moon, Sparkles, Activity, ExternalLink, ChevronRight, Shield, ClipboardList, Check, Zap, Clock, Wind, Dumbbell } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ConsensusMeter, ConsensusIndicator } from '@/components/ConsensusMeter';
+// ConsensusMeter removed - we don't show fake consensus data
 import { BrainLoader } from '@/components/lottie/BrainLoader';
 import { useI18n } from '@/lib/i18n';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
@@ -26,10 +26,20 @@ interface Task {
   description?: string;
 }
 
+// 问卷数据摘要类型
+interface QuestionnaireSummary {
+  sleepQuality?: number; // 0-4
+  energyLevel?: number;  // 0-4
+  stressLevel?: number;  // 0-4
+  moodState?: number;    // 0-4
+  focusAbility?: number; // 0-4
+}
+
 interface DailyInsightHubProps {
   todayTask?: {
     mode: 'low_energy' | 'balanced' | 'normal' | 'challenge';
     description: string;
+    descriptionEn?: string;
   } | null;
   insight?: string | null;
   isLoading?: boolean;
@@ -85,7 +95,7 @@ export function DailyInsightHub({
   todayTask,
   insight,
   isLoading = false,
-  questionnaireCompleted = false,
+  questionnaireCompleted: questionnaireCompletedProp = false,
   onStartCalibration,
   userId,
   onQuestionnaireComplete,
@@ -93,44 +103,133 @@ export function DailyInsightHub({
   energyLevel = 5,
 }: DailyInsightHubProps) {
   const { language } = useI18n();
-  const { ref, rotateX, rotateY, sheenX, sheenY, handleMouseMove, handleMouseLeave } = useCardTilt();
   const [activeTab, setActiveTab] = useState<TabType>('today');
+  const [questionnaireSummary, setQuestionnaireSummary] = useState<QuestionnaireSummary | undefined>();
+  // 内部维护问诊完成状态，不依赖外部 prop
+  const [questionnaireCompleted, setQuestionnaireCompleted] = useState(questionnaireCompletedProp);
+
+  // 检查今日问诊是否已完成（从 localStorage 和数据库）
+  useEffect(() => {
+    const checkQuestionnaireCompletion = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // 先检查 localStorage
+      const completedDate = localStorage.getItem('nma_questionnaire_date');
+      if (completedDate === today) {
+        setQuestionnaireCompleted(true);
+        return;
+      }
+      
+      // 从数据库检查
+      if (userId) {
+        try {
+          const supabase = createClientSupabaseClient();
+          const { data } = await supabase
+            .from('daily_questionnaire_responses')
+            .select('id')
+            .eq('user_id', userId)
+            .gte('created_at', `${today}T00:00:00`)
+            .lt('created_at', `${today}T23:59:59`)
+            .limit(1);
+          
+          if (data && data.length > 0) {
+            localStorage.setItem('nma_questionnaire_date', today);
+            setQuestionnaireCompleted(true);
+          } else {
+            setQuestionnaireCompleted(false);
+          }
+        } catch (err) {
+          console.error('检查问诊状态失败:', err);
+        }
+      }
+    };
+    
+    checkQuestionnaireCompletion();
+  }, [userId]);
+
+  // 获取今日问卷数据用于总结
+  useEffect(() => {
+    const fetchQuestionnaireSummary = async () => {
+      if (!questionnaireCompleted) {
+        setQuestionnaireSummary(undefined);
+        return;
+      }
+      
+      // 先尝试从 localStorage 获取
+      const today = new Date().toISOString().split('T')[0];
+      const cachedData = localStorage.getItem(`nma_questionnaire_summary_${today}`);
+      if (cachedData) {
+        try {
+          setQuestionnaireSummary(JSON.parse(cachedData));
+          return;
+        } catch {}
+      }
+      
+      // 从数据库获取
+      if (userId) {
+        try {
+          const supabase = createClientSupabaseClient();
+          const { data } = await supabase
+            .from('daily_questionnaire_responses')
+            .select('responses')
+            .eq('user_id', userId)
+            .gte('created_at', `${today}T00:00:00`)
+            .lt('created_at', `${today}T23:59:59`)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (data && data.length > 0 && data[0].responses) {
+            const responses = data[0].responses as Record<string, number>;
+            const summary: QuestionnaireSummary = {
+              sleepQuality: responses.sleep_quality,
+              energyLevel: responses.morning_energy,
+              stressLevel: responses.stress_level,
+              moodState: responses.mood_state,
+              focusAbility: responses.focus_ability,
+            };
+            setQuestionnaireSummary(summary);
+            localStorage.setItem(`nma_questionnaire_summary_${today}`, JSON.stringify(summary));
+          }
+        } catch (err) {
+          console.error('获取问卷数据失败:', err);
+        }
+      }
+    };
+    
+    fetchQuestionnaireSummary();
+  }, [questionnaireCompleted, userId]);
+
+  // 切换到问卷 tab
+  const handleGoToQuestionnaire = () => {
+    setActiveTab('questionnaire');
+  };
+
+  // 问卷完成后的回调
+  const handleQuestionnaireComplete = () => {
+    setQuestionnaireCompleted(true);
+    // 重新获取问卷摘要
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem('nma_questionnaire_date', today);
+    onQuestionnaireComplete?.();
+  };
 
   return (
-    <div style={{ perspective: '1000px' }} className="w-full">
-      <motion.div
-        ref={ref}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
-        className="relative"
-      >
-        {/* 光泽层 */}
-        <motion.div
-          className="absolute inset-0 z-10 pointer-events-none rounded-2xl overflow-hidden"
-          style={{ background: `radial-gradient(circle at ${sheenX} ${sheenY}, rgba(255,255,255,0.25) 0%, transparent 50%)` }}
-        />
-        
-        {/* 边缘光效 */}
-        <motion.div
-          className="absolute -inset-[1px] rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-          style={{ background: `linear-gradient(135deg, rgba(156,175,136,0.4) 0%, transparent 50%, rgba(196,167,125,0.3) 100%)` }}
-        />
-
+    <div className="w-full">
+      <div className="relative">
         <Card className="shadow-xl bg-gradient-to-br from-[#FFFDF8] to-[#FAF6EF] border-[#E7E1D6] overflow-hidden rounded-2xl relative">
           <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent pointer-events-none" />
           
           {/* 标签栏 */}
           <div className="relative z-20 px-4 pt-4">
-            <div className="flex gap-1 p-1 bg-[#F5F0E8] rounded-xl">
+            <div className="flex gap-1 p-1 bg-[#E8E3D9] rounded-xl">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? 'bg-white text-[#0B3D2E] shadow-sm'
-                      : 'text-[#0B3D2E]/60 hover:text-[#0B3D2E]/80'
+                      ? 'bg-[#0B3D2E] text-white shadow-sm'
+                      : 'text-[#0B3D2E] hover:text-[#0B3D2E]/80 hover:bg-[#F5F0E8]'
                   }`}
                 >
                   {tab.icon}
@@ -157,6 +256,8 @@ export function DailyInsightHub({
                     isLoading={isLoading}
                     questionnaireCompleted={questionnaireCompleted}
                     onStartCalibration={onStartCalibration}
+                    questionnaireSummary={questionnaireSummary}
+                    onGoToQuestionnaire={handleGoToQuestionnaire}
                   />
                 </motion.div>
               )}
@@ -168,7 +269,7 @@ export function DailyInsightHub({
                   exit={{ opacity: 0, x: 10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <QuestionnairePanel userId={userId} onComplete={onQuestionnaireComplete} />
+                  <QuestionnairePanel userId={userId} onComplete={handleQuestionnaireComplete} />
                 </motion.div>
               )}
               {activeTab === 'plan' && (
@@ -187,11 +288,46 @@ export function DailyInsightHub({
           
           <div className="h-1 bg-gradient-to-r from-[#9CAF88]/30 via-[#C4A77D]/30 to-[#9CAF88]/30" />
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 }
 
+
+// 生成问卷总结文案
+function generateQuestionnaireSummaryText(summary: QuestionnaireSummary, language: string): string {
+  const parts: string[] = [];
+  
+  // 睡眠质量
+  if (summary.sleepQuality !== undefined) {
+    const sleepLabels = language === 'en' 
+      ? ['poor sleep', 'light sleep', 'average sleep', 'good sleep', 'excellent sleep']
+      : ['睡眠较浅', '睡眠一般', '睡眠尚可', '睡眠良好', '睡眠充足'];
+    parts.push(sleepLabels[summary.sleepQuality]);
+  }
+  
+  // 能量水平
+  if (summary.energyLevel !== undefined) {
+    const energyLabels = language === 'en'
+      ? ['low energy', 'moderate energy', 'stable energy', 'good energy', 'high energy']
+      : ['能量偏低', '能量一般', '能量稳定', '能量良好', '能量充沛'];
+    parts.push(energyLabels[summary.energyLevel]);
+  }
+  
+  // 压力水平（反向，0=轻松，4=压力大）
+  if (summary.stressLevel !== undefined) {
+    const stressLabels = language === 'en'
+      ? ['very relaxed', 'relaxed', 'balanced', 'some tension', 'high tension']
+      : ['非常放松', '较为放松', '状态平衡', '略有紧张', '压力较大'];
+    parts.push(stressLabels[summary.stressLevel]);
+  }
+  
+  if (parts.length === 0) return '';
+  
+  const connector = language === 'en' ? ', ' : '、';
+  const prefix = language === 'en' ? 'Today: ' : '今日状态：';
+  return prefix + parts.join(connector);
+}
 
 // 今日洞察面板
 function InsightPanel({
@@ -199,13 +335,17 @@ function InsightPanel({
   insight,
   isLoading,
   questionnaireCompleted,
-  onStartCalibration
+  onStartCalibration,
+  questionnaireSummary,
+  onGoToQuestionnaire
 }: {
-  todayTask?: { mode: 'low_energy' | 'balanced' | 'normal' | 'challenge'; description: string } | null;
+  todayTask?: { mode: 'low_energy' | 'balanced' | 'normal' | 'challenge'; description: string; descriptionEn?: string } | null;
   insight?: string | null;
   isLoading?: boolean;
   questionnaireCompleted?: boolean;
   onStartCalibration?: () => void;
+  questionnaireSummary?: QuestionnaireSummary;
+  onGoToQuestionnaire?: () => void;
 }) {
   const { language } = useI18n();
 
@@ -250,6 +390,9 @@ function InsightPanel({
     );
   }
 
+  // 生成问卷总结文案
+  const summaryText = questionnaireSummary ? generateQuestionnaireSummaryText(questionnaireSummary, language) : '';
+
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-4">
@@ -268,7 +411,7 @@ function InsightPanel({
           }
         </motion.div>
         <div className="flex-1 pt-1">
-          <p className="text-sm text-[#0B3D2E] leading-relaxed">{todayTask.description}</p>
+          <p className="text-sm text-[#0B3D2E] leading-relaxed">{language === 'en' && todayTask.descriptionEn ? todayTask.descriptionEn : todayTask.description}</p>
           {insight && (
             <p className="text-sm text-[#0B3D2E]/70 mt-3 pt-3 border-t border-[#E7E1D6]/50">{insight}</p>
           )}
@@ -292,17 +435,52 @@ function InsightPanel({
         </span>
       </div>
 
+      {/* 问卷已完成：显示总结 */}
       {questionnaireCompleted && (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-r from-[#9CAF88]/10 to-[#C4A77D]/10 border border-[#9CAF88]/20"
+          className="p-3 rounded-xl bg-gradient-to-r from-[#9CAF88]/10 to-[#C4A77D]/10 border border-[#9CAF88]/20"
         >
-          <Sparkles className="w-4 h-4 text-[#9CAF88]" />
-          <span className="text-xs text-[#0B3D2E] font-medium">
-            {language === 'en' ? '✓ Daily questionnaire completed' : '✓ 今日问卷已完成'}
-          </span>
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-[#9CAF88]" />
+            <span className="text-xs text-[#0B3D2E] font-medium">
+              {language === 'en' ? '✓ Daily check-in completed' : '✓ 今日问诊已完成'}
+            </span>
+          </div>
+          {summaryText && (
+            <p className="text-xs text-[#0B3D2E]/70 leading-relaxed pl-6">
+              {summaryText}
+            </p>
+          )}
         </motion.div>
+      )}
+
+      {/* 问卷未完成：提示去做问卷 */}
+      {!questionnaireCompleted && (
+        <motion.button
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onGoToQuestionnaire}
+          className="w-full p-3 rounded-xl bg-amber-50 border border-amber-100 hover:border-amber-200 transition-colors text-left group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+              <ClipboardList className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-[#0B3D2E]">
+                {language === 'en' ? 'Complete daily check-in' : '完成每日问诊'}
+              </p>
+              <p className="text-xs text-[#0B3D2E]/60">
+                {language === 'en' ? 'Get deeper AI insights' : '获取更精准的 AI 洞察'}
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-amber-400 group-hover:text-amber-500 transition-colors" />
+          </div>
+        </motion.button>
       )}
     </div>
   );
@@ -368,70 +546,8 @@ function ToolsPanel() {
 }
 
 
-// 生理真相面板（替换原科学面板）
-function TruthPanel() {
-  const { language } = useI18n();
-
-  const agingCore = language === 'en' 
-    ? 'Core Truth: ' 
-    : '核心真相：';
-  const agingP1 = language === 'en'
-    ? 'Muscle loss after 30 is not inevitable aging, but a result of reduced activity. '
-    : '30岁后的肌肉流失不是必然的衰老，而是活动减少的结果。';
-  const agingP2 = language === 'en'
-    ? 'Resistance training can reverse this process at any age.'
-    : '力量训练可以在任何年龄逆转这一过程。';
-  const agingRef = language === 'en'
-    ? 'Based on 12 meta-analyses covering 50+ years of research on sarcopenia and aging.'
-    : '基于12项元分析，涵盖50+年肌少症与衰老研究。';
-
-  return (
-    <div className="space-y-4" style={{ minHeight: CONTENT_MIN_HEIGHT - 40 }}>
-      {/* 共识度量表 */}
-      <ConsensusMeter percentage={89} metaAnalysisCount={12} />
-      
-      {/* 核心真相内容 */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-4 rounded-xl bg-[#FAF6EF] border border-[#E7E1D6]"
-      >
-        <p className="text-sm text-[#0B3D2E] leading-relaxed">
-          <span className="font-semibold text-[#9CAF88]">{agingCore}</span>
-          {agingP1}
-          <span className="text-[#0B3D2E]/70">{agingP2}</span>
-        </p>
-      </motion.div>
-
-      {/* 论文引用 */}
-      <motion.a
-        href="https://pubmed.ncbi.nlm.nih.gov/3385520/"
-        target="_blank"
-        rel="noopener noreferrer"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        whileHover={{ scale: 1.02 }}
-        className="flex items-start gap-3 p-3 rounded-xl bg-white border border-[#E7E1D6] hover:border-[#9CAF88]/50 transition-colors group"
-      >
-        <span className="text-lg">📄</span>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-[#0B3D2E] group-hover:text-[#9CAF88] transition-colors line-clamp-2">
-            Lexell et al. (1988) - What is the cause of the ageing atrophy?
-          </p>
-          <div className="flex items-center gap-2 mt-1.5">
-            <ConsensusIndicator percentage={92} />
-            <span className="text-[10px] text-[#0B3D2E]/50 font-medium">J Neurol Sci</span>
-          </div>
-        </div>
-        <ExternalLink className="w-3.5 h-3.5 text-[#0B3D2E]/30 group-hover:text-[#9CAF88] transition-colors flex-shrink-0 mt-0.5" />
-      </motion.a>
-
-      {/* 参考说明 */}
-      <p className="text-[10px] text-[#0B3D2E]/50 leading-relaxed">{agingRef}</p>
-    </div>
-  );
-}
+// TruthPanel removed - fake consensus data was not acceptable
+// Only verified research citations should be shown
 
 // ============ 问卷面板 ============
 const QUESTION_POOL = [

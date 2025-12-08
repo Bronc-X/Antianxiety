@@ -11,8 +11,8 @@ const inter = Inter({
 import RouteTransition from "@/components/RouteTransition";
 import MotionProvider from "@/components/MotionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import AIAssistantFloatingButton from "@/components/AIAssistantFloatingButton";
 import GlobalNav from "@/components/GlobalNav";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import { I18nProvider } from "@/lib/i18n";
 import { ToastProvider } from "@/components/ui/toast";
 import DevTools from "@/components/DevTools";
@@ -63,7 +63,7 @@ export default function RootLayout({
               <ToastProvider>
                 <GlobalNav />
                 <RouteTransition>{children}</RouteTransition>
-                <AIAssistantFloatingButton />
+                <MobileBottomNav />
                 <DevTools />
               </ToastProvider>
             </MotionProvider>
