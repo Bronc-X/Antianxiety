@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- No More Anxious 品牌色 -->
+    <!-- 主色调 - Sage 绿 -->
+    <color name="colorPrimary">#9CAF88</color>
+    <!-- 深色主色调 - 深绿 -->
+    <color name="colorPrimaryDark">#0B3D2E</color>
+    <!-- 强调色 - Clay 土色 -->
+    <color name="colorAccent">#C4A77D</color>
+    
+    <!-- 背景色 - Warm Cream -->
+    <color name="backgroundColor">#FAF6EF</color>
+    <!-- 文字色 - Soft Black -->
+    <color name="textColor">#2C2C2C</color>
+    <!-- Sand 色 -->
+    <color name="sandColor">#E8DFD0</color>
+</resources>

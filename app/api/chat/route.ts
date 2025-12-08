@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { streamText } from 'ai';
+import { streamText, generateText } from 'ai';
 import { 
   searchScientificTruth, 
   TRANSLATOR_SYSTEM_PROMPT,
@@ -14,7 +14,18 @@ import { optimizeContextInjection, buildOptimizedContextBlock } from '@/lib/cont
 import { buildFullPersonaSystemPrompt } from '@/lib/persona-prompt';
 
 // 🆕 使用统一的 AI 模型配置
-import { aiClient, getDefaultChatModel, logModelCall } from '@/lib/ai/model-config';
+import { aiClient, getModelPriority, logModelCall } from '@/lib/ai/model-config';
+
+// 🆕 导入 AI 记忆系统
+import {
+  generateEmbedding,
+  retrieveMemories,
+  storeMemory,
+  buildContextWithMemories,
+} from '@/lib/aiMemory';
+
+// 🆕 导入 API 工具函数（从合并的 /api/ai/chat）
+import { fetchWithRetry, parseApiError } from '@/lib/apiUtils';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -437,7 +448,24 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
+    const { messages, stream = true, message, conversationHistory } = body;
+    
+    // 🆕 兼容旧版 /api/ai/chat 的请求格式（Android 客户端）
+    // 旧格式: { message: string, conversationHistory: [] }
+    // 新格式: { messages: [] }
+    let chatMessages = messages;
+    if (!messages && message) {
+      // 转换旧格式到新格式
+      chatMessages = [
+        ...(conversationHistory || []),
+        { role: 'user', content: message }
+      ];
+    }
+    
+    if (!chatMessages || chatMessages.length === 0) {
+      return new Response(JSON.stringify({ error: '消息内容不能为空' }), { status: 400 });
+    }
     
     const supabase = await createServerSupabaseClient();
 
@@ -559,6 +587,36 @@ export async function POST(req: Request) {
     }
 
     const lastMessage = messages[messages.length - 1].content;
+
+    // ---------------------------------------------------------
+    // 🆕 AI 记忆系统：检索相关历史记忆
+    // ---------------------------------------------------------
+    let relevantMemories: Array<{ content_text: string; role: string; created_at: string }> = [];
+    let memoryContext = '';
+    
+    if (userId !== 'anonymous') {
+      try {
+        console.log('🧠 开始检索 AI 记忆...');
+        // 生成用户消息的向量嵌入
+        const messageEmbedding = await generateEmbedding(lastMessage);
+        
+        if (messageEmbedding && messageEmbedding.length > 0) {
+          // 从 ai_memory 表中检索相关记忆
+          relevantMemories = await retrieveMemories(userId, messageEmbedding, 5);
+          console.log(`✅ 检索到 ${relevantMemories.length} 条相关记忆`);
+          
+          if (relevantMemories.length > 0) {
+            memoryContext = buildContextWithMemories(relevantMemories);
+            console.log('📝 记忆上下文已构建');
+          }
+        } else {
+          console.log('⚠️ 无法生成消息向量，跳过记忆检索');
+        }
+      } catch (error) {
+        console.error('❌ 检索 AI 记忆失败:', error);
+        // 继续执行，即使记忆检索失败也不影响对话
+      }
+    }
 
     // ---------------------------------------------------------
     // 哲学 4: 去繁 (Peace via Precision) - 话题引导（非硬性拦截）
@@ -776,6 +834,8 @@ ${TRANSLATOR_SYSTEM_PROMPT}
 
 ${userContext}
 
+${memoryContext}
+
 ${optimizedContextBlock}
 
 ${variationInstructions}
@@ -873,18 +933,128 @@ INSTRUCTIONS:
 - IMPORTANT: Always consider user's health profile and current concerns in your response
 - IMPORTANT: Follow the variation instructions above to avoid repetitive responses`;
 
-    // 使用统一的模型配置
-    const chatModel = getDefaultChatModel();
-    logModelCall(chatModel, 'chat');
+    // 使用统一的模型配置 + 多模型回退
+    const modelCandidates = getModelPriority('chat');
+    const modelErrors: { model: string; message: string }[] = [];
     
-    const result = streamText({
-      model: aiClient(chatModel), 
-      messages: (messages as ChatMessage[]).map(m => ({ role: m.role, content: m.content })),
-      system: systemPrompt,
-    });
+    // 🆕 非流式响应模式（兼容 Android 客户端）
+    if (!stream) {
+      let aiResponse = '';
+      let modelUsed = modelCandidates[0];
+      
+      for (const candidate of modelCandidates) {
+        try {
+          logModelCall(candidate, 'chat-non-stream');
+          
+          const result = await generateText({
+            model: aiClient(candidate),
+            messages: (chatMessages as ChatMessage[]).map(m => ({ role: m.role, content: m.content })),
+            system: systemPrompt,
+          });
+          
+          aiResponse = result.text;
+          modelUsed = candidate;
+          break;
+        } catch (error) {
+          const errMsg = error instanceof Error ? error.message : String(error);
+          modelErrors.push({ model: candidate, message: errMsg });
+          console.error('AI 模型调用失败，尝试下一个', { model: candidate, error: errMsg });
+        }
+      }
+      
+      if (!aiResponse) {
+        return new Response(
+          JSON.stringify({ error: 'AI 服务暂不可用，请稍后重试', modelErrors }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // 存储 AI 记忆
+      if (userId !== 'anonymous') {
+        try {
+          const userEmbedding = await generateEmbedding(lastMessage);
+          await storeMemory(userId, lastMessage, 'user', userEmbedding);
+          
+          const aiEmbedding = await generateEmbedding(aiResponse);
+          await storeMemory(userId, aiResponse, 'assistant', aiEmbedding, {
+            model: modelUsed,
+            papers_count: scientificPapers.length,
+            consensus_level: scientificConsensus?.level,
+          });
+        } catch (error) {
+          console.error('❌ 存储 AI 记忆失败:', error);
+        }
+      }
+      
+      // 返回 JSON 响应（兼容旧版 /api/ai/chat 格式）
+      return new Response(
+        JSON.stringify({ 
+          response: aiResponse,
+          papers: scientificPapers.slice(0, 5),
+          consensus: scientificConsensus,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // 流式响应模式（默认）
+    let streamResult: ReturnType<typeof streamText> | null = null;
+
+    for (const candidate of modelCandidates) {
+      const modelForRun = candidate;
+      try {
+        logModelCall(modelForRun, 'chat');
+
+        streamResult = streamText({
+          model: aiClient(modelForRun),
+          messages: (chatMessages as ChatMessage[]).map(m => ({ role: m.role, content: m.content })),
+          system: systemPrompt,
+          // 🆕 AI 记忆系统：流完成后存储对话到记忆库
+          onFinish: async ({ text }) => {
+            if (userId !== 'anonymous' && text) {
+              try {
+                console.log('🧠 开始存储 AI 记忆...');
+                
+                // 存储用户消息
+                const userEmbedding = await generateEmbedding(lastMessage);
+                await storeMemory(userId, lastMessage, 'user', userEmbedding);
+                console.log('✅ 用户消息已存储到记忆库');
+                
+                // 存储 AI 回复
+                const aiEmbedding = await generateEmbedding(text);
+                await storeMemory(userId, text, 'assistant', aiEmbedding, {
+                  model: modelForRun,
+                  papers_count: scientificPapers.length,
+                  consensus_level: scientificConsensus?.level,
+                });
+                console.log('✅ AI 回复已存储到记忆库');
+              } catch (error) {
+                console.error('❌ 存储 AI 记忆失败:', error);
+                // 不影响响应，继续执行
+              }
+            }
+          },
+        });
+        break;
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        modelErrors.push({ model: modelForRun, message: errMsg });
+        console.error('AI 模型调用失败，尝试下一个', { model: modelForRun, error: errMsg });
+      }
+    }
+
+    if (!streamResult) {
+      return new Response(
+        JSON.stringify({
+          error: 'AI 服务暂不可用，请稍后重试',
+          modelErrors,
+        }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     // 返回流式响应
-    const response = result.toTextStreamResponse();
+    const response = streamResult.toTextStreamResponse();
     
     // 🔑 暴露自定义 headers 给浏览器（CORS 要求）
     response.headers.set('Access-Control-Expose-Headers', 
@@ -903,7 +1073,6 @@ INSTRUCTIONS:
       // 使用 Base64 编码避免特殊字符问题
       const papersJson = JSON.stringify(papersForHeader);
       response.headers.set('x-neuromind-papers', Buffer.from(papersJson, 'utf-8').toString('base64'));
-    } else {
     }
     
     if (scientificConsensus) {

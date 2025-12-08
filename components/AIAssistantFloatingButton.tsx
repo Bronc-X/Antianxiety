@@ -90,6 +90,7 @@ export default function AIAssistantFloatingButton() {
       {/* 拖动约束容器 */}
       <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-40" />
       
+      {/* 移动端隐藏浮窗按钮，使用底部导航栏的 Max 入口 */}
       <motion.div
         drag
         dragConstraints={constraintsRef}
@@ -98,7 +99,7 @@ export default function AIAssistantFloatingButton() {
         onDragStart={() => setIsDragging(true)}
         onDragEnd={() => setIsDragging(false)}
         style={{ x, y }}
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 cursor-move touch-none"
+        className="fixed bottom-6 right-6 z-50 cursor-move touch-none hidden md:block"
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
         initial={{ opacity: 0, scale: 0.8 }}

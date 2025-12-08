@@ -5,6 +5,7 @@ const COLORS = {
   sand: '#E8DFD0',
   clay: '#C4A77D',
   sage: '#9CAF88',
+  forest: '#0B3D2E',
   softBlack: '#2C2C2C',
   white: '#FFFFFF',
   background: '#FAFAFA',
@@ -26,248 +27,388 @@ export interface PDFReportData {
 }
 
 /**
- * 生成 PDF 报告的 HTML 模板
- * 使用 HTML 模板方式，可以通过 puppeteer 或其他工具转换为 PDF
+ * 生成 PDF 报告的 HTML 模板 - 专业医疗报告设计
+ * 优化为 A4 单页打印
  */
 export function generatePDFHTML(data: PDFReportData): string {
   const isZh = data.language === 'zh';
   
-  const urgencyLabels: Record<UrgencyLevel, { zh: string; en: string; color: string }> = {
-    emergency: { zh: '紧急', en: 'Emergency', color: '#DC2626' },
-    urgent: { zh: '需尽快就医', en: 'Urgent', color: '#F59E0B' },
-    routine: { zh: '常规就诊', en: 'Routine', color: '#3B82F6' },
-    self_care: { zh: '自我护理', en: 'Self Care', color: COLORS.sage },
+  const urgencyLabels: Record<UrgencyLevel, { zh: string; en: string; color: string; bg: string }> = {
+    emergency: { zh: '紧急就医', en: 'Emergency', color: '#DC2626', bg: '#FEE2E2' },
+    urgent: { zh: '尽快就医', en: 'Urgent', color: '#D97706', bg: '#FEF3C7' },
+    routine: { zh: '择期就诊', en: 'Routine', color: '#2563EB', bg: '#DBEAFE' },
+    self_care: { zh: '居家护理', en: 'Self Care', color: COLORS.forest, bg: '#D1FAE5' },
   };
 
   const urgencyInfo = urgencyLabels[data.urgency];
+  const topCondition = data.conditions[0];
+  const otherConditions = data.conditions.slice(1, 3);
 
   return `
 <!DOCTYPE html>
 <html lang="${data.language}">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${isZh ? '健康评估报告' : 'Health Assessment Report'}</title>
+  <title>${isZh ? '健康评估报告' : 'Health Assessment Report'} - Bio-Ledger</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    @page { size: A4; margin: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background-color: ${COLORS.background};
-      color: ${COLORS.softBlack};
-      line-height: 1.6;
-      padding: 40px;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
       background: ${COLORS.white};
-      border-radius: 16px;
-      padding: 40px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 32px;
-      padding-bottom: 24px;
-      border-bottom: 2px solid ${COLORS.sand};
-    }
-    .logo {
-      font-size: 24px;
-      font-weight: 700;
-      color: ${COLORS.sage};
-      margin-bottom: 8px;
-    }
-    .title {
-      font-size: 28px;
-      font-weight: 600;
       color: ${COLORS.softBlack};
-      margin-bottom: 8px;
+      line-height: 1.5;
+      font-size: 11px;
     }
-    .date {
-      color: #666;
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 15mm 18mm;
+      background: ${COLORS.white};
+      position: relative;
+    }
+    /* 顶部装饰条 */
+    .header-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 8mm;
+      background: linear-gradient(90deg, ${COLORS.forest} 0%, ${COLORS.sage} 100%);
+    }
+    /* 头部 */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6mm;
+      padding-top: 2mm;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 3mm;
+    }
+    .logo-icon {
+      width: 10mm;
+      height: 10mm;
+      background: ${COLORS.forest};
+      border-radius: 2mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
       font-size: 14px;
     }
-    .section {
-      margin-bottom: 28px;
+    .brand-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: ${COLORS.forest};
+      letter-spacing: -0.5px;
     }
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
+    .brand-text p {
+      font-size: 9px;
+      color: #666;
+    }
+    .report-meta {
+      text-align: right;
+      font-size: 9px;
+      color: #666;
+    }
+    .report-meta .date {
+      font-size: 11px;
       color: ${COLORS.softBlack};
-      margin-bottom: 12px;
-      padding-bottom: 8px;
+      font-weight: 500;
+    }
+    /* 紧急程度横幅 */
+    .urgency-banner {
+      background: ${urgencyInfo.bg};
+      border-left: 4px solid ${urgencyInfo.color};
+      padding: 3mm 4mm;
+      margin-bottom: 5mm;
+      border-radius: 0 2mm 2mm 0;
+      display: flex;
+      align-items: center;
+      gap: 3mm;
+    }
+    .urgency-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: ${urgencyInfo.color};
+    }
+    .urgency-desc {
+      font-size: 10px;
+      color: ${COLORS.softBlack};
+    }
+    /* 主要内容区 */
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5mm;
+    }
+    .left-col, .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4mm;
+    }
+    /* 卡片样式 */
+    .card {
+      background: ${COLORS.background};
+      border-radius: 3mm;
+      padding: 4mm;
+    }
+    .card-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: ${COLORS.forest};
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2mm;
+      padding-bottom: 1.5mm;
       border-bottom: 1px solid ${COLORS.sand};
     }
-    .urgency-badge {
-      display: inline-block;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-weight: 600;
-      font-size: 14px;
-      color: white;
-      background-color: ${urgencyInfo.color};
-      margin-bottom: 16px;
+    /* 主诉卡片 */
+    .complaint-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: ${COLORS.softBlack};
     }
-    .symptoms-list {
+    /* 症状标签 */
+    .symptoms-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 2mm;
     }
     .symptom-tag {
       background: ${COLORS.sand};
-      padding: 6px 12px;
-      border-radius: 16px;
-      font-size: 14px;
+      padding: 1.5mm 3mm;
+      border-radius: 10px;
+      font-size: 9px;
+      color: ${COLORS.softBlack};
     }
-    .condition-card {
-      background: ${COLORS.background};
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-      border-left: 4px solid ${COLORS.sage};
-    }
-    .condition-card.best-match {
-      border-left-color: ${COLORS.clay};
-      background: linear-gradient(135deg, ${COLORS.sand}20, ${COLORS.background});
+    /* 主要诊断卡片 */
+    .primary-condition {
+      background: linear-gradient(135deg, ${COLORS.forest}08, ${COLORS.sage}15);
+      border: 1px solid ${COLORS.sage}40;
     }
     .condition-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 2mm;
     }
     .condition-name {
-      font-size: 18px;
-      font-weight: 600;
-    }
-    .best-match-badge {
-      background: ${COLORS.clay};
-      color: white;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .probability {
-      font-size: 24px;
-      font-weight: 700;
-      color: ${COLORS.sage};
-    }
-    .condition-description {
-      color: #555;
       font-size: 14px;
-      margin-bottom: 12px;
+      font-weight: 700;
+      color: ${COLORS.forest};
     }
-    .matched-symptoms {
+    .probability-badge {
+      background: ${COLORS.forest};
+      color: white;
+      padding: 1.5mm 3mm;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .condition-desc {
+      font-size: 10px;
+      color: #555;
+      margin-bottom: 2mm;
+    }
+    .matched-label {
+      font-size: 8px;
+      color: #888;
+      margin-bottom: 1mm;
+    }
+    .matched-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 1.5mm;
     }
-    .matched-symptom {
+    .matched-item {
       background: ${COLORS.sage}30;
-      color: ${COLORS.softBlack};
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
+      padding: 1mm 2.5mm;
+      border-radius: 8px;
+      font-size: 8px;
+      color: ${COLORS.forest};
     }
-    .next-step {
+    /* 其他可能诊断 */
+    .other-conditions {
+      display: flex;
+      flex-direction: column;
+      gap: 2mm;
+    }
+    .other-condition {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2mm 3mm;
+      background: white;
+      border-radius: 2mm;
+      border: 1px solid ${COLORS.sand};
+    }
+    .other-name {
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .other-prob {
+      font-size: 11px;
+      font-weight: 600;
+      color: ${COLORS.sage};
+    }
+    /* 建议步骤 */
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2mm;
+    }
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 2.5mm;
+      padding: 2.5mm 3mm;
+      background: white;
+      border-radius: 2mm;
+      border-left: 3px solid ${COLORS.sage};
+    }
+    .step-number {
+      width: 5mm;
+      height: 5mm;
+      background: ${COLORS.forest};
+      color: white;
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: ${COLORS.background};
-      border-radius: 8px;
-      margin-bottom: 8px;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 600;
+      flex-shrink: 0;
     }
-    .step-icon {
-      font-size: 20px;
+    .step-text {
+      font-size: 10px;
+      color: ${COLORS.softBlack};
+      line-height: 1.4;
     }
-    .step-action {
-      font-size: 14px;
+    /* 底部 */
+    .footer {
+      position: absolute;
+      bottom: 10mm;
+      left: 18mm;
+      right: 18mm;
     }
     .disclaimer {
-      margin-top: 32px;
-      padding: 16px;
-      background: ${COLORS.sand}40;
-      border-radius: 8px;
-      font-size: 12px;
+      background: ${COLORS.sand}50;
+      padding: 3mm;
+      border-radius: 2mm;
+      font-size: 8px;
       color: #666;
       text-align: center;
+      margin-bottom: 3mm;
     }
-    .footer {
-      margin-top: 24px;
-      text-align: center;
+    .footer-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8px;
       color: #999;
-      font-size: 12px;
+    }
+    /* 打印优化 */
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { margin: 0; box-shadow: none; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="page">
+    <div class="header-bar"></div>
+    
     <div class="header">
-      <div class="logo">Bio-Ledger</div>
-      <h1 class="title">${isZh ? '健康评估报告' : 'Health Assessment Report'}</h1>
-      <p class="date">${isZh ? '评估日期' : 'Assessment Date'}: ${data.date}</p>
-    </div>
-
-    <div class="section">
-      <span class="urgency-badge">${isZh ? urgencyInfo.zh : urgencyInfo.en}</span>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title">${isZh ? '主诉' : 'Chief Complaint'}</h2>
-      <p>${data.chiefComplaint}</p>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title">${isZh ? '症状' : 'Symptoms'}</h2>
-      <div class="symptoms-list">
-        ${data.symptoms.map(s => `<span class="symptom-tag">${s}</span>`).join('')}
+      <div class="brand">
+        <div class="logo-icon">BL</div>
+        <div class="brand-text">
+          <h1>Bio-Ledger</h1>
+          <p>${isZh ? '智能健康评估系统' : 'Intelligent Health Assessment'}</p>
+        </div>
+      </div>
+      <div class="report-meta">
+        <p class="date">${data.date}</p>
+        <p>ID: ${data.sessionId.slice(0, 8).toUpperCase()}</p>
       </div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title">${isZh ? '可能的情况' : 'Possible Conditions'}</h2>
-      ${data.conditions.map(c => `
-        <div class="condition-card ${c.is_best_match ? 'best-match' : ''}">
+    <div class="urgency-banner">
+      <span class="urgency-label">${isZh ? urgencyInfo.zh : urgencyInfo.en}</span>
+      <span class="urgency-desc">${isZh ? '建议处理方式' : 'Recommended Action'}</span>
+    </div>
+
+    <div class="main-content">
+      <div class="left-col">
+        <div class="card">
+          <div class="card-title">${isZh ? '主诉' : 'Chief Complaint'}</div>
+          <p class="complaint-text">${data.chiefComplaint}</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">${isZh ? '相关症状' : 'Related Symptoms'}</div>
+          <div class="symptoms-grid">
+            ${data.symptoms.map(s => `<span class="symptom-tag">${s}</span>`).join('')}
+          </div>
+        </div>
+
+        <div class="card primary-condition">
+          <div class="card-title">${isZh ? '最可能的情况' : 'Most Likely Condition'}</div>
           <div class="condition-header">
-            <div>
-              <span class="condition-name">${c.name}</span>
-              ${c.is_best_match ? `<span class="best-match-badge">${isZh ? '最可能' : 'Best Match'}</span>` : ''}
-            </div>
-            <span class="probability">${c.probability}%</span>
+            <span class="condition-name">${topCondition?.name || '-'}</span>
+            <span class="probability-badge">${topCondition?.probability || 0}%</span>
           </div>
-          <p class="condition-description">${c.description}</p>
-          <div class="matched-symptoms">
-            ${c.matched_symptoms.map(s => `<span class="matched-symptom">${s}</span>`).join('')}
+          <p class="condition-desc">${topCondition?.description || ''}</p>
+          <p class="matched-label">${isZh ? '匹配症状:' : 'Matched:'}</p>
+          <div class="matched-list">
+            ${(topCondition?.matched_symptoms || []).map(s => `<span class="matched-item">${s}</span>`).join('')}
           </div>
         </div>
-      `).join('')}
-    </div>
 
-    <div class="section">
-      <h2 class="section-title">${isZh ? '建议下一步' : 'Recommended Next Steps'}</h2>
-      ${data.nextSteps.map(step => `
-        <div class="next-step">
-          <span class="step-icon">${step.icon}</span>
-          <span class="step-action">${step.action}</span>
+        ${otherConditions.length > 0 ? `
+        <div class="card">
+          <div class="card-title">${isZh ? '其他可能' : 'Other Possibilities'}</div>
+          <div class="other-conditions">
+            ${otherConditions.map(c => `
+              <div class="other-condition">
+                <span class="other-name">${c.name}</span>
+                <span class="other-prob">${c.probability}%</span>
+              </div>
+            `).join('')}
+          </div>
         </div>
-      `).join('')}
-    </div>
+        ` : ''}
+      </div>
 
-    <div class="disclaimer">
-      ${isZh 
-        ? '⚠️ 此评估仅供参考，不能替代专业医疗诊断。如有疑虑，请咨询医生。本系统不提供医疗建议、诊断或治疗。'
-        : '⚠️ This assessment is for reference only and cannot replace professional medical diagnosis. Please consult a doctor if you have concerns. This system does not provide medical advice, diagnosis, or treatment.'}
+      <div class="right-col">
+        <div class="card">
+          <div class="card-title">${isZh ? '建议下一步' : 'Recommended Steps'}</div>
+          <div class="steps-list">
+            ${data.nextSteps.map((step, index) => `
+              <div class="step-item">
+                <span class="step-number">${index + 1}</span>
+                <span class="step-text">${step.action}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="footer">
-      <p>Powered by Bio-Ledger Assessment Engine</p>
-      <p>Session ID: ${data.sessionId}</p>
+      <div class="disclaimer">
+        ⚠️ ${isZh 
+          ? '此报告由 AI 生成，仅供参考，不能替代专业医疗诊断。如有疑虑，请咨询医生。' 
+          : 'This AI-generated report is for reference only and cannot replace professional medical diagnosis.'}
+      </div>
+      <div class="footer-info">
+        <span>Powered by Bio-Ledger Assessment Engine</span>
+        <span>${isZh ? '生成时间' : 'Generated'}: ${new Date().toISOString().slice(0, 16).replace('T', ' ')}</span>
+      </div>
     </div>
   </div>
 </body>
@@ -284,15 +425,11 @@ export function formatDate(date: Date, language: 'zh' | 'en'): string {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   }
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
   });
 }

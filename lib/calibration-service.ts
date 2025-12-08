@@ -144,7 +144,9 @@ export function getInquiryQuestion(anomaly: AnomalyResult): InquiryQuestion | nu
 
 export interface GeneratedTask {
   title: string;
+  titleEn: string;
   description: string;
+  descriptionEn: string;
   mode: 'low_energy' | 'normal' | 'challenge';
 }
 
@@ -156,7 +158,9 @@ export function generateTask(
   if (anomalies.some(a => a.type === 'sleep_deficit') && inquiryResponse === 'hard_to_sleep') {
     return {
       title: '午间 15 分钟 NSDR 休息',
+      titleEn: '15-min NSDR Rest at Noon',
       description: '明白了。今日进入"低耗能模式"，建议午间进行 NSDR（非睡眠深度休息）。',
+      descriptionEn: 'Got it. Entering "low energy mode" today. Recommend NSDR (Non-Sleep Deep Rest) at noon.',
       mode: 'low_energy',
     };
   }
@@ -165,7 +169,9 @@ export function generateTask(
   if (anomalies.some(a => a.type === 'sleep_deficit') && inquiryResponse === 'early_wake') {
     return {
       title: '今晚提前 30 分钟入睡',
+      titleEn: 'Sleep 30 Minutes Earlier Tonight',
       description: '了解。建议今晚提前入睡以补充睡眠债务。',
+      descriptionEn: 'Understood. Recommend sleeping earlier tonight to repay sleep debt.',
       mode: 'low_energy',
     };
   }
@@ -174,7 +180,9 @@ export function generateTask(
   if (anomalies.some(a => a.type === 'high_stress') && inquiryResponse === 'work_pressure') {
     return {
       title: '5 分钟盒式呼吸',
+      titleEn: '5-min Box Breathing',
       description: '工作压力会提升皮质醇。建议进行盒式呼吸来调节自主神经。',
+      descriptionEn: 'Work pressure elevates cortisol. Recommend box breathing to regulate autonomic nervous system.',
       mode: 'normal',
     };
   }
@@ -183,7 +191,9 @@ export function generateTask(
   if (anomalies.some(a => a.type === 'high_stress') && inquiryResponse === 'physical_fatigue') {
     return {
       title: '轻度拉伸 10 分钟',
+      titleEn: '10-min Light Stretching',
       description: '身体疲劳需要主动恢复。建议进行轻度拉伸促进血液循环。',
+      descriptionEn: 'Physical fatigue needs active recovery. Recommend light stretching to improve circulation.',
       mode: 'low_energy',
     };
   }
@@ -191,7 +201,9 @@ export function generateTask(
   // No anomalies - normal mode
   return {
     title: '系统稳定，准备生成计划',
+    titleEn: 'System Stable, Ready for Planning',
     description: '你的状态良好，可以按正常节奏进行今日活动。',
+    descriptionEn: 'Your status is good. You can proceed with today\'s activities at normal pace.',
     mode: 'normal',
   };
 }

@@ -123,21 +123,21 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] dark:bg-neutral-950 px-4 py-12 transition-colors">
       <div className="w-full max-w-md space-y-8">
         <AnimatedSection variant="fadeUp" className="text-center">
-          <h1 className="text-3xl font-semibold text-[#0B3D2E]">{t('signup.title')}</h1>
-          <p className="mt-2 text-sm text-[#0B3D2E]/80">{t('signup.subtitle')}</p>
+          <h1 className="text-3xl font-semibold text-[#0B3D2E] dark:text-white">{t('signup.title')}</h1>
+          <p className="mt-2 text-sm text-[#0B3D2E]/80 dark:text-neutral-400">{t('signup.subtitle')}</p>
           <div className="mt-4 flex justify-center gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
+            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-1 text-xs text-[#0B3D2E] dark:text-white shadow-sm">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1AAD19] text-white text-sm">微</span>
               <span>{t('signup.wechatScan')}</span>
             </div>
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">X</span>
+            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-1 text-xs text-[#0B3D2E] dark:text-white shadow-sm">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black dark:bg-white dark:text-black text-sm font-semibold text-white">X</span>
               <span>{t('signup.xSignup')}</span>
             </div>
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 bg-white px-3 py-1 text-xs text-[#0B3D2E] shadow-sm">
+            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-1 text-xs text-[#0B3D2E] dark:text-white shadow-sm">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#24292e] text-white text-xs">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
               </span>
@@ -147,100 +147,100 @@ export default function SignupPage() {
         </AnimatedSection>
 
         <AnimatedSection variant="fadeUp" className="mt-8">
-          <div className="mb-6 flex rounded-lg border border-[#E7E1D6] bg-white p-1">
+          <div className="mb-6 flex rounded-lg border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-900 p-1">
             <button type="button" onClick={() => { setSignupMode('email'); setMessage(null); }}
-              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${signupMode === 'email' ? 'bg-[#0B3D2E]/10 text-[#0B3D2E]' : 'text-[#0B3D2E]/70 hover:text-[#0B3D2E]'}`}>
+              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${signupMode === 'email' ? 'bg-[#0B3D2E]/10 dark:bg-white/10 text-[#0B3D2E] dark:text-white' : 'text-[#0B3D2E]/70 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white'}`}>
               {t('signup.emailSignup')}
             </button>
             <button type="button" onClick={() => { setSignupMode('phone'); setMessage(null); }}
-              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${signupMode === 'phone' ? 'bg-[#0B3D2E]/10 text-[#0B3D2E]' : 'text-[#0B3D2E]/70 hover:text-[#0B3D2E]'}`}>
+              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${signupMode === 'phone' ? 'bg-[#0B3D2E]/10 dark:bg-white/10 text-[#0B3D2E] dark:text-white' : 'text-[#0B3D2E]/70 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white'}`}>
               {t('signup.phoneSignup')}
             </button>
           </div>
 
           {message && (
-            <div className={`mb-4 rounded-md p-4 ${message.type === 'success' ? 'bg-[#0B3D2E]/10 text-[#0B3D2E] border border-[#0B3D2E]/20' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            <div className={`mb-4 rounded-md p-4 ${message.type === 'success' ? 'bg-[#0B3D2E]/10 dark:bg-emerald-900/30 text-[#0B3D2E] dark:text-emerald-300 border border-[#0B3D2E]/20 dark:border-emerald-700' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-700'}`}>
               <p className="text-sm">{message.text}</p>
             </div>
           )}
 
           {signupMode === 'email' ? (
-            <form onSubmit={handleSignup} className="space-y-6 rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm">
+            <form onSubmit={handleSignup} className="space-y-6 rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[#0B3D2E]">{t('login.email')}</label>
+                <label htmlFor="email" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('login.email')}</label>
                 <input id="email" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
                   placeholder={t('login.emailPlaceholder')} />
               </div>
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-[#0B3D2E]">{t('signup.password')}</label>
+                <label htmlFor="password" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('signup.password')}</label>
                 <input id="password" name="password" type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
                   placeholder={t('signup.passwordPlaceholder')} minLength={6} />
               </div>
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#0B3D2E]">{t('signup.confirmPassword')}</label>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('signup.confirmPassword')}</label>
                 <input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
                   placeholder={t('signup.confirmPlaceholder')} minLength={6} />
               </div>
               <button type="submit" disabled={isLoading}
-                className="w-full rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50">
+                className="w-full rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 dark:focus:ring-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-50">
                 {isLoading ? t('signup.processing') : t('signup.submit')}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleVerifyPhoneSignup} className="space-y-6 rounded-lg border border-[#E7E1D6] bg-white p-6 shadow-sm">
+            <form onSubmit={handleVerifyPhoneSignup} className="space-y-6 rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
               <div>
-                <label className="block text-sm font-medium text-[#0B3D2E]">{t('signup.country')}</label>
+                <label className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('signup.country')}</label>
                 <select value={selectedDialCode} onChange={(event) => setSelectedDialCode(event.target.value)}
-                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30">
+                  className="mt-1 block w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600">
                   {countryDialingCodes.map((country) => (<option key={country.code} value={country.dialCode}>{country.name} {country.dialCode}</option>))}
                 </select>
               </div>
               <div>
-                <label htmlFor="phoneNumber" className="block text-sm font-medium text-[#0B3D2E]">{t('signup.phone')}</label>
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('signup.phone')}</label>
                 <div className="mt-1 flex gap-2">
-                  <input value={selectedDialCode} readOnly className="w-20 rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E]" />
+                  <input value={selectedDialCode} readOnly className="w-20 rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white" />
                   <input id="phoneNumber" name="phoneNumber" type="tel" autoComplete="tel" required value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)}
-                    className="flex-1 rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30"
+                    className="flex-1 rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
                     placeholder={t('signup.phonePlaceholder')} />
                 </div>
-                <p className="mt-2 text-xs text-[#0B3D2E]/60">{t('signup.phoneHint')}</p>
+                <p className="mt-2 text-xs text-[#0B3D2E]/60 dark:text-neutral-500">{t('signup.phoneHint')}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={handleSendPhoneOtp} disabled={isSendingOtp}
-                  className="rounded-md border border-[#0B3D2E]/30 bg-white px-4 py-2 text-sm font-medium text-[#0B3D2E] transition-colors hover:border-[#0B3D2E] hover:bg-[#FAF6EF] disabled:cursor-not-allowed disabled:opacity-60">
+                  className="rounded-md border border-[#0B3D2E]/30 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-[#0B3D2E] dark:text-white transition-colors hover:border-[#0B3D2E] dark:hover:border-neutral-500 hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-60">
                   {isSendingOtp ? t('login.sending') : t('signup.sendOtp')}
                 </button>
-                {otpSent && (<span className="text-xs text-[#0B3D2E]/60">{t('signup.otpSent')}</span>)}
+                {otpSent && (<span className="text-xs text-[#0B3D2E]/60 dark:text-neutral-500">{t('signup.otpSent')}</span>)}
               </div>
               {otpSent && (
                 <div>
-                  <label htmlFor="otpCode" className="block text-sm font-medium text-[#0B3D2E]">{t('signup.otpCode')}</label>
+                  <label htmlFor="otpCode" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('signup.otpCode')}</label>
                   <input id="otpCode" name="otpCode" type="text" inputMode="numeric" autoComplete="one-time-code" required value={otpCode} onChange={(event) => setOtpCode(event.target.value)}
-                    className="mt-1 block w-full rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-3 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:border-[#0B3D2E]/30 tracking-widest"
+                    className="mt-1 block w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600 tracking-widest"
                     placeholder={t('signup.otpPlaceholder')} />
                 </div>
               )}
               <button type="submit" disabled={!otpSent || isVerifyingOtp}
-                className="w-full rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50">
+                className="w-full rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 dark:focus:ring-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-50">
                 {isVerifyingOtp ? t('signup.verifying') : t('signup.verifyAndSignup')}
               </button>
-              <p className="text-xs text-[#0B3D2E]/60">{t('signup.smsHint')}</p>
+              <p className="text-xs text-[#0B3D2E]/60 dark:text-neutral-500">{t('signup.smsHint')}</p>
             </form>
           )}
 
-          <p className="mt-6 text-center text-sm text-[#0B3D2E]/70">
+          <p className="mt-6 text-center text-sm text-[#0B3D2E]/70 dark:text-neutral-400">
             {t('signup.hasAccount')}{' '}
-            <Link href="/login" className="font-medium text-[#0B3D2E] hover:text-[#0B3D2E]/80 underline">{t('signup.loginNow')}</Link>
+            <Link href="/login" className="font-medium text-[#0B3D2E] dark:text-white hover:text-[#0B3D2E]/80 dark:hover:text-neutral-300 underline">{t('signup.loginNow')}</Link>
           </p>
 
           <div className="mt-8">
             <div className="relative flex items-center">
-              <div className="flex-1 border-t border-dashed border-[#E7E1D6]" />
-              <span className="mx-3 text-xs uppercase tracking-widest text-[#0B3D2E]/50">{t('login.orOther')}</span>
-              <div className="flex-1 border-t border-dashed border-[#E7E1D6]" />
+              <div className="flex-1 border-t border-dashed border-[#E7E1D6] dark:border-neutral-700" />
+              <span className="mx-3 text-xs uppercase tracking-widest text-[#0B3D2E]/50 dark:text-neutral-500">{t('login.orOther')}</span>
+              <div className="flex-1 border-t border-dashed border-[#E7E1D6] dark:border-neutral-700" />
             </div>
             <div className="mt-6 flex justify-center gap-4">
               {/* X (Twitter) - 黑色 */}
@@ -269,13 +269,13 @@ export default function SignupPage() {
 
         {showWechatModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowWechatModal(false)}>
-            <div className="bg-white rounded-2xl p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-semibold text-[#0B3D2E] text-center mb-4">{t('signup.wechatScan')}</h3>
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-[#0B3D2E] dark:text-white text-center mb-4">{t('signup.wechatScan')}</h3>
               <div className="flex justify-center mb-4">
                 <Image src={wechatQrSrc} alt="WeChat QR Code" width={220} height={220} className="rounded-lg" />
               </div>
-              <p className="text-sm text-[#0B3D2E]/70 text-center">{t('signup.wechatHint')}</p>
-              <button onClick={() => setShowWechatModal(false)} className="mt-4 w-full py-2 rounded-xl border border-[#E7E1D6] text-[#0B3D2E] text-sm font-medium hover:bg-[#FAF6EF] transition-colors">
+              <p className="text-sm text-[#0B3D2E]/70 dark:text-neutral-400 text-center">{t('signup.wechatHint')}</p>
+              <button onClick={() => setShowWechatModal(false)} className="mt-4 w-full py-2 rounded-xl border border-[#E7E1D6] dark:border-neutral-700 text-[#0B3D2E] dark:text-white text-sm font-medium hover:bg-[#FAF6EF] dark:hover:bg-neutral-800 transition-colors">
                 {t('common.close')}
               </button>
             </div>

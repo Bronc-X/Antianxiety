@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Pro版功能：AI甄选抗衰食材
@@ -154,7 +155,7 @@ const antiAgingMolecules: AntiAgingMolecule[] = [
 
 export default function ProAntiAgingFoods() {
   const [selectedMolecule, setSelectedMolecule] = useState<string | null>(null);
-  const [language, setLanguage] = useState<'zh' | 'en'>('zh');
+  const { language } = useI18n();
 
   const t = (en: string, zh: string) => language === 'en' ? en : zh;
 
@@ -167,23 +168,17 @@ export default function ProAntiAgingFoods() {
             <span className="px-3 py-1 bg-gradient-to-r from-[#D4AF37] to-[#f0c674] text-white text-xs font-bold rounded-full">
               PRO
             </span>
-            <h2 className="text-2xl font-bold text-[#0B3D2E]">
+            <h2 className="text-2xl font-bold text-[#1a1a1a]">
               {t('AI-Selected Anti-Aging Foods', 'AI甄选抗衰食材')}
             </h2>
           </div>
-          <p className="text-sm text-[#0B3D2E]/70">
+          <p className="text-sm text-[#1a1a1a]/70">
             {t(
               'Based on Nature Aging 2024 AgeXtend research - AI-predicted molecules with anti-aging potential',
               '基于Nature Aging 2024 AgeXtend研究 - AI预测具有抗衰潜力的分子'
             )}
           </p>
         </div>
-        <button
-          onClick={() => setLanguage(language === 'zh' ? 'en' : 'zh')}
-          className="px-3 py-1 bg-white border border-[#E7E1D6] rounded-lg text-xs text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors"
-        >
-          {language === 'zh' ? 'EN' : '中文'}
-        </button>
       </div>
 
       {/* Research Citation */}
@@ -222,10 +217,10 @@ export default function ProAntiAgingFoods() {
               <div className="p-5 pb-3">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="text-lg font-bold text-[#0B3D2E]">
+                    <h3 className="text-lg font-bold text-[#1a1a1a]">
                       {language === 'zh' ? molecule.name_zh : molecule.name}
                     </h3>
-                    <p className="text-xs text-[#0B3D2E]/50 mt-0.5">
+                    <p className="text-xs text-[#1a1a1a]/50 mt-0.5">
                       {language === 'zh' ? molecule.name : molecule.name_zh}
                     </p>
                   </div>
@@ -240,7 +235,7 @@ export default function ProAntiAgingFoods() {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-[#0B3D2E]/60 mb-3">
+                <div className="flex items-center gap-2 text-xs text-[#1a1a1a]/60 mb-3">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
@@ -252,13 +247,13 @@ export default function ProAntiAgingFoods() {
                   {(language === 'zh' ? molecule.food_sources_zh : molecule.food_sources).slice(0, 3).map((source, i) => (
                     <span
                       key={i}
-                      className="px-2 py-1 bg-[#0B3D2E]/10 text-[#0B3D2E] text-xs rounded-full"
+                      className="px-2 py-1 bg-[#0B3D2E]/10 text-[#1a1a1a] text-xs rounded-full"
                     >
                       {source}
                     </span>
                   ))}
                   {(language === 'zh' ? molecule.food_sources_zh : molecule.food_sources).length > 3 && (
-                    <span className="px-2 py-1 bg-[#0B3D2E]/5 text-[#0B3D2E]/60 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-[#0B3D2E]/5 text-[#1a1a1a]/60 text-xs rounded-full">
                       +{(language === 'zh' ? molecule.food_sources_zh : molecule.food_sources).length - 3}
                     </span>
                   )}

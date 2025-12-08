@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import Link from 'next/link';
 import UserProfileMenu from '@/components/UserProfileMenu';
 import PlanListWithActions from '@/components/PlanListWithActions';
+import PlansPageClient from './PlansPageClient';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -56,25 +57,5 @@ export default async function PlansPage() {
     .eq('id', user.id)
     .single();
 
-  return (
-    <div className="min-h-screen bg-[#FAF6EF]">
-      {/* GlobalNav已在layout中渲染，移除重复导航栏 */}
-      
-      {/* 主要内容 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* 页面标题 */}
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-[#0B3D2E] mb-2">
-            我的健康方案
-          </h1>
-          <p className="text-[#0B3D2E]/60">
-            查看和管理您的个性化健康计划，每日记录执行情况
-          </p>
-        </div>
-
-        {/* 计划表组件 */}
-        <PlanListWithActions initialPlans={plans} />
-      </div>
-    </div>
-  );
+  return <PlansPageClient initialPlans={plans} />;
 }

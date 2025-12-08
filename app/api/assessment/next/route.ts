@@ -154,9 +154,11 @@ export async function POST(req: Request) {
 
     const history: AnswerRecord[] = session.history || [];
     if (answer) {
+      // 🔑 从当前步骤获取问题文本，确保 AI 能看到完整的问答历史
+      const currentQuestionText = session.current_question_text || answer.question_id;
       history.push({
         question_id: answer.question_id,
-        question_text: '',
+        question_text: currentQuestionText,
         value: answer.value,
         input_method: answer.input_method,
         answered_at: new Date().toISOString(),
@@ -237,6 +239,12 @@ export async function POST(req: Request) {
     const questionCount = history.length;
     const shouldTerminate = questionCount >= 12;
 
+    // 🔑 调试：打印历史记录，确认 AI 能看到完整问答
+    console.log(`📊 问答历史 (${questionCount} 条):`);
+    history.forEach((h, i) => {
+      console.log(`  Q${i + 1}: ${h.question_text || h.question_id} → A: ${JSON.stringify(h.value)}`);
+    });
+
     console.log(`🤖 调用 AI 生成问题，模型优先级: ${MODEL_CANDIDATES.join(' → ')}`);
     logModelCall(MODEL_CANDIDATES[0], 'assessment-next');
 
@@ -262,6 +270,14 @@ export async function POST(req: Request) {
     let aiResponse: z.infer<typeof AIQuestionSchema>;
     try {
       let jsonStr = result.text.trim();
+      
+      // 🔑 处理 thinking 模型的 <think>...</think> 标签
+      if (jsonStr.includes('<think>') && jsonStr.includes('</think>')) {
+        const thinkEndIndex = jsonStr.indexOf('</think>');
+        jsonStr = jsonStr.slice(thinkEndIndex + 8).trim();
+      }
+      
+      // 移除 markdown 代码块
       if (jsonStr.startsWith('```json')) {
         jsonStr = jsonStr.slice(7);
       } else if (jsonStr.startsWith('```')) {
@@ -345,26 +361,50 @@ export async function POST(req: Request) {
     }
 
     let options = aiResponse.question.options || [];
-    if (aiResponse.question.type === 'single_choice' && options.length > 0) {
-      const hasUnknown =
-        options.some(
-          (o) => o.value === 'unknown' || o.label.toLowerCase().includes("don't know") || o.label.includes('不知道'),
-        );
-      if (!hasUnknown) {
-        options.push({
-          value: 'unknown',
-          label: language === 'zh' ? '我不知道' : "I don't know",
-        });
-      }
+    if ((aiResponse.question.type === 'single_choice' || aiResponse.question.type === 'multiple_choice') && options.length > 0) {
+      // 🔑 先过滤掉 AI 可能已经添加的 unknown/none 选项，确保我们统一添加在最后
+      options = options.filter(
+        (o) => o.value !== 'unknown' && 
+               o.value !== 'none_of_above' && 
+               !o.label.includes('不知道') && 
+               !o.label.includes('以上都不是') &&
+               !o.label.toLowerCase().includes("don't know") &&
+               !o.label.toLowerCase().includes('none of the above')
+      );
+      
+      // 添加"以上都不是"选项（倒数第二）
+      options.push({
+        value: 'none_of_above',
+        label: language === 'zh' ? '以上都不是' : 'None of the above',
+        description: language === 'zh' ? '点击输入您的实际情况' : 'Click to describe your situation',
+      });
+      
+      // 添加"我不知道"选项（最后）
+      options.push({
+        value: 'unknown',
+        label: language === 'zh' ? '我不知道' : "I don't know",
+      });
     }
+
+    const questionText = aiResponse.question.text;
+    const questionId = `q_${questionCount + 1}`;
+    
+    // 🔑 保存当前问题文本到 session，下次回答时可以获取
+    await supabase
+      .from('assessment_sessions')
+      .update({
+        current_question_text: questionText,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', session_id);
 
     const response: QuestionStep = {
       step_type: 'question',
       session_id,
       phase: 'differential',
       question: {
-        id: `q_${questionCount + 1}`,
-        text: aiResponse.question.text,
+        id: questionId,
+        text: questionText,
         type: aiResponse.question.type,
         options: options.length > 0 ? options : undefined,
         progress: Math.min(35 + questionCount * 5, 95),
@@ -554,13 +594,24 @@ ${history.map((h, i) => `Q${i + 1}: ${h.question_text || h.question_id}\nA${i + 
    - scale: 1-10 severity rating
 4. Categories: location, severity, timing, associated (symptoms), triggers
 5. ${shouldTerminate ? 'You MUST generate a report now (12+ questions asked).' : 'Generate report when confidence > 80% or after 10-12 questions.'}
+6. **CRITICAL: NEVER repeat a question that has already been asked!** Review the CONVERSATION HISTORY carefully before generating a new question. Each question must explore a NEW aspect of the patient's condition.
+7. If the patient answers "none_of_above" or provides a custom answer starting with "custom:", this means the previous options didn't match their situation. You MUST:
+   - Acknowledge their input
+   - Adjust your diagnostic direction significantly
+   - Ask about completely different symptoms or aspects
+   - Consider the custom description as important new information
 
 ## REPORT REQUIREMENTS
 When generating a report:
 - List 2-4 possible conditions ranked by probability
 - Include matched symptoms for each condition
-- Set urgency: emergency (immediate danger), urgent (see doctor within 24h), routine (schedule appointment), self_care (home treatment)
-- Provide actionable next_steps with icons (🏥 hospital, 💊 medication, 🛏️ rest, 📞 call doctor)
+- Set urgency based on ACTUAL severity:
+  * emergency: Life-threatening (chest pain + shortness of breath, severe bleeding, loss of consciousness)
+  * urgent: Needs attention within 24h (high fever >39°C, severe pain, infection signs)
+  * routine: Can wait for scheduled appointment (chronic mild symptoms, general discomfort)
+  * self_care: Can be managed at home (common cold, mild headache, minor fatigue) - USE THIS MORE OFTEN for non-serious symptoms!
+- **IMPORTANT**: Do NOT default to "routine" or "urgent" for common, non-serious symptoms. Most headaches, mild fatigue, and general discomfort should be "self_care".
+- Provide actionable next_steps with icons (🏥 hospital, 💊 medication, 🛏️ rest, 📞 call doctor, 🧘 relaxation, 💧 hydration)
 
 ## OUTPUT FORMAT (CRITICAL - MUST FOLLOW EXACTLY)
 Return ONLY valid JSON, no markdown, no explanation. Use this exact structure:

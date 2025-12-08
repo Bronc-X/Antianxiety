@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* JetBrains Mono - Terminal/Hacker UI Font */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
 /* ==========================================
    DUAL-LAYER TYPOGRAPHY SYSTEM
    ========================================== */
@@ -123,12 +126,17 @@ html {
 
 body {
   background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  color: #2C2C2C; /* Soft Black - 品牌色，柔和但清晰 */
   /* Dual-Layer: Body text - Inter + System Chinese Fonts */
   font-family: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans", "Microsoft YaHei", sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 深色模式下使用浅色文字 */
+.dark body {
+  color: #f5f5f5;
 }
 
 /* ==========================================
@@ -494,10 +502,10 @@ input, textarea, select {
 
 /* ==========================================
    CONTRAST SAFETY RULES
-   防止白底白字问题
+   防止白底白字问题 - 强制使用固定颜色
    ========================================== */
 
-/* 确保浅色背景上的文字可见 */
+/* 确保浅色背景上的文字可见 - 使用固定深色 */
 .bg-white,
 .bg-card,
 .bg-background,
@@ -506,13 +514,13 @@ input, textarea, select {
 [class*="bg-white"],
 [class*="bg-gray-50"],
 [class*="bg-slate-50"] {
-  color: hsl(var(--foreground));
+  color: #2C2C2C !important; /* Soft Black - 固定深色 */
 }
 
 /* 确保 glass-card 内文字可见 */
 .glass-card,
 .glass-card-strong {
-  color: hsl(var(--foreground));
+  color: #2C2C2C !important;
 }
 
 /* 确保卡片内容文字可见 */
@@ -522,10 +530,108 @@ input, textarea, select {
 
 /* 强制深色文字的安全类 */
 .text-safe {
-  color: hsl(var(--foreground)) !important;
+  color: #2C2C2C !important;
 }
 
 /* 确保 popover 内文字可见 */
 [data-radix-popper-content-wrapper] {
-  color: hsl(var(--foreground));
+  color: #2C2C2C !important;
+}
+
+/* ==========================================
+   防止系统深色模式影响
+   强制覆盖 prefers-color-scheme: dark
+   ========================================== */
+
+/* 当系统是深色模式但我们没有添加 .dark 类时，保持浅色主题 */
+@media (prefers-color-scheme: dark) {
+  :root:not(.dark) {
+    /* 保持浅色模式的所有变量 */
+    --foreground: 0 0% 9%;
+    --background: 39 47% 96%;
+    --card-foreground: 0 0% 9%;
+    --popover-foreground: 0 0% 9%;
+    --muted-foreground: 0 0% 45%;
+  }
+  
+  /* 确保 body 文字颜色不变 */
+  body:not(.dark) {
+    color: #2C2C2C !important;
+    background: #FAF6EF !important;
+  }
+  
+  /* 确保所有文字在浅色背景上可读 */
+  :root:not(.dark) h1,
+  :root:not(.dark) h2,
+  :root:not(.dark) h3,
+  :root:not(.dark) h4,
+  :root:not(.dark) h5,
+  :root:not(.dark) h6 {
+    color: #0B3D2E !important;
+    -webkit-text-fill-color: #0B3D2E !important;
+  }
+  
+  :root:not(.dark) p,
+  :root:not(.dark) span,
+  :root:not(.dark) div,
+  :root:not(.dark) label {
+    color: inherit;
+  }
+}
+
+
+/* ==========================================
+   MOBILE SAFE AREA UTILITIES
+   ========================================== */
+
+/* Safe area padding for bottom navigation */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Bottom navigation safe area */
+.bottom-nav-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+}
+
+/* Content area padding to avoid bottom nav overlap */
+.content-with-bottom-nav {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .content-with-bottom-nav {
+    padding-bottom: 0;
+  }
+}
+
+
+/* ==========================================
+   ASSESSMENT LOADING ANIMATION
+   ========================================== */
+@keyframes loading {
+  0% {
+    width: 0%;
+    margin-left: 0%;
+  }
+  50% {
+    width: 60%;
+    margin-left: 20%;
+  }
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
 }

@@ -216,9 +216,7 @@ export function DailyCheckin({
                   value={`${sleepHours}h`}
                   hint="7-8h 为最佳恢复带"
                 >
-                  <div className="relative mt-2">
-                    <div className="absolute inset-0 rounded-full bg-slate-800" />
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400/50 via-sky-400/40 to-indigo-400/50" />
+                  <div className="mt-3">
                     <input
                       type="range"
                       min="0"
@@ -226,7 +224,11 @@ export function DailyCheckin({
                       step="0.5"
                       value={sleepHours}
                       onChange={(e) => setSleepHours(parseFloat(e.target.value))}
-                      className="relative w-full bg-transparent h-2 accent-emerald-400"
+                      className="w-full h-2 accent-emerald-400 cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, #34d399 0%, #34d399 ${(sleepHours / 12) * 100}%, #475569 ${(sleepHours / 12) * 100}%, #475569 100%)`,
+                        borderRadius: '9999px',
+                      }}
                     />
                     <div className="flex justify-between text-[11px] text-slate-400 pt-1">
                       <span>0h</span>

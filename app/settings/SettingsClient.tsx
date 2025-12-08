@@ -6,6 +6,53 @@ import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2
 import { updateSettings } from '../actions/settings';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useI18n } from '@/lib/i18n';
+import ImageComparisonSlider from '@/components/ImageComparisonSlider';
+import { useTheme } from 'next-themes';
+import { Moon, Sun } from 'lucide-react';
+
+// 主题切换卡片组件
+function ThemeToggleCard({ language }: { language: string }) {
+  const { theme, setTheme } = useTheme();
+  
+  const themes = [
+    { id: 'light', emoji: '🌿', name: language === 'zh' ? '燕麦绿' : 'California Calm', desc: language === 'zh' ? '默认浅色主题' : 'Default light theme' },
+    { id: 'dark', emoji: '⚫', name: language === 'zh' ? '极简黑' : 'Minimal Dark', desc: language === 'zh' ? '深色护眼模式' : 'Dark mode for eyes' },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-[#E7E1D6] bg-white dark:bg-neutral-900 dark:border-neutral-800 p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">
+          {language === 'zh' ? '界面主题' : 'Interface Theme'}
+        </h2>
+        <span className="rounded-full bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900 dark:to-indigo-900 px-3 py-1 text-sm font-medium text-purple-700 dark:text-purple-300">
+          {language === 'zh' ? '新功能' : 'New'}
+        </span>
+      </div>
+      <p className="text-sm text-[#0B3D2E]/70 dark:text-white/60 mb-4">
+        {language === 'zh' ? '选择你喜欢的界面配色方案' : 'Choose your preferred color scheme'}
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        {themes.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTheme(t.id)}
+            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+              theme === t.id
+                ? 'border-[#9CAF88] bg-[#9CAF88]/10 dark:border-white dark:bg-white/10'
+                : 'border-[#E7E1D6] dark:border-neutral-700 hover:border-[#9CAF88]/50 dark:hover:border-white/30'
+            }`}
+          >
+            <span className="text-2xl">{t.emoji}</span>
+            <span className="text-sm font-medium text-[#0B3D2E] dark:text-white">{t.name}</span>
+            <span className="text-xs text-[#0B3D2E]/60 dark:text-white/50">{t.desc}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface SettingsClientProps {
   user: { id: string; email?: string };
@@ -44,29 +91,26 @@ type FormState = {
 };
 
 export default function SettingsClient({ user, profile }: SettingsClientProps) {
+  const { t, language } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 滑动解锁状态 - 必须在所有其他 hooks 之前
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [sliderProgress, setSliderProgress] = useState(0);
+  const [imageId] = useState(() => Math.floor(Math.random() * 1000) + 1);
+  
   const [activeTab, setActiveTab] = useState<'body' | 'ai' | 'account'>('body');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Handle URL tab parameter
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab === 'body' || tab === 'ai' || tab === 'account') {
-      setActiveTab(tab);
-    }
-  }, [searchParams]);
-
   // 从 ai_persona_context 解析诚实度和幽默感设置
   const parseSettingsFromContext = (context: string | null): { honesty: number; humor: number } => {
     if (!context) return { honesty: 90, humor: 65 };
-    
     const honestyMatch = context.match(/诚实度:\s*(\d+)%/);
     const humorMatch = context.match(/幽默感:\s*(\d+)%/);
-    
     return {
       honesty: honestyMatch ? parseInt(honestyMatch[1], 10) : 90,
       humor: humorMatch ? parseInt(humorMatch[1], 10) : 65,
@@ -75,48 +119,114 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
   // 从 ai_settings JSON 或 ai_persona_context 获取设置
   const getInitialSettings = () => {
-    // 调试日志
-    
-    // 优先使用 ai_settings JSON 字段
     if (profile?.ai_settings && typeof profile.ai_settings.honesty_level === 'number') {
-      return {
-        honesty: profile.ai_settings.honesty_level,
-        humor: profile.ai_settings.humor_level,
-      };
+      return { honesty: profile.ai_settings.honesty_level, humor: profile.ai_settings.humor_level ?? 65 };
     }
-    // 否则从 ai_persona_context 解析
-    const parsed = parseSettingsFromContext(profile?.ai_persona_context);
-    return parsed;
+    return parseSettingsFromContext(profile?.ai_persona_context ?? null);
   };
 
   const initialSettings = getInitialSettings();
 
-  // Form state
+  // Form state - 必须在条件渲染之前声明
   const [formData, setFormData] = useState<FormState>({
-    // Body Metrics
     height: profile?.height || '',
     weight: profile?.weight || '',
     age: profile?.age || '',
     gender: profile?.gender || 'male',
-    
-    // AI Tuning - CRITICAL
     primary_goal: profile?.primary_goal || 'maintain_energy',
     ai_personality: profile?.ai_personality || 'max',
     current_focus: profile?.current_focus || '',
-    
-    // MAX Settings - 从 ai_settings 或 ai_persona_context 读取
-    max_honesty: initialSettings.honesty,
-    max_humor: initialSettings.humor,
-    
-    // Account
+    max_honesty: initialSettings.honesty ?? 90,
+    max_humor: initialSettings.humor ?? 65,
     full_name: profile?.full_name || '',
     avatar_url: profile?.avatar_url || '',
   });
+
+  // Handle URL tab parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'body' || tab === 'ai' || tab === 'account') {
+      setActiveTab(tab);
+    }
+    if (tab) {
+      setIsUnlocked(true);
+    }
+  }, [searchParams]);
+
+  // 检查是否已经解锁过（本次会话）- 暂时禁用，每次都显示滑动
+  // useEffect(() => {
+  //   const unlocked = sessionStorage.getItem('settings_unlocked');
+  //   if (unlocked === 'true') {
+  //     setIsUnlocked(true);
+  //   }
+  // }, []);
+
+  const handleSliderComplete = () => {
+    setIsUnlocked(true);
+    sessionStorage.setItem('settings_unlocked', 'true');
+  };
 
   const handleChange = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setMessage(null);
   };
+
+  // 滑动解锁页面
+  if (!isUnlocked) {
+    const imgBw = `https://picsum.photos/seed/${imageId}/800/450?grayscale`;
+    const imgColor = `https://picsum.photos/seed/${imageId}/800/450`;
+
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#FAF6EF] dark:bg-neutral-950 relative overflow-hidden transition-colors">
+        <div className="absolute inset-0 pointer-events-none">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="settings-dots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                <circle cx="20" cy="20" r="1.5" className="fill-[#0B3D2E] dark:fill-white" opacity={0.1 + sliderProgress * 0.3} />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#settings-dots)" />
+          </svg>
+        </div>
+
+        <div className="z-10 w-full max-w-2xl flex flex-col items-center space-y-8">
+          <div className="text-center space-y-2">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl md:text-4xl font-bold text-[#0B3D2E] dark:text-white"
+            >
+              {language === 'zh' ? '个人设置' : 'Settings'}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-sm md:text-base text-[#C4A77D] dark:text-neutral-400"
+            >
+              {language === 'zh' ? '滑动解锁，进入你的专属配置' : 'Slide to unlock your personal settings'}
+            </motion.p>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="w-full"
+          >
+            <ImageComparisonSlider
+              beforeImage={imgBw}
+              afterImage={imgColor}
+              onComplete={handleSliderComplete}
+              onProgressChange={setSliderProgress}
+            />
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -126,14 +236,14 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
       const result = await updateSettings(user.id, formData);
       
       if (result.success) {
-        setMessage({ type: 'success', text: '设置已保存！AI 已同步最新配置。' });
+        setMessage({ type: 'success', text: t('settings.saveSuccess') });
         router.refresh();
       } else {
-        setMessage({ type: 'error', text: result.error || '保存失败' });
+        setMessage({ type: 'error', text: result.error || t('settings.saveFail') });
       }
     } catch (error) {
       console.error('Save error:', error);
-      setMessage({ type: 'error', text: '保存失败，请重试' });
+      setMessage({ type: 'error', text: t('settings.saveFail') });
     } finally {
       setIsSaving(false);
     }
@@ -145,13 +255,13 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: '请选择图片文件' });
+      setMessage({ type: 'error', text: t('settings.selectImage') });
       return;
     }
 
     // 验证文件大小 (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      setMessage({ type: 'error', text: '图片大小不能超过2MB' });
+      setMessage({ type: 'error', text: t('settings.imageTooLarge') });
       return;
     }
 
@@ -165,31 +275,31 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
       reader.onload = (e) => {
         const base64 = e.target?.result as string;
         handleChange('avatar_url', base64);
-        setMessage({ type: 'success', text: '头像上传成功！请记得保存设置。' });
+        setMessage({ type: 'success', text: t('settings.avatarUploadSuccess') });
         setIsUploadingAvatar(false);
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Avatar upload error:', error);
-      setMessage({ type: 'error', text: '头像上传失败，请重试' });
+      setMessage({ type: 'error', text: t('settings.avatarUploadFail') });
       setIsUploadingAvatar(false);
     }
   };
 
   const handleSocialConnect = (platform: string) => {
     // TODO: 实现社交平台OAuth连接
-    setMessage({ type: 'success', text: `正在连接到 ${platform}...` });
+    setMessage({ type: 'success', text: `${t('settings.connectingTo')} ${platform}...` });
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF6EF]">
+    <div className="min-h-screen bg-[#FAF6EF] dark:bg-neutral-950 transition-colors">
       {/* Header */}
-      <div className="border-b border-[#E7E1D6] bg-white">
+      <div className="border-b border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
           <div>
-            <h1 className="text-2xl font-semibold text-[#0B3D2E]">设置中心</h1>
-            <p className="mt-1 text-sm text-[#0B3D2E]/60">
-              配置您的健康档案和 AI 助手行为
+            <h1 className="text-2xl font-semibold text-[#0B3D2E] dark:text-white">{t('settings.center')}</h1>
+            <p className="mt-1 text-sm text-[#0B3D2E]/60 dark:text-neutral-400">
+              {t('settings.configDesc')}
             </p>
           </div>
 
@@ -197,8 +307,8 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
           {message && (
             <div className={`mt-4 rounded-lg p-4 ${
               message.type === 'success' 
-                ? 'bg-green-50 border border-green-200 text-green-800' 
-                : 'bg-red-50 border border-red-200 text-red-800'
+                ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' 
+                : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
             }`}>
               {message.text}
             </div>
@@ -207,44 +317,44 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-[#E7E1D6] bg-white">
+      <div className="border-b border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <nav className="flex gap-8" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('body')}
               className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
                 activeTab === 'body'
-                  ? 'border-[#0B3D2E] text-[#0B3D2E]'
-                  : 'border-transparent text-[#0B3D2E]/60 hover:text-[#0B3D2E]/80'
+                  ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
+                  : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
               }`}
             >
               <Activity className="w-4 h-4" />
-              身体档案
+              {t('settings.bodyProfile')}
             </button>
             <button
               onClick={() => setActiveTab('ai')}
               className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
                 activeTab === 'ai'
-                  ? 'border-[#0B3D2E] text-[#0B3D2E]'
-                  : 'border-transparent text-[#0B3D2E]/60 hover:text-[#0B3D2E]/80'
+                  ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
+                  : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
               }`}
             >
               <Brain className="w-4 h-4" />
-              AI 调优
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-                关键
+              {t('settings.aiTuning')}
+              <span className="rounded-full bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                {t('settings.critical')}
               </span>
             </button>
             <button
               onClick={() => setActiveTab('account')}
               className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
                 activeTab === 'account'
-                  ? 'border-[#0B3D2E] text-[#0B3D2E]'
-                  : 'border-transparent text-[#0B3D2E]/60 hover:text-[#0B3D2E]/80'
+                  ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
+                  : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
               }`}
             >
               <User className="w-4 h-4" />
-              账号与会员
+              {t('settings.accountMembership')}
             </button>
           </nav>
         </div>
@@ -257,15 +367,15 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
         {activeTab === 'body' && (
           <div className="space-y-6">
             <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#0B3D2E] mb-4">基础指标</h2>
+              <h2 className="text-lg font-semibold text-[#0B3D2E] mb-4">{t('settings.basicMetrics')}</h2>
               <p className="text-sm text-[#0B3D2E]/60 mb-6">
-                这些数据用于计算 BMI 和 BMR，影响分析报告中的健康评估
+                {t('settings.metricsDesc')}
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                    身高 (cm)
+                    {t('settings.heightCm')}
                   </label>
                   <input
                     type="number"
@@ -278,7 +388,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                    体重 (kg)
+                    {t('settings.weightKg')}
                   </label>
                   <input
                     type="number"
@@ -291,7 +401,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                    年龄
+                    {t('settings.age')}
                   </label>
                   <input
                     type="number"
@@ -304,12 +414,12 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                    性别
+                    {t('settings.gender')}
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { value: 'male', label: '男' },
-                      { value: 'female', label: '女' },
+                      { value: 'male', label: t('settings.male') },
+                      { value: 'female', label: t('settings.female') },
                     ].map((option) => (
                       <button
                         key={option.value}
@@ -332,9 +442,9 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
               {formData.height && formData.weight && (
                 <div className="mt-6 rounded-lg bg-[#F2F7F5] p-4 border border-[#E7E1D6]">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#0B3D2E]/70">计算的 BMI:</span>
+                    <span className="text-sm text-[#0B3D2E]/70">{t('settings.calculatedBmi')}</span>
                     <span className="text-lg font-semibold text-[#0B3D2E]">
-                      {((parseFloat(formData.weight) / Math.pow(parseFloat(formData.height) / 100, 2))).toFixed(1)}
+                      {((parseFloat(String(formData.weight)) / Math.pow(parseFloat(String(formData.height)) / 100, 2))).toFixed(1)}
                     </span>
                   </div>
                 </div>
@@ -351,12 +461,12 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    保存中...
+                    {t('settings.saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    保存设置
+                    {t('settings.saveSettings')}
                   </>
                 )}
               </button>
@@ -371,31 +481,31 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
               <div className="flex items-start gap-3">
                 <Brain className="w-5 h-5 text-amber-600 mt-0.5" />
                 <div>
-                  <h3 className="font-semibold text-amber-900">AI 上下文同步</h3>
+                  <h3 className="font-semibold text-amber-900">{t('settings.aiContextSyncTitle')}</h3>
                   <p className="mt-1 text-sm text-amber-800">
-                    此页面的设置将直接注入到 AI 的系统提示中，影响聊天行为和分析报告逻辑
+                    {t('settings.aiContextSyncDesc')}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#0B3D2E] mb-6">核心配置</h2>
+              <h2 className="text-lg font-semibold text-[#0B3D2E] mb-6">{t('settings.coreConfigTitle')}</h2>
 
               {/* Primary Goal */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
-                  主要目标 <span className="text-red-500">*</span>
+                  {t('settings.primaryGoalLabel')} <span className="text-red-500">{t('settings.primaryGoalRequired')}</span>
                 </label>
                 <p className="text-xs text-[#0B3D2E]/60 mb-3">
-                  影响报告中的策略优先级和雷达图高亮显示
+                  {t('settings.primaryGoalHint')}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {[
-                    { value: 'lose_weight', label: '减脂塑形', icon: '🎯' },
-                    { value: 'improve_sleep', label: '改善睡眠', icon: '😴' },
-                    { value: 'boost_energy', label: '提升精力', icon: '⚡' },
-                    { value: 'maintain_energy', label: '保持健康', icon: '🌿' },
+                    { value: 'lose_weight', label: t('settings.goalLoseWeight'), icon: '🎯' },
+                    { value: 'improve_sleep', label: t('settings.goalImproveSleep'), icon: '😴' },
+                    { value: 'boost_energy', label: t('settings.goalBoostEnergy'), icon: '⚡' },
+                    { value: 'maintain_energy', label: t('settings.goalMaintainHealth'), icon: '🌿' },
                   ].map((option) => (
                     <button
                       key={option.value}
@@ -430,22 +540,24 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                     handleChange('ai_personality', 'max');
                   }
                 }}
+                t={t}
+                language={language}
               />
 
               {/* Current Focus */}
               <div>
                 <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
-                  当前关注点
+                  {t('settings.currentFocusLabel')}
                 </label>
                 <p className="text-xs text-[#0B3D2E]/60 mb-3">
-                  告诉 AI 您当前的特殊情况（如："膝盖疼痛，避免跑步"、"备孕期间"等）
+                  {t('settings.currentFocusHint')}
                 </p>
                 <textarea
                   value={formData.current_focus}
                   onChange={(e) => handleChange('current_focus', e.target.value)}
                   rows={4}
                   className="w-full rounded-lg border border-[#E7E1D6] px-4 py-3 text-[#0B3D2E] focus:border-[#0B3D2E] focus:ring-1 focus:ring-[#0B3D2E] outline-none resize-none"
-                  placeholder="例如：最近膝盖有些疼，请避免推荐高冲击运动；我正在调整作息，希望重点关注睡眠质量..."
+                  placeholder={t('settings.currentFocusPlaceholder')}
                 />
               </div>
             </div>
@@ -460,12 +572,12 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    保存中...
+                    {t('settings.savingBtn')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    保存设置
+                    {t('settings.saveBtn')}
                   </>
                 )}
               </button>
@@ -477,13 +589,13 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
         {activeTab === 'account' && (
           <div className="space-y-6">
             <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#0B3D2E] mb-6">账号信息</h2>
+              <h2 className="text-lg font-semibold text-[#0B3D2E] mb-6">{t('settings.accountInfoTitle')}</h2>
 
               <div className="space-y-6">
                 {/* Avatar Upload */}
                 <div>
                   <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
-                    头像设置
+                    {t('settings.avatarLabel')}
                   </label>
                   <div className="flex items-center gap-4">
                     <div className="relative">
@@ -491,7 +603,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                         {formData.avatar_url ? (
                           <img
                             src={formData.avatar_url}
-                            alt="头像"
+                            alt={t('settings.avatarAlt')}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -518,10 +630,10 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                         className="inline-flex items-center gap-2 px-4 py-2 border border-[#E7E1D6] rounded-lg text-sm font-medium text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors disabled:opacity-50"
                       >
                         <Camera className="w-4 h-4" />
-                        {isUploadingAvatar ? '上传中...' : '更换头像'}
+                        {isUploadingAvatar ? t('settings.uploadingAvatar') : t('settings.changeAvatarBtn')}
                       </button>
                       <p className="mt-1 text-xs text-[#0B3D2E]/50">
-                        支持 JPG、PNG 格式，文件大小不超过 2MB
+                        {t('settings.avatarFormatHint')}
                       </p>
                     </div>
                   </div>
@@ -529,7 +641,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                    邮箱地址
+                    {t('settings.emailLabel')}
                   </label>
                   <input
                     type="email"
@@ -537,55 +649,58 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                     disabled
                     className="w-full rounded-lg border border-[#E7E1D6] px-4 py-2.5 text-[#0B3D2E]/50 bg-[#FAF6EF] cursor-not-allowed"
                   />
-                  <p className="mt-1 text-xs text-[#0B3D2E]/50">邮箱地址不可更改</p>
+                  <p className="mt-1 text-xs text-[#0B3D2E]/50">{t('settings.emailCannotChange')}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                    显示名称
+                    {t('settings.displayNameLabel')}
                   </label>
                   <input
                     type="text"
                     value={formData.full_name}
                     onChange={(e) => handleChange('full_name', e.target.value)}
                     className="w-full rounded-lg border border-[#E7E1D6] px-4 py-2.5 text-[#0B3D2E] focus:border-[#0B3D2E] focus:ring-1 focus:ring-[#0B3D2E] outline-none"
-                    placeholder="您的名字"
+                    placeholder={t('settings.displayNamePlaceholder')}
                   />
                 </div>
               </div>
             </div>
 
+            {/* Theme Settings */}
+            <ThemeToggleCard language={language} />
+
             {/* Subscription Status */}
             <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-[#0B3D2E]">会员状态</h2>
+                <h2 className="text-lg font-semibold text-[#0B3D2E]">{t('settings.memberStatusTitle')}</h2>
                 <span className="rounded-full bg-[#F2F7F5] px-3 py-1 text-sm font-medium text-[#0B3D2E]">
-                  免费版
+                  {t('settings.freeVersionLabel')}
                 </span>
               </div>
               <p className="text-sm text-[#0B3D2E]/70 mb-4">
-                升级到 Pro 解锁完整的 AI 分析报告和高级功能
+                {t('settings.upgradeHint')}
               </p>
               <button 
                 onClick={() => router.push('/onboarding/upgrade?from=settings')}
                 className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white hover:shadow-lg transition-all"
               >
                 <CreditCard className="w-4 h-4" />
-                升级到 Pro
+                {t('settings.upgradeToProBtn')}
               </button>
             </div>
 
             {/* Social Platform Binding */}
             <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-[#0B3D2E]">社交平台绑定</h2>
+                <h2 className="text-lg font-semibold text-[#0B3D2E]">{t('settings.socialBindingTitle')}</h2>
                 <div className="flex items-center gap-2 text-sm text-[#0B3D2E]/60">
                   <Share2 className="w-4 h-4" />
-                  <span>跨平台分享</span>
+                  <span>{t('settings.crossPlatformShare')}</span>
                 </div>
               </div>
               <p className="text-sm text-[#0B3D2E]/70 mb-6">
-                连接您的社交平台账号，便于快速登录和分享健康成果
+                {t('settings.socialBindingDesc')}
               </p>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -625,9 +740,9 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                     <span className="text-blue-600 text-xs">ℹ</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-[#0B3D2E] mb-1">数据安全保障</h4>
+                    <h4 className="text-sm font-medium text-[#0B3D2E] mb-1">{t('settings.dataSecurityTitle')}</h4>
                     <p className="text-xs text-[#0B3D2E]/60 leading-relaxed">
-                      我们仅获取必要的公开信息用于账户验证，不会存储或分享您的敏感数据。您可以随时解绑任何平台。
+                      {t('settings.dataSecurityInfo')}
                     </p>
                   </div>
                 </div>
@@ -644,12 +759,12 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    保存中...
+                    {t('settings.savingBtn')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    保存设置
+                    {t('settings.saveBtn')}
                   </>
                 )}
               </button>
@@ -667,15 +782,19 @@ interface MaxSettingsPanelWhiteProps {
   humorLevel: number;
   onHonestyChange: (value: number) => void;
   onHumorChange: (value: number) => void;
+  t: (key: string) => string;
+  language: string;
 }
 
 function MaxSettingsPanelWhite({
   honestyLevel,
   humorLevel,
   onHonestyChange,
-  onHumorChange
+  onHumorChange,
+  t,
+  language
 }: MaxSettingsPanelWhiteProps) {
-  const [maxFeedback, setMaxFeedback] = useState<string>('系统就绪，等待输入...');
+  const [maxFeedback, setMaxFeedback] = useState<string>(t('settings.systemReady'));
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -706,16 +825,30 @@ function MaxSettingsPanelWhite({
 
   // 本地反馈（API 失败时使用）
   const getLocalFeedback = (type: 'honesty' | 'humor', value: number): string => {
-    if (type === 'honesty') {
-      if (value >= 90) return '直言不讳模式激活。准备好接受真相了吗？';
-      if (value >= 70) return '诚实度较高，我会直接告诉你需要知道的。';
-      if (value >= 40) return '平衡模式，真相会被适当包装。';
-      return '外交模式启动，我会非常温和地表达。';
+    if (language === 'zh') {
+      if (type === 'honesty') {
+        if (value >= 90) return '直言不讳模式激活。准备好接受真相了吗？';
+        if (value >= 70) return '诚实度较高，我会直接告诉你需要知道的。';
+        if (value >= 40) return '平衡模式，真相会被适当包装。';
+        return '外交模式启动，我会非常温和地表达。';
+      } else {
+        if (value >= 100) return '🎉 彩蛋解锁！幽默感拉满，准备好笑到肚子疼！';
+        if (value >= 80) return '机智模式全开，每句话都可能是个梗。';
+        if (value >= 50) return '适度幽默，偶尔来点轻松的。';
+        return '严肃专业模式，专注于事实和数据。';
+      }
     } else {
-      if (value >= 100) return '🎉 彩蛋解锁！幽默感拉满，准备好笑到肚子疼！';
-      if (value >= 80) return '机智模式全开，每句话都可能是个梗。';
-      if (value >= 50) return '适度幽默，偶尔来点轻松的。';
-      return '严肃专业模式，专注于事实和数据。';
+      if (type === 'honesty') {
+        if (value >= 90) return 'Brutal honesty mode activated. Ready for the truth?';
+        if (value >= 70) return 'High honesty level. I\'ll tell you what you need to know directly.';
+        if (value >= 40) return 'Balanced mode. Truth will be appropriately packaged.';
+        return 'Diplomatic mode on. I\'ll express things very gently.';
+      } else {
+        if (value >= 100) return '🎉 Easter egg unlocked! Max humor, prepare to laugh!';
+        if (value >= 80) return 'Witty mode fully on. Every sentence might be a joke.';
+        if (value >= 50) return 'Moderate humor. Occasional light moments.';
+        return 'Serious professional mode. Focused on facts and data.';
+      }
     }
   };
 
@@ -742,20 +875,20 @@ function MaxSettingsPanelWhite({
       <div className="bg-white rounded-lg p-4 border border-[#E7E1D6]">
         <h4 className="text-sm font-medium text-[#0B3D2E] mb-3 flex items-center gap-2">
           <Settings className="w-4 h-4" />
-          AI 参数调节
+          {t('settings.aiParamTuning')}
         </h4>
         <ul className="space-y-2 text-xs text-[#0B3D2E]/70">
           <li className="flex items-start gap-2">
             <span className="text-[#C4A77D]">•</span>
-            <span><strong>诚实度滑块</strong>: 0-100，控制 AI 的直接程度</span>
+            <span><strong>{t('settings.honestySlider')}</strong>: {t('settings.honestySliderDesc')}</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-[#9CAF88]">•</span>
-            <span><strong>幽默感滑块</strong>: 0-100，100 时触发特殊彩蛋</span>
+            <span><strong>{t('settings.humorSlider')}</strong>: {t('settings.humorSliderDesc')}</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-[#0B3D2E]">•</span>
-            <span><strong>实时反馈</strong>: 滑块变化时 AI 会给出评论</span>
+            <span><strong>{t('settings.realtimeFeedback')}</strong>: {t('settings.realtimeFeedbackDesc')}</span>
           </li>
         </ul>
       </div>
@@ -781,7 +914,7 @@ function MaxSettingsPanelWhite({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-[#0B3D2E]/40 mb-1 uppercase tracking-wide">AI 反馈</p>
+              <p className="text-[10px] text-[#0B3D2E]/40 mb-1 uppercase tracking-wide">{t('settings.aiFeedback')}</p>
               <p className="text-sm text-[#0B3D2E] leading-relaxed">{maxFeedback}</p>
             </div>
           </div>
@@ -792,8 +925,8 @@ function MaxSettingsPanelWhite({
       <div className="bg-white rounded-lg p-4 border border-[#E7E1D6]">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm font-medium text-[#0B3D2E]">诚实度 Honesty</p>
-            <p className="text-xs text-[#0B3D2E]/50">控制 AI 的直接程度</p>
+            <p className="text-sm font-medium text-[#0B3D2E]">{t('settings.honestyLabel')}</p>
+            <p className="text-xs text-[#0B3D2E]/50">{t('settings.honestyDesc')}</p>
           </div>
           <div className="px-3 py-1.5 rounded-lg bg-[#C4A77D]/10">
             <span className="text-lg font-mono text-[#C4A77D] font-semibold">{honestyLevel}</span>
@@ -825,8 +958,8 @@ function MaxSettingsPanelWhite({
           />
         </div>
         <div className="flex justify-between text-[10px] text-[#0B3D2E]/40 mt-2">
-          <span>外交 Diplomatic</span>
-          <span>直接 Brutal</span>
+          <span>{t('settings.diplomatic')}</span>
+          <span>{t('settings.brutal')}</span>
         </div>
       </div>
 
@@ -834,8 +967,8 @@ function MaxSettingsPanelWhite({
       <div className="bg-white rounded-lg p-4 border border-[#E7E1D6]">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm font-medium text-[#0B3D2E]">幽默感 Humor</p>
-            <p className="text-xs text-[#0B3D2E]/50">滑动自动切换 Max 人格风格</p>
+            <p className="text-sm font-medium text-[#0B3D2E]">{t('settings.humorLabel')}</p>
+            <p className="text-xs text-[#0B3D2E]/50">{t('settings.humorDesc')}</p>
           </div>
           <div className={`px-3 py-1.5 rounded-lg ${humorLevel >= 100 ? 'bg-gradient-to-r from-pink-100 to-amber-100' : 'bg-[#9CAF88]/10'}`}>
             <span className={`text-lg font-mono font-semibold ${humorLevel >= 100 ? 'text-pink-600' : 'text-[#9CAF88]'}`}>{humorLevel}</span>
@@ -878,8 +1011,8 @@ function MaxSettingsPanelWhite({
           />
         </div>
         <div className="flex justify-between text-[10px] text-[#0B3D2E]/40 mt-2">
-          <span>严肃 Serious</span>
-          <span>机智 Witty</span>
+          <span>{t('settings.serious')}</span>
+          <span>{t('settings.witty')}</span>
         </div>
         
         {/* 自动人格指示器 */}
@@ -920,7 +1053,7 @@ function MaxSettingsPanelWhite({
                     ? 'text-[#9CAF88]'
                     : 'text-[#B8A888]'
               }`}>
-                {humorLevel < 33 ? '直接-诊断' : humorLevel < 66 ? '平静-哲学' : '简洁-幽默'}
+                {humorLevel < 33 ? t('settings.drHouseStyle') : humorLevel < 66 ? t('settings.zenMasterStyle') : t('settings.maxStyle')}
               </p>
             </div>
           </motion.div>

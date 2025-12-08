@@ -18,6 +18,7 @@ export interface PlanNamingContext {
   duration?: string;           // 时长
   planIndex?: number;          // 计划索引（用于区分多个计划）
   aiPersonality?: AIPersonalityStyle; // AI 性格风格
+  language?: 'zh' | 'en';      // 语言
 }
 
 /**
@@ -139,10 +140,9 @@ const STYLE_NAME_TRANSFORMS: Record<AIPersonalityStyle, {
 };
 
 /**
- * 关注点到名称映射（默认风格）
+ * 关注点到名称映射（默认风格）- 中文
  */
-const CONCERN_NAME_MAP: Record<string, { titles: string[]; emojis: string[]; keywords: string[] }> = {
-  // 减重相关
+const CONCERN_NAME_MAP_ZH: Record<string, { titles: string[]; emojis: string[]; keywords: string[] }> = {
   weight_loss: {
     titles: ['轻盈蜕变计划', '代谢激活方案', '燃脂重塑计划', '体态优化方案'],
     emojis: ['🔥', '⚡', '💪', '🎯'],
@@ -153,8 +153,6 @@ const CONCERN_NAME_MAP: Record<string, { titles: string[]; emojis: string[]; key
     emojis: ['🔥', '💪', '🎯', '⚡'],
     keywords: ['燃脂', '减脂', '塑形', '体脂'],
   },
-  
-  // 压力管理
   stress_management: {
     titles: ['心灵舒缓计划', '压力释放方案', '身心平衡计划', '宁静修复方案'],
     emojis: ['🧘', '🌿', '☮️', '🕊️'],
@@ -165,8 +163,6 @@ const CONCERN_NAME_MAP: Record<string, { titles: string[]; emojis: string[]; key
     emojis: ['🧘', '🌸', '🌊', '🍃'],
     keywords: ['减压', '调节', '安宁', '平衡'],
   },
-  
-  // 睡眠改善
   sleep_improvement: {
     titles: ['深度睡眠计划', '睡眠修复方案', '安眠重塑计划', '夜间恢复方案'],
     emojis: ['🌙', '💤', '🌟', '✨'],
@@ -177,8 +173,6 @@ const CONCERN_NAME_MAP: Record<string, { titles: string[]; emojis: string[]; key
     emojis: ['🌅', '🌙', '💤', '🛏️'],
     keywords: ['睡眠', '生物钟', '唤醒', '深睡'],
   },
-  
-  // 能量提升
   energy_boost: {
     titles: ['能量激活计划', '活力唤醒方案', '精力充沛计划', '元气恢复方案'],
     emojis: ['⚡', '🌟', '💫', '🔋'],
@@ -189,8 +183,6 @@ const CONCERN_NAME_MAP: Record<string, { titles: string[]; emojis: string[]; key
     emojis: ['⚡', '☀️', '🌈', '💪'],
     keywords: ['活力', '能量', '精力', '提升'],
   },
-  
-  // 增肌
   muscle_gain: {
     titles: ['肌肉塑造计划', '力量增长方案', '增肌强化计划', '体能提升方案'],
     emojis: ['💪', '🏋️', '🎯', '🔥'],
@@ -201,13 +193,77 @@ const CONCERN_NAME_MAP: Record<string, { titles: string[]; emojis: string[]; key
     emojis: ['💪', '🏆', '⚡', '🎯'],
     keywords: ['力量', '强化', '突破', '进阶'],
   },
-  
-  // 通用/综合
   general: {
     titles: ['全面健康计划', '身心平衡方案', '健康优化计划', '综合调理方案'],
     emojis: ['🌿', '🌸', '✨', '🎯'],
     keywords: ['健康', '平衡', '优化', '调理'],
   },
+};
+
+/**
+ * 关注点到名称映射（默认风格）- 英文
+ */
+const CONCERN_NAME_MAP_EN: Record<string, { titles: string[]; emojis: string[]; keywords: string[] }> = {
+  weight_loss: {
+    titles: ['Weight Loss Plan', 'Metabolism Boost', 'Fat Burn Program', 'Body Optimization'],
+    emojis: ['🔥', '⚡', '💪', '🎯'],
+    keywords: ['weight', 'burn', 'metabolism', 'body'],
+  },
+  fat_loss: {
+    titles: ['Fat Burning Plan', 'Precision Fat Loss', 'Body Fat Management', 'Sculpting Program'],
+    emojis: ['🔥', '💪', '🎯', '⚡'],
+    keywords: ['fat', 'burn', 'sculpt', 'body'],
+  },
+  stress_management: {
+    titles: ['Stress Relief Plan', 'Calm & Balance', 'Mind-Body Harmony', 'Serenity Program'],
+    emojis: ['🧘', '🌿', '☮️', '🕊️'],
+    keywords: ['stress', 'relax', 'balance', 'calm'],
+  },
+  stress: {
+    titles: ['Stress Control Plan', 'Inner Peace Program', 'Emotional Balance', 'Relaxation Plan'],
+    emojis: ['🧘', '🌸', '🌊', '🍃'],
+    keywords: ['stress', 'peace', 'balance', 'relax'],
+  },
+  sleep_improvement: {
+    titles: ['Deep Sleep Plan', 'Sleep Recovery', 'Rest & Restore', 'Night Recovery'],
+    emojis: ['🌙', '💤', '🌟', '✨'],
+    keywords: ['sleep', 'rest', 'recover', 'restore'],
+  },
+  sleep: {
+    titles: ['Morning Wake Plan', 'Circadian Reset', 'Quality Sleep', 'Deep Rest Program'],
+    emojis: ['🌅', '🌙', '💤', '🛏️'],
+    keywords: ['sleep', 'circadian', 'wake', 'rest'],
+  },
+  energy_boost: {
+    titles: ['Energy Activation', 'Vitality Boost', 'Power Up Plan', 'Energy Recovery'],
+    emojis: ['⚡', '🌟', '💫', '🔋'],
+    keywords: ['energy', 'vitality', 'power', 'boost'],
+  },
+  energy: {
+    titles: ['All-Day Energy', 'Energy Management', 'Vitality Optimization', 'Power Plan'],
+    emojis: ['⚡', '☀️', '🌈', '💪'],
+    keywords: ['energy', 'vitality', 'power', 'boost'],
+  },
+  muscle_gain: {
+    titles: ['Muscle Building Plan', 'Strength Growth', 'Muscle Enhancement', 'Fitness Boost'],
+    emojis: ['💪', '🏋️', '🎯', '🔥'],
+    keywords: ['muscle', 'strength', 'build', 'enhance'],
+  },
+  strength: {
+    titles: ['Strength Breakthrough', 'Core Enhancement', 'Fitness Progress', 'Power Growth'],
+    emojis: ['💪', '🏆', '⚡', '🎯'],
+    keywords: ['strength', 'core', 'power', 'progress'],
+  },
+  general: {
+    titles: ['Complete Health Plan', 'Mind-Body Balance', 'Health Optimization', 'Wellness Program'],
+    emojis: ['🌿', '🌸', '✨', '🎯'],
+    keywords: ['health', 'balance', 'optimize', 'wellness'],
+  },
+};
+
+// 获取对应语言的名称映射
+const getConcernNameMap = (language: 'zh' | 'en' = 'zh') => {
+  return language === 'en' ? CONCERN_NAME_MAP_EN : CONCERN_NAME_MAP_ZH;
 };
 
 /**
@@ -243,10 +299,11 @@ const DURATION_MAP: Record<string, string> = {
  * @returns 个性化计划名称
  */
 export function generatePlanName(context: PlanNamingContext): PersonalizedPlanName {
-  const { primaryConcern, metabolicType, targetOutcome, difficulty, duration, planIndex, aiPersonality } = context;
+  const { primaryConcern, metabolicType, targetOutcome, difficulty, duration, planIndex, aiPersonality, language = 'zh' } = context;
   
   // 获取关注点对应的名称配置
   const concernKey = normalizeConcern(primaryConcern);
+  const CONCERN_NAME_MAP = getConcernNameMap(language);
   const nameConfig = CONCERN_NAME_MAP[concernKey] || CONCERN_NAME_MAP.general;
   
   // 获取 AI 风格配置
@@ -278,11 +335,11 @@ export function generatePlanName(context: PlanNamingContext): PersonalizedPlanNa
   }
   
   // 生成副标题（根据风格调整）
-  let subtitle = generateSubtitle(duration, difficulty, targetOutcome, aiPersonality);
+  let subtitle = generateSubtitle(duration, difficulty, targetOutcome, aiPersonality, language);
   
   // 如果副标题为空，使用默认
   if (!subtitle) {
-    subtitle = getDefaultSubtitle(aiPersonality, nameConfig.keywords[0]);
+    subtitle = getDefaultSubtitle(aiPersonality, nameConfig.keywords[0], language);
   }
   
   return {
@@ -295,7 +352,17 @@ export function generatePlanName(context: PlanNamingContext): PersonalizedPlanNa
 /**
  * 根据风格获取默认副标题
  */
-function getDefaultSubtitle(style?: AIPersonalityStyle, keyword?: string): string {
+function getDefaultSubtitle(style?: AIPersonalityStyle, keyword?: string, language: 'zh' | 'en' = 'zh'): string {
+  if (language === 'en') {
+    const subtitles: Record<AIPersonalityStyle, string> = {
+      'cute_pet': `Customized by your cute assistant 💕`,
+      'mayo_doctor': `Evidence-based Mayo Clinic approach`,
+      'gentle_thea': `Gently guiding your every step`,
+      'science_phd': `Personalized evidence-based plan`,
+      'default': `Your personal ${keyword || 'health'} plan`,
+    };
+    return subtitles[style || 'default'];
+  }
   const subtitles: Record<AIPersonalityStyle, string> = {
     'cute_pet': `小猫助理为你定制喵~ 💕`,
     'mayo_doctor': `梅奥医生循证方案`,
@@ -315,7 +382,7 @@ function normalizeConcern(concern: string): string {
   const normalized = concern.toLowerCase().trim();
   
   // 直接匹配
-  if (CONCERN_NAME_MAP[normalized]) {
+  if (CONCERN_NAME_MAP_ZH[normalized] || CONCERN_NAME_MAP_EN[normalized]) {
     return normalized;
   }
   
@@ -365,39 +432,54 @@ function personalizeWithMetabolicType(title: string, metabolicType: string): str
 }
 
 /**
+ * 难度到描述映射 - 英文
+ */
+const DIFFICULTY_MAP_EN: Record<string, string> = {
+  easy: 'Easy Start',
+  beginner: 'Beginner Friendly',
+  medium: 'Steady Progress',
+  intermediate: 'Intermediate Challenge',
+  hard: 'High Intensity',
+  advanced: 'Advanced Level',
+};
+
+/**
+ * 时长到描述映射 - 英文
+ */
+const DURATION_MAP_EN: Record<string, string> = {
+  '3days': '3-Day Quick Start',
+  '7days': '7-Day Habit Reset',
+  '14days': '14-Day Deep Change',
+  '21days': '21-Day Habit Formation',
+  '30days': '30-Day Transformation',
+  '1week': 'One Week Focus',
+  '2weeks': 'Two Week Progress',
+  '1month': 'One Month Program',
+};
+
+/**
  * 生成副标题
  */
 function generateSubtitle(
   duration?: string, 
   difficulty?: string, 
   targetOutcome?: string,
-  style?: AIPersonalityStyle
+  style?: AIPersonalityStyle,
+  language: 'zh' | 'en' = 'zh'
 ): string {
   const parts: string[] = [];
+  const durationMap = language === 'en' ? DURATION_MAP_EN : DURATION_MAP;
+  const difficultyMap = language === 'en' ? DIFFICULTY_MAP_EN : DIFFICULTY_MAP;
   
-  // 时长（根据风格调整表述）
+  // 时长
   if (duration) {
-    let durationText = DURATION_MAP[duration.toLowerCase()] || duration;
-    if (style === 'cute_pet') {
-      durationText = durationText.replace('快速启动', '一起加油喵').replace('重塑习惯', '养成好习惯').replace('深度改变', '慢慢变好');
-    } else if (style === 'mayo_doctor') {
-      durationText = durationText.replace('快速启动', '短期干预').replace('重塑习惯', '行为矫正').replace('深度改变', '系统治疗');
-    } else if (style === 'science_phd') {
-      durationText = durationText.replace('快速启动', '短周期干预').replace('重塑习惯', '行为重编程').replace('深度改变', '系统性优化');
-    }
+    const durationText = durationMap[duration.toLowerCase()] || duration;
     parts.push(durationText);
   }
   
-  // 难度（根据风格调整表述）
+  // 难度
   if (difficulty) {
-    let difficultyText = DIFFICULTY_MAP[difficulty.toLowerCase()] || difficulty;
-    if (style === 'cute_pet') {
-      difficultyText = difficultyText.replace('轻松入门', '超简单的').replace('新手友好', '小白也能做').replace('高强度挑战', '有点难但猫猫陪你');
-    } else if (style === 'mayo_doctor') {
-      difficultyText = difficultyText.replace('轻松入门', '低强度起步').replace('新手友好', '循序渐进').replace('高强度挑战', '高强度干预');
-    } else if (style === 'science_phd') {
-      difficultyText = difficultyText.replace('轻松入门', '低强度适应期').replace('新手友好', '基线建立阶段').replace('高强度挑战', '高负荷干预');
-    }
+    const difficultyText = difficultyMap[difficulty.toLowerCase()] || difficulty;
     parts.push(difficultyText);
   }
   

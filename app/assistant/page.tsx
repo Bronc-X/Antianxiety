@@ -6,6 +6,7 @@ import AIAnalysisDisplay from '@/components/AIAnalysisDisplay';
 import DailyCheckInPanel from '@/components/DailyCheckInPanel';
 import EnhancedDailyCheckIn from '@/components/EnhancedDailyCheckIn';
 import Link from 'next/link';
+import AssistantPageClient from './AssistantPageClient';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -77,26 +78,12 @@ export default async function AssistantPage({
   // 如果用户未完成资料收集，显示表单
   if (!profile || !profile.ai_profile_completed) {
     return (
-      <div className="min-h-screen bg-[#FAF6EF]">
-        <nav className="border-b border-[#E7E1D6] bg-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="h-14 flex items-center justify-between">
-              <Link href="/landing" className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80">返回主页</Link>
-            </div>
-          </div>
-        </nav>
-        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="rounded-lg border border-[#E7E1D6] bg-white p-8 shadow-sm">
-            <div className="mb-8 text-center">
-              <h1 className="text-3xl font-semibold text-[#0B3D2E]">欢迎使用 AI 助理</h1>
-              <p className="mt-2 text-sm text-[#0B3D2E]/80">
-                请先完成资料收集，以便我们为您提供个性化的健康建议
-              </p>
-            </div>
-            <HealthProfileForm userId={user.id} />
-          </div>
-        </div>
-      </div>
+      <AssistantPageClient 
+        userId={user.id}
+        profile={profile}
+        showForm={true}
+        showAnalysis={false}
+      />
     );
   }
 
@@ -110,56 +97,13 @@ export default async function AssistantPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF6EF]">
-      <nav className="border-b border-[#E7E1D6] bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="h-14 flex items-center justify-between">
-            <Link href="/landing" className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80">返回主页</Link>
-            <h1 className="text-lg font-semibold text-[#0B3D2E]">
-              {profile.ai_analysis_result && !params?.edit ? 'AI 健康分析报告' : '健康参数设置'}
-            </h1>
-            <div className="w-16"></div>
-          </div>
-        </div>
-      </nav>
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        {profile.ai_analysis_result && profile.ai_recommendation_plan && !params?.edit ? (
-          <>
-            <div className="mb-6 text-center">
-              <h1 className="text-3xl font-semibold text-[#0B3D2E]">AI 健康分析报告</h1>
-              <p className="mt-2 text-sm text-[#0B3D2E]/80">基于您的健康数据生成的个性化建议</p>
-            </div>
-            <AIAnalysisDisplay 
-              analysis={profile.ai_analysis_result as never}
-              plan={profile.ai_recommendation_plan as never}
-            />
-          </>
-        ) : (
-          <div className="rounded-lg border border-[#E7E1D6] bg-white p-8 shadow-sm">
-            <div className="mb-8 text-center">
-              <h1 className="text-3xl font-semibold text-[#0B3D2E]">个性化健康参数设置</h1>
-              <p className="mt-2 text-sm text-[#0B3D2E]/80">
-                您的数据将被严格保密，仅用于 AI 为您提供个性化健康建议
-              </p>
-            </div>
-            <HealthProfileForm 
-              userId={user.id} 
-              initialData={profile as {
-                gender?: string | null;
-                birth_date?: string | null;
-                height_cm?: number | null;
-                weight_kg?: number | null;
-                activity_level?: string | null;
-                body_fat_percentage?: number | null;
-                primary_goal?: string | null;
-                target_weight_kg?: number | null;
-                weekly_goal_rate?: string | null;
-              }} 
-            />
-          </div>
-        )}
-      </div>
-    </div>
+    <AssistantPageClient 
+      userId={user.id}
+      profile={profile}
+      showForm={false}
+      showAnalysis={true}
+      isEdit={!!params?.edit}
+    />
   );
 }
 

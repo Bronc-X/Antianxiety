@@ -29,8 +29,9 @@ export async function apiFetch(path, options = {}) {
 }
 
 export async function chatWithAI(messages) {
-  return apiFetch('/api/ai/chat', {
+  // 🆕 合并到主 API，使用非流式模式
+  return apiFetch('/api/chat', {
     method: 'POST',
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, stream: false }),
   });
 }

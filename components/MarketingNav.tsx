@@ -45,13 +45,13 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
   };
 
   return (
-    <AnimatedSection inView variant="fadeIn" className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur border-b border-[#E7E1D6]">
+    <AnimatedSection inView variant="fadeIn" className="sticky top-0 z-30 bg-[#FAF6EF]/90 dark:bg-neutral-950/90 backdrop-blur border-b border-[#E7E1D6] dark:border-neutral-800 transition-colors">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/landing" className="flex items-center gap-3">
-            <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />
-            <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
+            <span className="h-2 w-2 rounded-full bg-[#0B3D2E] dark:bg-white" />
+            <span className="text-sm font-semibold tracking-wide text-[#0B3D2E] dark:text-white">
               No More anxious™
             </span>
             </Link>
@@ -64,43 +64,43 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
                 <a 
                   href="#model" 
                   onClick={(e) => handleAnchorClick(e, '#model')}
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors cursor-pointer"
+                  className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors cursor-pointer"
                 >
                   {t('nav.scienceInsight')}
                 </a>
                 <Link
                   href="/assistant"
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                  className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors"
                 >
                   {t('nav.assistant')}
                 </Link>
                 <Link
                   href="/analysis"
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                  className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors"
                 >
                   {t('nav.analysis')}
                 </Link>
                 <Link
                   href="/assessment"
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                  className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors"
                 >
                   {t('nav.assessment')}
                 </Link>
                 <Link
                   href="/bayesian"
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                  className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors"
                 >
                   {t('nav.bayesian')}
                 </Link>
                 <Link
                   href="/plans"
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                  className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors"
                 >
                   {t('nav.plans')}
                 </Link>
                 <Link
                   href="/onboarding/upgrade?from=landing"
-                  className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
+                  className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors"
                 >
                   {t('nav.upgrade')}
                 </Link>
@@ -108,13 +108,13 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
               </>
             ) : (
               <>
-                <Link href="/login" className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors">
+                <Link href="/login" className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors">
                   {t('nav.login')}
                 </Link>
                 <a 
                   href="#cta"
                   onClick={(e) => handleAnchorClick(e, '#cta')}
-                  className="inline-flex items-center rounded-md bg-[#0B3D2E] px-3 py-1.5 text-white hover:bg-[#0a3629] transition-colors cursor-pointer"
+                  className="inline-flex items-center rounded-md bg-[#0B3D2E] dark:bg-white px-3 py-1.5 text-white dark:text-neutral-900 hover:bg-[#0a3629] dark:hover:bg-neutral-200 transition-colors cursor-pointer"
                 >
                   {t('nav.early')}
                 </a>
