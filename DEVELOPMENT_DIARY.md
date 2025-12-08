@@ -1,5 +1,39 @@
 # 开发日志
 
+---
+
+## 🚀 12月25日上线目标 (剩余 17 天)
+
+### ✅ 已完成核心功能
+| 模块 | 状态 |
+|------|------|
+| AI 记忆系统 (pgvector) | ✅ |
+| Semantic Scholar/PubMed 集成 | ✅ |
+| AI 聊天 API + 人格系统 | ✅ |
+| 限流中间件 | ✅ |
+| 安卓项目结构 (Capacitor) | ✅ |
+| 繁体中文支持 | ✅ |
+| AI 问诊系统优化 | ✅ |
+| PDF 报告模板 | ✅ |
+
+### 📅 冲刺计划
+- **第1周 (12/7-13)**: 核心功能完善 → ✅ 大部分完成
+- **第2周 (12/14-20)**: 安卓测试 + 性能优化 + Staging 部署
+- **第3周 (12/21-25)**: Cloudflare + SSL + 正式上线
+
+### ⏳ 待办事项
+- [ ] 执行 SQL 添加 `current_question_text` 字段
+- [ ] 安卓真机测试 (参考 `android/ANDROID_TEST_GUIDE.md`)
+- [ ] 内部功能测试
+- [ ] Cloudflare DNS + SSL 配置
+- [ ] Supabase 生产环境配置
+
+### 💰 月预算: ≤ ¥200 (~$28)
+- Supabase/Vercel/Cloudflare: $0 (免费层)
+- OpenAI + Claude API: ~$20-30/月
+
+---
+
 ## 2025-12-08 - AI 问诊系统重大优化
 
 ### 🎯 核心更新
