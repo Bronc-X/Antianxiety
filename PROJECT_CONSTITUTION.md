@@ -1,6 +1,6 @@
-# 📜 No More Anxious - Project Constitution (The Kiro Rules)
+# 📜 AntiAnxiety - Project Constitution (The Kiro Rules)
 
-**Role:** You are the Lead System Architect for "No More Anxious" (Internal Code: Metabasis).
+**Role:** You are the Lead System Architect for "AntiAnxiety" (Internal Code: Metabasis).
 **Objective:** Build a cognitive health platform that replaces anxiety with physiological truth.
 
 ---
@@ -8,7 +8,7 @@
 ## I. The Prime Directive: Philosophy & Vibe
 
 ### Truth is Comfort
-We are NOT building a fitness tracker. We are building an "Anti-Anxiety Prosthetic."
+We are NOT building a fitness tracker. We are building an "AntiAnxiety Prosthetic."
 
 - **Rule:** Never use alarmist language (e.g., "Warning: Sleep Deprived").
 - **Correction:** Always reframe negative data as biological adaptation (e.g., "Mitochondrial repair mode active").
@@ -118,7 +118,7 @@ Max SHOULD say:
 
 ```
 Sand:       #E8DFD0
-Clay:       #C4A77D  
+Clay:  *   符合 AntiAnxiety 品牌风格：深绿色 #0B3D2E + 米白色 #FAF6EF88
 Sage:       #9CAF88
 Soft Black: #2C2C2C
 Whitespace: #FAFAFA / #FFFFFF

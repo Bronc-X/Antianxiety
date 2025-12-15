@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -19,6 +19,28 @@ export default function BreathingModal({ isOpen, onClose, onComplete }: Breathin
   const [isActive, setIsActive] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const cycleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetState = useCallback(() => {
+    setTimeRemaining(300);
+    setPhase('inhale');
+    setCycleCount(0);
+    setIsActive(false);
+  }, []);
+
+  const handleComplete = useCallback(() => {
+    // 彩花效果
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+    
+    setTimeout(() => {
+      onComplete();
+      onClose();
+      resetState();
+    }, 1000);
+  }, [onComplete, onClose, resetState]);
 
   // 呼吸循环：4秒吸气 + 4秒呼气
   useEffect(() => {
@@ -58,34 +80,12 @@ export default function BreathingModal({ isOpen, onClose, onComplete }: Breathin
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isOpen, isActive]);
-
-  const handleComplete = () => {
-    // 彩花效果
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-    
-    setTimeout(() => {
-      onComplete();
-      onClose();
-      resetState();
-    }, 1000);
-  };
+  }, [isOpen, isActive, handleComplete]);
 
   const handleFinishEarly = () => {
     if (confirm('确定要提前结束吗？进度将被保存。')) {
       handleComplete();
     }
-  };
-
-  const resetState = () => {
-    setTimeRemaining(300);
-    setPhase('inhale');
-    setCycleCount(0);
-    setIsActive(false);
   };
 
   const formatTime = (seconds: number) => {

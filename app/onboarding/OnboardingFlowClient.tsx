@@ -5,6 +5,7 @@ import { useState } from 'react';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import { mapAnswersToProfile, generatePersonaContext } from '@/lib/questions';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { tr, useI18n } from '@/lib/i18n';
 
 interface OnboardingFlowClientProps {
   userId: string;
@@ -13,6 +14,7 @@ interface OnboardingFlowClientProps {
 export default function OnboardingFlowClient({ userId }: OnboardingFlowClientProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { language } = useI18n();
 
   const handleComplete = async (answers: Record<string, string>) => {
     setIsSubmitting(true);
@@ -41,7 +43,11 @@ export default function OnboardingFlowClient({ userId }: OnboardingFlowClientPro
 
       if (upsertError) {
         console.error('保存问卷结果失败:', upsertError);
-        alert(`保存失败：${upsertError.message || '请重试'}`);
+        alert(
+          language === 'en'
+            ? `Save failed: ${upsertError.message || 'Please try again.'}`
+            : `保存失败：${upsertError.message || '请重试'}`
+        );
         setIsSubmitting(false);
         return;
       }
@@ -52,7 +58,7 @@ export default function OnboardingFlowClient({ userId }: OnboardingFlowClientPro
       router.refresh();
     } catch (error) {
       console.error('处理问卷结果时出错:', error);
-      alert('处理失败，请重试');
+      alert(tr(language, { zh: '处理失败，请重试', en: 'Failed to process. Please try again.' }));
       setIsSubmitting(false);
     }
   };
@@ -60,7 +66,7 @@ export default function OnboardingFlowClient({ userId }: OnboardingFlowClientPro
   if (isSubmitting) {
     return (
       <div className="min-h-screen bg-[#FFFBF0] flex items-center justify-center">
-        <p className="text-[#0B3D2E] text-lg">正在保存...</p>
+        <p className="text-[#0B3D2E] text-lg">{tr(language, { zh: '正在保存...', en: 'Saving...' })}</p>
       </div>
     );
   }

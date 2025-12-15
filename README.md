@@ -1,4 +1,4 @@
-# 🌿 Neuromind (No More Anxious) ™
+# 🌿 AntiAnxiety™
 
 > **A Cognitive Prosthetic based on Truth Architecture & Bio-Voltage.**  
 > “真相是摒弃臆想之后的安慰。” — Truth is the comfort after discarding imagination.

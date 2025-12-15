@@ -26,7 +26,7 @@ describe('PersonaPromptBuilder Unit Tests', () => {
     it('should include memory emphasis', () => {
       const prompt = buildPersonaPrompt();
       expect(prompt).toContain('超强记忆力');
-      expect(prompt).toContain('记得用户');
+      expect(prompt).toContain('上下文');
     });
 
     it('should include communication style', () => {

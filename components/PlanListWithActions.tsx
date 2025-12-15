@@ -131,6 +131,8 @@ interface ScheduleDay {
 
 export default function PlanListWithActions({ initialPlans, onPlanDeleted }: PlanListWithActionsProps) {
   const { t, language } = useI18n();
+  const normalizedLanguage: 'zh' | 'en' = language === 'en' ? 'en' : 'zh';
+  const locale = language === 'en' ? 'en-US' : language === 'zh-TW' ? 'zh-TW' : 'zh-CN';
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
   const [expandedPlanIds, setExpandedPlanIds] = useState<Set<string>>(new Set());
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
@@ -145,11 +147,11 @@ export default function PlanListWithActions({ initialPlans, onPlanDeleted }: Pla
         primaryConcern: concern,
         difficulty: plan.difficulty?.toString(),
         planIndex: index,
-        language: language,
+        language: normalizedLanguage,
       });
     });
     return names;
-  }, [plans, language]);
+  }, [plans, normalizedLanguage]);
 
   const toggleExpand = (planId: string) => {
     setExpandedPlanIds(prev => {
@@ -210,7 +212,7 @@ export default function PlanListWithActions({ initialPlans, onPlanDeleted }: Pla
           const isExpanded = expandedPlanIds.has(plan.id);
           const isDeleting = deletingPlanId === plan.id;
           const personalizedName = personalizedNames[plan.id];
-          const schedule = generateSchedule(plan, language);
+          const schedule = generateSchedule(plan, normalizedLanguage);
           
           return (
             <motion.div
@@ -242,7 +244,7 @@ export default function PlanListWithActions({ initialPlans, onPlanDeleted }: Pla
                       </p>
                     )}
                     <div className="flex items-center gap-4 text-xs text-[#0B3D2E]/60 dark:text-neutral-500 mt-2">
-                      <span>{t('plans.createdAt')} {new Date(plan.created_at).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}</span>
+                      <span>{t('plans.createdAt')} {new Date(plan.created_at).toLocaleDateString(locale)}</span>
                       {plan.status === 'active' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">

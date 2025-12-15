@@ -9,20 +9,20 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * 生产模式：使用 Vercel 部署的 URL
  */
 const isDev = process.env.NODE_ENV === 'development';
-const productionUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
+const productionUrl = process.env.NEXT_PUBLIC_VERCEL_URL
   ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-  : 'https://project-metabasis.vercel.app';
+  : 'https://www.antianxiety.app';
 
 const config: CapacitorConfig = {
   // 应用唯一标识符
-  appId: 'com.nomoreanxious.app',
-  
+  appId: 'com.antianxiety.app',
+
   // 应用显示名称
-  appName: 'No More Anxious',
-  
+  appName: 'AntiAnxiety',
+
   // 静态资源占位目录（用于同步流程）
   webDir: 'out',
-  
+
   server: isDev ? {
     // 开发模式：使用 adb reverse 端口转发，模拟器可以用 localhost 访问宿主机
     url: 'http://localhost:3000',
@@ -34,7 +34,7 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     cleartext: false
   },
-  
+
   // 插件配置
   plugins: {
     // 启动画面配置

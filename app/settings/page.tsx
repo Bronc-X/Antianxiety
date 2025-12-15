@@ -1,4 +1,3 @@
-import { requireAuth } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import SettingsClient from './SettingsClient';
@@ -6,8 +5,14 @@ import SettingsClient from './SettingsClient';
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  const { user } = await requireAuth();
   const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
+  }
 
   // Fetch user profile
   const { data: profile, error } = await supabase

@@ -11,8 +11,8 @@ let LocalNotifications: any = null;
 async function getLocalNotifications() {
   if (LocalNotifications) return LocalNotifications;
   if (Capacitor.isNativePlatform()) {
-    const module = await import('@capacitor/local-notifications');
-    LocalNotifications = module.LocalNotifications;
+    const localNotificationsModule = await import('@capacitor/local-notifications');
+    LocalNotifications = localNotificationsModule.LocalNotifications;
   }
   return LocalNotifications;
 }

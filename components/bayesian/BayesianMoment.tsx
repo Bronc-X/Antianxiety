@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, easeInOut, useSpring, useTransform } from 'framer-motion';
 import { Haptics, NotificationType } from '@capacitor/haptics';
 import { calculateExaggerationFactor } from '@/lib/bayesian-evidence';
 
@@ -45,7 +45,7 @@ const itemVariants = {
     y: 0,
     opacity: 1,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       stiffness: 100,
       damping: 15
     }
@@ -60,7 +60,7 @@ const glowVariants = {
     transition: {
       duration: 3,
       repeat: Infinity,
-      ease: 'easeInOut'
+      ease: easeInOut
     }
   }
 };

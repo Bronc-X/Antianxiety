@@ -6,6 +6,7 @@ import { WelcomeScreen, QuestionRenderer, ReportView, EmergencyAlert } from '@/c
 import { Loader2, Brain, Database, Sparkles, Activity } from 'lucide-react';
 import { QuestionStep, ReportStep, EmergencyStep } from '@/types/assessment';
 import { motion, AnimatePresence } from 'framer-motion';
+import { type Language, tr } from '@/lib/i18n';
 
 function AssessmentContent() {
   const { 
@@ -39,14 +40,14 @@ function AssessmentContent() {
                 href="/login"
                 className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors"
               >
-                {language === 'zh' ? '去登录' : 'Log In'}
+                {tr(language, { zh: '去登录', en: 'Log In' })}
               </a>
             )}
             <button
               onClick={resetAssessment}
               className="px-6 py-2 bg-muted text-muted-foreground rounded-lg hover:opacity-90 transition-colors"
             >
-              {language === 'zh' ? '重新开始' : 'Start Over'}
+              {tr(language, { zh: '重新开始', en: 'Start Over' })}
             </button>
           </div>
         </div>
@@ -99,7 +100,7 @@ interface LoadingContext {
   questionCount: number;
 }
 
-function AdvancedLoadingScreen({ language, loadingContext }: { language: 'zh' | 'en'; loadingContext?: LoadingContext }) {
+function AdvancedLoadingScreen({ language, loadingContext }: { language: Language; loadingContext?: LoadingContext }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   
@@ -109,7 +110,7 @@ function AdvancedLoadingScreen({ language, loadingContext }: { language: 'zh' | 
     const lastQ = loadingContext?.lastQuestion || '';
     const lastA = loadingContext?.lastAnswer || '';
     
-    if (language === 'zh') {
+    if (language !== 'en') {
       return [
         { 
           icon: Database, 
@@ -258,7 +259,7 @@ function AdvancedLoadingScreen({ language, loadingContext }: { language: 'zh' | 
           animate={{ opacity: [0.7, 1, 0.7] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          {language === 'zh' ? 'Bio-Ledger 智能分析中' : 'Bio-Ledger Analyzing'}
+          {tr(language, { zh: 'Bio-Ledger 智能分析中', en: 'Bio-Ledger Analyzing' })}
         </motion.h2>
 
         {/* 动态步骤显示 */}
@@ -303,9 +304,10 @@ function AdvancedLoadingScreen({ language, loadingContext }: { language: 'zh' | 
 
         {/* 底部安抚文案 */}
         <p className="text-xs text-muted-foreground text-center max-w-xs">
-          {language === 'zh' 
-            ? '我们正在运用先进的医学 AI 为您匹配最精准的问诊路径' 
-            : 'We are using advanced medical AI to match the most accurate assessment path for you'}
+          {tr(language, {
+            zh: '我们正在运用先进的医学 AI 为您匹配最精准的问诊路径',
+            en: 'We are using advanced medical AI to match the most accurate assessment path for you',
+          })}
         </p>
       </div>
     </div>

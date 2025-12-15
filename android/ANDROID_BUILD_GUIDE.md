@@ -1,7 +1,7 @@
 # 🔨 Android 构建和部署指南
 
 **创建日期**: 2025-12-07  
-**项目**: No More Anxious  
+**项目**: AntiAnxiety  
 **目标**: 构建和发布 Android APK
 
 ---
@@ -47,12 +47,12 @@ npm run android
 
 ```bash
 # 生成签名密钥（首次构建）
-keytool -genkey -v -keystore nomoreanxious-release-key.jks \
+keytool -genkey -v -keystore antianxiety-release-key.jks \
   -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias nomoreanxious
+  -alias antianxiety
 
 # 将密钥文件移动到安全位置（不要提交到 Git）
-mv nomoreanxious-release-key.jks ~/.android/
+mv antianxiety-release-key.jks ~/.android/
 ```
 
 #### 2.2 配置签名信息
@@ -64,9 +64,9 @@ android {
     ...
     signingConfigs {
         release {
-            storeFile file(System.getenv("KEYSTORE_FILE") ?: "../nomoreanxious-release-key.jks")
+            storeFile file(System.getenv("KEYSTORE_FILE") ?: "../antianxiety-release-key.jks")
             storePassword System.getenv("KEYSTORE_PASSWORD")
-            keyAlias System.getenv("KEY_ALIAS") ?: "nomoreanxious"
+            keyAlias System.getenv("KEY_ALIAS") ?: "antianxiety"
             keyPassword System.getenv("KEY_PASSWORD")
         }
     }
@@ -84,9 +84,9 @@ android {
 
 ```bash
 # 设置环境变量（可选，如果使用环境变量）
-export KEYSTORE_FILE=~/.android/nomoreanxious-release-key.jks
+export KEYSTORE_FILE=~/.android/antianxiety-release-key.jks
 export KEYSTORE_PASSWORD=your_password
-export KEY_ALIAS=nomoreanxious
+export KEY_ALIAS=antianxiety
 export KEY_PASSWORD=your_password
 
 # 构建 Release APK

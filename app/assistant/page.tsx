@@ -1,5 +1,7 @@
 import { requireAuth } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { getServerLanguage } from '@/lib/i18n-server';
+import { tr } from '@/lib/i18n-core';
 import { redirect } from 'next/navigation';
 import HealthProfileForm from '@/components/HealthProfileForm';
 import AIAnalysisDisplay from '@/components/AIAnalysisDisplay';
@@ -24,6 +26,7 @@ export default async function AssistantPage({
   searchParams?: Promise<{ edit?: string, panel?: string }> 
 }) {
   const params = await searchParams;
+  const language = await getServerLanguage();
   const { user } = await requireAuth();
   const supabase = await createServerSupabaseClient();
 
@@ -48,8 +51,8 @@ export default async function AssistantPage({
         <nav className="border-b border-[#E7E1D6] bg-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="h-14 flex items-center justify-between">
-              <Link href="/landing" className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80">返回主页</Link>
-              <h1 className="text-lg font-semibold text-[#0B3D2E]">记录今日状态</h1>
+              <Link href="/landing" className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80">{tr(language, { zh: '返回主页', en: 'Back to Home' })}</Link>
+              <h1 className="text-lg font-semibold text-[#0B3D2E]">{tr(language, { zh: '记录今日状态', en: "Log Today's State" })}</h1>
               <div className="w-16"></div>
             </div>
           </div>
@@ -89,11 +92,12 @@ export default async function AssistantPage({
 
   // 如果已完成资料收集但还没有 AI 分析结果，触发分析（在服务端执行）
   if (!profile.ai_analysis_result) {
-    const { analyzeUserProfileAndSave } = await import('@/lib/aiAnalysis');
-    // 异步执行分析，不阻塞页面渲染
-    analyzeUserProfileAndSave(profile).catch((error) => {
-      console.error('AI 分析失败:', error);
-    });
+    // 异步触发分析：不要 await 动态 import，避免阻塞页面渲染（首屏会非常慢）
+    void import('@/lib/aiAnalysis')
+      .then(({ analyzeUserProfileAndSave }) => analyzeUserProfileAndSave(profile))
+      .catch((error) => {
+        console.error('AI 分析失败:', error);
+      });
   }
 
   return (
@@ -106,4 +110,3 @@ export default async function AssistantPage({
     />
   );
 }
-

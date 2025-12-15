@@ -27,13 +27,24 @@ if (fs.existsSync(envLocalPath)) {
 }
 
 const requiredEnvVars = {
-  // AI 功能必需
-  DEEPSEEK_API_KEY: 'DeepSeek API 密钥（用于 AI 聊天功能）',
-  
-  // Supabase 必需
+  // Supabase 必需（本地/生产都需要）
   NEXT_PUBLIC_SUPABASE_URL: 'Supabase 项目 URL',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'Supabase 匿名密钥',
 };
+
+const productionOnlyEnvVars = {
+  // AI 功能（部署到生产时必需）
+  DEEPSEEK_API_KEY: 'DeepSeek API 密钥（用于 AI 聊天功能）',
+};
+
+const isStrict =
+  process.env.CHECK_ENV_STRICT === '1' ||
+  process.env.NODE_ENV === 'production' ||
+  process.env.CI === 'true';
+
+const effectiveRequiredEnvVars = isStrict
+  ? { ...requiredEnvVars, ...productionOnlyEnvVars }
+  : requiredEnvVars;
 
 const optionalEnvVars = {
   NODE_ENV: 'Node.js 环境（development/production）',
@@ -43,15 +54,26 @@ console.log('🔍 检查环境变量配置...\n');
 
 let hasErrors = false;
 const missing = [];
+const missingOptionalForLocal = [];
 const present = [];
 
 // 检查必需的环境变量
-for (const [key, description] of Object.entries(requiredEnvVars)) {
+for (const [key, description] of Object.entries(effectiveRequiredEnvVars)) {
   if (process.env[key]) {
     present.push({ key, description, value: '***已设置***' });
   } else {
     missing.push({ key, description });
     hasErrors = true;
+  }
+}
+
+if (!isStrict) {
+  for (const [key, description] of Object.entries(productionOnlyEnvVars)) {
+    if (process.env[key]) {
+      present.push({ key, description, value: '***已设置***' });
+    } else {
+      missingOptionalForLocal.push({ key, description });
+    }
   }
 }
 
@@ -79,6 +101,14 @@ if (missing.length > 0) {
   });
 }
 
+if (missingOptionalForLocal.length > 0) {
+  console.log('⚠️  本地开发可选（生产需要）的环境变量:');
+  missingOptionalForLocal.forEach(({ key, description }) => {
+    console.log(`   ${key}`);
+    console.log(`     说明: ${description}\n`);
+  });
+}
+
 if (hasErrors) {
   console.log('⚠️  请配置缺失的环境变量后再部署！');
   console.log('\n配置方法:');
@@ -93,4 +123,3 @@ if (hasErrors) {
   console.log('✅ 所有必需的环境变量已配置！');
   process.exit(0);
 }
-

@@ -1,19 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Sparkles, AlertTriangle, Activity } from 'lucide-react';
+import { Brain, Sparkles, AlertTriangle, Activity, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MotionButton } from '@/components/motion/MotionButton';
-import { WisdomCarousel } from '@/components/WisdomCarousel';
-import { DailyInsightHub } from '@/components/DailyInsightHub';
-import { DailyCheckin } from '@/components/DailyCheckin';
 import { CalibrationInput, GeneratedTask } from '@/lib/calibration-service';
-import AnimatedSection from '@/components/AnimatedSection';
-import XFeed from '@/components/XFeed';
-import InfiniteNewsFeed from '@/components/InfiniteNewsFeed';
 import { useI18n } from '@/lib/i18n';
+
+// 懒加载重型组件 - 显著提升首屏渲染速度
+const WisdomCarousel = lazy(() => import('@/components/WisdomCarousel'));
+const DailyInsightHub = lazy(() => import('@/components/DailyInsightHub').then(m => ({ default: m.DailyInsightHub })));
+const DailyCheckin = lazy(() => import('@/components/DailyCheckin').then(m => ({ default: m.DailyCheckin })));
+const AnimatedSection = lazy(() => import('@/components/AnimatedSection'));
+const JournalShowcase = lazy(() => import('@/components/JournalShowcase'));
+const InfiniteNewsFeed = lazy(() => import('@/components/InfiniteNewsFeed'));
+
+// 轻量级加载占位符
+function LoadingPlaceholder({ height = 'h-32' }: { height?: string }) {
+  return (
+    <div className={`${height} flex items-center justify-center bg-white/50 rounded-xl border border-[#E7E1D6]/50`}>
+      <Loader2 className="w-5 h-5 text-[#9CAF88] animate-spin" />
+    </div>
+  );
+}
 
 interface LandingContentProps {
   user: any;
@@ -127,7 +138,12 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
         </motion.p>
       </header>
 
-      <div className="max-w-4xl mx-auto mb-4"><WisdomCarousel autoPlay={true} interval={8000} /></div>
+      {/* 金句轮播 - 懒加载 */}
+      <div className="max-w-4xl mx-auto mb-4">
+        <Suspense fallback={<LoadingPlaceholder height="h-24" />}>
+          <WisdomCarousel autoPlay={true} interval={8000} />
+        </Suspense>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
         <AnimatePresence>
@@ -152,18 +168,23 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
           )}
         </AnimatePresence>
 
+        {/* 每日洞察中心 - 懒加载 */}
         <div className="md:col-span-2">
-          <DailyInsightHub todayTask={todayTask} insight={insight} isLoading={isLoading} questionnaireCompleted={!!latestLog}
-            onStartCalibration={() => setShowCalibrationSheet(true)} userId={user?.id}
-            onQuestionnaireComplete={() => { setIsLoading(true); setTimeout(() => setIsLoading(false), 1000); }}
-            stressLevel={biometrics.stress ?? 5} energyLevel={biometrics.sleep && biometrics.sleep > 6 ? 6 : 4} />
+          <Suspense fallback={<LoadingPlaceholder height="h-64" />}>
+            <DailyInsightHub todayTask={todayTask} insight={insight} isLoading={isLoading} questionnaireCompleted={!!latestLog}
+              onStartCalibration={() => setShowCalibrationSheet(true)} userId={user?.id}
+              onQuestionnaireComplete={() => { setIsLoading(true); setTimeout(() => setIsLoading(false), 1000); }}
+              stressLevel={biometrics.stress ?? 5} energyLevel={biometrics.sleep && biometrics.sleep > 6 ? 6 : 4} />
+          </Suspense>
         </div>
       </div>
 
-      {/* 研究动态 */}
+      {/* 研究动态 - 懒加载 */}
       <div className="max-w-4xl mx-auto mt-4">
         <div className="rounded-xl border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg overflow-hidden h-[420px]">
-          <InfiniteNewsFeed language={language} variant="calm" />
+          <Suspense fallback={<LoadingPlaceholder height="h-[420px]" />}>
+            <InfiniteNewsFeed language={language} variant="calm" />
+          </Suspense>
         </div>
       </div>
 
@@ -199,62 +220,76 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
         </div>
       </div>
 
-      <DailyCheckin open={showCalibrationSheet} onOpenChange={setShowCalibrationSheet} onComplete={handleCalibrationComplete}
-        weeklyRecords={dailyLogs?.map(log => ({ sleep_hours: log.sleep_hours || 7, stress_level: log.stress_level > 6 ? 'high' : log.stress_level > 3 ? 'medium' : 'low', exercise_intention: 'moderate' as const, timestamp: log.created_at })) || []} />
+      {/* 每日签到 - 懒加载 */}
+      <Suspense fallback={null}>
+        <DailyCheckin open={showCalibrationSheet} onOpenChange={setShowCalibrationSheet} onComplete={handleCalibrationComplete}
+          weeklyRecords={dailyLogs?.map(log => ({ sleep_hours: log.sleep_hours || 7, stress_level: log.stress_level > 6 ? 'high' : log.stress_level > 3 ? 'medium' : 'low', exercise_intention: 'moderate' as const, timestamp: log.created_at })) || []} />
+      </Suspense>
 
-      <section id="how" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 scroll-mt-20">
-        <AnimatedSection inView variant="fadeUp">
-          <div className="mb-4"><span className="badge-modern dark:bg-neutral-800 dark:text-white">{t('landing.coreIdea')}</span></div>
-          <h2 className="display-text text-3xl sm:text-5xl md:text-6xl font-black text-[#0a0a0a] dark:text-white leading-[0.95] tracking-tight">
-            <span className="block">{t('landing.noiseTitle').split('"')[0]}<span className="text-gradient-accent">&quot;{language === 'en' ? 'noise' : '噪音'}&quot;</span>{language === 'en' ? '.' : '。'}</span>
-            <span className="block mt-2">{t('landing.truthTitle').split('"')[0]}<span className="text-gradient">&quot;{language === 'en' ? 'truth' : '真相'}&quot;</span>{language === 'en' ? '.' : '。'}</span>
-          </h2>
-          <div className="mt-6 grid md:grid-cols-3 gap-4 items-stretch">
-            {['cognitiveLoad', 'habitStreaks', 'theSignal'].map((key) => (
-              <div key={key} className="group rounded-2xl p-[1px] bg-gradient-to-br from-[#E7E1D6] dark:from-neutral-700 to-transparent h-full">
-                <motion.div whileHover={{ scale: 1.04, translateY: -2 }} transition={{ duration: 0.2, ease: 'easeOut' }} className="relative rounded-2xl border border-[#E7E1D6] dark:border-neutral-800 bg-white/90 dark:bg-neutral-900/90 backdrop-blur p-6 shadow-md transition-all group-hover:shadow-lg h-full flex flex-col overflow-hidden">
-                  <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60 dark:text-neutral-400">{t(`landing.${key}`)}</div>
-                  <div className="mt-1 text-xl font-medium text-[#0B3D2E] dark:text-white">{t(`landing.${key}Title`)}</div>
-                  <p className="mt-3 text-[#0B3D2E]/80 dark:text-neutral-300 leading-relaxed">{t(`landing.${key}P1`)}</p>
-                </motion.div>
-              </div>
-            ))}
-          </div>
-        </AnimatedSection>
-      </section>
-
-      <section id="model" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 scroll-mt-20">
-        <AnimatedSection inView variant="fadeUp">
-          <div className="rounded-3xl border border-[#E7E1D6] dark:border-neutral-800 bg-[#FFFDF8] dark:bg-neutral-900 p-8 md:p-12">
-            <span className="badge-modern dark:bg-neutral-800 dark:text-white mb-4">{t('landing.methodology')}</span>
-            <h2 className="display-text text-3xl sm:text-4xl md:text-5xl font-black text-[#0a0a0a] dark:text-white tracking-tight">{t('landing.solutionTitle')}</h2>
-            <p className="subtitle mt-3 text-lg text-gray-600 dark:text-neutral-400">{t('landing.solutionSubtitle')}</p>
+      {/* 下方内容区 - 懒加载 */}
+      <Suspense fallback={<LoadingPlaceholder height="h-48" />}>
+        <section id="how" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 scroll-mt-20">
+          <AnimatedSection inView variant="fadeUp">
+            <div className="mb-4"><span className="badge-modern dark:bg-neutral-800 dark:text-white">{t('landing.coreIdea')}</span></div>
+            <h2 className="display-text text-3xl sm:text-5xl md:text-6xl font-black text-[#0a0a0a] dark:text-white leading-[0.95] tracking-tight">
+              <span className="block">{t('landing.noiseTitle').split('"')[0]}<span className="text-gradient-accent">&quot;{language === 'en' ? 'noise' : '噪音'}&quot;</span>{language === 'en' ? '.' : '。'}</span>
+              <span className="block mt-2">{t('landing.truthTitle').split('"')[0]}<span className="text-gradient">&quot;{language === 'en' ? 'truth' : '真相'}&quot;</span>{language === 'en' ? '.' : '。'}</span>
+            </h2>
             <div className="mt-6 grid md:grid-cols-3 gap-4 items-stretch">
-              {['agent', 'bayesian', 'minimumDose'].map((key) => (
-                <motion.div key={key} whileHover={{ scale: 1.02, translateY: -1 }} transition={{ duration: 0.22, ease: 'easeOut' }} className="relative rounded-2xl border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-800 p-6 shadow-md hover:shadow-lg overflow-hidden h-full flex flex-col">
-                  <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60 dark:text-neutral-400">{t(`landing.${key}`)}</div>
-                  <h3 className="mt-1 text-xl font-semibold text-[#0B3D2E] dark:text-white">{t(`landing.${key}Title`)}</h3>
-                  <p className="mt-3 text-[#0B3D2E]/80 dark:text-neutral-300 leading-relaxed">{t(`landing.${key}P1`)}</p>
-                </motion.div>
+              {['cognitiveLoad', 'habitStreaks', 'theSignal'].map((key) => (
+                <div key={key} className="group rounded-2xl p-[1px] bg-gradient-to-br from-[#E7E1D6] dark:from-neutral-700 to-transparent h-full">
+                  <motion.div whileHover={{ scale: 1.04, translateY: -2 }} transition={{ duration: 0.2, ease: 'easeOut' }} className="relative rounded-2xl border border-[#E7E1D6] dark:border-neutral-800 bg-white/90 dark:bg-neutral-900/90 backdrop-blur p-6 shadow-md transition-all group-hover:shadow-lg h-full flex flex-col overflow-hidden">
+                    <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60 dark:text-neutral-400">{t(`landing.${key}`)}</div>
+                    <div className="mt-1 text-xl font-medium text-[#0B3D2E] dark:text-white">{t(`landing.${key}Title`)}</div>
+                    <p className="mt-3 text-[#0B3D2E]/80 dark:text-neutral-300 leading-relaxed">{t(`landing.${key}P1`)}</p>
+                  </motion.div>
+                </div>
               ))}
             </div>
-          </div>
-        </AnimatedSection>
-      </section>
+          </AnimatedSection>
+        </section>
+      </Suspense>
 
-      <section id="authority" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 scroll-mt-20">
-        <AnimatedSection inView variant="fadeUp" className="rounded-3xl border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-8 md:p-12">
-          <span className="badge-modern dark:bg-neutral-800 dark:text-white mb-4">{t('landing.curatedContent')}</span>
-          <h2 className="display-text text-3xl sm:text-4xl md:text-5xl font-black text-[#0a0a0a] dark:text-white tracking-tight">{t('landing.noNoiseFeed')}</h2>
-          <p className="subtitle mt-4 text-lg text-gray-600 dark:text-neutral-400 max-w-3xl">{t('landing.feedDesc')}</p>
-          <div className="mt-4"><XFeed variant="bare" compact columns={2} limit={4} /></div>
-          <div className="mt-4 rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 p-4">
-            <div className="text-xs text-[#0B3D2E]/60 dark:text-neutral-400">{t('landing.refReading')}</div>
-            <div className="mt-2 text-sm text-[#0B3D2E]/90 dark:text-neutral-200">{t('landing.cholesterolRef')}</div>
-            <a className="mt-2 inline-block text-xs text-[#0B3D2E] dark:text-white underline" href="https://www.healthline.com/health/cholesterol-can-it-be-too-low" target="_blank" rel="noreferrer">Healthline: Can My Cholesterol Be Too Low?</a>
-          </div>
-        </AnimatedSection>
-      </section>
+      <Suspense fallback={<LoadingPlaceholder height="h-48" />}>
+        <section id="model" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 scroll-mt-20">
+          <AnimatedSection inView variant="fadeUp">
+            <div className="rounded-3xl border border-[#E7E1D6] dark:border-neutral-800 bg-[#FFFDF8] dark:bg-neutral-900 p-8 md:p-12">
+              <span className="badge-modern dark:bg-neutral-800 dark:text-white mb-4">{t('landing.methodology')}</span>
+              <h2 className="display-text text-3xl sm:text-4xl md:text-5xl font-black text-[#0a0a0a] dark:text-white tracking-tight">{t('landing.solutionTitle')}</h2>
+              <p className="subtitle mt-3 text-lg text-gray-600 dark:text-neutral-400">{t('landing.solutionSubtitle')}</p>
+              <div className="mt-6 grid md:grid-cols-3 gap-4 items-stretch">
+                {['agent', 'bayesian', 'minimumDose'].map((key) => (
+                  <motion.div key={key} whileHover={{ scale: 1.02, translateY: -1 }} transition={{ duration: 0.22, ease: 'easeOut' }} className="relative rounded-2xl border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-800 p-6 shadow-md hover:shadow-lg overflow-hidden h-full flex flex-col">
+                    <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60 dark:text-neutral-400">{t(`landing.${key}`)}</div>
+                    <h3 className="mt-1 text-xl font-semibold text-[#0B3D2E] dark:text-white">{t(`landing.${key}Title`)}</h3>
+                    <p className="mt-3 text-[#0B3D2E]/80 dark:text-neutral-300 leading-relaxed">{t(`landing.${key}P1`)}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </AnimatedSection>
+        </section>
+      </Suspense>
+
+      <Suspense fallback={<LoadingPlaceholder height="h-48" />}>
+        <section id="authority" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 scroll-mt-20">
+          <AnimatedSection inView variant="fadeUp" className="rounded-3xl border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-8 md:p-12">
+            <span className="badge-modern dark:bg-neutral-800 dark:text-white mb-4">{t('landing.curatedContent')}</span>
+            <h2 className="display-text text-3xl sm:text-4xl md:text-5xl font-black text-[#0a0a0a] dark:text-white tracking-tight">{t('landing.noNoiseFeed')}</h2>
+            <p className="subtitle mt-4 text-lg text-gray-600 dark:text-neutral-400 max-w-3xl">{t('landing.feedDesc')}</p>
+            <div className="mt-6">
+              <Suspense fallback={<LoadingPlaceholder height="h-48" />}>
+                <JournalShowcase language={language as 'en' | 'zh'} columns={2} limit={4} />
+              </Suspense>
+            </div>
+            <div className="mt-4 rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 p-4">
+              <div className="text-xs text-[#0B3D2E]/60 dark:text-neutral-400">{t('landing.refReading')}</div>
+              <div className="mt-2 text-sm text-[#0B3D2E]/90 dark:text-neutral-200">{t('landing.cholesterolRef')}</div>
+              <a className="mt-2 inline-block text-xs text-[#0B3D2E] dark:text-white underline" href="https://www.healthline.com/health/cholesterol-can-it-be-too-low" target="_blank" rel="noreferrer">Healthline: Can My Cholesterol Be Too Low?</a>
+            </div>
+          </AnimatedSection>
+        </section>
+      </Suspense>
     </div>
   );
 }

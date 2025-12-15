@@ -8,14 +8,8 @@ import { useI18n } from '@/lib/i18n';
  * Prevents "White Screen Flash" during page transitions
  */
 export default function Loading() {
-  // Use try-catch to handle cases where i18n context might not be available
-  let loadingText = 'Loading...';
-  try {
-    const { t } = useI18n();
-    loadingText = t('loading.text');
-  } catch {
-    // Fallback if i18n context is not available
-  }
+  const { t } = useI18n();
+  const loadingText = t('loading.text') || 'Loading...';
 
   return (
     <div className="min-h-screen bg-[#FAF6EF] flex items-center justify-center">

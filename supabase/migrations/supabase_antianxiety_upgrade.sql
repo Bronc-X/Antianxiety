@@ -1,6 +1,6 @@
 -- ============================================
--- Neuromind Backend Upgrade SQL Migration
--- NoMoreAnxious - 用户记忆系统 + 混合搜索
+-- AntiAnxiety Backend Upgrade SQL Migration
+-- AntiAnxiety - 用户记忆系统 + 混合搜索
 -- ============================================
 
 -- 1. 启用 pgvector 扩展（如果尚未启用）
@@ -80,7 +80,7 @@ CREATE TRIGGER trigger_user_memories_updated_at
 -- ============================================
 DO $$
 BEGIN
-    RAISE NOTICE '✅ Neuromind upgrade completed successfully!';
+    RAISE NOTICE '✅ AntiAnxiety upgrade completed successfully!';
     RAISE NOTICE '   - pgvector extension enabled';
     RAISE NOTICE '   - user_memories table created';
     RAISE NOTICE '   - Indexes created';

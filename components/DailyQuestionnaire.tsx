@@ -160,6 +160,9 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
       localStorage.setItem('nma_questionnaire_date', new Date().toISOString().split('T')[0]);
       setIsCompleted(true);
       onComplete?.(answers);
+
+      // 后台刷新：让 AI 方案与内容推荐跟随问卷状态更新
+      fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
       
     } catch (error) {
       console.error('保存问卷失败:', error);

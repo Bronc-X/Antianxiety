@@ -298,7 +298,8 @@ export default function RoadshowPage() {
             </div>
             <h3 className="mt-3 text-2xl font-semibold">30 秒说明稿</h3>
             <p className="mt-2 text-sm text-white/80">
-              “No More anxious 面向 30-45 岁高知用户。我们每天只推 1 个核心任务，把信念分数写入 Supabase，驱动贝叶斯曲线和个性化方案。
+              AntiAnxiety™
+              面向 30-45 岁高知用户。我们每天只推 1 个核心任务，把信念分数写入 Supabase，驱动贝叶斯曲线和个性化方案。
               已集成登录 / 设置 / 仪表盘 / 升级页，可现场演示，从 AI 方案闭环到 Pro 转化。”
             </p>
             <div className="mt-4 grid gap-3 text-sm">

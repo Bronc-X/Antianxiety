@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ReportStep } from '@/types/assessment';
 import { ChevronLeft, Download, Mail, AlertTriangle, Clock, Stethoscope, Home, History, Loader2 } from 'lucide-react';
+import { tr, type Language } from '@/lib/i18n';
+import { maybeCnToTw } from '@/lib/i18n-core';
 
 interface HistoricalAssessment {
   date: string;
@@ -15,7 +17,7 @@ interface ReportViewProps {
   report: ReportStep['report'];
   sessionId: string;
   onRestart: () => void;
-  language: 'zh' | 'en';
+  language: Language;
   historicalContext?: HistoricalAssessment[];
 }
 
@@ -106,7 +108,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (language === 'zh') {
+    if (language !== 'en') {
       if (diffDays < 30) return `${diffDays} 天前`;
       if (diffDays < 365) return `${Math.floor(diffDays / 30)} 个月前`;
       return `${Math.floor(diffDays / 365)} 年前`;
@@ -126,7 +128,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
           className="flex items-center text-primary hover:opacity-80 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
-          <span>{language === 'zh' ? '返回' : 'Back'}</span>
+          <span>{tr(language, { zh: '返回', en: 'Back' })}</span>
         </button>
       </div>
 
@@ -139,7 +141,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
         >
           <UrgencyIcon className="w-4 h-4" />
           <span className="font-medium">
-            {language === 'zh' ? urgencyConfig.label_zh : urgencyConfig.label_en}
+            {language === 'en' ? urgencyConfig.label_en : urgencyConfig.label_zh}
           </span>
         </motion.div>
 
@@ -158,24 +160,24 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
               {/* Best Match 标签 */}
               {condition.is_best_match && (
                 <span className="inline-block px-3 py-1 bg-foreground text-background text-xs font-medium rounded-full mb-3">
-                  {language === 'zh' ? '最佳匹配' : 'Best match'}
+                  {tr(language, { zh: '最佳匹配', en: 'Best match' })}
                 </span>
               )}
 
               {/* 条件名称 */}
               <h3 className="text-xl font-bold text-card-foreground mb-2">
-                {condition.name}
+                {maybeCnToTw(language, condition.name)}
               </h3>
 
               {/* 描述 */}
               <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-                {condition.description}
+                {maybeCnToTw(language, condition.description)}
               </p>
 
               {/* 匹配症状 */}
               <div className="mb-4">
                 <p className="text-xs text-muted-foreground mb-2">
-                  {language === 'zh' ? '匹配的症状' : 'Your match'}
+                  {tr(language, { zh: '匹配的症状', en: 'Your match' })}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {condition.matched_symptoms.map(symptom => (
@@ -183,7 +185,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
                       key={symptom}
                       className="px-3 py-1 bg-secondary text-secondary-foreground text-sm rounded-full"
                     >
-                      {symptom}
+                      {maybeCnToTw(language, symptom)}
                     </span>
                   ))}
                 </div>
@@ -215,7 +217,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
           transition={{ delay: 0.5 }}
         >
           <h4 className="text-lg font-bold text-foreground mb-4">
-            {language === 'zh' ? '下一步' : 'Next steps'}
+            {tr(language, { zh: '下一步', en: 'Next steps' })}
           </h4>
           <div className="space-y-3">
             {report.next_steps.map((step, index) => (
@@ -224,7 +226,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
                 className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border"
               >
                 <span className="text-xl">{step.icon}</span>
-                <span className="text-card-foreground">{step.action}</span>
+                <span className="text-card-foreground">{maybeCnToTw(language, step.action)}</span>
               </div>
             ))}
           </div>
@@ -241,7 +243,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
             <div className="flex items-center gap-2 mb-3">
               <History className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">
-                {language === 'zh' ? '历史记录' : 'History'}
+                {tr(language, { zh: '历史记录', en: 'History' })}
               </span>
             </div>
             <div className="space-y-2">
@@ -249,10 +251,12 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
                 <div key={index} className="text-sm text-muted-foreground">
                   <span className="text-foreground">{formatHistoryDate(item.date)}</span>
                   {' - '}
-                  {language === 'zh' 
-                    ? `您曾报告过类似症状「${item.chiefComplaint}」，当时诊断为 ${item.topCondition}`
-                    : `You reported similar symptoms "${item.chiefComplaint}", diagnosed as ${item.topCondition}`
-                  }
+                  {language === 'en'
+                    ? `You reported similar symptoms "${item.chiefComplaint}", diagnosed as ${item.topCondition}`
+                    : maybeCnToTw(
+                        language,
+                        `您曾报告过类似症状「${item.chiefComplaint}」，当时诊断为 ${item.topCondition}`
+                      )}
                 </div>
               ))}
             </div>
@@ -276,7 +280,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
             ) : (
               <Download className="w-5 h-5" />
             )}
-            {language === 'zh' ? '下载 PDF' : 'Download PDF'}
+            {tr(language, { zh: '下载 PDF', en: 'Download PDF' })}
           </button>
           <button 
             onClick={handleSendEmail}
@@ -289,8 +293,8 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
               <Mail className="w-5 h-5" />
             )}
             {emailSent 
-              ? (language === 'zh' ? '已发送' : 'Sent') 
-              : (language === 'zh' ? '发送邮件' : 'Email')
+              ? tr(language, { zh: '已发送', en: 'Sent' })
+              : tr(language, { zh: '发送邮件', en: 'Email' })
             }
           </button>
         </motion.div>
@@ -302,7 +306,7 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
         >
-          {report.disclaimer}
+          {maybeCnToTw(language, report.disclaimer)}
         </motion.p>
       </div>
     </div>

@@ -128,6 +128,12 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          gender: formData.gender || null,
+          birth_date: formData.birth_date || null,
+          height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
+          weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
+          activity_level: formData.activity_level || null,
+          body_fat_percentage: formData.body_fat_percentage ? parseFloat(formData.body_fat_percentage) : null,
           primary_goal: formData.primary_goal,
           target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : null,
           weekly_goal_rate: formData.weekly_goal_rate,
@@ -138,6 +144,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
           caffeine_intake: formData.caffeine_intake,
           alcohol_intake: formData.alcohol_intake,
           smoking_status: formData.smoking_status,
+          metabolic_concerns: formData.metabolic_concerns,
         }),
       });
 
@@ -149,6 +156,10 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       }
 
       setSuccess('设置已保存，正在返回主页...');
+
+      // 后台刷新：更新 AI 分析/方案 + 用户画像向量（用于文章推荐）
+      fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
+
       setTimeout(() => {
         router.push('/landing');
         router.refresh();

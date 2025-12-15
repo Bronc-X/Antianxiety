@@ -1,4 +1,4 @@
-# No More Anxious - 技术栈与工作流
+# AntiAnxiety - 技术栈与工作流
 
 ## 1. 技术栈明细
 

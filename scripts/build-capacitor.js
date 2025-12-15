@@ -29,7 +29,7 @@ function ensureRedirectPlaceholder() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="0; url=${remoteUrl}">
-  <title>No More Anxious</title>
+  <title>AntiAnxiety</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -62,7 +62,7 @@ function ensureRedirectPlaceholder() {
 <body>
   <div class="loading">
     <div class="spinner"></div>
-    <p>正在加载 No More Anxious...</p>
+    <p>正在加载 AntiAnxiety...</p>
   </div>
 </body>
 </html>`;
@@ -75,7 +75,7 @@ function ensureRedirectPlaceholder() {
  * 主构建流程
  */
 function run() {
-  console.log('🚀 No More Anxious - Capacitor 构建\n');
+  console.log('🚀 AntiAnxiety - Capacitor 构建\n');
   console.log('📱 运行模式: 在线 (WebView 加载远程 URL)');
   console.log(`🌐 远程地址: ${remoteUrl}\n`);
 
@@ -101,7 +101,7 @@ function run() {
     console.log('\n💡 提示:');
     console.log('   - Web 代码更新后，用户刷新应用即可看到最新版本');
     console.log('   - 仅在修改原生配置时需要重新构建 APK');
-    
+
   } catch (error) {
     console.error('\n❌ 构建失败:', error.message);
     process.exit(1);

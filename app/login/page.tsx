@@ -20,7 +20,7 @@ function LoginFormContent() {
   const isEmailLoginRedirectingRef = useRef(false);
   const searchParams = useSearchParams();
   const supabase = createClientSupabaseClient();
-  
+
   useEffect(() => {
     const checkExistingSession = async () => {
       const { data } = await supabase.auth.getSession();
@@ -31,23 +31,23 @@ function LoginFormContent() {
     };
     checkExistingSession();
   }, [supabase.auth, searchParams]);
-  
+
   useEffect(() => {
     const error = searchParams.get('error');
     const details = searchParams.get('details');
     let hashError = null;
     let errorCode = null;
     let errorDescription = null;
-    
+
     if (window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       hashError = hashParams.get('error');
       errorCode = hashParams.get('error_code');
       errorDescription = hashParams.get('error_description');
     }
-    
+
     const finalError = error || hashError;
-    
+
     if (finalError) {
       let errorMessage = t('error.auth');
       if (errorCode === 'otp_expired') {
@@ -158,7 +158,7 @@ function LoginFormContent() {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-[#0B3D2E] dark:bg-white" />
               <span className="text-2xl font-extrabold tracking-wide text-[#0B3D2E] dark:text-white">
-                No More anxious<sup className="text-xs">™</sup>
+                AntiAnxiety<sup className="text-xs">™</sup>
               </span>
             </div>
           </div>
@@ -225,14 +225,14 @@ function LoginFormContent() {
               <button type="button" onClick={() => handleOAuthLogin('github')} disabled={oauthProviderLoading !== null}
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-[#24292e] text-white shadow-sm transition-all hover:bg-[#24292e]/80 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t('login.useGithub')}>
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
               </button>
               {/* 微信 - 绿色 */}
               <button type="button" onClick={() => handleOAuthLogin('wechat')} disabled={oauthProviderLoading !== null}
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1AAD19] text-white shadow-sm transition-all hover:bg-[#1AAD19]/80 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t('login.useWechat')}>
                 <svg className="h-6 w-6" viewBox="0 0 1024 1024" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M690.1 377.4c5.9 0 11.8.2 17.6.5-15.8-73.2-88.5-127.5-177.2-127.5-95.4 0-172.8 63.8-172.8 142.3 0 44.4 24.1 80.8 64.3 108.8l-16.1 48.2 56.1-28.1c20.1 4 40.2 8.1 60.3 8.1 5.8 0 11.5-.3 17.2-.8-3.6-12.3-5.6-25.1-5.6-38.4 0-62.6 70.2-113.1 156.2-113.1zm-94.8-32.7c12 0 20.1 8.1 20.1 20.1 0 12-8.1 20.1-20.1 20.1s-20.1-8.1-20.1-20.1c0-12 8.1-20.1 20.1-20.1zm-136.2 40.2c-12 0-24.1-8.1-24.1-20.1 0-12 12.1-20.1 24.1-20.1 12 0 20.1 8.1 20.1 20.1 0 12-8.1 20.1-20.1 20.1zM889.7 539.4c0-66.3-64.3-120.4-136.2-120.4-80 0-140.2 54.1-140.2 120.4s60.2 120.4 140.2 120.4c16.1 0 32.2-4 48.2-8.1l44.1 24.1-12-40.2c32.1-24 56-56.1 55.9-96.2zm-176.3-20.1c-8.1 0-16.1-8.1-16.1-16.1 0-8.1 8.1-16.1 16.1-16.1 12 0 20.1 8.1 20.1 16.1 0 8-8.1 16.1-20.1 16.1zm80 0c-8.1 0-16.1-8.1-16.1-16.1 0-8.1 8.1-16.1 16.1-16.1 12 0 20.1 8.1 20.1 16.1 0 8-8.1 16.1-20.1 16.1z"/>
+                  <path d="M690.1 377.4c5.9 0 11.8.2 17.6.5-15.8-73.2-88.5-127.5-177.2-127.5-95.4 0-172.8 63.8-172.8 142.3 0 44.4 24.1 80.8 64.3 108.8l-16.1 48.2 56.1-28.1c20.1 4 40.2 8.1 60.3 8.1 5.8 0 11.5-.3 17.2-.8-3.6-12.3-5.6-25.1-5.6-38.4 0-62.6 70.2-113.1 156.2-113.1zm-94.8-32.7c12 0 20.1 8.1 20.1 20.1 0 12-8.1 20.1-20.1 20.1s-20.1-8.1-20.1-20.1c0-12 8.1-20.1 20.1-20.1zm-136.2 40.2c-12 0-24.1-8.1-24.1-20.1 0-12 12.1-20.1 24.1-20.1 12 0 20.1 8.1 20.1 20.1 0 12-8.1 20.1-20.1 20.1zM889.7 539.4c0-66.3-64.3-120.4-136.2-120.4-80 0-140.2 54.1-140.2 120.4s60.2 120.4 140.2 120.4c16.1 0 32.2-4 48.2-8.1l44.1 24.1-12-40.2c32.1-24 56-56.1 55.9-96.2zm-176.3-20.1c-8.1 0-16.1-8.1-16.1-16.1 0-8.1 8.1-16.1 16.1-16.1 12 0 20.1 8.1 20.1 16.1 0 8-8.1 16.1-20.1 16.1zm80 0c-8.1 0-16.1-8.1-16.1-16.1 0-8.1 8.1-16.1 16.1-16.1 12 0 20.1 8.1 20.1 16.1 0 8-8.1 16.1-20.1 16.1z" />
                 </svg>
               </button>
             </div>

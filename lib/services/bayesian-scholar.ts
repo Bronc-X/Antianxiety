@@ -169,7 +169,7 @@ export async function searchByBeliefContext(
 
     if (filteredPapers.length === 0) {
       // 使用后备论文
-      return useFallbackPapers();
+      return getFallbackPapers();
     }
 
     // 缓存结果
@@ -188,7 +188,7 @@ export async function searchByBeliefContext(
     };
   } catch (error) {
     console.error('❌ Bayesian Scholar search failed:', error);
-    return useFallbackPapers();
+    return getFallbackPapers();
   }
 }
 
@@ -317,7 +317,7 @@ function deduplicatePapers(papers: Paper[]): Paper[] {
  * 
  * **Validates: Requirements 8.4, 8.5**
  */
-function useFallbackPapers(): ScholarSearchResult {
+function getFallbackPapers(): ScholarSearchResult {
   const evidence = FALLBACK_PAPERS.map(paper => {
     const consensusScore = calculateConsensusScore(paper.citationCount);
     return createScienceEvidence(paper.title, paper.paperId, consensusScore);

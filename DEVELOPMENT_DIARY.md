@@ -2,7 +2,70 @@
 
 ---
 
-## 🚀 12月25日上线目标 (剩余 17 天)
+## 📊 项目进度概览 (更新时间: 2025-12-15)
+
+### 🌐 Web 端进度
+
+```
+总体进度: ██████████████████████░░░░ 85%
+```
+
+| 模块 | 进度 | 状态 |
+|------|------|------|
+| **核心功能** | `████████████████████` 100% | ✅ AI 聊天、记忆系统、限流中间件 |
+| **AI 问诊系统** | `████████████████████` 100% | ✅ 动态问诊、PDF 报告、红旗协议 |
+| **贝叶斯引擎** | `████████████████████` 100% | ✅ 信念循环、认知天平、Max 人格 |
+| **UI 组件库** | `██████████████████░░` 90% | ✅ 深色模式、动画、响应式布局 |
+| **多语言支持** | `████████████████████` 100% | ✅ 中/英/繁体中文 |
+| **部署配置** | `██████░░░░░░░░░░░░░░` 30% | ⏳ Cloudflare DNS + SSL 待配置 |
+| **测试覆盖** | `████████████████░░░░` 80% | ✅ 362 个测试通过，待端到端测试 |
+
+**关键文件统计:**
+- 📁 `app/` - 77 个页面/API 路由目录
+- 📁 `components/` - 88 个组件/模块 (78 文件 + 10 子目录)
+- 📁 `lib/` - 48 个工具模块 (41 文件 + 7 子目录)
+
+---
+
+### 📱 Android 端进度
+
+```
+总体进度: ████████████░░░░░░░░░░░░░ 48%
+```
+
+| 模块 | 进度 | 状态 |
+|------|------|------|
+| **项目结构** | `████████████████████` 100% | ✅ Capacitor 配置完成 |
+| **品牌设计系统** | `████████████████████` 100% | ✅ colors.xml, styles.xml (AntiAnxiety Theme) |
+| **启动画面** | `████████████████████` 100% | ✅ splash.xml + 主题配置 |
+| **网络配置** | `████████████████████` 100% | ✅ 开发/生产 URL 自动切换 |
+| **原生功能** | `██████░░░░░░░░░░░░░░` 30% | ⏳ Health Connect、小部件待实现 |
+| **真机测试** | `░░░░░░░░░░░░░░░░░░░░` 0% | ❌ 待开始 |
+| **发布准备** | `░░░░░░░░░░░░░░░░░░░░` 0% | ❌ 签名密钥 + AAB 待配置 |
+
+**关键文件:**
+- 📄 `capacitor.config.ts` - Capacitor 主配置
+- 📄 `android/ANDROID_TEST_GUIDE.md` - 测试指南
+- 📄 `android/ANDROID_BUILD_GUIDE.md` - 构建指南
+
+---
+
+### 🎯 12月25日上线倒计时
+
+```
+距离上线: ██████████░░░░░░░░░░░░░░░ 10 天
+          2025-12-15 → 2025-12-25
+```
+
+**本周重点 (12/14-20):**
+- [ ] 安卓真机测试
+- [ ] 性能优化 + Bug 修复
+- [ ] Supabase 生产环境配置
+- [ ] Staging 环境部署
+
+---
+
+## 🚀 12月25日上线目标 (剩余 10 天)
 
 ### ✅ 已完成核心功能
 | 模块 | 状态 |
@@ -22,15 +85,157 @@
 - **第3周 (12/21-25)**: Cloudflare + SSL + 正式上线
 
 ### ⏳ 待办事项
-- [ ] 执行 SQL 添加 `current_question_text` 字段
+- [x] 执行 SQL 添加 `current_question_text` 字段 ✅ 2025-12-15
 - [ ] 安卓真机测试 (参考 `android/ANDROID_TEST_GUIDE.md`)
-- [ ] 内部功能测试
+- [x] 内部功能测试 ✅ 2025-12-15 (362测试全通过, HTTP 200验证)
 - [ ] Cloudflare DNS + SSL 配置
 - [ ] Supabase 生产环境配置
 
 ### 💰 月预算: ≤ ¥200 (~$28)
 - Supabase/Vercel/Cloudflare: $0 (免费层)
 - OpenAI + Claude API: ~$20-30/月
+
+---
+
+## 2025-12-16 - DailyCheckin 配色修复
+
+### 🎯 核心更新
+
+#### 1. DailyCheckin 组件配色重构 ✅
+- ✅ 将深色科技风格（深蓝黑 + 霓虹绿）改为 California Calm 风格
+- ✅ 使用项目宪法定义的色板：Sand (#E8DFD0), Clay (#C4A77D), Sage (#9CAF88)
+- ✅ 对话框背景：从 `#0B0F14` 改为 `#FFFDF8` 渐变
+- ✅ 文字颜色：从白色改为 `#0B3D2E`
+- ✅ 按钮样式：从霓虹渐变改为 `#0B3D2E` 实色
+- ✅ 卡片边框：从 `white/10` 改为 `#E7E1D6`
+- ✅ 图标颜色：从 emerald/amber 改为 Sage/Clay
+
+### 📊 代码统计
+- **文件变更**: 1 个文件 (`components/DailyCheckin.tsx`)
+- **修改内容**: 配色系统全面重构
+
+---
+
+## 2025-12-15 - 页面加载性能优化
+
+### 🎯 核心更新
+
+#### 1. Landing 页面性能优化 ✅
+- ✅ 使用 React.lazy() 懒加载重型组件：
+  - `WisdomCarousel` - 金句轮播
+  - `DailyInsightHub` - 每日洞察中心
+  - `DailyCheckin` - 每日签到
+  - `AnimatedSection` - 动画区块
+  - `JournalShowcase` - 学术期刊展示
+  - `InfiniteNewsFeed` - 无限滚动新闻流
+- ✅ 添加 Suspense 边界和轻量级加载占位符
+- ✅ 首屏渲染时间预计从 2-26 秒降至 < 1 秒
+
+#### 2. Settings 页面性能优化 ✅
+- ✅ 懒加载 `ImageComparisonSlider` 组件
+- ✅ 添加 `app/settings/loading.tsx` 加载状态组件
+- ✅ 使用 Suspense 包裹解锁滑块
+
+#### 3. Next.js 配置优化 ✅
+- ✅ 添加 `lucide-react` 到 optimizePackageImports（只打包使用的图标）
+- ✅ 添加 `date-fns` 到优化列表
+
+### 📊 性能改进
+- **问题**: 页面首次加载需要 8-28 秒（编译 + 渲染）
+- **原因**: 同步导入大量重型组件，framer-motion 动画阻塞渲染
+- **解决**: 懒加载 + Suspense 边界 + 包优化
+- **预期效果**: 首屏渲染 < 1 秒，组件按需加载
+
+---
+
+## 2025-12-15 - Journal Showcase + AI 悬浮按钮修复
+
+### 🎯 核心更新
+
+#### 1. Journal Showcase 组件 ✅
+- ✅ 创建 `components/JournalShowcase.tsx` - 学术期刊展示组件
+  - 替换 Landing 页面的 X 推文 (XFeed) 为学术论文卡片
+  - 6 篇精选焦虑/压力研究论文（Nature, JAMA, Frontiers 等）
+  - 支持中英文切换
+  - 显示期刊名、年份、摘要片段（120字符截断）、引用数
+  - 可信度徽章：顶级期刊（金色）/ 同行评审（绿色）
+  - Framer Motion 悬停动画 + 深色模式支持
+- ✅ 更新 `components/LandingContent.tsx` - 集成 JournalShowcase
+
+#### 2. AI 助理悬浮按钮修复 ✅
+- ✅ 修复 `AIAssistantFloatingButton` 组件未被引用的问题
+- ✅ 在 `app/layout.tsx` 添加悬浮按钮组件
+- ✅ 登录后右下角显示 "AI 助理" 悬浮按钮（桌面端）
+
+#### 3. 数据库迁移 ✅
+- ✅ 执行 `ADD_CURRENT_QUESTION_TEXT.sql` 添加字段到 assessment_sessions 表
+- ✅ 编写 `20251215_add_metabolic_concerns.sql`
+- ✅ 编写 `20251215_add_daily_wellness_logs_exercise_type.sql`
+
+#### 4. 测试修复 ✅
+- ✅ 修复 `structure.property.test.ts` - 4 个失败测试
+- ✅ 修复 `belief-isolation.property.test.ts` - 日期范围修复
+- ✅ **362/362 测试全部通过**
+
+#### 5. 内部功能验证 ✅
+- ✅ 开发服务器正常运行 (localhost:3000)
+- ✅ 登录页面、Landing 页面、贝叶斯页面 HTTP 200
+
+#### 6. 国际化架构重构 (i18n Refactor) ✅
+- ✅ 拆分单体 `lib/i18n.tsx` 为核心模块：
+  - `lib/i18n-core.ts`: 核心逻辑与类型定义
+  - `lib/i18n-dict.ts`: 翻译字典分离
+  - `lib/zh-convert.ts`: 实现 `cnToTw` 自动繁简转换
+- ✅ 新增 `components/TraditionalChineseAutoConvert.tsx`: 自动处理繁体中文回退
+- ✅ 优化 `useTranslation` hook 支持自动回退机制
+
+#### 7. 贝叶斯仪式组件化 (Bayesian Ritual) ✅
+- ✅ 重构 `components/bayesian/ritual/` 目录，拆分为独立步骤组件：
+  - `StepInput.tsx`: 初始信念输入
+  - `StepSocratic.tsx`: 苏格拉底式提问
+  - `StepEvidence.tsx`: 证据收集
+  - `StepCalculation.tsx`: 贝叶斯概率计算
+  - `StepResult.tsx`: 最终结果展示
+- ✅ 优化组件复用性和状态管理
+
+#### 8. 数据闭环文档 (Logic Chain) ✅
+- ✅ 创建 `docs/LOGIC_CHAIN_AND_WORKFLOW.md`
+- ✅ 定义从「用户采集」到「AI 推荐」的完整闭环
+- ✅ 确认"去幻觉"策略 (Data Grounding Policy)
+- ✅ 明确 `supabase/migrations/` 新增脚本：
+  - `20251215_add_metabolic_concerns.sql`
+  - `20251215_add_daily_wellness_logs_exercise_type.sql`
+
+### 📊 代码统计 (汇总)
+- **新增文件**: ~15 个 (Ritual 组件, i18n 模块, Docs, SQL)
+- **修改文件**: 10+ 个 (核心页面, API)
+- **新增代码**: ~1200 行
+- **测试状态**: 362/362 ✅ (并在持续集成中)
+
+### 🚀 下一步计划
+- [ ] 安卓真机测试 (参考 `android/ANDROID_TEST_GUIDE.md`)
+- [ ] Cloudflare DNS 配置
+- [ ] SSL 证书配置
+- [ ] Supabase 生产环境迁移
+- [ ] 验证 Logic Chain 数据闭环流程
+
+---
+
+## 2025-12-15 - IDE Shell 启动失败排查
+
+### 🎯 结论
+- ✅ 通常与未安装 Visual Studio 无关（macOS 更常见为默认 shell 路径 / 终端 Profile 配置问题）
+- ✅ 优先检查 IDE 是否把“默认 shell”指向了不存在的可执行文件，或加载了异常的环境变量
+
+### 🔍 排查步骤
+- `echo $SHELL` 确认系统默认 shell
+- `ls -l /bin/zsh /bin/bash` 确认 shell 文件存在且可执行
+- `which zsh` / `which bash` 确认 PATH 可解析
+- VS Code：`Terminal: Select Default Profile` 选择 `zsh`（或 `bash`）
+- 检查/清理终端相关自定义设置：`terminal.integrated.shell.osx`、`terminal.integrated.defaultProfile.osx`
+
+### ✅ 下一步
+- [ ] 收集“shell 启动失败”的完整报错文本 + IDE 名称，定位具体配置项
 
 ---
 
@@ -2189,3 +2394,29 @@ hooks/
 - DailyCalibrationSheet 添加焦虑校准入口
 - 习惯完成事件触发 PassiveNudge
 - Semantic Scholar API 获取科学证据
+
+---
+
+## 2025-12-16 - AI 助手 UI 全新升级 (MiniMax 风格)
+
+### 🎯 核心更新
+- **UI 重设计**：模仿 MiniMax 风格，将 AI 助手界面重新设计为极简、白色的现代化风格。
+- **全新布局**：
+    - **左侧侧边栏**：提供“新建任务”入口、搜索框、历史任务列表。
+    - **右侧主内容区**：
+        - **初始状态**：大号问候语（早/中/晚）、居中大输入框、“高效/自定义/专业”模式切换、图片上传与语音输入按钮、底部快捷建议 Chips。
+        - **对话状态**：经典对话流，保留了用户消息与 AI 回复的清晰区分。
+- **功能保留与优化**：
+    - **方案闭环**：保留了生成健康方案、修改与确认的核心逻辑。
+    - **多模态输入**：优化了语音输入和图片上传的按钮样式。
+    - **历史记录**：侧边栏自动加载并显示最近的对话历史，支持点击查看（目前主要为视觉展示，逻辑已打通）。
+
+### 🛠️ 技术实现
+- **组件重构**：完全重写了 `AIAssistantFloatingChat.tsx`，从单一的浮动窗口改为支持 Sidebar 的双栏布局。
+- **状态管理**：引入 `InitialState` 和 `ChatState` 的明确区分，使用 `Framer Motion` 实现平滑过渡。
+- **样式升级**：使用 Tailwind CSS 实现极简设计，主色调统一为品牌绿 (`#0B3D2E`) 与清爽的白色背景。
+- **响应式处理**：侧边栏在移动端自动隐藏 (`hidden md:flex`)，保证小屏体验。
+
+### ✅ 推进
+- 已完成 UI 开发与功能集成。
+- 已本地测试通过，所有原有 AI 功能正常运行。

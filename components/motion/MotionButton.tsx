@@ -13,7 +13,7 @@ export const MOTION_BUTTON_TAP_SCALE = 0.95;
 // 创建一个 motion 版本的 Shadcn Button
 const MotionBtn = motion(Button);
 
-interface MotionButtonProps extends React.ComponentProps<typeof Button> {
+export interface MotionButtonProps extends React.ComponentProps<typeof Button> {
   hapticFeedback?: boolean;
   glowEffect?: boolean;
   magneticEffect?: boolean;

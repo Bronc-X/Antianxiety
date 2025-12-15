@@ -35,7 +35,7 @@ import {
   Area
 } from 'recharts';
 import { motion } from 'framer-motion';
-import { translations, type Language } from '@/lib/i18n';
+import { useI18n, tr } from '@/lib/i18n';
 
 // --- 模拟数据 ---
 const hrvData = Array.from({ length: 24 }, (_, i) => ({
@@ -111,52 +111,15 @@ const MetricValue = ({ label, value, unit, trend, status = "neutral" }: {
 
 export default function MetabolicCodex() {
   const [breathing, setBreathing] = useState(false);
-  const [language, setLanguage] = useState<Language>('zh');
-  
-  // 获取当前语言的翻译
-  const t = translations?.[language] || translations?.['zh'] || {
-    // 默认中文翻译作为fallback
-    systemOptimal: '系统最优',
-    uplink: '上行链路',
-    user: '用户',
-    metabolicScore: '代谢评分',
-    recoveryCapacity: '恢复能力: 高',
-    liveTelemetry: '实时遥测',
-    glucose: '血糖 (CGM)',
-    ketones: '酮体',
-    cortisol: '皮质醇 (估)',
-    skinTemp: '皮肤温度',
-    restingHR: '静息心率',
-    stable: '稳定 (-2%)',
-    circadianDip: '▼ 昼夜节律低谷',
-    anomalyDetection: '异常检测',
-    cortisolSpike: '20:00 - 检测到餐后皮质醇峰值。炎症标志物活跃。',
-    autonomicNervousSystem: '自主神经系统',
-    dataSource: '数据来源: OURA V3 + LEVELS CGM',
-    synced: '2分钟前同步',
-    fascialTensegrity: '筋膜张整性',
-    neckLoad: '颈部负荷',
-    high: '高',
-    bioElectricStatus: '生物电状态',
-    vagalTone: '迷走张力',
-    optimal: '最优',
-    qiFlux: '下丹田区域检测到气流。建议副交感神经激活。',
-    vagalCalibration: '迷走神经校准',
-    idle: '待机',
-    initiateProtocol: '启动协议',
-    terminateSession: '终止会话',
-    targetAlphaWaves: '目标: 增加Alpha波',
-    dailyInterventions: '每日干预',
-    morningColdPlunge: '晨间冷水浸泡',
-    coherentBreathing: '协调呼吸 (5分钟)',
-    intermittentFasting: '间歇性禁食窗口',
-    zone2Cardio: '二区有氧运动',
-    biomarkerScan: '高级生物标志物扫描',
-    vagalStimulation: '迷走神经刺激',
-    systemAlert: '*** 系统警报: 皮质醇清除率 -15% ***',
-    suggestion: '建议: 深度睡眠窗口延长40分钟',
-    newResearch: '新研究加载: "禁食中的线粒体动力学"',
-  };
+  const { language, setLanguage, t: tKey } = useI18n();
+
+  const t = React.useMemo(
+    () =>
+      new Proxy({} as Record<string, string>, {
+        get: (_target, prop) => tKey(String(prop)),
+      }),
+    [tKey]
+  );
   
   // 动态生成任务数据
   const dailyTasks = [
@@ -170,7 +133,7 @@ export default function MetabolicCodex() {
   
   // 切换语言
   const toggleLanguage = () => {
-    setLanguage(prev => prev === 'zh' ? 'en' : 'zh');
+    setLanguage(language === 'en' ? 'zh' : 'en');
   };
 
   return (
@@ -194,14 +157,14 @@ export default function MetabolicCodex() {
             <span className="text-[#ccff00]">{t.user}: BRONCIN (PRO)</span>
             
             {/* 语言切换按钮 */}
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-2 px-3 py-1 bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700 rounded-sm transition-all"
-              title={language === 'zh' ? '切换到英文' : 'Switch to Chinese'}
-            >
-              <Globe className="w-3 h-3" />
-              <span className="text-[10px] font-bold">{language === 'zh' ? '中' : 'EN'}</span>
-            </button>
+	            <button
+	              onClick={toggleLanguage}
+	              className="flex items-center gap-2 px-3 py-1 bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700 rounded-sm transition-all"
+	              title={tr(language, { zh: '切换到英文', en: 'Switch to Chinese' })}
+	            >
+	              <Globe className="w-3 h-3" />
+	              <span className="text-[10px] font-bold">{language === 'en' ? 'EN' : (language === 'zh-TW' ? '繁' : '简')}</span>
+	            </button>
           </div>
         </div>
       </header>

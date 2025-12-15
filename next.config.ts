@@ -26,6 +26,8 @@ const nextConfig: NextConfig = {
       'framer-motion',
       'recharts',
       'react-tweet',
+      'lucide-react',  // 图标库优化 - 只打包使用的图标
+      'date-fns',
     ],
   },
   

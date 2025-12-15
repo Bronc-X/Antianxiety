@@ -2,10 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
+import { tr, type Language } from '@/lib/i18n';
 
 interface WelcomeScreenProps {
   onStart: () => void;
-  language: 'zh' | 'en';
+  language: Language;
 }
 
 export function WelcomeScreen({ onStart, language }: WelcomeScreenProps) {
@@ -35,7 +36,7 @@ export function WelcomeScreen({ onStart, language }: WelcomeScreenProps) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
       >
-        {language === 'zh' ? '症状评估' : 'Symptom Assessment'}
+        {tr(language, { zh: '症状评估', en: 'Symptom Assessment' })}
       </motion.h1>
 
       {/* 描述 */}
@@ -45,10 +46,10 @@ export function WelcomeScreen({ onStart, language }: WelcomeScreenProps) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.5 }}
       >
-        {language === 'zh' 
-          ? '让我们花几分钟时间了解您的症状。然后，我会帮助您决定下一步该怎么做。'
-          : "Let's take a few minutes to answer questions about your symptoms. Then I'll help you decide what to do next."
-        }
+        {tr(language, {
+          zh: '让我们花几分钟时间了解您的症状。然后，我会帮助您决定下一步该怎么做。',
+          en: "Let's take a few minutes to answer questions about your symptoms. Then I'll help you decide what to do next.",
+        })}
       </motion.p>
 
       {/* 开始按钮 */}
@@ -61,7 +62,7 @@ export function WelcomeScreen({ onStart, language }: WelcomeScreenProps) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
-        {language === 'zh' ? '开始评估' : 'Continue'}
+        {tr(language, { zh: '开始评估', en: 'Continue' })}
       </motion.button>
 
       {/* 免责声明 */}
@@ -71,10 +72,10 @@ export function WelcomeScreen({ onStart, language }: WelcomeScreenProps) {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7, duration: 0.5 }}
       >
-        {language === 'zh' 
-          ? '此评估仅供参考，不能替代专业医疗诊断。'
-          : 'This assessment is for reference only and cannot replace professional medical diagnosis.'
-        }
+        {tr(language, {
+          zh: '此评估仅供参考，不能替代专业医疗诊断。',
+          en: 'This assessment is for reference only and cannot replace professional medical diagnosis.',
+        })}
       </motion.p>
     </motion.div>
   );

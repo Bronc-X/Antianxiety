@@ -3,7 +3,7 @@
  * Framer Motion animation components for the Capacitor migration
  */
 
-export { MotionButton, motionButtonVariants, MOTION_BUTTON_TAP_SCALE } from './MotionButton';
+export { MotionButton, MOTION_BUTTON_TAP_SCALE } from './MotionButton';
 export type { MotionButtonProps } from './MotionButton';
 
 export { PageTransition } from './PageTransition';

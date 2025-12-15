@@ -4,6 +4,7 @@ import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { User, Activity, Calendar, Scale } from 'lucide-react';
+import { tr, useI18n } from '@/lib/i18n';
 
 /**
  * 个人资料设置页面（营销漏斗最后一步）
@@ -13,6 +14,7 @@ import { User, Activity, Calendar, Scale } from 'lucide-react';
 export default function ProfileSetupPage() {
   const router = useRouter();
   const supabase = createClientSupabaseClient();
+  const { language } = useI18n();
 
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export default function ProfileSetupPage() {
 
     // 验证必填字段
     if (!height || !weight || !age) {
-      alert('请填写所有必填字段');
+      alert(tr(language, { zh: '请填写所有必填字段', en: 'Please fill in all required fields.' }));
       setIsLoading(false);
       return;
     }
@@ -69,19 +71,19 @@ export default function ProfileSetupPage() {
     const ageNum = parseInt(age, 10);
 
     if (heightNum < 100 || heightNum > 250) {
-      alert('身高请输入 100-250 cm');
+      alert(tr(language, { zh: '身高请输入 100-250 cm', en: 'Height must be between 100–250 cm.' }));
       setIsLoading(false);
       return;
     }
 
     if (weightNum < 30 || weightNum > 300) {
-      alert('体重请输入 30-300 kg');
+      alert(tr(language, { zh: '体重请输入 30-300 kg', en: 'Weight must be between 30–300 kg.' }));
       setIsLoading(false);
       return;
     }
 
     if (ageNum < 10 || ageNum > 120) {
-      alert('年龄请输入 10-120 岁');
+      alert(tr(language, { zh: '年龄请输入 10-120 岁', en: 'Age must be between 10–120.' }));
       setIsLoading(false);
       return;
     }
@@ -101,7 +103,7 @@ export default function ProfileSetupPage() {
 
       if (error) {
         console.error('保存个人资料失败:', error);
-        alert('保存失败，请重试');
+        alert(tr(language, { zh: '保存失败，请重试', en: 'Save failed. Please try again.' }));
         setIsLoading(false);
         return;
       }
@@ -112,7 +114,7 @@ export default function ProfileSetupPage() {
       router.refresh();
     } catch (error) {
       console.error('保存个人资料时出错:', error);
-      alert('保存失败，请重试');
+      alert(tr(language, { zh: '保存失败，请重试', en: 'Save failed. Please try again.' }));
       setIsLoading(false);
     }
   };
@@ -120,7 +122,7 @@ export default function ProfileSetupPage() {
   if (!userId) {
     return (
       <div className="min-h-screen bg-[#FAF6EF] flex items-center justify-center">
-        <p className="text-[#0B3D2E]">正在加载...</p>
+        <p className="text-[#0B3D2E]">{tr(language, { zh: '正在加载...', en: 'Loading...' })}</p>
       </div>
     );
   }
@@ -133,15 +135,20 @@ export default function ProfileSetupPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#0B3D2E]/10 rounded-full mb-4">
             <Activity className="w-4 h-4 text-[#0B3D2E]" />
-            <span className="text-sm font-medium text-[#0B3D2E]">最后一步</span>
+            <span className="text-sm font-medium text-[#0B3D2E]">
+              {tr(language, { zh: '最后一步', en: 'Final Step' })}
+            </span>
           </div>
           
           <h1 className="text-3xl font-serif font-medium text-[#0B3D2E] mb-3">
-            完善你的健康档案
+            {tr(language, { zh: '完善你的健康档案', en: 'Complete Your Health Profile' })}
           </h1>
           
           <p className="text-[#0B3D2E]/60">
-            这些基础数据将帮助 AI 计算你的 BMI、基础代谢率等关键指标
+            {tr(language, {
+              zh: '这些基础数据将帮助 AI 计算你的 BMI、基础代谢率等关键指标',
+              en: 'This helps AI compute key metrics like BMI and basal metabolic rate.',
+            })}
           </p>
         </div>
 
@@ -153,14 +160,14 @@ export default function ProfileSetupPage() {
             <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                性别
+                {tr(language, { zh: '性别', en: 'Gender' })}
               </div>
             </label>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { value: 'male', label: '男' },
-                { value: 'female', label: '女' },
-                { value: 'other', label: '其他' },
+                { value: 'male', label: tr(language, { zh: '男', en: 'Male' }) },
+                { value: 'female', label: tr(language, { zh: '女', en: 'Female' }) },
+                { value: 'other', label: tr(language, { zh: '其他', en: 'Other' }) },
               ].map((option) => (
                 <button
                   key={option.value}
@@ -183,7 +190,7 @@ export default function ProfileSetupPage() {
             <label htmlFor="age" className="block text-sm font-medium text-[#0B3D2E] mb-3">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                年龄 <span className="text-red-500">*</span>
+                {tr(language, { zh: '年龄', en: 'Age' })} <span className="text-red-500">*</span>
               </div>
             </label>
             <div className="relative">
@@ -192,7 +199,7 @@ export default function ProfileSetupPage() {
                 type="number"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
-                placeholder="例如：30"
+                placeholder={tr(language, { zh: '例如：30', en: 'e.g., 30' })}
                 required
                 min="10"
                 max="120"
@@ -202,7 +209,9 @@ export default function ProfileSetupPage() {
                 岁
               </span>
             </div>
-            <p className="mt-2 text-xs text-[#0B3D2E]/50">范围：10-120 岁</p>
+            <p className="mt-2 text-xs text-[#0B3D2E]/50">
+              {tr(language, { zh: '范围：10-120 岁', en: 'Range: 10–120' })}
+            </p>
           </div>
 
           {/* 身高 */}
@@ -210,7 +219,7 @@ export default function ProfileSetupPage() {
             <label htmlFor="height" className="block text-sm font-medium text-[#0B3D2E] mb-3">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4" />
-                身高 <span className="text-red-500">*</span>
+                {tr(language, { zh: '身高', en: 'Height' })} <span className="text-red-500">*</span>
               </div>
             </label>
             <div className="relative">
@@ -219,7 +228,7 @@ export default function ProfileSetupPage() {
                 type="number"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
-                placeholder="例如：175"
+                placeholder={tr(language, { zh: '例如：175', en: 'e.g., 175' })}
                 required
                 min="100"
                 max="250"
@@ -230,7 +239,9 @@ export default function ProfileSetupPage() {
                 cm
               </span>
             </div>
-            <p className="mt-2 text-xs text-[#0B3D2E]/50">范围：100-250 cm</p>
+            <p className="mt-2 text-xs text-[#0B3D2E]/50">
+              {tr(language, { zh: '范围：100-250 cm', en: 'Range: 100–250 cm' })}
+            </p>
           </div>
 
           {/* 体重 */}
@@ -238,7 +249,7 @@ export default function ProfileSetupPage() {
             <label htmlFor="weight" className="block text-sm font-medium text-[#0B3D2E] mb-3">
               <div className="flex items-center gap-2">
                 <Scale className="w-4 h-4" />
-                体重 <span className="text-red-500">*</span>
+                {tr(language, { zh: '体重', en: 'Weight' })} <span className="text-red-500">*</span>
               </div>
             </label>
             <div className="relative">
@@ -247,7 +258,7 @@ export default function ProfileSetupPage() {
                 type="number"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                placeholder="例如：70"
+                placeholder={tr(language, { zh: '例如：70', en: 'e.g., 70' })}
                 required
                 min="30"
                 max="300"
@@ -258,7 +269,9 @@ export default function ProfileSetupPage() {
                 kg
               </span>
             </div>
-            <p className="mt-2 text-xs text-[#0B3D2E]/50">范围：30-300 kg</p>
+            <p className="mt-2 text-xs text-[#0B3D2E]/50">
+              {tr(language, { zh: '范围：30-300 kg', en: 'Range: 30–300 kg' })}
+            </p>
           </div>
 
           {/* 提交按钮 */}
@@ -267,12 +280,17 @@ export default function ProfileSetupPage() {
             disabled={isLoading}
             className="w-full py-4 bg-[#0B3D2E] text-[#FAF6EF] rounded-xl font-semibold hover:bg-[#0B3D2E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? '正在保存...' : '完成设置，进入主页 →'}
+            {isLoading
+              ? tr(language, { zh: '正在保存...', en: 'Saving...' })
+              : tr(language, { zh: '完成设置，进入主页 →', en: 'Finish and continue →' })}
           </button>
 
           {/* 提示文字 */}
           <p className="mt-4 text-xs text-center text-[#0B3D2E]/50">
-            你的数据将安全存储，仅用于个性化健康分析
+            {tr(language, {
+              zh: '你的数据将安全存储，仅用于个性化健康分析',
+              en: 'Your data is stored securely and used only for personalized health analysis.',
+            })}
           </p>
         </form>
 
@@ -284,7 +302,7 @@ export default function ProfileSetupPage() {
           <div className="w-6 h-2 bg-[#0B3D2E] rounded-full" />
         </div>
         <p className="text-center mt-2 text-xs text-[#0B3D2E]/50">
-          步骤 4/4 - 几乎完成了！
+          {tr(language, { zh: '步骤 4/4 - 几乎完成了！', en: 'Step 4/4 — almost done!' })}
         </p>
       </div>
     </div>

@@ -23,7 +23,7 @@ async function handleInsightRequest() {
 
     const { data: logs, error: logError } = await supabase
       .from('daily_wellness_logs')
-      .select('log_date, sleep_hours, sleep_duration_minutes, stress_level, hrv, exercise_duration_minutes')
+      .select('log_date, sleep_duration_minutes, stress_level, exercise_duration_minutes')
       .eq('user_id', user.id)
       .order('log_date', { ascending: false })
       .limit(1);
@@ -56,39 +56,26 @@ export async function POST() {
 
 function buildInsightFromLog(log: EnrichedDailyLog | null) {
   if (!log) {
-    return "No daily log yet. Add today's sleep and HRV to calibrate your bio-voltage baseline.";
+    return "No daily log yet. Add today's sleep and stress to calibrate your baseline.";
   }
 
   const sleepMinutes = toNumber(log.sleep_duration_minutes);
   const sleepHours = toNumber(log.sleep_hours) ?? (sleepMinutes !== null ? sleepMinutes / 60 : null);
-  const hrv = toNumber(log.hrv);
   const stress = toNumber(log.stress_level);
 
   if (sleepHours !== null && sleepHours < 6) {
     return `Sleep debt noted (${sleepHours.toFixed(1)}h). Recharge your bio-voltage with an early wind-down and a 10-min morning light walk.`;
   }
 
-  if (hrv !== null && hrv < 50) {
-    return `Low HRV (${Math.round(hrv)}ms) suggests sympathetic load. Try 5 minutes of slow breathing to rebalance your bio-voltage.`;
-  }
-
   if (stress !== null && stress > 7) {
     return `Stress is spiking (${stress}/10). A short movement break and 4-6 breathing can stabilize your bio-voltage.`;
-  }
-
-  if (sleepHours !== null && hrv !== null) {
-    return `Bio-voltage steady with ${sleepHours.toFixed(1)}h sleep and HRV ${Math.round(hrv)}ms. Lock it in with a 15-min walk and consistent bedtime.`;
   }
 
   if (sleepHours !== null) {
     return `Sleep logged at ${sleepHours.toFixed(1)}h. Keep bedtime consistent to keep your bio-voltage stable.`;
   }
 
-  if (hrv !== null) {
-    return `HRV at ${Math.round(hrv)}ms. Maintain light movement and hydration to keep your bio-voltage balanced.`;
-  }
-
-  return 'Keep logging sleep and HRV so we can keep your bio-voltage calibrated.';
+  return 'Keep logging sleep and stress so we can keep your bio-voltage calibrated.';
 }
 
 function toNumber(value: unknown): number | null {

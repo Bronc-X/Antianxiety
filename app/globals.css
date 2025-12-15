@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* ==========================================
+   禁用 Tailwind v4 自动深色模式
+   强制使用 class 策略而非 media 策略
+   ========================================== */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* JetBrains Mono - Terminal/Hacker UI Font */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
 
@@ -122,6 +128,13 @@
 
 html {
   scroll-behavior: smooth;
+  /* 默认浅色背景，防止主题加载前闪烁 */
+  background: #FAF6EF;
+}
+
+/* 深色模式下的 html 背景 */
+html.dark {
+  background: #171717;
 }
 
 body {

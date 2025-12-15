@@ -368,9 +368,8 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
         <MotionButton
           type="submit"
           disabled={isLoading || !input.trim()}
-          loading={isLoading}
           variant="primary"
-          size="md"
+          size="default"
           className="bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-6"
           hapticFeedback={true}
         >
@@ -380,4 +379,3 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
     </div>
   );
 }
-

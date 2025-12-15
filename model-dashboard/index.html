@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2026全国海陆空模型赛事（重庆赛区）运营规划案_V3.0</title>
+    <style>
+      :root {
+        --primary-color: #1a365d;
+        --accent-color: #d69e2e;
+        --bg-color: #f7fafc;
+        --text-color: #2d3748;
+        --card-bg: #ffffff;
+        --success-color: #38a169;
+        --danger-color: #e53e3e;
+      }
+
+      body {
+        font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        line-height: 1.6;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 40px 0;
+        background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%);
+        color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 2.2em;
+        letter-spacing: 1px;
+      }
+
+      header p {
+        opacity: 0.9;
+        margin-top: 10px;
+        font-size: 1.1em;
+      }
+
+      .section-title {
+        border-left: 5px solid var(--accent-color);
+        padding-left: 15px;
+        font-size: 1.5em;
+        color: var(--primary-color);
+        margin: 50px 0 20px 0;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+      }
+
+      /* 1) Timeline */
+      .timeline-wrapper {
+        display: flex;
+        justify-content: space-between;
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        overflow-x: auto;
+        gap: 10px;
+      }
+
+      .timeline-quarter {
+        flex: 1;
+        min-width: 220px;
+        position: relative;
+        padding: 0 15px;
+        border-right: 1px dashed #e2e8f0;
+      }
+
+      .timeline-quarter:last-child {
+        border-right: none;
+      }
+
+      .q-label {
+        font-weight: bold;
+        color: var(--accent-color);
+        text-transform: uppercase;
+        font-size: 0.9em;
+        margin-bottom: 15px;
+        display: block;
+        border-bottom: 2px solid #edf2f7;
+        padding-bottom: 5px;
+      }
+
+      .month-block {
+        margin-bottom: 20px;
+      }
+
+      .month-title {
+        font-weight: bold;
+        color: var(--primary-color);
+        font-size: 1em;
+        margin-bottom: 8px;
+      }
+
+      .event-item {
+        display: flex;
+        align-items: flex-start;
+        font-size: 0.85em;
+        margin-bottom: 6px;
+        line-height: 1.4;
+        color: #4a5568;
+      }
+
+      .event-icon {
+        margin-right: 6px;
+        min-width: 20px;
+      }
+
+      .event-detail-grid {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      @media (max-width: 900px) {
+        .event-detail-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .event-detail-card {
+        background: var(--card-bg);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+      }
+
+      .event-detail-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .event-name {
+        font-weight: 700;
+        color: var(--primary-color);
+      }
+
+      .event-window {
+        font-size: 0.85em;
+        color: #718096;
+        white-space: nowrap;
+      }
+
+      .event-meta {
+        font-size: 0.9em;
+        color: #4a5568;
+      }
+
+      .pill {
+        display: inline-block;
+        font-size: 0.8em;
+        border-radius: 999px;
+        padding: 2px 8px;
+        margin-right: 6px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #2d3748;
+      }
+
+      .pill.promo {
+        background: #e6fffa;
+        border-color: #b2f5ea;
+        color: #2c7a7b;
+      }
+      .pill.select {
+        background: #fffaf0;
+        border-color: #fbd38d;
+        color: #c05621;
+      }
+      .pill.national {
+        background: #ebf8ff;
+        border-color: #bee3f8;
+        color: #2b6cb0;
+      }
+
+      /* 2) Schedule table */
+      .table-card {
+        background: var(--card-bg);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95em;
+        min-width: 860px;
+      }
+
+      th {
+        background-color: #f1f5f9;
+        color: var(--primary-color);
+        padding: 12px;
+        text-align: left;
+        border-bottom: 2px solid #e2e8f0;
+      }
+
+      td {
+        padding: 12px;
+        border-bottom: 1px solid #edf2f7;
+        vertical-align: top;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      /* 3) Financials */
+      .finance-wrapper {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .finance-detail-flex {
+        display: flex;
+        gap: 40px;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #edf2f7;
+        padding-bottom: 20px;
+      }
+
+      .f-list {
+        flex: 1;
+      }
+
+      .f-list h4 {
+        color: var(--primary-color);
+        margin-top: 0;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 10px;
+      }
+
+      .f-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.9em;
+        gap: 12px;
+      }
+
+      .money-plus {
+        color: var(--success-color);
+        font-weight: bold;
+        white-space: nowrap;
+      }
+
+      .money-minus {
+        color: var(--danger-color);
+        font-weight: bold;
+        white-space: nowrap;
+      }
+
+      .finance-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
+
+      @media (max-width: 900px) {
+        .finance-detail-flex {
+          flex-direction: column;
+          gap: 24px;
+        }
+        .finance-summary-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .finance-card {
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+      }
+
+      .finance-card.profit {
+        background: #fffff0;
+        border: 1px solid var(--accent-color);
+        transform: scale(1.05);
+        box-shadow: 0 4px 6px rgba(214, 158, 46, 0.2);
+      }
+
+      .f-label {
+        font-size: 0.9em;
+        color: #718096;
+      }
+
+      .f-number {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: var(--primary-color);
+        margin: 5px 0;
+      }
+
+      /* 4) Resources */
+      .resource-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+      }
+
+      @media (max-width: 900px) {
+        .resource-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .resource-col {
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .resource-col h3 {
+        color: var(--primary-color);
+        border-bottom: 2px solid #edf2f7;
+        padding-bottom: 15px;
+        margin-top: 0;
+      }
+
+      .resource-item {
+        margin-bottom: 20px;
+      }
+
+      .resource-item h4 {
+        margin: 0 0 5px 0;
+        color: #2d3748;
+      }
+
+      .resource-item p {
+        margin: 0;
+        font-size: 0.9em;
+        color: #718096;
+      }
+
+      .highlight-box {
+        background-color: #ebf8ff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #2b6cb0;
+        font-weight: bold;
+      }
+
+      /* 5) KPI */
+      .kpi-section {
+        background: linear-gradient(to right, #2c5282, #2a4365);
+        color: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-top: 40px;
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 15px;
+        text-align: center;
+      }
+
+      @media (max-width: 900px) {
+        .kpi-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .kpi-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-radius: 8px;
+        backdrop-filter: blur(5px);
+      }
+
+      .kpi-value {
+        display: block;
+        font-size: 1.6em;
+        font-weight: bold;
+        color: var(--accent-color);
+        margin-bottom: 5px;
+      }
+
+      .kpi-label {
+        font-size: 0.85em;
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>2026全国海陆空模型赛事（重庆赛区）</h1>
+        <p>运营规划 · 财务预算 · 资源配置 | Strategic Dashboard</p>
+      </header>
+
+      <div class="section-title">01 年度赛事执行时间轴 (Timeline)</div>
+      <div class="timeline-wrapper">
+        <div class="timeline-quarter">
+          <span class="q-label">Q1 蓄势启动</span>
+          <div class="month-block">
+            <div class="month-title">2月 - 3月</div>
+            <div class="event-item">
+              <span class="event-icon">📢</span>
+              <div><strong>全线宣发启动</strong><br />进校推广/社群招募</div>
+            </div>
+            <div class="event-item">
+              <span class="event-icon">📝</span>
+              <div><strong>基础/进阶培训班</strong><br />招生报名启动</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline-quarter">
+          <span class="q-label">Q2 重庆选拔</span>
+          <div class="month-block">
+            <div class="month-title">5月 (基础赛事·选拔)</div>
+            <div class="event-item"><span class="event-icon">🏎️</span><div>驾驭未来车辆模型教育竞赛</div></div>
+            <div class="event-item"><span class="event-icon">🚤</span><div>我爱祖国海疆航海模型教育竞赛</div></div>
+            <div class="event-item"><span class="event-icon">✈️</span><div>飞北教育竞赛</div></div>
+          </div>
+          <div class="month-block">
+            <div class="month-title">6月 (进阶赛事·选拔)</div>
+            <div class="event-item"><span class="event-icon">🏆</span><div>全国青少年车辆锦标赛</div></div>
+            <div class="event-item"><span class="event-icon">🏆</span><div>全国青少年航海模型锦标赛</div></div>
+            <div class="event-item"><span class="event-icon">✈️</span><div>飞北非无人机教育竞赛（基础赛事）</div></div>
+          </div>
+        </div>
+
+        <div class="timeline-quarter">
+          <span class="q-label">Q3 国赛征战</span>
+          <div class="month-block">
+            <div class="month-title">7月 (基础赛事·国赛)</div>
+            <div class="event-item"><span class="event-icon">🏎️</span><div>驾驭未来车辆模型教育竞赛（国赛）</div></div>
+            <div class="event-item"><span class="event-icon">🚤</span><div>我爱祖国海疆航海模型教育竞赛（国赛）</div></div>
+            <div class="event-item"><span class="event-icon">✈️</span><div>飞北教育竞赛（国赛）</div></div>
+          </div>
+          <div class="month-block">
+            <div class="month-title">8月 (进阶赛事·国赛)</div>
+            <div class="event-item"><span class="event-icon">🏆</span><div><strong>全国青少年车辆锦标赛（国赛）</strong></div></div>
+            <div class="event-item"><span class="event-icon">🏆</span><div><strong>全国青少年航海模型锦标赛（国赛）</strong></div></div>
+          </div>
+        </div>
+
+        <div class="timeline-quarter">
+          <span class="q-label">Q4 收官之战</span>
+          <div class="month-block">
+            <div class="month-title">9月 - 12月 (基础赛事·选拔/国赛)</div>
+            <div class="event-item"><span class="event-icon">✈️</span><div>纸飞机教育竞赛（选拔/国赛）</div></div>
+            <div class="event-item"><span class="event-icon">🏎️</span><div>车辆模型公开赛（选拔/国赛）</div></div>
+            <div class="event-item"><span class="event-icon">✈️</span><div>飞北非无人机教育竞赛（国赛）</div></div>
+            <div class="event-item"><span class="event-icon">🤖</span><div>全国无人机足球锦标赛</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px; color: #718096; font-size: 0.9em">
+        九大赛事明细（基础赛事7项 + 进阶赛事2项）：<span class="pill promo">招生/宣发</span><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span>
+      </div>
+      <div class="event-detail-grid">
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">驾驭未来车辆模型教育竞赛</div>
+            <div class="event-window">5月选拔 · 7月国赛</div>
+          </div>
+          <div class="event-meta"><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span>基础赛事，覆盖K12主力赛道，适合进校推广与社群转化。</div>
+        </div>
+
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">我爱祖国海疆航海模型教育竞赛</div>
+            <div class="event-window">5月选拔 · 7月国赛</div>
+          </div>
+          <div class="event-meta"><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span>基础赛事，学校社团友好，适配课程合作与校内活动。</div>
+        </div>
+
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">飞北教育竞赛</div>
+            <div class="event-window">5月选拔 · 7月国赛</div>
+          </div>
+          <div class="event-meta"><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span>基础赛事，利于内容传播（科技/航空主题），可结合品牌合作。</div>
+        </div>
+
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">飞北非无人机教育竞赛</div>
+            <div class="event-window">6月选拔 · 10-12月国赛</div>
+          </div>
+          <div class="event-meta"><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span>基础赛事，强调器材/场地与裁判资源保障，适合作为下半年增长点。</div>
+        </div>
+
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">纸飞机教育竞赛</div>
+            <div class="event-window">9-10月选拔 · 10-12月国赛</div>
+          </div>
+          <div class="event-meta"><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span>基础赛事，低门槛高参与，适合学校快闪与裂变招生。</div>
+        </div>
+
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">车辆模型公开赛</div>
+            <div class="event-window">9月选拔 · 10-12月国赛</div>
+          </div>
+          <div class="event-meta"><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span>基础赛事，覆盖更广人群，适合城市活动与商业赞助结合。</div>
+        </div>
+
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">全国无人机足球锦标赛</div>
+            <div class="event-window">9-10月筹备 · 10-12月赛事</div>
+          </div>
+          <div class="event-meta"><span class="pill promo">招生/宣发</span><span class="pill national">全国赛</span>基础赛事，强观赏/强传播，适合品牌联动与线下展演。</div>
+        </div>
+
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">全国青少年车辆锦标赛</div>
+            <div class="event-window">6月选拔 · 8月国赛</div>
+          </div>
+          <div class="event-meta"><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span><strong>进阶赛事</strong>，高规格办赛与尖子生选拔核心。</div>
+        </div>
+
+        <div class="event-detail-card">
+          <div class="event-detail-top">
+            <div class="event-name">全国青少年航海模型锦标赛</div>
+            <div class="event-window">6月选拔 · 8月国赛</div>
+          </div>
+          <div class="event-meta"><span class="pill select">重庆选拔</span><span class="pill national">全国赛</span><strong>进阶赛事</strong>，强调训练体系与裁判资源保障。</div>
+        </div>
+      </div>
+
+      <div class="section-title">02 执行排期详表 (Schedule)</div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 10%">月份</th>
+              <th style="width: 10%">阶段</th>
+              <th style="width: 30%">核心赛事项目</th>
+              <th style="width: 40%">关键执行动作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2月-3月</td>
+              <td>启动期</td>
+              <td>七项基础赛启动宣发与培训：驾驭未来（车）/ 海疆（航海）/ 飞北 / 飞北非无人机 / 纸飞机 / 车辆公开赛 / 无人机足球</td>
+              <td>🚀 启动全市宣发，进校地推<br />📝 基础班(¥300)与进阶班招生</td>
+            </tr>
+            <tr>
+              <td>5月</td>
+              <td>选拔期</td>
+              <td>驾驭未来车辆模型教育竞赛 / 我爱祖国海疆航海模型教育竞赛 / 飞北教育竞赛</td>
+              <td>🏁 举办重庆选拔赛（基础赛）<br />📢 启动Q4基础赛宣发（纸飞机/公开赛/无人机足球）</td>
+            </tr>
+            <tr>
+              <td>6月</td>
+              <td>选拔期</td>
+              <td>全国青少年车辆锦标赛 / 全国青少年航海模型锦标赛（进阶）/ 飞北非无人机教育竞赛</td>
+              <td>🏁 举办重庆选拔赛（进阶赛高规格）<br />🧰 完成器材/裁判/场地保障方案</td>
+            </tr>
+            <tr>
+              <td>7月</td>
+              <td>国赛期</td>
+              <td>驾驭未来车辆模型教育竞赛 / 我爱祖国海疆航海模型教育竞赛 / 飞北教育竞赛</td>
+              <td>✈️ 带团出征全国总决赛<br />📢 启动纸飞机赛宣发</td>
+            </tr>
+            <tr>
+              <td>8月</td>
+              <td>国赛期</td>
+              <td>全国青少年车辆锦标赛 / 全国青少年航海模型锦标赛（进阶）</td>
+              <td>✈️ 带团出征（年度重头戏）<br />📝 复盘与下半年赛事节奏排布</td>
+            </tr>
+            <tr>
+              <td>9月-12月</td>
+              <td>收官期</td>
+              <td>飞北非无人机教育竞赛 / 纸飞机教育竞赛 / 车辆模型公开赛 / 全国无人机足球锦标赛</td>
+              <td>🏁 举办剩余选拔赛<br />✈️ 完成年度国赛带团任务</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title">03 财务预算明细 (Financial Details)</div>
+      <div class="finance-wrapper">
+        <div class="finance-detail-flex">
+          <div class="f-list">
+            <h4>收入明细 (Revenue)</h4>
+            <div class="f-row"><span>基础培训 (800人x¥300)</span> <span class="money-plus">¥240,000</span></div>
+            <div class="f-row"><span>进阶培训 (200人x¥2000)</span> <span class="money-plus">¥400,000</span></div>
+            <div class="f-row"><span>带团服务费 (200人x¥1500)</span> <span class="money-plus">¥300,000</span></div>
+            <div class="f-row"><span>器材销售 (2000人x¥100)</span> <span class="money-plus">¥200,000</span></div>
+            <div class="f-row"><span>商业赞助 (车辆赛)</span> <span class="money-plus">¥100,000</span></div>
+            <div class="f-row"><span>经费申请</span> <span class="money-plus">¥50,000</span></div>
+          </div>
+          <div class="f-list">
+            <h4>支出明细 (Expenses)</h4>
+            <div class="f-row"><span>渠道磨损/佣金 (培训费50%)</span> <span class="money-minus">¥320,000</span></div>
+            <div class="f-row"><span>渠道磨损/佣金 (赞助费50%)</span> <span class="money-minus">¥50,000</span></div>
+            <div class="f-row"><span>器材成本 (设备+经销)</span> <span class="money-minus">¥180,000</span></div>
+            <div class="f-row"><span>办赛成本 (14场x1万)</span> <span class="money-minus">¥140,000</span></div>
+            <div class="f-row"><span>公共关系维护</span> <span class="money-minus">¥50,000</span></div>
+          </div>
+        </div>
+
+        <div class="finance-summary-grid">
+          <div class="finance-card">
+            <div class="f-label">年度总营收</div>
+            <div class="f-number">¥1,290,000</div>
+          </div>
+          <div class="finance-card">
+            <div class="f-label">年度总支出</div>
+            <div class="f-number">¥740,000</div>
+          </div>
+          <div class="finance-card profit">
+            <div class="f-label">年度净利润 (EBIT)</div>
+            <div class="f-number">¥550,000</div>
+            <div style="color: #d69e2e; font-weight: bold">利润率 42.6%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">04 核心资源赋能 (Resources Matrix)</div>
+      <div class="resource-grid">
+        <div class="resource-col">
+          <h3>我们提供 (Our Offerings)</h3>
+          <div class="resource-item">
+            <h4>💎 顶级行业资源</h4>
+            <p>直通国家体育总局航管中心赛事体系；全国知名快消/科技/汽车品牌投放代理权。</p>
+          </div>
+          <div class="resource-item">
+            <h4>🚀 全栈自媒体与流量生态</h4>
+            <p>拥有 <span class="highlight-box">自有平台 Lusie</span> 及全网百万级矩阵账号，提供垂直流量精准曝光与私域转化。</p>
+          </div>
+          <div class="resource-item">
+            <h4>🤖 智慧体育科技</h4>
+            <p>AI赛事精彩瞬间捕捉系统；数字化SaaS报名管理平台；选手赛后数据成长报告。</p>
+          </div>
+          <div class="resource-item">
+            <h4>🎨 全案品牌运营</h4>
+            <p>城市级事件营销策划；高规格VI视觉系统设计。</p>
+          </div>
+        </div>
+        <div class="resource-col">
+          <h3>我们需要 (Our Needs)</h3>
+          <div class="resource-item">
+            <h4>🤝 行业协会支持</h4>
+            <p>自贡/重庆航空协会提供技术培训与裁判支持；摩托车/兄弟协会引荐本地汽车供应链赞助。</p>
+          </div>
+          <div class="resource-item">
+            <h4>🏛️ 政策与场地</h4>
+            <p>体育局办赛许可与政策扶持；沙坪坝万达/学校/航协基地的场地支持。</p>
+          </div>
+          <div class="resource-item">
+            <h4>📢 渠道生源</h4>
+            <p>K12学校及留学中介机构的学生资源导入。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-section">
+        <h2 style="margin: 0; margin-bottom: 16px; font-size: 1.2em">年度关键指标 (KPI)</h2>
+        <div class="kpi-grid">
+          <div class="kpi-item"><span class="kpi-value">2000</span><div class="kpi-label">参赛人数</div></div>
+          <div class="kpi-item"><span class="kpi-value">800</span><div class="kpi-label">基础培训人数</div></div>
+          <div class="kpi-item"><span class="kpi-value">200</span><div class="kpi-label">进阶培训人数</div></div>
+          <div class="kpi-item"><span class="kpi-value">200</span><div class="kpi-label">带团服务人数</div></div>
+          <div class="kpi-item"><span class="kpi-value">40</span><div class="kpi-label">拓展学校</div></div>
+          <div class="kpi-item"><span class="kpi-value">¥1.29M</span><div class="kpi-label">年度营收</div></div>
+          <div class="kpi-item"><span class="kpi-value">¥0.55M</span><div class="kpi-label">年度净利润</div></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+

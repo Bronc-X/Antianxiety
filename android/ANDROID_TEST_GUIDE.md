@@ -1,7 +1,7 @@
 # 📱 Android 端测试指南
 
 **创建日期**: 2025-12-07  
-**项目**: No More Anxious  
+**项目**: AntiAnxiety  
 **目标**: 确保 Android 应用在真机上正常运行
 
 ---
