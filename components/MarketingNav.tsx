@@ -21,14 +21,14 @@ interface MarketingNavProps {
 export default function MarketingNav({ user, profile }: MarketingNavProps) {
   const pathname = usePathname();
   const { t } = useI18n();
-  
+
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (pathname !== '/landing') {
       e.preventDefault();
       window.location.href = `/landing${href}`;
       return;
     }
-    
+
     e.preventDefault();
     const targetId = href.replace('#', '');
     const element = document.getElementById(targetId);
@@ -36,7 +36,7 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
       const offset = 80;
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
-      
+
       window.scrollTo({
         top: offsetPosition,
         behavior: 'smooth'
@@ -50,19 +50,19 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/landing" className="flex items-center gap-3">
-            <span className="h-2 w-2 rounded-full bg-[#0B3D2E] dark:bg-white" />
-            <span className="text-sm font-semibold tracking-wide text-[#0B3D2E] dark:text-white">
-              No More anxious™
-            </span>
+              <span className="h-2 w-2 rounded-full bg-[#0B3D2E] dark:bg-white" />
+              <span className="text-sm font-semibold tracking-wide text-[#0B3D2E] dark:text-white">
+                AntiAnxiety™
+              </span>
             </Link>
           </div>
           <nav className="hidden md:flex items-center gap-4 text-sm">
             <LanguageSwitcher />
-            
+
             {user ? (
               <>
-                <a 
-                  href="#model" 
+                <a
+                  href="#model"
                   onClick={(e) => handleAnchorClick(e, '#model')}
                   className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors cursor-pointer"
                 >
@@ -111,7 +111,7 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
                 <Link href="/login" className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors">
                   {t('nav.login')}
                 </Link>
-                <a 
+                <a
                   href="#cta"
                   onClick={(e) => handleAnchorClick(e, '#cta')}
                   className="inline-flex items-center rounded-md bg-[#0B3D2E] dark:bg-white px-3 py-1.5 text-white dark:text-neutral-900 hover:bg-[#0a3629] dark:hover:bg-neutral-200 transition-colors cursor-pointer"

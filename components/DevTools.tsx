@@ -12,7 +12,7 @@
  * @module components/DevTools
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 export function DevTools() {
   const [isActive, setIsActive] = useState(false);
@@ -20,6 +20,21 @@ export function DevTools() {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<HTMLButtonElement>(null);
   const dragStartRef = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
+
+  const toggleGrab = useCallback(() => {
+    if (isDragging) return; // Don't toggle if dragging
+    
+    const grab = (window as any).__REACT_GRAB__;
+    if (grab) {
+      if (grab.isActive?.()) {
+        grab.deactivate?.();
+        setIsActive(false);
+      } else {
+        grab.activate?.();
+        setIsActive(true);
+      }
+    }
+  }, [isDragging]);
 
   useEffect(() => {
     // Only enable in development
@@ -50,7 +65,7 @@ export function DevTools() {
       clearInterval(interval);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [toggleGrab]);
 
   // Handle drag events
   useEffect(() => {
@@ -115,21 +130,6 @@ export function DevTools() {
     };
     
     setIsDragging(true);
-  };
-
-  const toggleGrab = () => {
-    if (isDragging) return; // Don't toggle if dragging
-    
-    const grab = (window as any).__REACT_GRAB__;
-    if (grab) {
-      if (grab.isActive?.()) {
-        grab.deactivate?.();
-        setIsActive(false);
-      } else {
-        grab.activate?.();
-        setIsActive(true);
-      }
-    }
   };
 
   // Hide in production

@@ -1,10 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { streamText, generateText } from 'ai';
-import { 
-  searchScientificTruth, 
+import {
+  searchScientificTruth,
   TRANSLATOR_SYSTEM_PROMPT,
   type RankedScientificPaper,
-  type ConsensusResult 
+  type ConsensusResult
 } from '@/lib/services/scientific-search';
 
 // 🆕 导入对话记忆和变化模块
@@ -36,13 +36,21 @@ interface UserProfile {
   id: string;
   full_name?: string;
   age?: number;
+  birth_date?: string | null;
+  age_range?: string | null;
   gender?: string;
-  height?: number;
-  weight?: number;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  height?: number | null;
+  weight?: number | null;
   primary_goal?: string;
   ai_personality?: string;
   current_focus?: string;
   ai_persona_context?: string;
+  primary_focus_topics?: string[] | null;
+  metabolic_concerns?: string[] | null;
+  ai_analysis_result?: Record<string, unknown> | null;
+  ai_recommendation_plan?: Record<string, unknown> | null;
   metabolic_profile?: {
     sleep_quality?: string;
     stress_level?: string;
@@ -55,12 +63,14 @@ interface UserProfile {
   };
 }
 
-interface BioLog {
-  sleep_hours?: number;
-  hrv?: number;
+interface DailyWellnessLog {
+  log_date?: string;
+  sleep_duration_minutes?: number;
+  sleep_quality?: string;
+  exercise_duration_minutes?: number;
+  exercise_type?: string;
+  mood_status?: string;
   stress_level?: number;
-  energy_level?: number;
-  mood?: string;
   notes?: string;
   created_at?: string;
 }
@@ -96,11 +106,11 @@ function parseSettingsFromContext(aiPersonaContext: string | null): { honesty_le
   if (!aiPersonaContext) {
     return { honesty_level: 90, humor_level: 65 };
   }
-  
+
   // 尝试从 ai_persona_context 中解析诚实度和幽默感
   const honestyMatch = aiPersonaContext.match(/诚实度:\s*(\d+)%/);
   const humorMatch = aiPersonaContext.match(/幽默感:\s*(\d+)%/);
-  
+
   return {
     honesty_level: honestyMatch ? parseInt(honestyMatch[1], 10) : 90,
     humor_level: humorMatch ? parseInt(humorMatch[1], 10) : 65,
@@ -122,23 +132,23 @@ function buildDynamicPersonaPrompt(
     const parsed = parseSettingsFromContext(aiPersonaContext || null);
     settings = { ...parsed, mode: personality };
   }
-  
-  const honestyLevel = settings.honesty_level;
-  const humorLevel = settings.humor_level;
-  
+
+  const honestyLevel = typeof settings.honesty_level === 'number' ? settings.honesty_level : 90;
+  const humorLevel = typeof settings.humor_level === 'number' ? settings.humor_level : 65;
+
   // 人格模式特定风格
   const modeStyles: Record<string, string> = {
     max: 'Prioritize brevity and dry, intellectual humor. Use Bayesian reasoning. Be crisp and to the point.',
     zen_master: 'Use calming, philosophical language. Guide with wisdom and patience. Speak with tranquility.',
     dr_house: 'Be blunt and diagnostic. Cut through the noise. Use medical expertise and evidence-based analysis.',
   };
-  
+
   const modeStyle = modeStyles[personality] || modeStyles['max'];
   const personalityName = AI_PERSONALITY_MAP[personality]?.name || 'MAX';
-  
+
   // 彩蛋模式
   const easterEggMode = humorLevel >= 100;
-  
+
   // 幽默感强度描述 - 升级版
   const getHumorInstruction = (level: number): string => {
     if (level >= 100) {
@@ -235,30 +245,40 @@ const PRIMARY_GOAL_MAP: Record<string, string> = {
  */
 function buildUserContext(
   profile: UserProfile | null,
-  todayBioData?: BioLog | null,
-  recentBioData: BioLog[] = [],
+  todayBioData?: DailyWellnessLog | null,
+  recentBioData: DailyWellnessLog[] = [],
   questionnaireData?: QuestionnaireData | null
 ): string {
   if (!profile) return '';
-  
+
   const parts: string[] = ['[USER PROFILE - 用户档案]'];
-  
+
   // 基础信息
   if (profile.full_name) parts.push(`姓名: ${profile.full_name}`);
   if (profile.age) parts.push(`年龄: ${profile.age}岁`);
-  if (profile.gender) parts.push(`性别: ${profile.gender === 'male' ? '男' : '女'}`);
-  if (profile.height && profile.weight) {
-    const bmi = (profile.weight / Math.pow(profile.height / 100, 2)).toFixed(1);
-    parts.push(`身高: ${profile.height}cm, 体重: ${profile.weight}kg, BMI: ${bmi}`);
+  if (profile.gender) {
+    const genderLabel =
+      profile.gender === 'male'
+        ? '男'
+        : profile.gender === 'female'
+          ? '女'
+          : profile.gender;
+    parts.push(`性别: ${genderLabel}`);
   }
-  
+  const heightCm = profile.height_cm ?? profile.height ?? null;
+  const weightKg = profile.weight_kg ?? profile.weight ?? null;
+  if (heightCm && weightKg) {
+    const bmi = (weightKg / Math.pow(heightCm / 100, 2)).toFixed(1);
+    parts.push(`身高: ${heightCm}cm, 体重: ${weightKg}kg, BMI: ${bmi}`);
+  }
+
   // AI 调优设置 - 关键！
   if (profile.primary_goal) {
     const goalName = PRIMARY_GOAL_MAP[profile.primary_goal] || profile.primary_goal;
     parts.push(`\n[AI TUNING - AI 调优设置]`);
     parts.push(`主要目标: ${goalName}`);
   }
-  
+
   // AI 性格
   if (profile.ai_personality) {
     const personalityConfig = AI_PERSONALITY_MAP[profile.ai_personality];
@@ -266,7 +286,34 @@ function buildUserContext(
       parts.push(`AI 性格: ${personalityConfig.name}`);
     }
   }
-  
+
+  if (Array.isArray(profile.primary_focus_topics) && profile.primary_focus_topics.length > 0) {
+    parts.push(`重点关注: ${profile.primary_focus_topics.slice(0, 8).join('、')}`);
+  }
+
+  if (Array.isArray(profile.metabolic_concerns) && profile.metabolic_concerns.length > 0) {
+    parts.push(`代谢困扰: ${profile.metabolic_concerns.slice(0, 8).join('、')}`);
+  }
+
+  // 基线方案（用于对话一致性：避免和已生成的微习惯建议打架）
+  if (profile.ai_analysis_result || profile.ai_recommendation_plan) {
+    parts.push(`\n[AI BASELINE - 既有分析/方案]`);
+    const analysis = profile.ai_analysis_result;
+    const plan = profile.ai_recommendation_plan as { micro_habits?: Array<{ name?: string }> } | null;
+    if (analysis && typeof analysis.confidence_score === 'number') {
+      parts.push(`AI 分析置信度: ${analysis.confidence_score}%`);
+    }
+    if (analysis && Array.isArray((analysis as any).risk_factors) && (analysis as any).risk_factors.length > 0) {
+      parts.push(`主要关注点: ${(analysis as any).risk_factors.slice(0, 6).join('、')}`);
+    }
+    if (plan?.micro_habits && Array.isArray(plan.micro_habits) && plan.micro_habits.length > 0) {
+      const habitNames = plan.micro_habits.map((h) => h?.name).filter(Boolean).slice(0, 6);
+      if (habitNames.length > 0) {
+        parts.push(`已制定微习惯: ${habitNames.join('、')}`);
+      }
+    }
+  }
+
   // 🚨 当前关注点 - 最重要！（如"腿疼"）
   // 这是 CRITICAL CONTEXT，必须以最高优先级注入
   if (profile.current_focus && profile.current_focus.trim()) {
@@ -274,113 +321,106 @@ function buildUserContext(
     parts.push(`🚨🚨🚨 用户当前健康问题: ${profile.current_focus} 🚨🚨🚨`);
     parts.push(`⚠️ CRITICAL INSTRUCTION: 用户明确告知有"${profile.current_focus}"的问题！`);
     parts.push(`- 这是最高优先级的上下文，必须在每次回答时首先考虑！`);
-    parts.push(`- 如果用户询问的活动可能加重这个问题，必须在回复开头首先警告！`);
+    parts.push(`- 如果用户询问的活动可能加重这个问题，必须在回复开头优先提醒！`);
     parts.push(`- 例如：用户说"腿疼"，问"能跑步吗"，你必须首先说"考虑到你的腿疼情况，跑步可能不适合..."`);
     parts.push(`- 不要只是顺带提一下，要把健康限制作为回答的核心考量！`);
     parts.push(`- 安全永远是第一位的！`);
   }
-  
+
   // ---------------------------------------------------------
   // 🆕 今日 Bio-Voltage 校准数据 (CRITICAL - 实时状态)
   // ---------------------------------------------------------
   if (todayBioData) {
     parts.push(`\n[TODAY'S BIO-VOLTAGE - 今日生物电压校准]`);
     parts.push(`⚡ 用户今日已完成校准，以下是实时状态：`);
-    
-    if (todayBioData.sleep_hours !== undefined && todayBioData.sleep_hours !== null) {
-      const sleepQuality = todayBioData.sleep_hours >= 7 ? '充足' : todayBioData.sleep_hours >= 5 ? '一般' : '不足';
-      parts.push(`💤 睡眠: ${todayBioData.sleep_hours}小时 (${sleepQuality})`);
+
+    const sleepMinutes = todayBioData.sleep_duration_minutes ?? null;
+    const sleepHours = sleepMinutes != null ? sleepMinutes / 60 : null;
+    if (sleepHours != null) {
+      const sleepLevel = sleepHours >= 7 ? '充足' : sleepHours >= 5 ? '一般' : '不足';
+      parts.push(`💤 睡眠: ${sleepHours.toFixed(1)}小时 (${sleepLevel})`);
     }
-    
-    if (todayBioData.hrv !== undefined && todayBioData.hrv !== null) {
-      const hrvStatus = todayBioData.hrv >= 50 ? '良好' : todayBioData.hrv >= 30 ? '一般' : '偏低';
-      parts.push(`💓 HRV: ${todayBioData.hrv}ms (${hrvStatus})`);
+
+    if (todayBioData.sleep_quality) {
+      parts.push(`🌙 睡眠质量: ${todayBioData.sleep_quality}`);
     }
-    
+
+    if (todayBioData.exercise_duration_minutes != null) {
+      const exerciseTypeSuffix = todayBioData.exercise_type ? `（${todayBioData.exercise_type}）` : '';
+      parts.push(`🏃 运动: ${todayBioData.exercise_duration_minutes}分钟${exerciseTypeSuffix}`);
+    }
+
     if (todayBioData.stress_level !== undefined && todayBioData.stress_level !== null) {
       const stressDesc = todayBioData.stress_level <= 3 ? '低压力' : todayBioData.stress_level <= 6 ? '中等压力' : '高压力';
       parts.push(`😰 压力水平: ${todayBioData.stress_level}/10 (${stressDesc})`);
     }
-    
-    if (todayBioData.energy_level !== undefined && todayBioData.energy_level !== null) {
-      parts.push(`⚡ 能量水平: ${todayBioData.energy_level}/10`);
+
+    if (todayBioData.mood_status) {
+      parts.push(`😊 情绪: ${todayBioData.mood_status}`);
     }
-    
-    if (todayBioData.mood) {
-      parts.push(`😊 情绪: ${todayBioData.mood}`);
-    }
-    
+
     if (todayBioData.notes) {
       parts.push(`📝 用户备注: "${todayBioData.notes}"`);
     }
-    
+
     // 根据今日数据给出 AI 指导
     parts.push(`\n⚠️ AI 指导：根据今日数据调整回答：`);
-    if (todayBioData.sleep_hours && todayBioData.sleep_hours < 6) {
+    if (sleepHours != null && sleepHours < 6) {
       parts.push(`- 用户睡眠不足，建议避免高强度活动，优先恢复`);
     }
     if (todayBioData.stress_level && todayBioData.stress_level >= 7) {
       parts.push(`- 用户压力较高，建议放松类活动，避免增加认知负荷`);
     }
-    if (todayBioData.hrv && todayBioData.hrv < 30) {
-      parts.push(`- 用户 HRV 偏低，神经系统需要恢复，建议轻度活动`);
-    }
   } else {
     parts.push(`\n[TODAY'S BIO-VOLTAGE - 今日生物电压校准]`);
-    parts.push(`⚠️ 用户今日尚未完成 Bio-Voltage 校准`);
-    parts.push(`💡 可以温和地提醒用户完成今日校准，以获得更精准的建议`);
+    parts.push(`⚠️ 用户今日尚未完成每日状态记录`);
+    parts.push(`💡 可以温和地提醒用户完成今日记录，以获得更精准的建议`);
   }
-  
+
   // ---------------------------------------------------------
   // 🆕 近 7 天生物数据趋势
   // ---------------------------------------------------------
   if (recentBioData && recentBioData.length > 1) {
     parts.push(`\n[WEEKLY TREND - 近期趋势]`);
-    
+
     // 计算平均值
-    const sleepData = recentBioData.filter(d => d.sleep_hours != null);
-    const avgSleep = sleepData.length > 0 
-      ? sleepData.reduce((sum, d) => sum + (d.sleep_hours || 0), 0) / sleepData.length 
-      : NaN;
-    
+    const sleepHoursData = recentBioData
+      .filter((d) => d.sleep_duration_minutes != null)
+      .map((d) => (d.sleep_duration_minutes as number) / 60);
+    const avgSleep = sleepHoursData.length > 0 ? sleepHoursData.reduce((sum, hours) => sum + hours, 0) / sleepHoursData.length : NaN;
+
     const stressData = recentBioData.filter(d => d.stress_level != null);
-    const avgStress = stressData.length > 0 
-      ? stressData.reduce((sum, d) => sum + (d.stress_level || 0), 0) / stressData.length 
+    const avgStress = stressData.length > 0
+      ? stressData.reduce((sum, d) => sum + (d.stress_level || 0), 0) / stressData.length
       : NaN;
-    
-    const hrvData = recentBioData.filter(d => d.hrv != null);
-    const avgHrv = hrvData.length > 0 
-      ? hrvData.reduce((sum, d) => sum + (d.hrv || 0), 0) / hrvData.length 
-      : NaN;
-    
+
     parts.push(`📊 近 ${recentBioData.length} 天数据：`);
     if (!isNaN(avgSleep)) parts.push(`   - 平均睡眠: ${avgSleep.toFixed(1)}小时`);
     if (!isNaN(avgStress)) parts.push(`   - 平均压力: ${avgStress.toFixed(1)}/10`);
-    if (!isNaN(avgHrv)) parts.push(`   - 平均 HRV: ${avgHrv.toFixed(0)}ms`);
-    
+
     // 检测趋势变化
     if (recentBioData.length >= 3) {
       const recent3 = recentBioData.slice(0, 3);
       const older3 = recentBioData.slice(-3);
-      
+
       const recent3Stress = recent3.filter(d => d.stress_level != null);
       const older3Stress = older3.filter(d => d.stress_level != null);
-      
-      const recentAvgStress = recent3Stress.length > 0 
-        ? recent3Stress.reduce((s, d) => s + (d.stress_level || 0), 0) / recent3Stress.length 
+
+      const recentAvgStress = recent3Stress.length > 0
+        ? recent3Stress.reduce((s, d) => s + (d.stress_level || 0), 0) / recent3Stress.length
         : 0;
-      const olderAvgStress = older3Stress.length > 0 
-        ? older3Stress.reduce((s, d) => s + (d.stress_level || 0), 0) / older3Stress.length 
+      const olderAvgStress = older3Stress.length > 0
+        ? older3Stress.reduce((s, d) => s + (d.stress_level || 0), 0) / older3Stress.length
         : 0;
-      
+
       if (recentAvgStress > olderAvgStress + 1.5) {
-        parts.push(`📈 趋势警告：近期压力水平上升，建议关注恢复`);
+        parts.push(`📈 趋势提示：近期压力水平上升，建议关注恢复`);
       } else if (recentAvgStress < olderAvgStress - 1.5) {
         parts.push(`📉 趋势良好：压力水平下降，状态改善中`);
       }
     }
   }
-  
+
   // 代谢档案（如果有）
   if (profile.metabolic_profile) {
     const mp = profile.metabolic_profile;
@@ -389,14 +429,14 @@ function buildUserContext(
     if (mp.stress_level) parts.push(`压力水平: ${mp.stress_level}`);
     if (mp.activity_level) parts.push(`活动水平: ${mp.activity_level}`);
   }
-  
+
   // ---------------------------------------------------------
   // 🆕 每日问卷数据
   // ---------------------------------------------------------
   if (questionnaireData && questionnaireData.responses) {
     parts.push(`\n[DAILY QUESTIONNAIRE - 今日问卷数据]`);
     const responses = questionnaireData.responses;
-    
+
     // 问题ID到中文描述的映射
     const questionLabels: Record<string, string> = {
       sleep_quality: '睡眠质量',
@@ -418,25 +458,25 @@ function buildUserContext(
       brain_fog: '脑雾感',
       motivation: '动力水平',
     };
-    
+
     // 答案等级描述
     const answerLevels = ['很差/没有', '较差/轻微', '一般/中等', '较好/明显', '很好/严重'];
-    
+
     for (const [questionId, answerIndex] of Object.entries(responses)) {
       const label = questionLabels[questionId] || questionId;
       const level = answerLevels[answerIndex as number] || `${answerIndex}`;
       parts.push(`${label}: ${level}`);
     }
-    
+
     parts.push(`\n⚠️ AI 指导：根据问卷数据调整回答，关注用户当前状态`);
   }
-  
+
   const context = parts.length > 1 ? parts.join('\n') : '';
-  
+
   // 调试日志
   if (context) {
   }
-  
+
   return context;
 }
 
@@ -446,11 +486,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  
+
   try {
     const body = await req.json();
     const { messages, stream = true, message, conversationHistory } = body;
-    
+
     // 🆕 兼容旧版 /api/ai/chat 的请求格式（Android 客户端）
     // 旧格式: { message: string, conversationHistory: [] }
     // 新格式: { messages: [] }
@@ -462,17 +502,17 @@ export async function POST(req: Request) {
         { role: 'user', content: message }
       ];
     }
-    
+
     if (!chatMessages || chatMessages.length === 0) {
       return new Response(JSON.stringify({ error: '消息内容不能为空' }), { status: 400 });
     }
-    
+
     const supabase = await createServerSupabaseClient();
 
     // 1. 身份验证 (开发模式下可跳过)
     const isDev = process.env.NODE_ENV === 'development';
     const skipAuth = isDev && req.headers.get('x-skip-auth') === 'true';
-    
+
     let userId = 'anonymous';
     if (!skipAuth) {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -492,10 +532,10 @@ export async function POST(req: Request) {
     // ---------------------------------------------------------
     let userProfile: UserProfile | null = null;
     let userContext = '';
-    let todayBioData: BioLog | null = null;
-    let recentBioData: BioLog[] = [];
+    let todayBioData: DailyWellnessLog | null = null;
+    let recentBioData: DailyWellnessLog[] = [];
     let questionnaireData: QuestionnaireData | null = null;
-    
+
     if (userId !== 'anonymous') {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -503,12 +543,20 @@ export async function POST(req: Request) {
           id,
           full_name,
           age,
+          birth_date,
+          age_range,
           gender,
+          height_cm,
+          weight_kg,
           height,
           weight,
           primary_goal,
           ai_personality,
           current_focus,
+          primary_focus_topics,
+          metabolic_concerns,
+          ai_analysis_result,
+          ai_recommendation_plan,
           ai_persona_context,
           metabolic_profile,
           ai_settings
@@ -521,49 +569,43 @@ export async function POST(req: Request) {
       } else {
         userProfile = profile;
       }
-      
+
       // ---------------------------------------------------------
-      // 🆕 读取今日 Bio-Voltage 校准数据 (daily_logs)
+      // 🆕 读取今日状态记录 (daily_wellness_logs)
       // ---------------------------------------------------------
       const today = new Date().toISOString().split('T')[0];
       const { data: todayLog, error: todayLogError } = await supabase
-        .from('daily_logs')
-        .select('sleep_hours, hrv, stress_level, energy_level, mood, notes, created_at')
+        .from('daily_wellness_logs')
+        .select('*')
         .eq('user_id', userId)
-        .gte('created_at', today)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle<BioLog>();
-      
+        .eq('log_date', today)
+        .maybeSingle<DailyWellnessLog>();
+
       if (todayLogError) {
         console.error('❌ 今日日志读取失败:', todayLogError.message);
       } else if (todayLog) {
         todayBioData = todayLog;
-        console.log('📊 今日生物数据:', {
-          sleep: todayLog.sleep_hours,
-          hrv: todayLog.hrv,
-          stress: todayLog.stress_level,
-        });
       }
-      
+
       // ---------------------------------------------------------
-      // 🆕 读取近 7 天生物数据趋势
+      // 🆕 读取近 7 天趋势 (daily_wellness_logs)
       // ---------------------------------------------------------
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const { data: recentLogs, error: recentLogsError } = await supabase
-        .from('daily_logs')
-        .select('sleep_hours, hrv, stress_level, created_at')
+        .from('daily_wellness_logs')
+        .select('log_date, sleep_duration_minutes, stress_level, exercise_duration_minutes, mood_status')
         .eq('user_id', userId)
-        .gte('created_at', weekAgo)
-        .order('created_at', { ascending: false })
-        .limit(7);
-      
+        .gte('log_date', weekAgo)
+        .order('log_date', { ascending: false })
+        .limit(7)
+        .returns<DailyWellnessLog[]>();
+
       if (recentLogsError) {
         console.error('❌ 近期日志读取失败:', recentLogsError.message);
       } else if (recentLogs && recentLogs.length > 0) {
         recentBioData = recentLogs;
       }
-      
+
       // ---------------------------------------------------------
       // 🆕 读取今日问卷数据
       // ---------------------------------------------------------
@@ -575,7 +617,7 @@ export async function POST(req: Request) {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle<QuestionnaireData>();
-      
+
       if (questionnaireError) {
         console.error('❌ 问卷数据读取失败:', questionnaireError.message);
       } else if (todayQuestionnaire) {
@@ -586,25 +628,26 @@ export async function POST(req: Request) {
       }
     }
 
-    const lastMessage = messages[messages.length - 1].content;
+    const normalizedMessages = chatMessages as ChatMessage[];
+    const lastMessage = normalizedMessages[normalizedMessages.length - 1]?.content ?? '';
 
     // ---------------------------------------------------------
     // 🆕 AI 记忆系统：检索相关历史记忆
     // ---------------------------------------------------------
     let relevantMemories: Array<{ content_text: string; role: string; created_at: string }> = [];
     let memoryContext = '';
-    
+
     if (userId !== 'anonymous') {
       try {
         console.log('🧠 开始检索 AI 记忆...');
         // 生成用户消息的向量嵌入
         const messageEmbedding = await generateEmbedding(lastMessage);
-        
+
         if (messageEmbedding && messageEmbedding.length > 0) {
           // 从 ai_memory 表中检索相关记忆
           relevantMemories = await retrieveMemories(userId, messageEmbedding, 5);
           console.log(`✅ 检索到 ${relevantMemories.length} 条相关记忆`);
-          
+
           if (relevantMemories.length > 0) {
             memoryContext = buildContextWithMemories(relevantMemories);
             console.log('📝 记忆上下文已构建');
@@ -666,23 +709,23 @@ export async function POST(req: Request) {
       '怎么办', '怎么治', '吃什么', '能不能', '可以吗', '好不好',
       '为什么', '是不是', '正常吗', '严重吗'
     ];
-    
-    const isHealthRelated = healthKeywords.some(kw => 
+
+    const isHealthRelated = healthKeywords.some(kw =>
       lastMessage.toLowerCase().includes(kw.toLowerCase())
     );
 
     // 执行 Scientific Search (20秒超时，目标10篇)
     let searchSuccess = true;
     let searchRetryNeeded = false;
-    
+
     if (isHealthRelated) {
       try {
         const scientificResult = await searchScientificTruth(lastMessage);
-        
+
         searchSuccess = scientificResult.success;
         searchRetryNeeded = scientificResult.retryNeeded || false;
-        
-        
+
+
         if (scientificResult.papers.length > 0) {
           scientificPapers = scientificResult.papers;
           scientificConsensus = scientificResult.consensus;
@@ -730,7 +773,7 @@ export async function POST(req: Request) {
         console.error("Scientific Search failed:", e);
         searchSuccess = false;
         searchRetryNeeded = true;
-        
+
         // 🆕 即使搜索失败，也提供后备论文
         scientificPapers = [
           {
@@ -761,7 +804,7 @@ export async function POST(req: Request) {
     // ---------------------------------------------------------
     // 🆕 对话状态追踪和变化策略
     // ---------------------------------------------------------
-    const conversationState = extractStateFromMessages(messages);
+    const conversationState = extractStateFromMessages(normalizedMessages);
     console.log('📊 对话状态:', {
       turnCount: conversationState.turnCount,
       mentionedHealthContext: conversationState.mentionedHealthContext,
@@ -790,18 +833,13 @@ export async function POST(req: Request) {
     const selectedPersonality = userProfile?.ai_personality || 'max'; // 🆕 默认使用 Max
     const personalityConfig = AI_PERSONALITY_MAP[selectedPersonality] || AI_PERSONALITY_MAP.max;
     const personaPrompt = buildFullPersonaSystemPrompt(conversationState.turnCount);
-    
-    // 🆕 使用动态人格提示（所有模式都支持诚实度和幽默感调节）
-    // 优先使用 ai_settings，如果不存在则从 ai_persona_context 解析
-    if (userProfile?.ai_persona_context) {
-    }
-    
+
     const dynamicPersonaPrompt = buildDynamicPersonaPrompt(
-      selectedPersonality, 
+      selectedPersonality,
       userProfile?.ai_settings || null,
       userProfile?.ai_persona_context
     );
-    
+
     // 构建性格特定的提示
     const personalityPrompt = `${dynamicPersonaPrompt}
 
@@ -809,15 +847,6 @@ export async function POST(req: Request) {
 ${personalityConfig.style}
 
 注意：在保持专业医学知识的同时，用"${personalityConfig.name}"的风格与用户交流。`;
-
-    // 获取实际使用的设置（优先 ai_settings，否则从 ai_persona_context 解析）
-    let actualSettings = userProfile?.ai_settings;
-    if (!actualSettings || typeof actualSettings.honesty_level !== 'number') {
-      actualSettings = parseSettingsFromContext(userProfile?.ai_persona_context || null);
-    }
-    
-    if (actualSettings.humor_level >= 100) {
-    }
 
     // ---------------------------------------------------------
     // 生成 AI 回答 (Vercel AI SDK)
@@ -850,9 +879,15 @@ ABSOLUTE RULES:
 7. ALWAYS consider the user's current health concerns and limitations when giving advice
 8. If user asks about activities that conflict with their health concerns, WARN them gently
 
+DATA GROUNDING POLICY (最高优先级):
+- 只允许引用系统提供的事实：来自 [USER PROFILE] / [AI BASELINE] / [CRITICAL HEALTH CONTEXT] / [TODAY'S BIO-VOLTAGE] / [WEEKLY TREND] / [DAILY QUESTIONNAIRE] / **历史对话上下文**。
+- 如果某个数值/事实不在上下文里：明确说明“当前未知/未提供”，并提出 1 个最关键的澄清问题；绝不猜测或编造。
+- 论文引用：如果没有给出论文列表，就不要引用；如果给出了，只能引用列表内的论文，绝不虚构额外来源或编号。
+- 若用户已有基线微习惯/方案：优先在其范围内做微调；若提出新动作，必须说明与既有方案的关系（补充/替代/更低强度）。
+
 🚨🚨🚨 CRITICAL: TOPIC BOUNDARY (话题边界 - 最高优先级！) 🚨🚨🚨
 
-你是 Neuromind，一个专注于【认知健康】的 AI 助手。你的专业领域仅限于：
+你是 AntiAnxiety，一个专注于【认知健康】的 AI 助手。你的专业领域仅限于：
 ✅ 睡眠、压力、焦虑、情绪管理
 ✅ 身体健康、营养、运动
 ✅ 心理健康、冥想、放松
@@ -879,7 +914,7 @@ ABSOLUTE RULES:
 
 COMFORTING TRUTH EXAMPLES:
 - Low sleep → "你的线粒体正在优先进行修复而非输出。这是生理适应，而非失败。"
-- Low HRV → "你的神经系统正在重新校准。这反映了身体对近期需求的智能响应。"
+- Missing data → "我还缺一项关键输入，系统无法做出高置信度判断。我们先补齐这一项。"
 - High stress → "你的生物电系统处于高度警觉模式。这是身体保护机制的激活。"
 
 ACTIVE INQUIRY MODE:
@@ -936,22 +971,22 @@ INSTRUCTIONS:
     // 使用统一的模型配置 + 多模型回退
     const modelCandidates = getModelPriority('chat');
     const modelErrors: { model: string; message: string }[] = [];
-    
+
     // 🆕 非流式响应模式（兼容 Android 客户端）
     if (!stream) {
       let aiResponse = '';
       let modelUsed = modelCandidates[0];
-      
+
       for (const candidate of modelCandidates) {
         try {
           logModelCall(candidate, 'chat-non-stream');
-          
+
           const result = await generateText({
             model: aiClient(candidate),
             messages: (chatMessages as ChatMessage[]).map(m => ({ role: m.role, content: m.content })),
             system: systemPrompt,
           });
-          
+
           aiResponse = result.text;
           modelUsed = candidate;
           break;
@@ -961,20 +996,20 @@ INSTRUCTIONS:
           console.error('AI 模型调用失败，尝试下一个', { model: candidate, error: errMsg });
         }
       }
-      
+
       if (!aiResponse) {
         return new Response(
           JSON.stringify({ error: 'AI 服务暂不可用，请稍后重试', modelErrors }),
           { status: 503, headers: { 'Content-Type': 'application/json' } }
         );
       }
-      
+
       // 存储 AI 记忆
       if (userId !== 'anonymous') {
         try {
           const userEmbedding = await generateEmbedding(lastMessage);
           await storeMemory(userId, lastMessage, 'user', userEmbedding);
-          
+
           const aiEmbedding = await generateEmbedding(aiResponse);
           await storeMemory(userId, aiResponse, 'assistant', aiEmbedding, {
             model: modelUsed,
@@ -985,10 +1020,10 @@ INSTRUCTIONS:
           console.error('❌ 存储 AI 记忆失败:', error);
         }
       }
-      
+
       // 返回 JSON 响应（兼容旧版 /api/ai/chat 格式）
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           response: aiResponse,
           papers: scientificPapers.slice(0, 5),
           consensus: scientificConsensus,
@@ -996,7 +1031,7 @@ INSTRUCTIONS:
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
-    
+
     // 流式响应模式（默认）
     let streamResult: ReturnType<typeof streamText> | null = null;
 
@@ -1014,12 +1049,12 @@ INSTRUCTIONS:
             if (userId !== 'anonymous' && text) {
               try {
                 console.log('🧠 开始存储 AI 记忆...');
-                
+
                 // 存储用户消息
                 const userEmbedding = await generateEmbedding(lastMessage);
                 await storeMemory(userId, lastMessage, 'user', userEmbedding);
                 console.log('✅ 用户消息已存储到记忆库');
-                
+
                 // 存储 AI 回复
                 const aiEmbedding = await generateEmbedding(text);
                 await storeMemory(userId, text, 'assistant', aiEmbedding, {
@@ -1055,11 +1090,11 @@ INSTRUCTIONS:
 
     // 返回流式响应
     const response = streamResult.toTextStreamResponse();
-    
+
     // 🔑 暴露自定义 headers 给浏览器（CORS 要求）
-    response.headers.set('Access-Control-Expose-Headers', 
-      'x-neuromind-papers, x-neuromind-consensus, x-neuromind-search-status');
-    
+    response.headers.set('Access-Control-Expose-Headers',
+      'x-antianxiety-papers, x-antianxiety-consensus, x-antianxiety-search-status');
+
     // 传递 Scientific Search 结果到前端 (用于 Consensus Meter 和 Source Cards)
     if (scientificPapers.length > 0) {
       const papersForHeader = scientificPapers.slice(0, 5).map(p => ({
@@ -1072,9 +1107,9 @@ INSTRUCTIONS:
       }));
       // 使用 Base64 编码避免特殊字符问题
       const papersJson = JSON.stringify(papersForHeader);
-      response.headers.set('x-neuromind-papers', Buffer.from(papersJson, 'utf-8').toString('base64'));
+      response.headers.set('x-antianxiety-papers', Buffer.from(papersJson, 'utf-8').toString('base64'));
     }
-    
+
     if (scientificConsensus) {
       // 使用 Base64 编码避免特殊字符问题
       const consensusJson = JSON.stringify({
@@ -1082,21 +1117,21 @@ INSTRUCTIONS:
         level: scientificConsensus.level,
         rationale: scientificConsensus.rationale
       });
-      response.headers.set('x-neuromind-consensus', Buffer.from(consensusJson, 'utf-8').toString('base64'));
+      response.headers.set('x-antianxiety-consensus', Buffer.from(consensusJson, 'utf-8').toString('base64'));
     }
-    
+
     // 传递搜索状态（用于前端显示重试按钮）
-    response.headers.set('x-neuromind-search-status', JSON.stringify({
+    response.headers.set('x-antianxiety-search-status', JSON.stringify({
       success: searchSuccess,
       retryNeeded: searchRetryNeeded
     }));
-    
+
     return response;
-  
+
   } catch (error) {
     console.error('❌ Chat API 错误:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), 
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
 import DeepInferenceModal from './DeepInferenceModal';
 import { Brain } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
-type Language = 'en' | 'zh';
+type AnalysisLanguage = 'en' | 'zh';
 
 interface AIAnalysisDisplayProps {
   analysis: {
@@ -63,7 +64,7 @@ const getScoreValue = (value: string | undefined) => {
   return scoreMap[value || ''] || 50;
 };
 
-const translateValue = (value: string | undefined, lang: Language) => {
+const translateValue = (value: string | undefined, lang: AnalysisLanguage) => {
   const translations: Record<string, { en: string; zh: string }> = {
     'low': { en: 'Low', zh: '较低' },
     'medium': { en: 'Medium', zh: '中等' },
@@ -87,9 +88,10 @@ const translateValue = (value: string | undefined, lang: Language) => {
 export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [language, setLanguage] = useState<Language>('en');
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
   const [showDeepInference, setShowDeepInference] = useState(false);
+  const { language: appLanguage } = useI18n();
+  const language: AnalysisLanguage = appLanguage === 'en' ? 'en' : 'zh';
   
   useEffect(() => {
     const duration = 2500;
@@ -163,6 +165,10 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
       </div>
     );
   }
+
+  const confidenceReasons = language === 'en' ? analysis.confidence_reasons_en : analysis.confidence_reasons;
+  const strengths = language === 'en' ? analysis.strengths_en : analysis.strengths;
+  const riskFactors = language === 'en' ? analysis.risk_factors_en : analysis.risk_factors;
 
   const t = (en: string, zh: string) => language === 'en' ? en : zh;
 
@@ -311,39 +317,30 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
     <div className="space-y-6">
       {/* Header Card */}
       <div className="bg-white dark:bg-neutral-900 border border-[#E7E1D6] dark:border-neutral-800 rounded-lg p-8 shadow-sm">
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-[#0B3D2E] dark:text-white mb-1">{t('Health Analysis Report', '健康分析报告')}</h1>
-            <p className="text-[#1a5c4a] dark:text-neutral-400">{t('AI-powered personalized health assessment', '基于AI的个性化健康评估')}</p>
-          </div>
-          <button
-            onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
-            className="mr-4 p-2 hover:bg-[#FAF6EF] dark:hover:bg-neutral-800 rounded-lg transition-colors"
-            title={t('Switch to Chinese', '切换到英文')}
-          >
-            <svg className="w-6 h-6 text-[#0B3D2E]/70 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button>
-          <div className="border border-[#E7E1D6] dark:border-neutral-700 px-4 py-2 rounded-lg bg-[#FAF6EF] dark:bg-neutral-800">
-            <div className="text-xs font-medium text-[#1a5c4a] dark:text-neutral-400 uppercase tracking-wide">{t('Confidence', '置信度')}</div>
-            <div className="text-2xl font-bold text-[#0B3D2E] dark:text-white">{analysis.confidence_score}%</div>
-          </div>
-        </div>
-        
-        {analysis.confidence_reasons && analysis.confidence_reasons.length > 0 && (
-          <div className="bg-[#FAF6EF] dark:bg-neutral-800 border border-[#E7E1D6] dark:border-neutral-700 rounded-lg p-4 mt-4">
-            <div className="text-sm font-semibold text-[#0B3D2E] dark:text-white mb-3">{t('Analysis Basis', '分析依据')}</div>
-            <div className="grid grid-cols-2 gap-2">
-              {(language === 'en' ? analysis.confidence_reasons_en : analysis.confidence_reasons)?.map((reason, i) => (
-                <div key={i} className="text-sm text-[#1a5c4a] flex items-start gap-2">
-                  <span className="text-[#9CAF88] mt-0.5">·</span>
-                  <span>{reason}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+	        <div className="flex items-start justify-between mb-6">
+	          <div className="flex-1">
+	            <h1 className="text-2xl font-bold text-[#0B3D2E] dark:text-white mb-1">{t('Health Analysis Report', '健康分析报告')}</h1>
+	            <p className="text-[#1a5c4a] dark:text-neutral-400">{t('AI-powered personalized health assessment', '基于AI的个性化健康评估')}</p>
+	          </div>
+	          <div className="border border-[#E7E1D6] dark:border-neutral-700 px-4 py-2 rounded-lg bg-[#FAF6EF] dark:bg-neutral-800">
+	            <div className="text-xs font-medium text-[#1a5c4a] dark:text-neutral-400 uppercase tracking-wide">{t('Confidence', '置信度')}</div>
+	            <div className="text-2xl font-bold text-[#0B3D2E] dark:text-white">{analysis.confidence_score}%</div>
+	          </div>
+	        </div>
+	        
+	        {confidenceReasons && confidenceReasons.length > 0 && (
+	          <div className="bg-[#FAF6EF] dark:bg-neutral-800 border border-[#E7E1D6] dark:border-neutral-700 rounded-lg p-4 mt-4">
+	            <div className="text-sm font-semibold text-[#0B3D2E] dark:text-white mb-3">{t('Analysis Basis', '分析依据')}</div>
+	            <div className="grid grid-cols-2 gap-2">
+	              {confidenceReasons.map((reason, i) => (
+	                <div key={i} className="text-sm text-[#1a5c4a] flex items-start gap-2">
+	                  <span className="text-[#9CAF88] mt-0.5">·</span>
+	                  <span>{reason}</span>
+	                </div>
+	              ))}
+	            </div>
+	          </div>
+	        )}
       </div>
 
       {/* Radar Chart - Brand Aligned Style */}
@@ -680,36 +677,36 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
         </div>
       </div>
 
-      {/* 优势与改善 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {analysis.strengths && analysis.strengths.length > 0 && (
-          <div className="bg-white border border-[#E7E1D6] rounded-lg p-6 shadow-sm">
-            <div className="text-base font-semibold text-[#0B3D2E] mb-4">{t('Strengths to Maintain', '继续保持')}</div>
-            <div className="space-y-2">
-              {(language === 'en' ? analysis.strengths_en : analysis.strengths)?.map((s, i) => (
-                <div key={i} className="flex items-start gap-3 text-[#0B3D2E]/70">
-                  <span className="text-[#0B3D2E]/40 mt-1">·</span>
-                  <span>{s}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+	      {/* 优势与改善 */}
+	      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+	        {strengths && strengths.length > 0 && (
+	          <div className="bg-white border border-[#E7E1D6] rounded-lg p-6 shadow-sm">
+	            <div className="text-base font-semibold text-[#0B3D2E] mb-4">{t('Strengths to Maintain', '继续保持')}</div>
+	            <div className="space-y-2">
+	              {strengths.map((s, i) => (
+	                <div key={i} className="flex items-start gap-3 text-[#0B3D2E]/70">
+	                  <span className="text-[#0B3D2E]/40 mt-1">·</span>
+	                  <span>{s}</span>
+	                </div>
+	              ))}
+	            </div>
+	          </div>
+	        )}
 
-        {analysis.risk_factors && analysis.risk_factors.length > 0 && (
-          <div className="bg-white border border-[#E7E1D6] rounded-lg p-6 shadow-sm">
-            <div className="text-base font-semibold text-[#0B3D2E] mb-4">{t('Areas for Improvement', '需要改善')}</div>
-            <div className="space-y-2">
-              {(language === 'en' ? analysis.risk_factors_en : analysis.risk_factors)?.map((r, i) => (
-                <div key={i} className="flex items-start gap-3 text-[#0B3D2E]/70">
-                  <span className="text-[#0B3D2E]/40 mt-1">·</span>
-                  <span>{r}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+	        {riskFactors && riskFactors.length > 0 && (
+	          <div className="bg-white border border-[#E7E1D6] rounded-lg p-6 shadow-sm">
+	            <div className="text-base font-semibold text-[#0B3D2E] mb-4">{t('Areas for Improvement', '需要改善')}</div>
+	            <div className="space-y-2">
+	              {riskFactors.map((r, i) => (
+	                <div key={i} className="flex items-start gap-3 text-[#0B3D2E]/70">
+	                  <span className="text-[#0B3D2E]/40 mt-1">·</span>
+	                  <span>{r}</span>
+	                </div>
+	              ))}
+	            </div>
+	          </div>
+	        )}
+	      </div>
 
       {/* 微习惯 */}
       {plan.micro_habits && plan.micro_habits.length > 0 && (

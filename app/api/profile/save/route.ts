@@ -59,6 +59,19 @@ export async function POST(request: NextRequest) {
     if (body.caffeine_intake !== undefined) payload.caffeine_intake = body.caffeine_intake;
     if (body.alcohol_intake !== undefined) payload.alcohol_intake = body.alcohol_intake;
     if (body.smoking_status !== undefined) payload.smoking_status = body.smoking_status;
+    
+    // 数组字段
+    if (body.metabolic_concerns !== undefined) {
+      if (Array.isArray(body.metabolic_concerns)) {
+        payload.metabolic_concerns = body.metabolic_concerns
+          .filter((item: unknown) => typeof item === 'string')
+          .map((item: string) => item.trim())
+          .filter((item: string) => item.length > 0)
+          .slice(0, 20);
+      } else {
+        payload.metabolic_concerns = [];
+      }
+    }
 
     const { data, error } = await supabase
       .from('profiles')

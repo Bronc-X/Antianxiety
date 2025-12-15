@@ -2,12 +2,15 @@ import { requireAuth } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import Link from 'next/link';
 import EnergyBreakdownClient from './EnergyBreakdownClient';
+import { getServerLanguage } from '@/lib/i18n-server';
+import { tr } from '@/lib/i18n-core';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EnergyBreakdownPage() {
   const { user } = await requireAuth();
   const supabase = await createServerSupabaseClient();
+  const language = await getServerLanguage();
 
   // 获取最新的每日日志
   const { data: latestLog } = await supabase
@@ -27,9 +30,11 @@ export default async function EnergyBreakdownPage() {
               href="/landing" 
               className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80 flex items-center gap-1"
             >
-              ← 返回主页
+              {tr(language, { zh: '← 返回主页', en: '← Back to Home' })}
             </Link>
-            <h1 className="text-lg font-semibold text-[#0B3D2E]">能量值详情</h1>
+            <h1 className="text-lg font-semibold text-[#0B3D2E]">
+              {tr(language, { zh: '能量值详情', en: 'Energy Breakdown' })}
+            </h1>
             <div className="w-16"></div>
           </div>
         </div>

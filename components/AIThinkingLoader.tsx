@@ -35,9 +35,8 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
   // 模拟进度推进
   useEffect(() => {
     if (progressComplete) return;
-    
+
     let stageTimer: NodeJS.Timeout;
-    let progressTimer: NodeJS.Timeout;
 
     const advanceStage = () => {
       if (currentStage < THINKING_STAGES.length) {
@@ -47,7 +46,7 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
     };
 
     // 进度条动画 - 速度 0.6 倍
-    progressTimer = setInterval(() => {
+    const progressTimer = setInterval(() => {
       setStageProgress(prev => {
         if (prev >= 100) return 100;
         return prev + Math.random() * 12 + 5;
@@ -79,7 +78,7 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
   if (isGenerating) {
     return (
       <div className={`${sizeClasses[size]} mx-auto py-3`}>
-        <NoMoreAnxiousBreathing />
+        <AntiAnxietyBreathing />
       </div>
     );
   }
@@ -118,8 +117,8 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
                   background: 'linear-gradient(90deg, #0B3D2E 0%, #22c55e 50%, #10b981 100%)',
                 }}
                 initial={{ width: 0 }}
-                animate={{ 
-                  width: `${((currentStage / THINKING_STAGES.length) * 100) + (stageProgress / THINKING_STAGES.length)}%` 
+                animate={{
+                  width: `${((currentStage / THINKING_STAGES.length) * 100) + (stageProgress / THINKING_STAGES.length)}%`
                 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               />
@@ -132,13 +131,12 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
               {THINKING_STAGES.map((stage, idx) => (
                 <motion.div
                   key={stage.id}
-                  className={`w-1 h-1 rounded-full transition-colors duration-500 ${
-                    idx < currentStage
+                  className={`w-1 h-1 rounded-full transition-colors duration-500 ${idx < currentStage
                       ? 'bg-[#0B3D2E]'
                       : idx === currentStage
-                      ? 'bg-[#22c55e]'
-                      : 'bg-[#E7E1D6]'
-                  }`}
+                        ? 'bg-[#22c55e]'
+                        : 'bg-[#E7E1D6]'
+                    }`}
                   animate={idx === currentStage ? {
                     scale: [1, 1.5, 1],
                   } : {}}
@@ -153,8 +151,8 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
   );
 }
 
-// No More Anxious 呼吸效果组件 - 带 logo
-function NoMoreAnxiousBreathing() {
+// AntiAnxiety 呼吸效果组件 - 带 logo
+function AntiAnxietyBreathing() {
   return (
     <div className="flex flex-col items-center justify-center py-3">
       {/* Logo 圆点 + 文字呼吸动画 */}
@@ -171,7 +169,7 @@ function NoMoreAnxiousBreathing() {
         }}
       >
         {/* Logo 圆点 */}
-        <motion.span 
+        <motion.span
           className="w-2 h-2 rounded-full bg-[#0B3D2E]"
           animate={{
             boxShadow: [
@@ -188,10 +186,10 @@ function NoMoreAnxiousBreathing() {
         />
         {/* 品牌文字 */}
         <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
-          No More Anxious
+          AntiAnxiety
         </span>
       </motion.div>
-      
+
       {/* 底部提示文字 */}
       <motion.p
         className="text-[10px] text-[#0B3D2E]/50 mt-2"

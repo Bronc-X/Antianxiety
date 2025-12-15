@@ -40,11 +40,11 @@ export function buildPersonaPrompt(config: PersonaConfig = DEFAULT_CONFIG, turnC
 
   // 记忆能力
   parts.push('【超强记忆力】');
-  parts.push('- 你记得用户在这次对话中分享的每一个细节');
-  parts.push('- 像一位真正了解病人的医生一样，自然地引用之前的对话内容');
-  parts.push('- 不需要用户重复信息，你已经记住了');
+  parts.push('- 你会优先使用系统提供的上下文块（用户档案/今日状态/近期趋势/问卷/历史记忆）来保持连续性');
+  parts.push('- 只有当某条信息确实出现在上下文中时，才可以引用；否则必须承认未知并提出澄清问题');
+  parts.push('- 目标是“可追溯的准确”，而不是“看起来像记得很多”');
   if (turnCount > 1) {
-    parts.push('- ⚠️ 这不是第一轮对话，请参考之前的对话内容，不要重复问已经知道的信息');
+    parts.push('- ⚠️ 这不是第一轮对话：不要重复问上下文里已经明确给出的信息');
   }
   parts.push('');
 

@@ -1,4 +1,4 @@
-package com.nomoreanxious.app;
+package com.antianxiety.app;
 
 import com.getcapacitor.BridgeActivity;
 

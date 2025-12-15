@@ -64,7 +64,7 @@ const SliderItem = ({ index }: { index: number }) => {
         duration: 3 + (index * 0.2), // 持续时间错开
         repeat: Infinity,
         repeatType: "mirror" as const,
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
         delay: index * 0.1, // 启动延迟错开
       },
     },
@@ -118,7 +118,7 @@ const BarItem = ({ index }: { index: number }) => {
         duration: duration,
         repeat: Infinity,
         repeatType: "mirror" as const,
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
         delay: index * 0.05,
       },
     },

@@ -6,7 +6,7 @@ import { Brain, Zap, Activity, AlertCircle } from 'lucide-react';
 /**
  * 高级大脑3D解剖图动画组件
  * 专业医学研究级别的神经科学可视化
- * 符合 No More Anxious 品牌风格：深绿色 #0B3D2E + 米白色 #FAF6EF
+ * AntiAnxiety 品牌的深层生理机制可视化风格：深绿色 #0B3D2E + 米白色 #FAF6EF
  */
 
 interface BrainRegion {
@@ -106,9 +106,9 @@ export default function BrainAnatomyVisualization() {
 
   return (
     <div className="w-full h-full min-h-[600px] bg-[#FAF6EF] rounded-[2rem] p-8 relative overflow-hidden border border-[#E7E1D6]">
-      
+
       {/* 背景网格 - 医学影像风格 */}
-      <div 
+      <div
         className="absolute inset-0 opacity-5"
         style={{
           backgroundImage: `
@@ -137,11 +137,10 @@ export default function BrainAnatomyVisualization() {
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                viewMode === mode 
-                  ? 'bg-[#0B3D2E] text-[#FAF6EF]' 
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${viewMode === mode
+                  ? 'bg-[#0B3D2E] text-[#FAF6EF]'
                   : 'bg-white text-[#0B3D2E]/60 hover:bg-[#0B3D2E]/10'
-              }`}
+                }`}
             >
               {mode === 'sagittal' ? '矢状面' : mode === 'coronal' ? '冠状面' : '3D视图'}
             </button>
@@ -151,11 +150,11 @@ export default function BrainAnatomyVisualization() {
 
       {/* 主要大脑可视化区域 */}
       <div className="relative z-10 flex gap-8">
-        
+
         {/* 左侧：大脑SVG图 */}
         <div className="flex-1 relative">
-          <svg 
-            viewBox="0 0 400 400" 
+          <svg
+            viewBox="0 0 400 400"
             className="w-full h-full"
             style={{
               transform: isRotating ? `rotateY(${pulsePhase * 0.5}deg)` : 'none',
@@ -171,7 +170,7 @@ export default function BrainAnatomyVisualization() {
                 strokeWidth="3"
                 opacity="0.3"
               />
-              
+
               {/* 大脑皮层纹理 */}
               <path
                 d="M 160 100 Q 155 110, 158 120 Q 161 130, 165 140"
@@ -210,7 +209,7 @@ export default function BrainAnatomyVisualization() {
             {brainRegions.map((region, index) => {
               const isActive = activeRegion === region.id;
               const pulse = Math.sin((pulsePhase + index * 10) * 0.1) * 0.3 + 0.7;
-              
+
               return (
                 <g key={region.id}>
                   {/* 脉动圆圈 */}
@@ -222,7 +221,7 @@ export default function BrainAnatomyVisualization() {
                     opacity={isActive ? 0.3 : 0.1}
                     className="transition-all duration-300"
                   />
-                  
+
                   {/* 核心点 */}
                   <circle
                     cx={region.position.x * 4}
@@ -344,18 +343,18 @@ export default function BrainAnatomyVisualization() {
 
         {/* 右侧：信息面板 */}
         <div className="w-80 space-y-4">
-          
+
           {/* 活跃脑区详情 */}
           {activeRegion ? (
             <div className="bg-white rounded-2xl p-5 border-2 border-[#0B3D2E] shadow-lg">
               {(() => {
                 const region = brainRegions.find(r => r.id === activeRegion);
                 if (!region) return null;
-                
+
                 return (
                   <>
                     <div className="flex items-start gap-3 mb-4">
-                      <div 
+                      <div
                         className="w-10 h-10 rounded-full flex items-center justify-center"
                         style={{ backgroundColor: region.color + '20' }}
                       >
@@ -377,7 +376,7 @@ export default function BrainAnatomyVisualization() {
                         <span className="text-xs font-medium text-[#0B3D2E]/60 uppercase tracking-wide">关键神经递质</span>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {region.neurotransmitters.map(nt => (
-                            <span 
+                            <span
                               key={nt}
                               className="px-2 py-1 bg-[#FAF6EF] text-[#0B3D2E] text-xs rounded-lg border border-[#E7E1D6]"
                             >
@@ -411,7 +410,7 @@ export default function BrainAnatomyVisualization() {
                       <span className="font-medium text-[#0B3D2E]">{value.toFixed(0)}%</span>
                     </div>
                     <div className="h-2 bg-[#FAF6EF] rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-[#0B3D2E] to-amber-500 rounded-full transition-all duration-500"
                         style={{ width: `${value}%` }}
                       />

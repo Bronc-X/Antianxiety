@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import Lottie from 'lottie-react';
 import { useLottie } from '@/hooks/useLottie';
 
-interface BrainLoaderProps {
+export interface BrainLoaderProps {
   size?: 'sm' | 'md' | 'lg';
   text?: string;
   showDetails?: boolean;
@@ -102,7 +102,7 @@ export function BrainLoader({ size = 'md', text, showDetails = false }: BrainLoa
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{ duration: 2, repeat: Infinity }}
       >
-        {text || 'Neuromind analyzing...'}
+        {text || 'AntiAnxiety analyzing...'}
         {showDetails && (
           <>
             <br />

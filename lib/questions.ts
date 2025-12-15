@@ -137,6 +137,65 @@ export const ONBOARDING_FLOW: Question[] = [
   },
 ];
 
+export const ONBOARDING_FLOW_EN: Question[] = [
+  {
+    id: 'energy_crash',
+    question: 'Between 2–4 PM, do you feel a sudden “cliff drop” in energy?',
+    description: 'Even after a nap, does your brain still feel foggy?',
+    type: 'single',
+    options: [
+      { label: "Yes — that's my daily life", value: 'severe_crash', score: 3 },
+      { label: 'Sometimes', value: 'occasional_crash', score: 2 },
+      { label: 'Rarely — I feel energetic', value: 'no_crash', score: 1 },
+    ],
+  },
+  {
+    id: 'sleep_maintenance',
+    question: "Falling asleep may be easy — but do you often wake up around 3–4 AM for no reason?",
+    description: 'Do work thoughts start playing like a movie, and you can’t fall back asleep?',
+    type: 'single',
+    options: [
+      { label: 'Often — it’s exhausting', value: 'frequent_wakeup', score: 3 },
+      { label: 'Occasionally', value: 'occasional_wakeup', score: 2 },
+      { label: 'I usually sleep through the night', value: 'sleep_well', score: 1 },
+    ],
+  },
+  {
+    id: 'body_composition',
+    question: 'Compared with a few years ago, do you feel your waist/abdomen got softer even if you don’t eat much?',
+    description: 'No matter how you train, it won’t tighten up?',
+    type: 'single',
+    options: [
+      { label: 'Exactly', value: 'severe_fat', score: 3 },
+      { label: 'A little', value: 'slight_fat', score: 2 },
+      { label: 'Not an issue for me', value: 'no_issue', score: 1 },
+    ],
+  },
+  {
+    id: 'stress_tolerance',
+    question: 'Has your stress “tolerance threshold” gotten lower?',
+    description: 'Do small things that used to be easy now trigger a racing heart or irritability?',
+    type: 'single',
+    options: [
+      { label: 'Yes — more irritable/anxious', value: 'low_tolerance', score: 3 },
+      { label: 'Sometimes', value: 'medium_tolerance', score: 2 },
+      { label: "I'm usually steady", value: 'high_tolerance', score: 1 },
+    ],
+  },
+  {
+    id: 'previous_failures',
+    question:
+      'To fix the above, have you tried cutting carbs or forcing workouts—only to end up more exhausted and getting sick more often, with no real improvement?',
+    description: '',
+    type: 'single',
+    options: [
+      { label: 'Yes — I’ve failed many times', value: 'frustrated', score: 3 },
+      { label: 'Not really tried yet', value: 'new_to_this', score: 2 },
+      { label: 'No — my approach works well', value: 'successful', score: 1 },
+    ],
+  },
+];
+
 /**
  * 将问卷答案映射为代谢档案
  */

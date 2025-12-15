@@ -103,6 +103,68 @@ interface RecommendationPlan {
   expected_timeline: string;
 }
 
+type NormalizedExerciseFrequency = 'rarely' | '1-2_week' | '2-3_week' | '4-5_week' | '6-7_week';
+type NormalizedCaffeineIntake = 'none' | '1_cup' | '2-3_cups' | '4+_cups';
+type NormalizedAlcoholIntake = 'none' | 'occasional' | '1-2_week' | '3+_week';
+type NormalizedSmokingStatus = 'non_smoker' | 'ex_smoker' | 'occasional' | 'regular';
+
+function normalizeExerciseFrequency(value?: string | null): NormalizedExerciseFrequency | null {
+  if (!value) return null;
+  const v = String(value).trim();
+  if (['rarely', '1-2_week', '2-3_week', '4-5_week', '6-7_week'].includes(v)) {
+    return v as NormalizedExerciseFrequency;
+  }
+  if (v.includes('很少')) return 'rarely';
+  if (v.includes('1-2')) return '1-2_week';
+  if (v.includes('2-3')) return '2-3_week';
+  if (v.includes('4-5')) return '4-5_week';
+  if (v.includes('6-7')) return '6-7_week';
+  return null;
+}
+
+function normalizeCaffeineIntake(value?: string | null): NormalizedCaffeineIntake | null {
+  if (!value) return null;
+  const v = String(value).trim();
+  if (['none', '1_cup', '2-3_cups', '4+_cups'].includes(v)) {
+    return v as NormalizedCaffeineIntake;
+  }
+  if (v.includes('不饮')) return 'none';
+  if (v.includes('每天1')) return '1_cup';
+  if (v.includes('2-3')) return '2-3_cups';
+  if (v.includes('4') && v.includes('以上')) return '4+_cups';
+  return null;
+}
+
+function normalizeAlcoholIntake(value?: string | null): NormalizedAlcoholIntake | null {
+  if (!value) return null;
+  const v = String(value).trim();
+  if (['none', 'occasional', '1-2_week', '3+_week'].includes(v)) {
+    return v as NormalizedAlcoholIntake;
+  }
+  if (v.includes('不饮')) return 'none';
+  if (v.includes('偶尔') || v.includes('每月')) return 'occasional';
+  if (v.includes('1-2')) return '1-2_week';
+  if (v.includes('3') && v.includes('以上')) return '3+_week';
+  return null;
+}
+
+function normalizeSmokingStatus(value?: string | null): NormalizedSmokingStatus | null {
+  if (!value) return null;
+  const v = String(value).trim();
+  if (['non_smoker', 'ex_smoker', 'occasional', 'regular'].includes(v)) {
+    return v as NormalizedSmokingStatus;
+  }
+  if (v.includes('不吸')) return 'non_smoker';
+  if (v.includes('戒烟')) return 'ex_smoker';
+  if (v.includes('偶尔')) return 'occasional';
+  if (v.includes('经常')) return 'regular';
+  return null;
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 /**
  * 分析用户生理情况（基于收集的数据，目标80%准确度）
  */
@@ -126,6 +188,21 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
 
   let confidencePoints = 0;
   const maxPoints = 100;
+
+  const exerciseFrequency = normalizeExerciseFrequency(profile.exercise_frequency);
+  const caffeineIntake = normalizeCaffeineIntake(profile.caffeine_intake);
+  const isCaffeineHigh = caffeineIntake === '4+_cups';
+  const alcoholIntake = normalizeAlcoholIntake(profile.alcohol_intake);
+  const smokingStatus = normalizeSmokingStatus(profile.smoking_status);
+
+  const stressLevelValue = isNumber(profile.stress_level) ? profile.stress_level : null;
+  const sleepHoursValue = isNumber(profile.sleep_hours) ? profile.sleep_hours : null;
+  const energyLevelValue = isNumber(profile.energy_level) ? profile.energy_level : null;
+
+  const hasStressLevel = stressLevelValue !== null;
+  const hasSleepHours = sleepHoursValue !== null;
+  const hasEnergyLevel = energyLevelValue !== null;
+  const hasExerciseFrequency = Boolean(exerciseFrequency);
 
   // 代谢健康困扰映射（基于2024年代谢研究数据库）
   if (profile.metabolic_concerns && profile.metabolic_concerns.length > 0) {
@@ -189,8 +266,12 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
   if (profile.age && profile.height_cm && profile.weight_kg) {
     const bmi = profile.weight_kg / Math.pow(profile.height_cm / 100, 2);
     const ageFactor = profile.age > 40 ? -1 : profile.age > 30 ? 0 : 1;
-    const activityFactor = profile.exercise_frequency === '每周4-5次' || profile.exercise_frequency === '每周6-7次' ? 1 :
-                          profile.exercise_frequency === '每周2-3次' ? 0 : -1;
+    const activityFactor =
+      exerciseFrequency === '4-5_week' || exerciseFrequency === '6-7_week'
+        ? 1
+        : exerciseFrequency === '2-3_week'
+          ? 0
+          : -1;
     
     if (bmi > 25 && ageFactor <= 0 && activityFactor <= 0) {
       analysis.metabolic_rate_estimate = 'low';
@@ -201,23 +282,24 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
   }
 
   // 2. 皮质醇模式（基于压力水平、睡眠、咖啡因、运动）
-  const stressScore = profile.stress_level || 5;
-  const sleepScore = profile.sleep_hours ? (profile.sleep_hours >= 7 && profile.sleep_hours <= 9 ? 0 : -1) : 0;
-  const caffeineScore = profile.caffeine_intake === '每天4杯以上' ? 1 : profile.caffeine_intake === '每天2-3杯' ? 0.5 : 0;
+  const stressScore = stressLevelValue;
+  const sleepScore = sleepHoursValue !== null ? (sleepHoursValue >= 7 && sleepHoursValue <= 9 ? 0 : -1) : null;
   
-  if (stressScore >= 7 || sleepScore < 0 || caffeineScore >= 1) {
+  if ((stressScore !== null && stressScore >= 7) || (sleepScore !== null && sleepScore < 0) || isCaffeineHigh) {
     analysis.cortisol_pattern = 'elevated';
-  } else if (stressScore <= 3 && sleepScore === 0 && caffeineScore === 0) {
+  } else if (stressScore !== null && stressScore <= 3 && sleepScore === 0 && (caffeineIntake === 'none' || caffeineIntake === '1_cup')) {
     analysis.cortisol_pattern = 'low';
   }
-  confidencePoints += 20;
+  if (hasStressLevel) confidencePoints += 8;
+  if (hasSleepHours) confidencePoints += 8;
+  if (caffeineIntake) confidencePoints += 4;
 
   // 3. 睡眠质量
-  if (profile.sleep_hours) {
-    if (profile.sleep_hours < 6) {
+  if (sleepHoursValue !== null) {
+    if (sleepHoursValue < 6) {
       analysis.sleep_quality = 'poor';
       analysis.risk_factors.push('睡眠不足');
-    } else if (profile.sleep_hours >= 7 && profile.sleep_hours <= 9) {
+    } else if (sleepHoursValue >= 7 && sleepHoursValue <= 9) {
       analysis.sleep_quality = 'good';
       analysis.strengths.push('睡眠时长充足');
     } else {
@@ -227,63 +309,73 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
   }
 
   // 4. 恢复能力（基于运动频率、时长、精力水平）
-  const exerciseScore = profile.exercise_frequency === '每周4-5次' || profile.exercise_frequency === '每周6-7次' ? 1 :
-                       profile.exercise_frequency === '每周2-3次' ? 0 : -1;
-  const energyScore = (profile.energy_level || 5) >= 7 ? 1 : (profile.energy_level || 5) <= 4 ? -1 : 0;
+  const exerciseScore =
+    exerciseFrequency === '4-5_week' || exerciseFrequency === '6-7_week'
+      ? 1
+      : exerciseFrequency === '2-3_week' || exerciseFrequency === '1-2_week'
+        ? 0
+        : exerciseFrequency === 'rarely'
+          ? -1
+          : 0;
+  const energyScore = energyLevelValue !== null ? (energyLevelValue >= 7 ? 1 : energyLevelValue <= 4 ? -1 : 0) : 0;
   
-  if (exerciseScore >= 0 && energyScore >= 0) {
+  if ((exerciseScore === 1 && energyScore >= 0) || (energyScore === 1 && exerciseScore >= 0)) {
     analysis.recovery_capacity = 'high';
     analysis.strengths.push('良好的运动习惯');
   } else if (exerciseScore < 0 && energyScore < 0) {
     analysis.recovery_capacity = 'low';
     analysis.risk_factors.push('运动不足且精力低下');
   }
-  confidencePoints += 15;
+  if (hasExerciseFrequency) confidencePoints += 8;
+  if (hasEnergyLevel) confidencePoints += 7;
 
   // 5. 压力韧性（基于压力水平、医疗状况、药物）
-  if (profile.stress_level && profile.stress_level >= 8) {
+  if (stressLevelValue !== null && stressLevelValue >= 8) {
     analysis.stress_resilience = 'low';
     analysis.risk_factors.push('高压力水平');
   } else if (profile.medical_conditions && profile.medical_conditions.includes('焦虑症')) {
     analysis.stress_resilience = 'low';
     analysis.risk_factors.push('焦虑症');
-  } else if (profile.stress_level && profile.stress_level <= 4) {
+  } else if (stressLevelValue !== null && stressLevelValue <= 4) {
     analysis.stress_resilience = 'high';
     analysis.strengths.push('压力管理良好');
   }
-  confidencePoints += 15;
+  if (hasStressLevel) confidencePoints += 10;
+  if (Array.isArray(profile.medical_conditions) && profile.medical_conditions.length > 0) confidencePoints += 3;
+  if (Array.isArray(profile.medications) && profile.medications.length > 0) confidencePoints += 2;
 
   // 6. 其他风险因素
-  if (profile.smoking_status && profile.smoking_status !== '不吸烟' && profile.smoking_status !== '已戒烟') {
+  if (smokingStatus && smokingStatus !== 'non_smoker' && smokingStatus !== 'ex_smoker') {
     analysis.risk_factors.push('吸烟');
   }
-  if (profile.alcohol_intake && profile.alcohol_intake === '每周3次以上') {
+  if (alcoholIntake === '3+_week') {
     analysis.risk_factors.push('酒精摄入过多');
   }
   if (profile.medications && profile.medications.includes('抗焦虑药')) {
     analysis.risk_factors.push('正在服用抗焦虑药物');
   }
-  confidencePoints += 10;
+  if (smokingStatus) confidencePoints += 4;
+  if (alcoholIntake) confidencePoints += 3;
+  if (Array.isArray(profile.medications) && profile.medications.length > 0) confidencePoints += 3;
 
   // 6. 精力稳定性（基于精力水平、睡眠、咖啡因依赖）
-  const energyLevel = profile.energy_level || 5;
-  const caffeineHigh = profile.caffeine_intake === '每天4杯以上';
-  
-  if (energyLevel >= 7 && profile.sleep_hours && profile.sleep_hours >= 7 && !caffeineHigh) {
+  if (energyLevelValue !== null && energyLevelValue >= 7 && sleepHoursValue !== null && sleepHoursValue >= 7 && !isCaffeineHigh) {
     analysis.energy_stability = 'stable';
     analysis.strengths.push('精力稳定');
-  } else if (energyLevel <= 4 || caffeineHigh || (profile.sleep_hours && profile.sleep_hours < 6)) {
+  } else if ((energyLevelValue !== null && energyLevelValue <= 4) || isCaffeineHigh || (sleepHoursValue !== null && sleepHoursValue < 6)) {
     analysis.energy_stability = 'unstable';
     analysis.risk_factors.push('精力不稳定');
   }
-  confidencePoints += 10;
+  if (hasEnergyLevel) confidencePoints += 4;
+  if (hasSleepHours) confidencePoints += 3;
+  if (caffeineIntake) confidencePoints += 3;
 
   // 7. 炎症风险（基于吸烟、酒精、压力、运动）
   let inflammationScore = 0;
-  if (profile.smoking_status && profile.smoking_status !== 'non_smoker' && profile.smoking_status !== 'ex_smoker') inflammationScore += 2;
-  if (profile.alcohol_intake === '3+_week') inflammationScore += 1;
-  if (profile.stress_level && profile.stress_level >= 7) inflammationScore += 1;
-  if (profile.exercise_frequency === 'rarely') inflammationScore += 1;
+  if (smokingStatus && smokingStatus !== 'non_smoker' && smokingStatus !== 'ex_smoker') inflammationScore += 2;
+  if (alcoholIntake === '3+_week') inflammationScore += 1;
+  if (stressLevelValue !== null && stressLevelValue >= 7) inflammationScore += 1;
+  if (exerciseFrequency === 'rarely') inflammationScore += 1;
   
   if (inflammationScore >= 3) {
     analysis.inflammation_risk = 'high';
@@ -292,35 +384,45 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
     analysis.inflammation_risk = 'low';
     analysis.strengths.push('低炎症风险');
   }
-  confidencePoints += 10;
+  if (smokingStatus) confidencePoints += 3;
+  if (alcoholIntake) confidencePoints += 2;
+  if (hasStressLevel) confidencePoints += 3;
+  if (hasExerciseFrequency) confidencePoints += 2;
 
   // 8. 激素平衡（基于睡眠、压力、体脂、运动）
-  const goodSleep = profile.sleep_hours && profile.sleep_hours >= 7 && profile.sleep_hours <= 9;
-  const lowStress = profile.stress_level && profile.stress_level <= 5;
-  const regularExercise = profile.exercise_frequency && ['2-3_week', '4-5_week', '6-7_week'].includes(profile.exercise_frequency);
+  const goodSleep = sleepHoursValue !== null && sleepHoursValue >= 7 && sleepHoursValue <= 9;
+  const lowStress = stressLevelValue !== null && stressLevelValue <= 5;
+  const highStress = stressLevelValue !== null && stressLevelValue >= 8;
+  const regularExercise =
+    exerciseFrequency !== null && ['2-3_week', '4-5_week', '6-7_week'].includes(exerciseFrequency);
   
   if (goodSleep && lowStress && regularExercise) {
     analysis.hormonal_balance = 'balanced';
     analysis.strengths.push('激素平衡良好');
-  } else if (!goodSleep || (profile.stress_level && profile.stress_level >= 8)) {
+  } else if ((hasSleepHours && !goodSleep) || highStress) {
     analysis.hormonal_balance = 'imbalanced';
     analysis.risk_factors.push('激素可能失衡');
   }
-  confidencePoints += 10;
+  if (hasSleepHours) confidencePoints += 4;
+  if (hasStressLevel) confidencePoints += 3;
+  if (hasExerciseFrequency) confidencePoints += 3;
 
   // 9. 心血管健康（基于运动、体重、吸烟、酒精）
   const activeLifestyle = profile.activity_level && ['moderate', 'active'].includes(profile.activity_level);
-  const noSmoking = profile.smoking_status === 'non_smoker' || profile.smoking_status === 'ex_smoker';
-  const moderateAlcohol = !profile.alcohol_intake || profile.alcohol_intake !== '3+_week';
+  const noSmoking = smokingStatus === 'non_smoker' || smokingStatus === 'ex_smoker';
+  const moderateAlcohol = !alcoholIntake || alcoholIntake !== '3+_week';
   
   if (activeLifestyle && noSmoking && moderateAlcohol && regularExercise) {
     analysis.cardiovascular_health = 'good';
     analysis.strengths.push('心血管状况良好');
-  } else if (profile.smoking_status === 'regular' || profile.activity_level === 'sedentary') {
+  } else if (smokingStatus === 'regular' || profile.activity_level === 'sedentary') {
     analysis.cardiovascular_health = 'needs_attention';
     analysis.risk_factors.push('心血管需要关注');
   }
-  confidencePoints += 10;
+  if (profile.activity_level) confidencePoints += 4;
+  if (smokingStatus) confidencePoints += 3;
+  if (alcoholIntake) confidencePoints += 1;
+  if (hasExerciseFrequency) confidencePoints += 2;
 
   // 10. 其他优势
   if (profile.exercise_types && profile.exercise_types.length >= 3) {
@@ -333,19 +435,19 @@ export function analyzeUserProfile(profile: UserProfile): PhysiologicalAnalysis 
   analysis.confidence_score = Math.min(confidencePoints, maxPoints);
 
   // 添加置信度理由
-  if (profile.age && profile.height_cm && profile.weight_kg) {
+  if (isNumber(profile.age) && isNumber(profile.height_cm) && isNumber(profile.weight_kg)) {
     analysis.confidence_reasons.push('已提供完整身体基础数据');
   }
-  if (profile.sleep_hours) {
+  if (hasSleepHours) {
     analysis.confidence_reasons.push('已提供睡眠数据');
   }
-  if (profile.stress_level) {
+  if (hasStressLevel) {
     analysis.confidence_reasons.push('已提供压力水平数据');
   }
-  if (profile.exercise_frequency) {
+  if (hasExerciseFrequency) {
     analysis.confidence_reasons.push('已提供运动习惯数据');
   }
-  if (!profile.age || !profile.height_cm) {
+  if (!isNumber(profile.age) || !isNumber(profile.height_cm)) {
     analysis.confidence_reasons.push('缺少部分基础数据影响分析准确性');
   }
 
@@ -712,4 +814,3 @@ export async function analyzeUserProfileAndSave(profile: UserProfile) {
   
   return { analysis, plan };
 }
-

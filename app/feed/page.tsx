@@ -32,7 +32,7 @@ export default async function FeedPage() {
               <Link href="/landing" className="flex items-center gap-3">
                 <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />
                 <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
-                  No More anxious™
+                  AntiAnxiety™
                 </span>
               </Link>
             </div>
@@ -68,8 +68,8 @@ export default async function FeedPage() {
                 <span>📋</span>
                 <span>AI计划表</span>
               </Link>
-              <UserProfileMenu 
-                user={user} 
+              <UserProfileMenu
+                user={user}
                 profile={profile ? {
                   full_name: profile.full_name || null,
                   avatar_url: profile.avatar_url || null,

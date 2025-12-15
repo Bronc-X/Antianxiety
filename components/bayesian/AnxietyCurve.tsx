@@ -215,8 +215,20 @@ export function AnxietyCurve({
             data={chartData}
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
             onClick={(e) => {
-              if (e?.activePayload?.[0]?.payload) {
-                handlePointClick(e.activePayload[0].payload);
+              const activeIndex =
+                typeof e?.activeTooltipIndex === 'number'
+                  ? e.activeTooltipIndex
+                  : typeof e?.activeTooltipIndex === 'string'
+                    ? Number.parseInt(e.activeTooltipIndex, 10)
+                    : undefined;
+
+              if (
+                typeof activeIndex === 'number' &&
+                Number.isFinite(activeIndex) &&
+                activeIndex >= 0 &&
+                activeIndex < chartData.length
+              ) {
+                handlePointClick(chartData[activeIndex]);
               }
             }}
           >

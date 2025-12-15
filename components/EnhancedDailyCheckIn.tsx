@@ -328,6 +328,9 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
     setToast('✅ 保存成功！数据已更新');
     setShowActivityRing(true);  // 显示活动环
     setIsSaving(false);
+
+    // 后台刷新：让 AI 建议/文章推荐跟随今日数据更新
+    fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
     
     // 延迟跳转，让用户看到活动环
     setTimeout(() => {

@@ -9,11 +9,12 @@
  * @module app/bayesian/page
  */
 
-import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import useSWR from 'swr';
-import { ReframingRitual } from '@/components/max/ReframingRitual';
+import BayesianRitualModal from '@/components/bayesian/ritual/BayesianRitualModal';
 import { AnxietyCurve } from '@/components/bayesian/AnxietyCurve';
+import { CognitiveDistortionAnimation } from '@/components/bayesian/CognitiveDistortionAnimation';
 import { PassiveNudge } from '@/components/bayesian/PassiveNudge';
 import { HealthDashboardWidget } from '@/components/bayesian/HealthDashboardWidget';
 import { useBayesianNudge } from '@/hooks/useBayesianNudge';
@@ -22,6 +23,21 @@ import { MotionButton } from '@/components/motion/MotionButton';
 import { Brain, TrendingDown, Activity, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
+
+// ============================================
+// Helper Components
+// ============================================
+
+function Counter({ value, className }: { value: number, className?: string }) {
+  const spring = useSpring(0, { bounce: 0, duration: 2000 });
+  const display = useTransform(spring, (current) => Math.round(current));
+
+  useEffect(() => {
+    spring.set(value);
+  }, [value, spring]);
+
+  return <motion.span className={className}>{display}</motion.span>;
+}
 
 // ============================================
 // Fetcher
@@ -60,6 +76,12 @@ export default function BayesianDashboardPage() {
     timestamp: new Date().toISOString()
   };
 
+  const currentScore = latestBelief?.posterior_score || lastResult?.posterior || 50;
+  // Calculate trend: positive means anxiety reduced (good), negative means increased (bad)
+  // If we have previous points, compare with previous. If not, use generic.
+  // Actually, let's keep the existing logic: prior - posterior = reduction.
+  const trend = latestBelief ? (latestBelief.prior_score - latestBelief.posterior_score) : (lastResult ? lastResult.prior - lastResult.posterior : 0);
+
   const handleStartRitual = useCallback(() => {
     setShowRitual(true);
   }, []);
@@ -95,197 +117,140 @@ export default function BayesianDashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-md mx-auto px-4 py-6">
-        
-        {/* Hero Card - 最新状态 */}
-        <motion.section 
-          className="mb-6"
+      <main className="max-w-xl mx-auto px-4 py-8 space-y-8">
+
+        {/* Hero Card - Current State */}
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="bg-[#FFFDF8] dark:bg-neutral-900 rounded-3xl p-6 shadow-sm border border-[#E7E1D6] dark:border-neutral-800">
-            {/* 当前状态 */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <p className="text-[#0B3D2E]/60 dark:text-neutral-400 text-xs mb-1">{t('bayesian.currentAnxiety')}</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-light text-[#0B3D2E] dark:text-white">
-                    {latestBelief?.posterior_score || lastResult?.posterior || 50}
-                  </span>
-                  <span className="text-lg text-[#0B3D2E]/50 dark:text-neutral-500">%</span>
-                </div>
-              </div>
-              
-              {/* 降低指示 */}
-              {(latestBelief || lastResult) && (
-                <motion.div 
-                  className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#9CAF88]/15 dark:bg-emerald-900/30"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', delay: 0.2 }}
-                >
-                  <TrendingDown className="w-4 h-4 text-[#5A7A4A] dark:text-emerald-400" />
-                  <span className="text-sm text-[#5A7A4A] dark:text-emerald-400 font-medium">
-                    ↓{latestBelief ? (latestBelief.prior_score - latestBelief.posterior_score) : (lastResult ? lastResult.prior - lastResult.posterior : 0)}%
-                  </span>
-                </motion.div>
-              )}
-            </div>
+          <div className="bg-white dark:bg-neutral-900 rounded-[2rem] p-8 shadow-[0_20px_40px_rgba(11,61,46,0.05)] border border-[#E7E1D6] dark:border-neutral-800 relative overflow-hidden">
+            {/* Background Decoration - Breathing */}
+            <motion.div
+              className="absolute top-0 right-0 w-32 h-32 bg-[#9CAF88]/10 rounded-full blur-[60px] -mr-10 -mt-10"
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.5, 0.8, 0.5]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
 
-            {/* 视觉天平 - 水平布局避免遮挡 */}
-            <div className="flex items-center justify-between gap-4 mb-6 py-4">
-              {/* 左侧 - 恐惧 */}
-              <div className="flex-1 text-center">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-[#C4A77D]/10 dark:bg-amber-900/20 border border-[#C4A77D]/30 dark:border-amber-700/30 flex flex-col items-center justify-center">
-                  <span className="text-xl font-medium text-[#8B6914] dark:text-amber-400">
-                    {latestBelief?.prior_score || lastResult?.prior || 70}%
-                  </span>
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-10">
+                <div>
+                  <p className="text-[#0B3D2E]/60 dark:text-neutral-400 text-sm font-medium tracking-wide uppercase mb-2">{t('bayesian.currentAnxiety')}</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-6xl font-serif text-[#0B3D2E] dark:text-white tracking-tight">
+                      <Counter value={currentScore} />
+                    </span>
+                    <span className="text-xl text-[#0B3D2E]/40 dark:text-neutral-500 font-medium">%</span>
+                  </div>
                 </div>
-                <span className="text-xs text-[#0B3D2E]/60 dark:text-neutral-400 mt-2 block">{t('bayesian.fear')}</span>
-              </div>
-              
-              {/* 中间箭头 */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-[2px] bg-gradient-to-r from-[#C4A77D] dark:from-amber-600 to-[#E7E1D6] dark:to-neutral-600" />
-                <span className="text-[#0B3D2E]/40 dark:text-neutral-500">→</span>
-                <div className="w-8 h-[2px] bg-gradient-to-r from-[#E7E1D6] dark:from-neutral-600 to-[#9CAF88] dark:to-emerald-500" />
-              </div>
-              
-              {/* 右侧 - 真相 */}
-              <div className="flex-1 text-center">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-[#9CAF88]/10 dark:bg-emerald-900/20 border border-[#9CAF88]/30 dark:border-emerald-700/30 flex flex-col items-center justify-center">
-                  <span className="text-xl font-medium text-[#5A7A4A] dark:text-emerald-400">
-                    {latestBelief?.posterior_score || lastResult?.posterior || 50}%
-                  </span>
-                </div>
-                <span className="text-xs text-[#0B3D2E]/60 dark:text-neutral-400 mt-2 block">{t('bayesian.truth')}</span>
-              </div>
-            </div>
 
-            {/* 开始按钮 */}
-            <MotionButton
-              onClick={handleStartRitual}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#0B3D2E] to-[#1a5a45] 
-                text-[#FAF6EF] font-medium shadow-lg shadow-[#0B3D2E]/20"
-            >
-              <span className="mr-2">🧠</span>
-              {t('bayesian.startCalibration')}
-            </MotionButton>
+                {/* Trend Badge */}
+                {(latestBelief || lastResult) && (
+                  <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#E7E1D6]/30 border border-[#E7E1D6] backdrop-blur-sm">
+                    <TrendingDown className="w-4 h-4 text-[#5A7A4A]" />
+                    <span className="text-sm font-semibold text-[#5A7A4A]">
+                      {trend}%
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Cognitive Balance Visual (Animated) */}
+              <div className="mb-8">
+                <CognitiveDistortionAnimation
+                  prior={latestBelief?.prior_score || lastResult?.prior || 70}
+                  posterior={latestBelief?.posterior_score || lastResult?.posterior || 50}
+                />
+              </div>
+
+              {/* CTA Button */}
+              <MotionButton
+                onClick={handleStartRitual}
+                whileHover={{ y: -2, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-5 rounded-2xl bg-[#0B3D2E] text-white font-medium text-lg shadow-xl shadow-[#0B3D2E]/10 transition-all"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <Brain className="w-5 h-5 opacity-80" />
+                  <span>{t('bayesian.startCalibration')}</span>
+                </div>
+              </MotionButton>
+            </div>
           </div>
         </motion.section>
 
-        {/* 统计卡片 */}
+        {/* Stats Grid */}
         {historyData?.data?.summary && (
-          <motion.section 
-            className="grid grid-cols-3 gap-3 mb-6"
+          <motion.section
+            className="grid grid-cols-3 gap-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div className="bg-[#FFFDF8] dark:bg-neutral-900 rounded-2xl p-4 text-center border border-[#E7E1D6] dark:border-neutral-800">
-              <p className="text-[#0B3D2E]/50 dark:text-neutral-500 text-[10px] mb-1">{t('bayesian.avgPrior')}</p>
-              <p className="text-[#8B6914] dark:text-amber-400 text-xl font-light">
-                {historyData.data.summary.average_prior}%
-              </p>
-            </div>
-            <div className="bg-[#FFFDF8] dark:bg-neutral-900 rounded-2xl p-4 text-center border border-[#E7E1D6] dark:border-neutral-800">
-              <p className="text-[#0B3D2E]/50 dark:text-neutral-500 text-[10px] mb-1">{t('bayesian.avgPosterior')}</p>
-              <p className="text-[#5A7A4A] dark:text-emerald-400 text-xl font-light">
-                {historyData.data.summary.average_posterior}%
-              </p>
-            </div>
-            <div className="bg-[#FFFDF8] dark:bg-neutral-900 rounded-2xl p-4 text-center border border-[#E7E1D6] dark:border-neutral-800">
-              <p className="text-[#0B3D2E]/50 dark:text-neutral-500 text-[10px] mb-1">{t('bayesian.avgReduction')}</p>
-              <p className="text-[#0B3D2E] dark:text-white text-xl font-light">
-                {historyData.data.summary.average_reduction}%
-              </p>
-            </div>
+            {[
+              { label: t('bayesian.avgPrior'), value: historyData.data.summary.average_prior, color: 'text-[#8B6914]' },
+              { label: t('bayesian.avgPosterior'), value: historyData.data.summary.average_posterior, color: 'text-[#5A7A4A]' },
+              { label: t('bayesian.avgReduction'), value: historyData.data.summary.average_reduction, color: 'text-[#0B3D2E]' }
+            ].map((stat, i) => (
+              <div key={i} className="bg-white dark:bg-neutral-900 rounded-2xl p-5 text-center shadow-sm border border-[#E7E1D6] dark:border-neutral-800">
+                <p className="text-[#0B3D2E]/40 text-[10px] font-medium uppercase tracking-wider mb-2">{stat.label}</p>
+                <div className={`text-xl font-light ${stat.color} flex justify-center`}>
+                  {/* Prefix with - for reduction if specifically reduction stat. The value is likely positive number representing reduction amount */}
+                  {i === 2 && '-'}<Counter value={stat.value} />%
+                </div>
+              </div>
+            ))}
           </motion.section>
         )}
 
-        {/* 焦虑趋势 */}
-        <motion.section 
-          className="bg-[#FFFDF8] dark:bg-neutral-900 rounded-2xl p-5 mb-6 border border-[#E7E1D6] dark:border-neutral-800"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-[#5A7A4A] dark:text-emerald-400" />
-              <h2 className="text-sm font-medium text-[#0B3D2E] dark:text-white">{t('bayesian.anxietyTrend')}</h2>
-            </div>
-          </div>
-          <AnxietyCurve
-            data={historyData?.data?.points || []}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-          />
-        </motion.section>
-
-        {/* 趋势指示 */}
-        {historyData?.data?.summary?.trend && (
-          <motion.section 
-            className="text-center mb-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
+        {/* Charts & Other Widgets */}
+        <div className="space-y-6">
+          <motion.section
+            className="bg-white dark:bg-neutral-900 rounded-[2rem] p-6 shadow-sm border border-[#E7E1D6] dark:border-neutral-800"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
           >
-            <p className="text-[#0B3D2E]/60 text-sm">
-              {historyData.data.summary.trend === 'improving' && (
-                <span className="text-[#9CAF88]">📈 {t('bayesian.improving')}</span>
-              )}
-              {historyData.data.summary.trend === 'stable' && (
-                <span className="text-[#0B3D2E]/60">📊 {t('bayesian.stable')}</span>
-              )}
-              {historyData.data.summary.trend === 'worsening' && (
-                <span className="text-[#C4A77D]">💪 {t('bayesian.worsening')}</span>
-              )}
-            </p>
+            <div className="flex items-center gap-3 mb-6 pl-2">
+              <div className="w-8 h-8 rounded-full bg-[#E7E1D6]/30 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-[#0B3D2E]" />
+              </div>
+              <h2 className="text-[#0B3D2E] font-medium">{t('bayesian.anxietyTrend')}</h2>
+            </div>
+            <AnxietyCurve
+              data={historyData?.data?.points || []}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+            />
           </motion.section>
-        )}
 
-        {/* 健康仪表盘 Widget */}
-        <motion.section 
-          className="mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-        >
           <HealthDashboardWidget />
-        </motion.section>
+        </div>
 
-        {/* 科学说明 */}
-        <motion.section 
-          className="bg-[#9CAF88]/5 dark:bg-emerald-900/10 rounded-2xl p-5 border border-[#9CAF88]/10 dark:border-emerald-800/20"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <h3 className="text-sm font-medium text-[#0B3D2E] dark:text-white mb-2">{t('bayesian.whatIs')}</h3>
-          <p className="text-xs text-[#0B3D2E]/60 dark:text-neutral-400 leading-relaxed">
+        {/* Info Section */}
+        <div className="text-center pt-8 pb-12">
+          <p className="text-[#0B3D2E]/40 text-xs max-w-xs mx-auto leading-relaxed">
             {t('bayesian.explanation')}
           </p>
-        </motion.section>
+        </div>
       </main>
 
       {/* Ritual Modal */}
       <AnimatePresence>
         {showRitual && (
-          <motion.div
-            className="fixed inset-0 z-50 bg-[#0A0A0A]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="min-h-screen flex items-center justify-center p-4">
-              <ReframingRitual
-                onComplete={handleRitualComplete}
-                onCancel={handleRitualCancel}
-                hrvData={mockHrvData}
-              />
-            </div>
-          </motion.div>
+          <BayesianRitualModal
+            onComplete={handleRitualComplete}
+            onCancel={handleRitualCancel}
+            mockHrv={true}
+          />
         )}
       </AnimatePresence>
 

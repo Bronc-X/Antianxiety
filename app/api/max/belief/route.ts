@@ -14,19 +14,19 @@ import { BeliefInput, BeliefSession } from '@/types/max';
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
     const body = await request.json();
     const { prior, hrv_data, paper_ids, belief_text } = body as BeliefInput & { belief_text?: string };
-    
+
     // Validate prior
     if (typeof prior !== 'number' || prior < 0 || prior > 100) {
       return NextResponse.json(
@@ -34,26 +34,32 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Calculate posterior
     const result = await calculatePosterior({ prior, hrv_data, paper_ids });
-    
-    // Store session
+
+    // Store session in the correct table 'bayesian_beliefs'
     const { data: session, error: insertError } = await supabase
-      .from('belief_sessions')
+      .from('bayesian_beliefs')
       .insert({
         user_id: user.id,
-        prior_value: result.prior,
-        posterior_value: result.posterior,
-        likelihood: result.likelihood,
-        evidence_weight: result.evidence,
-        papers_used: result.papers_used,
-        hrv_data: hrv_data || null,
-        belief_text: belief_text || null
+        prior_score: result.prior,
+        posterior_score: result.posterior,
+        belief_context: belief_text || 'General Calibration',
+        evidence_stack: {
+          papers: result.papers_used,
+          hrv: hrv_data,
+          input_prior: prior
+        },
+        calculation_details: {
+          likelihood: result.likelihood,
+          evidence_weight: result.evidence,
+          exaggeration_factor: result.prior / (result.posterior || 1) // Store the calculated 'distortion'
+        }
       })
       .select()
       .single();
-    
+
     if (insertError) {
       console.error('Error storing belief session:', insertError);
       return NextResponse.json(
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     return NextResponse.json({
       session,
       calculation: result,
@@ -79,21 +85,21 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
     // Parse query params
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
-    
+
     // Fetch belief history (RLS ensures user only sees their own data)
     const { data: sessions, error: fetchError } = await supabase
       .from('belief_sessions')
@@ -101,7 +107,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
-    
+
     if (fetchError) {
       console.error('Error fetching belief history:', fetchError);
       return NextResponse.json(
@@ -109,13 +115,13 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     // Get total count
     const { count } = await supabase
       .from('belief_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
-    
+
     return NextResponse.json({
       sessions: sessions as BeliefSession[],
       total: count || 0,

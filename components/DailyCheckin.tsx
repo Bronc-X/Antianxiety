@@ -37,12 +37,13 @@ interface DailyCheckinProps {
   weeklyRecords?: CalibrationInput[];
 }
 
-type OptionTone = 'emerald' | 'amber' | 'rose';
+// California Calm 配色方案
+type OptionTone = 'sage' | 'clay' | 'sand';
 
 const stressOptions: { value: StressLevel; label: string; desc: string; tone: OptionTone }[] = [
-  { value: 'low', label: '低压', desc: '神经系统平稳', tone: 'emerald' },
-  { value: 'medium', label: '中压', desc: '轻微紧绷', tone: 'amber' },
-  { value: 'high', label: '高压', desc: '需要立刻降压', tone: 'rose' },
+  { value: 'low', label: '低压', desc: '神经系统平稳', tone: 'sage' },
+  { value: 'medium', label: '中压', desc: '轻微紧绷', tone: 'clay' },
+  { value: 'high', label: '高压', desc: '需要立刻降压', tone: 'sand' },
 ];
 
 const intentionOptions: {
@@ -51,9 +52,9 @@ const intentionOptions: {
   desc: string;
   tone: OptionTone;
 }[] = [
-  { value: 'rest', label: '恢复', desc: '以修复为主', tone: 'emerald' },
-  { value: 'moderate', label: '稳态', desc: '轻量激活', tone: 'amber' },
-  { value: 'challenge', label: '冲刺', desc: '提升阈值', tone: 'rose' },
+  { value: 'rest', label: '恢复', desc: '以修复为主', tone: 'sage' },
+  { value: 'moderate', label: '稳态', desc: '轻量激活', tone: 'clay' },
+  { value: 'challenge', label: '冲刺', desc: '提升阈值', tone: 'sand' },
 ];
 
 export function DailyCheckin({
@@ -77,15 +78,16 @@ export function DailyCheckin({
   const [generatedTask, setGeneratedTask] = useState<GeneratedTask | null>(null);
 
   const stressTone = useMemo<OptionTone>(() => {
-    if (stressLevel === 'high') return 'rose';
-    if (stressLevel === 'low') return 'emerald';
-    return 'amber';
+    if (stressLevel === 'high') return 'sand';
+    if (stressLevel === 'low') return 'sage';
+    return 'clay';
   }, [stressLevel]);
 
+  // California Calm 配色 - Sand, Clay, Sage
   const toneStyles: Record<OptionTone, string> = {
-    emerald: 'from-emerald-500/25 to-teal-400/10 ring-emerald-400/35 text-emerald-50',
-    amber: 'from-amber-400/25 to-orange-400/10 ring-amber-300/40 text-amber-50',
-    rose: 'from-rose-500/25 to-orange-500/15 ring-rose-400/45 text-rose-50',
+    sage: 'bg-[#9CAF88]/10 ring-[#9CAF88]/30 text-[#0B3D2E]',
+    clay: 'bg-[#C4A77D]/10 ring-[#C4A77D]/30 text-[#0B3D2E]',
+    sand: 'bg-[#E8DFD0]/20 ring-[#C4A77D]/30 text-[#0B3D2E]',
   };
 
   const handleSubmitInput = () => {
@@ -150,38 +152,38 @@ export function DailyCheckin({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg border border-white/10 bg-gradient-to-br from-[#0B0F14] via-[#0D131C] to-[#0B0F14] text-slate-50 rounded-3xl shadow-2xl">
+      <DialogContent className="max-w-lg border border-[#E7E1D6] bg-gradient-to-br from-[#FFFDF8] via-[#FAF6EF] to-[#F5F0E8] text-[#0B3D2E] rounded-3xl shadow-2xl">
         <DialogHeader className="text-left">
-          <DialogTitle className="text-xl text-white flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/20 ring-1 ring-emerald-400/40">
-              <Zap className="w-4 h-4 text-emerald-200" />
+          <DialogTitle className="text-xl text-[#0B3D2E] flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#9CAF88]/20 ring-1 ring-[#9CAF88]/40">
+              <Zap className="w-4 h-4 text-[#9CAF88]" />
             </span>
-            Bio-Voltage 校准
+            每日校准
           </DialogTitle>
-          <DialogDescription className="text-sm text-slate-400">
-            {step === 'input' && '输入今日状态，生成 Bio-Voltage 行动卡'}
+          <DialogDescription className="text-sm text-[#0B3D2E]/60">
+            {step === 'input' && '输入今日状态，生成个性化行动建议'}
             {step === 'inquiry' && '检测到波动，补充细节以完成校准'}
             {step === 'result' && '校准完成，确认后写入今日节奏'}
             {step === 'complete' && '校准完成'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 ring-1 ${toneStyles[stressTone]} mt-3`}>
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/0 to-white/0" />
+        <div className={`relative overflow-hidden rounded-2xl border border-[#E7E1D6] p-4 ring-1 ${toneStyles[stressTone]} mt-3`}>
+          <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent" />
           <div className="relative flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-300">Alignment</p>
-              <div className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-white">
-                Bio-Voltage
-                <ArrowUpRight className="w-4 h-4 text-emerald-200" />
+              <p className="text-xs uppercase tracking-[0.18em] text-[#0B3D2E]/50">今日状态</p>
+              <div className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-[#0B3D2E]">
+                身心校准
+                <ArrowUpRight className="w-4 h-4 text-[#9CAF88]" />
               </div>
-              <p className="text-xs text-slate-300 mt-1">
-                数据化地校正睡眠、压力与运动意图。
+              <p className="text-xs text-[#0B3D2E]/60 mt-1">
+                数据化地校正睡眠、压力与运动意图
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10 backdrop-blur">
-              <Sparkles className="w-4 h-4 text-emerald-200" />
-              <div className="text-[11px] text-slate-200">实时</div>
+            <div className="flex items-center gap-2 rounded-xl bg-white/60 px-3 py-2 ring-1 ring-[#E7E1D6] backdrop-blur">
+              <Sparkles className="w-4 h-4 text-[#C4A77D]" />
+              <div className="text-[11px] text-[#0B3D2E]/70">实时</div>
             </div>
           </div>
           <div className="relative mt-3 grid grid-cols-3 gap-2">
@@ -211,8 +213,8 @@ export function DailyCheckin({
               >
                 <ControlCard
                   title="睡眠时长"
-                  icon={<Moon className="w-4 h-4 text-emerald-200" />}
-                  accent="from-emerald-500/15 to-teal-500/10"
+                  icon={<Moon className="w-4 h-4 text-[#9CAF88]" />}
+                  accent="from-[#9CAF88]/10 to-[#9CAF88]/5"
                   value={`${sleepHours}h`}
                   hint="7-8h 为最佳恢复带"
                 >
@@ -224,13 +226,13 @@ export function DailyCheckin({
                       step="0.5"
                       value={sleepHours}
                       onChange={(e) => setSleepHours(parseFloat(e.target.value))}
-                      className="w-full h-2 accent-emerald-400 cursor-pointer"
+                      className="w-full h-2 accent-[#9CAF88] cursor-pointer rounded-full"
                       style={{
-                        background: `linear-gradient(to right, #34d399 0%, #34d399 ${(sleepHours / 12) * 100}%, #475569 ${(sleepHours / 12) * 100}%, #475569 100%)`,
+                        background: `linear-gradient(to right, #9CAF88 0%, #9CAF88 ${(sleepHours / 12) * 100}%, #E7E1D6 ${(sleepHours / 12) * 100}%, #E7E1D6 100%)`,
                         borderRadius: '9999px',
                       }}
                     />
-                    <div className="flex justify-between text-[11px] text-slate-400 pt-1">
+                    <div className="flex justify-between text-[11px] text-[#0B3D2E]/50 pt-1">
                       <span>0h</span>
                       <span>6h</span>
                       <span>12h</span>
@@ -240,8 +242,8 @@ export function DailyCheckin({
 
                 <ControlCard
                   title="压力水平"
-                  icon={<Brain className="w-4 h-4 text-amber-200" />}
-                  accent="from-amber-500/15 to-orange-500/10"
+                  icon={<Brain className="w-4 h-4 text-[#C4A77D]" />}
+                  accent="from-[#C4A77D]/10 to-[#C4A77D]/5"
                   hint="读取交感/副交感平衡"
                 >
                   <div className="grid grid-cols-3 gap-2 mt-2">
@@ -249,19 +251,19 @@ export function DailyCheckin({
                       <button
                         key={option.value}
                         onClick={() => setStressLevel(option.value)}
-                        className={`group rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-left transition-all ${
+                        className={`group rounded-xl border px-3 py-3 text-left transition-all ${
                           stressLevel === option.value
-                            ? `ring-1 ${toneStyles[option.tone]} shadow-[0_10px_40px_rgba(0,0,0,0.35)]`
-                            : 'hover:border-white/20 hover:bg-white/10'
+                            ? `ring-1 ${toneStyles[option.tone]} border-[#9CAF88] shadow-sm`
+                            : 'border-[#E7E1D6] bg-white hover:border-[#C4A77D]/50 hover:bg-[#FAF6EF]'
                         }`}
                       >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                          {option.value === 'low' && <Wind className="w-4 h-4" />}
-                          {option.value === 'medium' && <Activity className="w-4 h-4" />}
-                          {option.value === 'high' && <Flame className="w-4 h-4" />}
+                        <div className="flex items-center gap-2 text-sm font-semibold text-[#0B3D2E]">
+                          {option.value === 'low' && <Wind className="w-4 h-4 text-[#9CAF88]" />}
+                          {option.value === 'medium' && <Activity className="w-4 h-4 text-[#C4A77D]" />}
+                          {option.value === 'high' && <Flame className="w-4 h-4 text-[#C4A77D]" />}
                           <span>{option.label}</span>
                         </div>
-                        <p className="mt-1 text-xs text-slate-300">{option.desc}</p>
+                        <p className="mt-1 text-xs text-[#0B3D2E]/60">{option.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -269,8 +271,8 @@ export function DailyCheckin({
 
                 <ControlCard
                   title="运动意图"
-                  icon={<Activity className="w-4 h-4 text-emerald-200" />}
-                  accent="from-emerald-500/12 via-cyan-500/12 to-amber-400/12"
+                  icon={<Activity className="w-4 h-4 text-[#9CAF88]" />}
+                  accent="from-[#9CAF88]/10 to-[#C4A77D]/5"
                   hint="决定代谢与神经刺激强度"
                 >
                   <div className="grid grid-cols-3 gap-2 mt-2">
@@ -278,19 +280,19 @@ export function DailyCheckin({
                       <button
                         key={option.value}
                         onClick={() => setExerciseIntention(option.value)}
-                        className={`group rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-left transition-all ${
+                        className={`group rounded-xl border px-3 py-3 text-left transition-all ${
                           exerciseIntention === option.value
-                            ? `ring-1 ${toneStyles[option.tone]} shadow-[0_10px_40px_rgba(0,0,0,0.35)]`
-                            : 'hover:border-white/20 hover:bg-white/10'
+                            ? `ring-1 ${toneStyles[option.tone]} border-[#9CAF88] shadow-sm`
+                            : 'border-[#E7E1D6] bg-white hover:border-[#C4A77D]/50 hover:bg-[#FAF6EF]'
                         }`}
                       >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                          {option.value === 'rest' && <Moon className="w-4 h-4" />}
-                          {option.value === 'moderate' && <Wind className="w-4 h-4" />}
-                          {option.value === 'challenge' && <Flame className="w-4 h-4" />}
+                        <div className="flex items-center gap-2 text-sm font-semibold text-[#0B3D2E]">
+                          {option.value === 'rest' && <Moon className="w-4 h-4 text-[#9CAF88]" />}
+                          {option.value === 'moderate' && <Wind className="w-4 h-4 text-[#C4A77D]" />}
+                          {option.value === 'challenge' && <Flame className="w-4 h-4 text-[#C4A77D]" />}
                           <span>{option.label}</span>
                         </div>
-                        <p className="mt-1 text-xs text-slate-300">{option.desc}</p>
+                        <p className="mt-1 text-xs text-[#0B3D2E]/60">{option.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -298,10 +300,10 @@ export function DailyCheckin({
 
                 <MotionButton
                   onClick={handleSubmitInput}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-400 text-white text-sm font-semibold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
+                  className="w-full py-3.5 rounded-2xl bg-[#0B3D2E] hover:bg-[#0a3629] text-white text-sm font-semibold shadow-lg transition-colors"
                   hapticFeedback
                 >
-                  完成 Bio-Voltage 校准
+                  完成每日校准
                 </MotionButton>
               </motion.div>
             )}
@@ -314,11 +316,11 @@ export function DailyCheckin({
                 exit={{ opacity: 0, y: -16 }}
                 className="space-y-4"
               >
-                <div className="rounded-2xl border border-amber-200/20 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-orange-500/5 p-4 text-slate-50 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
+                <div className="rounded-2xl border border-[#C4A77D]/30 bg-gradient-to-br from-[#C4A77D]/10 via-[#E8DFD0]/10 to-white p-4 text-[#0B3D2E] shadow-sm">
                   <p className="text-sm font-semibold leading-relaxed">
                     {inquiryQuestion.question}
                   </p>
-                  <p className="mt-2 text-[11px] text-amber-100">补充关键情境后，算法会重新生成处方。</p>
+                  <p className="mt-2 text-[11px] text-[#0B3D2E]/60">补充关键情境后，算法会重新生成建议</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -326,12 +328,12 @@ export function DailyCheckin({
                     <MotionButton
                       key={opt.value}
                       variant="outline"
-                      className="h-auto py-3.5 px-3 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-200/40 hover:bg-amber-500/10 text-left"
+                      className="h-auto py-3.5 px-3 rounded-2xl bg-white border border-[#E7E1D6] hover:border-[#C4A77D] hover:bg-[#FAF6EF] text-left"
                       onClick={() => handleInquiryResponse(opt.value)}
                       hapticFeedback
                     >
                       <span className="text-2xl">{opt.emoji}</span>
-                      <span className="mt-1 block text-sm font-medium text-white">{opt.label}</span>
+                      <span className="mt-1 block text-sm font-medium text-[#0B3D2E]">{opt.label}</span>
                     </MotionButton>
                   ))}
                 </div>
@@ -347,35 +349,35 @@ export function DailyCheckin({
                 className="space-y-4"
               >
                 <div
-                  className={`rounded-2xl border p-4 shadow-[0_14px_40px_rgba(0,0,0,0.35)] ${
+                  className={`rounded-2xl border p-4 shadow-sm ${
                     generatedTask.mode === 'low_energy'
-                      ? 'border-indigo-300/20 bg-gradient-to-br from-indigo-500/15 via-slate-900/40 to-slate-900/70'
-                      : 'border-emerald-300/20 bg-gradient-to-br from-emerald-500/12 via-slate-900/40 to-slate-900/70'
+                      ? 'border-[#C4A77D]/30 bg-gradient-to-br from-[#C4A77D]/10 via-[#FAF6EF] to-white'
+                      : 'border-[#9CAF88]/30 bg-gradient-to-br from-[#9CAF88]/10 via-[#FAF6EF] to-white'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     {generatedTask.mode === 'low_energy' ? (
-                      <Moon className="w-4 h-4 text-indigo-200" />
+                      <Moon className="w-4 h-4 text-[#C4A77D]" />
                     ) : (
-                      <Sparkles className="w-4 h-4 text-emerald-200" />
+                      <Sparkles className="w-4 h-4 text-[#9CAF88]" />
                     )}
                     <span
                       className={`text-[11px] font-semibold uppercase tracking-[0.12em] px-2.5 py-1 rounded-full ${
                         generatedTask.mode === 'low_energy'
-                          ? 'bg-indigo-400/15 text-indigo-100 ring-1 ring-indigo-300/30'
-                          : 'bg-emerald-400/15 text-emerald-100 ring-1 ring-emerald-300/30'
+                          ? 'bg-[#C4A77D]/15 text-[#0B3D2E] ring-1 ring-[#C4A77D]/30'
+                          : 'bg-[#9CAF88]/15 text-[#0B3D2E] ring-1 ring-[#9CAF88]/30'
                       }`}
                     >
-                      {generatedTask.mode === 'low_energy' ? '低耗能模式' : '常规模式'}
+                      {generatedTask.mode === 'low_energy' ? '恢复模式' : '平衡模式'}
                     </span>
                   </div>
-                  <h3 className="text-base font-semibold text-white mb-1">{generatedTask.title}</h3>
-                  <p className="text-sm text-slate-200 leading-relaxed">{generatedTask.description}</p>
+                  <h3 className="text-base font-semibold text-[#0B3D2E] mb-1">{generatedTask.title}</h3>
+                  <p className="text-sm text-[#0B3D2E]/70 leading-relaxed">{generatedTask.description}</p>
                 </div>
 
                 <MotionButton
                   onClick={handleComplete}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-400 text-white text-sm font-semibold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
+                  className="w-full py-3.5 rounded-2xl bg-[#0B3D2E] hover:bg-[#0a3629] text-white text-sm font-semibold shadow-lg transition-colors"
                   hapticFeedback
                 >
                   确认，开始今日执行
@@ -394,12 +396,12 @@ export function DailyCheckin({
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                  className="w-16 h-16 rounded-full bg-emerald-400/15 ring-1 ring-emerald-400/40 flex items-center justify-center mb-3"
+                  className="w-16 h-16 rounded-full bg-[#9CAF88]/20 ring-1 ring-[#9CAF88]/40 flex items-center justify-center mb-3"
                 >
-                  <Check className="w-8 h-8 text-emerald-200" />
+                  <Check className="w-8 h-8 text-[#9CAF88]" />
                 </motion.div>
-                <p className="text-base font-medium text-white">校准完成</p>
-                <p className="text-sm text-slate-300 mt-1">仪表盘已更新今日基线</p>
+                <p className="text-base font-medium text-[#0B3D2E]">校准完成</p>
+                <p className="text-sm text-[#0B3D2E]/60 mt-1">今日状态已更新</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -411,10 +413,10 @@ export function DailyCheckin({
 
 function StatPill({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 shadow-inner shadow-black/20">
-      <div className="text-[11px] text-slate-300">{label}</div>
-      <div className="text-base font-semibold text-white leading-tight">{value}</div>
-      <p className="text-[11px] text-slate-400">{hint}</p>
+    <div className="rounded-xl border border-[#E7E1D6] bg-white px-3 py-2 shadow-sm">
+      <div className="text-[11px] text-[#0B3D2E]/50">{label}</div>
+      <div className="text-base font-semibold text-[#0B3D2E] leading-tight">{value}</div>
+      <p className="text-[11px] text-[#0B3D2E]/40">{hint}</p>
     </div>
   );
 }
@@ -436,18 +438,18 @@ function ControlCard({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-white/5 p-4 ring-1 ring-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] bg-gradient-to-br ${accent}`}
+      className={`rounded-2xl border border-[#E7E1D6] p-4 ring-1 ring-[#E7E1D6]/50 shadow-sm bg-gradient-to-br ${accent} bg-white`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm font-semibold text-white">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#0B3D2E]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white ring-1 ring-[#E7E1D6]">
             {icon}
           </span>
           {title}
         </div>
-        {value ? <span className="text-sm font-semibold text-white">{value}</span> : null}
+        {value ? <span className="text-sm font-semibold text-[#0B3D2E]">{value}</span> : null}
       </div>
-      {hint && <p className="mt-1 text-xs text-slate-300">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-[#0B3D2E]/60">{hint}</p>}
       {children}
     </div>
   );

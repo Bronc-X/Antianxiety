@@ -16,11 +16,13 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import { I18nProvider } from "@/lib/i18n";
 import { ToastProvider } from "@/components/ui/toast";
 import DevTools from "@/components/DevTools";
+import AIAssistantFloatingButton from "@/components/AIAssistantFloatingButton";
+import TraditionalChineseAutoConvert from "@/components/TraditionalChineseAutoConvert";
 
 
 
 export const metadata: Metadata = {
-  title: "No More anxious™ - 对抗焦虑，解锁身体潜能",
+  title: "AntiAnxiety™ - 对抗焦虑，解锁身体潜能",
   description: "通过建立微小、可持续的日常习惯来对抗新陈代谢衰退，核心是缓解心理焦虑，而非强制打卡。",
 };
 
@@ -43,8 +45,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh" suppressHydrationWarning>
       <head>
+        {/* 强制浅色模式 - 清除所有可能的深色模式设置 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  // 强制清除 dark class
+                  document.documentElement.classList.remove('dark');
+                  // 强制设置为 light 主题
+                  localStorage.setItem('theme', 'light');
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         {process.env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"
@@ -59,11 +76,13 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <I18nProvider>
+            <TraditionalChineseAutoConvert />
             <MotionProvider>
               <ToastProvider>
                 <GlobalNav />
                 <RouteTransition>{children}</RouteTransition>
                 <MobileBottomNav />
+                <AIAssistantFloatingButton />
                 <DevTools />
               </ToastProvider>
             </MotionProvider>

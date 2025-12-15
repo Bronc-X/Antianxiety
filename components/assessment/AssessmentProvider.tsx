@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useI18n, type Language } from '@/lib/i18n';
 import { 
   AssessmentPhase, 
   AssessmentResponse, 
@@ -17,7 +18,7 @@ interface AssessmentState {
   history: AnswerRecord[];
   isLoading: boolean;
   error: string | null;
-  language: 'zh' | 'en';
+  language: Language;
   countryCode: string;
   // 🆕 动态加载状态
   loadingContext: {
@@ -30,7 +31,7 @@ interface AssessmentState {
 interface AssessmentContextType extends AssessmentState {
   startAssessment: () => Promise<void>;
   submitAnswer: (questionId: string, value: string | string[] | number | boolean) => Promise<void>;
-  setLanguage: (lang: 'zh' | 'en') => void;
+  setLanguage: (lang: Language) => void;
   resetAssessment: () => void;
   dismissEmergency: () => Promise<void>;
 }
@@ -50,6 +51,7 @@ interface AssessmentProviderProps {
 }
 
 export function AssessmentProvider({ children }: AssessmentProviderProps) {
+  const { language: appLanguage, setLanguage: setAppLanguage } = useI18n();
   const [state, setState] = useState<AssessmentState>({
     sessionId: null,
     phase: 'welcome',
@@ -57,17 +59,14 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
     history: [],
     isLoading: false,
     error: null,
-    language: 'zh',
+    language: appLanguage,
     countryCode: 'CN',
     loadingContext: { questionCount: 0 }
   });
 
   // 检测用户语言
   useEffect(() => {
-    const browserLang = navigator.language.toLowerCase();
-    if (browserLang.startsWith('en')) {
-      setState(prev => ({ ...prev, language: 'en' }));
-    }
+    setState(prev => ({ ...prev, language: appLanguage }));
     
     // 尝试获取国家代码
     fetch('https://ipapi.co/country/')
@@ -78,7 +77,7 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [appLanguage]);
 
   const startAssessment = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -88,7 +87,7 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          language: state.language,
+          language: state.language === 'en' ? 'en' : 'zh',
           country_code: state.countryCode
         })
       });
@@ -161,7 +160,7 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
         body: JSON.stringify({
           session_id: state.sessionId,
           answer: { question_id: questionId, value },
-          language: state.language,
+          language: state.language === 'en' ? 'en' : 'zh',
           country_code: state.countryCode
         })
       });
@@ -196,9 +195,10 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
     }
   }, [state.sessionId, state.language, state.countryCode, state.currentStep]);
 
-  const setLanguage = useCallback((lang: 'zh' | 'en') => {
+  const setLanguage = useCallback((lang: Language) => {
+    setAppLanguage(lang);
     setState(prev => ({ ...prev, language: lang }));
-  }, []);
+  }, [setAppLanguage]);
 
   const resetAssessment = useCallback(() => {
     setState({
@@ -209,7 +209,8 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
       isLoading: false,
       error: null,
       language: state.language,
-      countryCode: state.countryCode
+      countryCode: state.countryCode,
+      loadingContext: { questionCount: 0 }
     });
   }, [state.language, state.countryCode]);
 

@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EmergencyStep } from '@/types/assessment';
 import { Phone, AlertTriangle, X } from 'lucide-react';
+import { tr, type Language } from '@/lib/i18n';
 
 interface EmergencyAlertProps {
   emergency: EmergencyStep['emergency'];
   onDismiss: () => void;
-  language: 'zh' | 'en';
+  language: Language;
 }
 
 export function EmergencyAlert({ emergency, onDismiss, language }: EmergencyAlertProps) {
@@ -72,7 +73,7 @@ export function EmergencyAlert({ emergency, onDismiss, language }: EmergencyAler
         >
           <Phone className="w-7 h-7" />
           <span>
-            {language === 'zh' ? '拨打' : 'Call'} {emergency.emergency_number}
+            {tr(language, { zh: '拨打', en: 'Call' })} {emergency.emergency_number}
           </span>
         </motion.button>
 
@@ -83,7 +84,7 @@ export function EmergencyAlert({ emergency, onDismiss, language }: EmergencyAler
         {/* 指示列表 */}
         <div className="mt-10 w-full max-w-md">
           <h3 className="text-sm font-medium text-white/70 mb-3">
-            {language === 'zh' ? '在等待帮助时：' : 'While waiting for help:'}
+            {tr(language, { zh: '在等待帮助时：', en: 'While waiting for help:' })}
           </h3>
           <ul className="space-y-2">
             {emergency.instructions.map((instruction, index) => (
@@ -120,26 +121,26 @@ export function EmergencyAlert({ emergency, onDismiss, language }: EmergencyAler
               exit={{ scale: 0.9, opacity: 0 }}
             >
               <h3 className="text-xl font-bold text-[#2C2C2C] mb-3">
-                {language === 'zh' ? '确定要关闭吗？' : 'Are you sure?'}
+                {tr(language, { zh: '确定要关闭吗？', en: 'Are you sure?' })}
               </h3>
               <p className="text-[#2C2C2C]/70 mb-6">
-                {language === 'zh' 
-                  ? '您的症状可能需要紧急医疗关注。关闭此警告可能会延误重要的医疗救治。'
-                  : 'Your symptoms may require urgent medical attention. Dismissing this alert may delay important medical care.'
-                }
+                {tr(language, {
+                  zh: '您的症状可能需要紧急医疗关注。关闭此警告可能会延误重要的医疗救治。',
+                  en: 'Your symptoms may require urgent medical attention. Dismissing this alert may delay important medical care.',
+                })}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowConfirm(false)}
                   className="flex-1 py-3 bg-red-600 text-white rounded-full font-medium"
                 >
-                  {language === 'zh' ? '返回' : 'Go back'}
+                  {tr(language, { zh: '返回', en: 'Go back' })}
                 </button>
                 <button
                   onClick={confirmDismiss}
                   className="flex-1 py-3 bg-gray-200 text-[#2C2C2C] rounded-full font-medium"
                 >
-                  {language === 'zh' ? '我理解风险' : 'I understand'}
+                  {tr(language, { zh: '我理解风险', en: 'I understand' })}
                 </button>
               </div>
             </motion.div>

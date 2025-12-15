@@ -241,18 +241,24 @@ const getPersonalizedTips = (profile?: UserProfile, recentLogs?: DailyLog[]): He
     .map(({ score, ...tip }) => tip);
 };
 
-// 获取类别图标
-const getCategoryIcon = (category: HealthTip['category']) => {
-  const icons = {
-    sleep: Brain,
-    exercise: Activity, 
-    nutrition: Sparkles,
-    stress: Lightbulb,
-    longevity: Lightbulb,
-    energy: Activity
-  };
-  return icons[category];
-};
+function CategoryIcon({ category, className }: { category: HealthTip['category']; className?: string }) {
+  switch (category) {
+    case 'sleep':
+      return <Brain className={className} />;
+    case 'exercise':
+      return <Activity className={className} />;
+    case 'nutrition':
+      return <Sparkles className={className} />;
+    case 'stress':
+      return <Lightbulb className={className} />;
+    case 'longevity':
+      return <Lightbulb className={className} />;
+    case 'energy':
+      return <Activity className={className} />;
+    default:
+      return <Lightbulb className={className} />;
+  }
+}
 
 export default function DynamicHealthTips({ 
   userProfile, 
@@ -333,7 +339,6 @@ export default function DynamicHealthTips({
   }
 
   const currentTip = personalizedTips[currentIndex];
-  const IconComponent = getCategoryIcon(currentTip.category);
 
   return (
     <div className={`glass-card rounded-3xl p-6 relative overflow-hidden ${className}`}>
@@ -345,7 +350,7 @@ export default function DynamicHealthTips({
       {/* 头部 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-[#0B3D2E]/60 text-sm">
-          <IconComponent className="w-4 h-4" />
+          <CategoryIcon category={currentTip.category} className="w-4 h-4" />
           <span>健康贴士</span>
           <span className="text-xs bg-[#0B3D2E]/10 px-2 py-0.5 rounded-full">
             {currentIndex + 1}/{personalizedTips.length}

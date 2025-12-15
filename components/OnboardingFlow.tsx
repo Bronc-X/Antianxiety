@@ -2,27 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ONBOARDING_FLOW, type Question } from '@/lib/questions';
+import { ONBOARDING_FLOW, ONBOARDING_FLOW_EN, type Question } from '@/lib/questions';
+import { tr, useI18n } from '@/lib/i18n';
 
 interface OnboardingFlowProps {
   onComplete: (answers: Record<string, string>) => void;
 }
 
 export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
+  const { language } = useI18n();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
 
-  const totalSteps = ONBOARDING_FLOW.length;
+  const flow = language === 'en' ? ONBOARDING_FLOW_EN : ONBOARDING_FLOW;
+  const totalSteps = flow.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
-  const currentQuestion = ONBOARDING_FLOW[currentStep];
+  const currentQuestion = flow[currentStep];
 
   // 分析阶段的文案
   const analysisTexts = [
-    'AI 正在分析你的代谢指纹...',
-    '正在构建皮质醇模型...',
-    '生成个性化方案...',
+    tr(language, { zh: 'AI 正在分析你的代谢指纹...', en: 'Analyzing your metabolic fingerprint...' }),
+    tr(language, { zh: '正在构建皮质醇模型...', en: 'Building a cortisol model...' }),
+    tr(language, { zh: '生成个性化方案...', en: 'Generating a personalized plan...' }),
   ];
 
   // 分析阶段动画
@@ -105,9 +108,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             {analysisTexts.map((_, idx) => (
               <div
                 key={idx}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  idx <= analysisStep ? 'bg-[#0B3D2E]' : 'bg-[#E7E1D6]'
-                }`}
+                className={`w-2 h-2 rounded-full transition-all ${idx <= analysisStep ? 'bg-[#0B3D2E]' : 'bg-[#E7E1D6]'
+                  }`}
               />
             ))}
           </div>
@@ -141,7 +143,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             >
               {/* 问题序号 */}
               <div className="text-sm font-mono text-[#0B3D2E]/60 mb-4">
-                问题 {currentStep + 1} / {totalSteps}
+                {tr(language, { zh: '问题', en: 'Question' })} {currentStep + 1} / {totalSteps}
               </div>
 
               {/* 问题主文本 */}
@@ -167,10 +169,9 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       onClick={() => handleAnswer(currentQuestion.id, option.value)}
                       className={`
                         w-full text-left p-5 rounded-2xl border-2 transition-all
-                        ${
-                          isSelected
-                            ? 'border-[#0B3D2E] bg-[#F2F7F5] shadow-md'
-                            : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/40 hover:shadow-sm'
+                        ${isSelected
+                          ? 'border-[#0B3D2E] bg-[#F2F7F5] shadow-md'
+                          : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/40 hover:shadow-sm'
                         }
                       `}
                       whileHover={{ scale: 1.02 }}
@@ -183,7 +184,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         <span className={`text-lg ${isSelected ? 'text-[#0B3D2E] font-medium' : 'text-[#0B3D2E]/80'}`}>
                           {option.label}
                         </span>
-                        
+
                         {/* 选中指示器 */}
                         <div
                           className={`
@@ -214,7 +215,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               {/* 底部提示（可选） */}
               <div className="mt-8 text-center">
                 <p className="text-xs text-[#0B3D2E]/40">
-                  选择答案后将自动进入下一题
+                  {tr(language, { zh: '选择答案后将自动进入下一题', en: 'Selecting an answer will automatically go to the next question.' })}
                 </p>
               </div>
             </motion.div>
@@ -225,7 +226,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* 底部装饰（可选） */}
       <div className="p-4 text-center">
         <p className="text-xs text-[#0B3D2E]/30 font-mono">
-          No More anxious™ · 代谢焦虑诊断
+          {tr(language, { zh: 'AntiAnxiety™ · 代谢焦虑诊断', en: 'AntiAnxiety™ · Metabolic Anxiety Assessment' })}
         </p>
       </div>
     </div>

@@ -1,58 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2, Share2, Settings, Zap, Sparkles } from 'lucide-react';
 import { updateSettings } from '../actions/settings';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import ImageComparisonSlider from '@/components/ImageComparisonSlider';
-import { useTheme } from 'next-themes';
-import { Moon, Sun } from 'lucide-react';
 
-// 主题切换卡片组件
-function ThemeToggleCard({ language }: { language: string }) {
-  const { theme, setTheme } = useTheme();
-  
-  const themes = [
-    { id: 'light', emoji: '🌿', name: language === 'zh' ? '燕麦绿' : 'California Calm', desc: language === 'zh' ? '默认浅色主题' : 'Default light theme' },
-    { id: 'dark', emoji: '⚫', name: language === 'zh' ? '极简黑' : 'Minimal Dark', desc: language === 'zh' ? '深色护眼模式' : 'Dark mode for eyes' },
-  ];
+// 懒加载 ImageComparisonSlider - 只在解锁页面需要时才加载
+const ImageComparisonSlider = lazy(() => import('@/components/ImageComparisonSlider'));
 
-  return (
-    <div className="rounded-2xl border border-[#E7E1D6] bg-white dark:bg-neutral-900 dark:border-neutral-800 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">
-          {language === 'zh' ? '界面主题' : 'Interface Theme'}
-        </h2>
-        <span className="rounded-full bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900 dark:to-indigo-900 px-3 py-1 text-sm font-medium text-purple-700 dark:text-purple-300">
-          {language === 'zh' ? '新功能' : 'New'}
-        </span>
-      </div>
-      <p className="text-sm text-[#0B3D2E]/70 dark:text-white/60 mb-4">
-        {language === 'zh' ? '选择你喜欢的界面配色方案' : 'Choose your preferred color scheme'}
-      </p>
-      <div className="grid grid-cols-2 gap-3">
-        {themes.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTheme(t.id)}
-            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-              theme === t.id
-                ? 'border-[#9CAF88] bg-[#9CAF88]/10 dark:border-white dark:bg-white/10'
-                : 'border-[#E7E1D6] dark:border-neutral-700 hover:border-[#9CAF88]/50 dark:hover:border-white/30'
-            }`}
-          >
-            <span className="text-2xl">{t.emoji}</span>
-            <span className="text-sm font-medium text-[#0B3D2E] dark:text-white">{t.name}</span>
-            <span className="text-xs text-[#0B3D2E]/60 dark:text-white/50">{t.desc}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 interface SettingsClientProps {
   user: { id: string; email?: string };
@@ -196,7 +154,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
               animate={{ opacity: 1, y: 0 }}
               className="text-3xl md:text-4xl font-bold text-[#0B3D2E] dark:text-white"
             >
-              {language === 'zh' ? '个人设置' : 'Settings'}
+              {t('settings.personalTitle')}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
@@ -204,7 +162,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
               transition={{ delay: 0.1 }}
               className="text-sm md:text-base text-[#C4A77D] dark:text-neutral-400"
             >
-              {language === 'zh' ? '滑动解锁，进入你的专属配置' : 'Slide to unlock your personal settings'}
+              {t('settings.unlockHint')}
             </motion.p>
           </div>
 
@@ -214,12 +172,18 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
             transition={{ delay: 0.2 }}
             className="w-full"
           >
-            <ImageComparisonSlider
-              beforeImage={imgBw}
-              afterImage={imgColor}
-              onComplete={handleSliderComplete}
-              onProgressChange={setSliderProgress}
-            />
+            <Suspense fallback={
+              <div className="w-full h-64 bg-white/50 rounded-xl flex items-center justify-center">
+                <Loader2 className="w-6 h-6 text-[#9CAF88] animate-spin" />
+              </div>
+            }>
+              <ImageComparisonSlider
+                beforeImage={imgBw}
+                afterImage={imgColor}
+                onComplete={handleSliderComplete}
+                onProgressChange={setSliderProgress}
+              />
+            </Suspense>
           </motion.div>
         </div>
       </div>
@@ -666,9 +630,6 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 </div>
               </div>
             </div>
-
-            {/* Theme Settings */}
-            <ThemeToggleCard language={language} />
 
             {/* Subscription Status */}
             <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">

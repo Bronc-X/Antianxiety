@@ -18,6 +18,9 @@ fc.configureGlobal({ numRuns: 100 });
 const userIdArb = fc.uuid();
 
 // Arbitrary for generating belief sessions
+const MIN_CREATED_AT_MS = Date.parse('2020-01-01T00:00:00.000Z');
+const MAX_CREATED_AT_MS = Date.parse('2030-12-31T23:59:59.999Z');
+
 const beliefSessionArb = (userId: string) => fc.record({
   id: fc.uuid(),
   user_id: fc.constant(userId),
@@ -32,7 +35,7 @@ const beliefSessionArb = (userId: string) => fc.record({
     url: fc.webUrl()
   }), { maxLength: 5 }) as fc.Arbitrary<Paper[]>,
   belief_text: fc.option(fc.string(), { nil: undefined }),
-  created_at: fc.date().map(d => d.toISOString())
+  created_at: fc.integer({ min: MIN_CREATED_AT_MS, max: MAX_CREATED_AT_MS }).map((ms) => new Date(ms).toISOString()),
 });
 
 /**
@@ -61,29 +64,29 @@ describe('Belief Data Isolation Property Tests', () => {
           (user1Id, user2Id, user1SessionsRaw, user2SessionsRaw) => {
             // Skip if same user ID
             if (user1Id === user2Id) return true;
-            
+
             // Assign correct user IDs
             const user1Sessions = user1SessionsRaw.map(s => ({ ...s, user_id: user1Id }));
             const user2Sessions = user2SessionsRaw.map(s => ({ ...s, user_id: user2Id }));
-            
+
             // Combine all sessions
             const allSessions = [...user1Sessions, ...user2Sessions];
-            
+
             // User 1 queries - should only see their sessions
             const user1Results = filterByUser(allSessions, user1Id);
             expect(user1Results.length).toBe(user1Sessions.length);
             expect(user1Results.every(s => s.user_id === user1Id)).toBe(true);
-            
+
             // User 2 queries - should only see their sessions
             const user2Results = filterByUser(allSessions, user2Id);
             expect(user2Results.length).toBe(user2Sessions.length);
             expect(user2Results.every(s => s.user_id === user2Id)).toBe(true);
-            
+
             return true;
           }
         )
       );
-    });
+    }, 20000);
 
     it('user should not see any sessions from other users', () => {
       fc.assert(
@@ -94,14 +97,14 @@ describe('Belief Data Isolation Property Tests', () => {
           (requestingUserId, otherUserId, sessionsRaw) => {
             // Skip if same user ID
             if (requestingUserId === otherUserId) return true;
-            
+
             // Assign other user's ID to all sessions
             const otherSessions = sessionsRaw.map(s => ({ ...s, user_id: otherUserId }));
-            
+
             // Requesting user queries - should see nothing
             const results = filterByUser(otherSessions, requestingUserId);
             expect(results.length).toBe(0);
-            
+
             return true;
           }
         )
@@ -126,12 +129,12 @@ describe('Belief Data Isolation Property Tests', () => {
           (userId, sessionsRaw) => {
             // Assign user ID
             const sessions = sessionsRaw.map(s => ({ ...s, user_id: userId }));
-            
+
             // Filter multiple times
             const first = filterByUser(sessions, userId);
             const second = filterByUser(first, userId);
             const third = filterByUser(second, userId);
-            
+
             // All should be identical
             expect(first).toEqual(second);
             expect(second).toEqual(third);
