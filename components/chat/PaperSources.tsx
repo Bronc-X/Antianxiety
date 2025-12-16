@@ -94,16 +94,16 @@ function truncateText(text: string, maxLength: number): string {
 // Sub Components
 // ============================================
 
-function PaperCard({ 
-  paper, 
-  index 
-}: { 
-  paper: PaperSource; 
+function PaperCard({
+  paper,
+  index
+}: {
+  paper: PaperSource;
   index: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const consensus = getConsensusLevel(paper.citationCount);
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -118,13 +118,13 @@ function PaperCard({
                          px-2.5 py-1 rounded-lg shrink-0`}>
           {index + 1}
         </span>
-        
+
         <div className="flex-1 min-w-0">
           {/* 标题 */}
           <h4 className="font-medium text-sm text-[#0B3D2E] leading-snug">
             {paper.title}
           </h4>
-          
+
           {/* 元信息 */}
           <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-[#0B3D2E]/60">
             {paper.journal && (
@@ -137,7 +137,7 @@ function PaperCard({
               • {formatCitationCount(paper.citationCount)} citations
             </span>
           </div>
-          
+
           {/* 摘要（可展开） */}
           {paper.abstract && (
             <AnimatePresence>
@@ -153,7 +153,7 @@ function PaperCard({
               )}
             </AnimatePresence>
           )}
-          
+
           {/* 操作栏 */}
           <div className="flex items-center gap-3 mt-3">
             {paper.abstract && (
@@ -175,9 +175,9 @@ function PaperCard({
                 )}
               </button>
             )}
-            
+
             <a
-              href={paper.doi ? `https://doi.org/${paper.doi}` : paper.url}
+              href={paper.doi ? `https://doi.org/${paper.doi}` : (paper.url && paper.url !== '#' ? paper.url : `https://scholar.google.com/scholar?q=${encodeURIComponent(paper.title)}`)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-[#0B3D2E] 
@@ -205,14 +205,14 @@ export function PaperSources({
 }: PaperSourcesProps) {
   const [showAll, setShowAll] = useState(false);
   const [collapsed, setCollapsed] = useState(!defaultExpanded);
-  
+
   if (!papers || papers.length === 0) {
     return null;
   }
-  
+
   const visiblePapers = showAll ? papers : papers.slice(0, maxVisible);
   const hasMore = papers.length > maxVisible;
-  
+
   return (
     <div className={`mt-4 ${className}`}>
       {/* 标题栏 */}
@@ -228,12 +228,12 @@ export function PaperSources({
                          px-2 py-0.5 rounded-full">
           {papers.length} sources
         </span>
-        <ChevronDown 
+        <ChevronDown
           className={`w-4 h-4 text-[#0B3D2E]/60 ml-auto transition-transform
                       ${collapsed ? '' : 'rotate-180'}`}
         />
       </button>
-      
+
       {/* 论文列表 */}
       <AnimatePresence>
         {!collapsed && (
@@ -244,13 +244,13 @@ export function PaperSources({
             className="space-y-3"
           >
             {visiblePapers.map((paper, index) => (
-              <PaperCard 
-                key={paper.paperId} 
-                paper={paper} 
-                index={index} 
+              <PaperCard
+                key={paper.paperId}
+                paper={paper}
+                index={index}
               />
             ))}
-            
+
             {/* 展开更多按钮 */}
             {hasMore && !showAll && (
               <motion.button
@@ -286,7 +286,7 @@ interface InlineCitationProps {
  */
 export function InlineCitation({ index, paper }: InlineCitationProps) {
   const [showTooltip, setShowTooltip] = useState(false);
-  
+
   return (
     <span className="relative inline-block">
       <button
@@ -300,7 +300,7 @@ export function InlineCitation({ index, paper }: InlineCitationProps) {
       >
         {index + 1}
       </button>
-      
+
       {/* Tooltip */}
       <AnimatePresence>
         {showTooltip && (

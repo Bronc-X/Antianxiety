@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, Sparkles, AlertTriangle, Activity, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MotionButton } from '@/components/motion/MotionButton';
+import TypewriterText from '@/components/motion/TypewriterText';
 import { CalibrationInput, GeneratedTask } from '@/lib/calibration-service';
 import { useI18n } from '@/lib/i18n';
 
@@ -54,7 +55,7 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
       const hrvDrop = (previousLog.hrv - latestLog.hrv) / previousLog.hrv;
       if (hrvDrop > 0.15) {
         setShowAnomalyCard(true);
-        setAnomalyQuestion(language === 'en' 
+        setAnomalyQuestion(language === 'en'
           ? `Your HRV dropped by ${Math.round(hrvDrop * 100)}%. Did any of these happen last night?`
           : `你的 HRV 下降了 ${Math.round(hrvDrop * 100)}%。昨晚是否有以下情况？`);
       }
@@ -81,8 +82,8 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
     const lastCalibration = localStorage.getItem('nma_daily_calibration');
     if (lastCalibration === today) {
       const savedTask = localStorage.getItem('nma_today_task');
-      if (savedTask) { 
-        try { 
+      if (savedTask) {
+        try {
           const task = JSON.parse(savedTask) as GeneratedTask;
           if (!task.descriptionEn) {
             const descMap: Record<string, string> = {
@@ -94,8 +95,8 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
             };
             task.descriptionEn = descMap[task.description] || task.description;
           }
-          setTodayTask(task); 
-        } catch (e) { console.error(e); } 
+          setTodayTask(task);
+        } catch (e) { console.error(e); }
       }
     }
   }, []);
@@ -133,9 +134,9 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
             <span className="absolute -top-3 -right-10 px-2.5 py-1 text-xs font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-md shadow-md tracking-wider">PRO</span>
           </motion.span>
         </motion.h1>
-        <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="subtitle text-lg text-gray-600 dark:text-neutral-400 mt-2">
-          {t('landing.findBalance')}
-        </motion.p>
+        <div className="subtitle text-lg text-gray-600 dark:text-neutral-400 mt-2 min-h-[1.75rem]">
+          <TypewriterText text={t('landing.findBalance')} delay={0.5} />
+        </div>
       </header>
 
       {/* 金句轮播 - 懒加载 */}

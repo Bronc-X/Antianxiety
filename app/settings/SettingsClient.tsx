@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2, Share2, Settings, Zap, Sparkles } from 'lucide-react';
+import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2, Share2, Settings, Zap, Sparkles, Target } from 'lucide-react';
 import { updateSettings } from '../actions/settings';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
+import PhaseGoalsDisplay from '@/components/PhaseGoalsDisplay';
 
 // 懒加载 ImageComparisonSlider - 只在解锁页面需要时才加载
 const ImageComparisonSlider = lazy(() => import('@/components/ImageComparisonSlider'));
@@ -456,36 +457,9 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
             <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-[#0B3D2E] mb-6">{t('settings.coreConfigTitle')}</h2>
 
-              {/* Primary Goal */}
+              {/* Phase Goals Display - AI Recommended (Requirement 2.5) */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
-                  {t('settings.primaryGoalLabel')} <span className="text-red-500">{t('settings.primaryGoalRequired')}</span>
-                </label>
-                <p className="text-xs text-[#0B3D2E]/60 mb-3">
-                  {t('settings.primaryGoalHint')}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    { value: 'lose_weight', label: t('settings.goalLoseWeight'), icon: '🎯' },
-                    { value: 'improve_sleep', label: t('settings.goalImproveSleep'), icon: '😴' },
-                    { value: 'boost_energy', label: t('settings.goalBoostEnergy'), icon: '⚡' },
-                    { value: 'maintain_energy', label: t('settings.goalMaintainHealth'), icon: '🌿' },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleChange('primary_goal', option.value)}
-                      className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-                        formData.primary_goal === option.value
-                          ? 'border-[#0B3D2E] bg-[#F2F7F5]'
-                          : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/50'
-                      }`}
-                    >
-                      <span className="text-2xl">{option.icon}</span>
-                      <span className="font-medium text-[#0B3D2E]">{option.label}</span>
-                    </button>
-                  ))}
-                </div>
+                <PhaseGoalsDisplay userId={user.id} />
               </div>
 
               {/* MAX Settings Panel - 白色 UI 风格，幽默感自动决定人格 */}

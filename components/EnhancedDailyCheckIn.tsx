@@ -105,10 +105,10 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
     stressLevel: '',
     notes: '',
   });
-  
+
   // 保存成功后显示活动环
   const [showActivityRing, setShowActivityRing] = useState(false);
-  
+
   // 运动类型列表
   const exerciseTypes = [
     { id: 'running', name: '跑步', icon: '🏃' },
@@ -132,7 +132,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [aiSummary, setAiSummary] = useState<string>('');
-  
+
   // 贝叶斯信心统计
   const weeklyConfidence = useMemo(() => {
     return getCurrentWeekConfidence(logs);
@@ -146,23 +146,23 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
     if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
-      
+
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'zh-CN';
-      
+
       recognition.onresult = (event) => {
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
-        
+
         setVoiceRecording(prev => ({
           ...prev,
           transcript: transcript
         }));
       };
-      
+
       recognition.onerror = (event) => {
         console.error('语音识别错误:', event.error);
         setToast(`语音识别失败: ${event.error}`);
@@ -172,17 +172,17 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
           isProcessing: false
         }));
       };
-      
+
       recognition.onend = () => {
         setVoiceRecording(prev => ({
           ...prev,
           isRecording: false
         }));
       };
-      
+
       recognitionRef.current = recognition;
     }
-    
+
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
@@ -241,9 +241,9 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
   // AI处理语音输入
   const processVoiceInput = async () => {
     if (!voiceRecording.transcript.trim()) return;
-    
+
     setVoiceRecording(prev => ({ ...prev, isProcessing: true }));
-    
+
     try {
       // 调用AI分析语音内容
       const response = await fetch('/api/ai/analyze-voice-input', {
@@ -262,7 +262,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
       }
 
       const result = await response.json();
-      
+
       // 更新表单数据
       if (result.formUpdates) {
         setFormState(prev => ({
@@ -270,14 +270,14 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
           ...result.formUpdates
         }));
       }
-      
+
       // 设置AI总结
       if (result.summary) {
         setAiSummary(result.summary);
       }
-      
+
       setToast('✅ 语音内容已智能解析并填入表单');
-      
+
     } catch (error) {
       console.error('AI处理语音输入失败:', error);
       setToast('AI分析失败，请手动填写表单');
@@ -330,8 +330,8 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
     setIsSaving(false);
 
     // 后台刷新：让 AI 建议/文章推荐跟随今日数据更新
-    fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
-    
+    fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+
     // 延迟跳转，让用户看到活动环
     setTimeout(() => {
       router.push('/landing');
@@ -343,19 +343,19 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF6EF] to-[#F2F7F5] p-4">
+    <div className="min-h-screen bg-[#FDFBF7] p-4 font-sans text-[#0B3D2E]">
       <div className="max-w-2xl mx-auto">
-        
+
         {/* 贝叶斯信心统计卡片 */}
         {weeklyConfidence && (
           <AnimatedSection className="mb-6">
-            <div className="glass-card rounded-3xl p-6 mb-6">
+            <div className="bg-white rounded-xl border border-[#E7E1D6] p-6 shadow-sm mb-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{getConfidenceIcon(weeklyConfidence.confidence.reliabilityLevel)}</span>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#0B3D2E]">贝叶斯信心统计</h3>
-                    <p className="text-sm text-[#0B3D2E]/60">本周数据可信度分析</p>
+                    <h3 className="text-lg font-serif font-bold text-[#0B3D2E]">贝叶斯信心统计</h3>
+                    <p className="text-xs font-mono text-[#0B3D2E]/60 uppercase tracking-wider">本周数据可信度分析</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -367,37 +367,37 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
-                  <div className="text-sm text-[#0B3D2E]/60">数据完整度</div>
+                  <div className="text-xs font-mono uppercase tracking-wide text-[#0B3D2E]/50 mb-1">数据完整度</div>
                   <div className="font-semibold text-[#0B3D2E]">
                     {formatConfidencePercentage(weeklyConfidence.confidence.dataCompleteness)}
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm text-[#0B3D2E]/60">一致性</div>
+                  <div className="text-xs font-mono uppercase tracking-wide text-[#0B3D2E]/50 mb-1">一致性</div>
                   <div className="font-semibold text-[#0B3D2E]">
                     {formatConfidencePercentage(weeklyConfidence.confidence.consistency)}
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm text-[#0B3D2E]/60">趋势稳定性</div>
+                  <div className="text-xs font-mono uppercase tracking-wide text-[#0B3D2E]/50 mb-1">趋势稳定性</div>
                   <div className="font-semibold text-[#0B3D2E]">
                     {formatConfidencePercentage(weeklyConfidence.confidence.weeklyTrend)}
                   </div>
                 </div>
               </div>
-              
+
               {weeklyConfidence.insights.length > 0 && (
-                <div className="bg-[#0B3D2E]/5 rounded-2xl p-3">
+                <div className="bg-[#FAF6EF] border border-[#E7E1D6] rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <Lightbulb className="w-4 h-4 text-amber-600" />
-                    <span className="text-sm font-medium text-[#0B3D2E]">洞察建议</span>
+                    <Lightbulb className="w-4 h-4 text-[#D4AF37]" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#0B3D2E]">洞察建议</span>
                   </div>
                   <ul className="space-y-1">
                     {weeklyConfidence.insights.map((insight, index) => (
-                      <li key={index} className="text-sm text-[#0B3D2E]/70">
+                      <li key={index} className="text-sm text-[#0B3D2E]/70 font-medium">
                         {insight}
                       </li>
                     ))}
@@ -410,73 +410,72 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
         {/* 语音输入区域 */}
         <AnimatedSection className="mb-6">
-          <div className="glass-card rounded-3xl p-6">
+          <div className="bg-white rounded-xl border border-[#E7E1D6] p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <Mic className="w-6 h-6 text-[#0B3D2E]" />
               <div>
-                <h3 className="text-lg font-semibold text-[#0B3D2E]">AI语音助理</h3>
-                <p className="text-sm text-[#0B3D2E]/60">描述您今天的睡眠、运动、心情状态</p>
+                <h3 className="text-lg font-serif font-bold text-[#0B3D2E]">AI语音助理</h3>
+                <p className="text-xs font-mono text-[#0B3D2E]/60 uppercase tracking-wider">描述您今天的睡眠、运动、心情状态</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 mb-4">
               <button
                 onClick={toggleVoiceRecording}
                 disabled={voiceRecording.isProcessing}
-                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-medium transition-all ${
-                  voiceRecording.isRecording
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold tracking-wide transition-all ${voiceRecording.isRecording
                     ? 'bg-red-500 text-white animate-pulse'
-                    : 'bg-[#0B3D2E] text-white hover:bg-[#0B3D2E]/90'
-                } disabled:opacity-50`}
+                    : 'bg-[#0B3D2E] text-white hover:bg-[#0a3629] shadow-sm'
+                  } disabled:opacity-50`}
               >
                 {voiceRecording.isRecording ? (
                   <>
-                    <MicOff className="w-5 h-5" />
+                    <MicOff className="w-4 h-4" />
                     <span>停止录制</span>
                   </>
                 ) : (
                   <>
-                    <Mic className="w-5 h-5" />
+                    <Mic className="w-4 h-4" />
                     <span>开始录制</span>
                   </>
                 )}
               </button>
-              
+
               {voiceRecording.transcript && (
                 <button
                   onClick={processVoiceInput}
                   disabled={voiceRecording.isProcessing}
-                  className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-2xl font-medium hover:bg-blue-600 transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold tracking-wide hover:bg-blue-700 transition-all shadow-sm disabled:opacity-50"
                 >
                   {voiceRecording.isProcessing ? (
                     <>
-                      <Sparkles className="w-5 h-5 animate-spin" />
+                      <Sparkles className="w-4 h-4 animate-spin" />
                       <span>AI分析中...</span>
                     </>
                   ) : (
                     <>
-                      <Send className="w-5 h-5" />
+                      <Send className="w-4 h-4" />
                       <span>AI分析</span>
                     </>
                   )}
                 </button>
               )}
             </div>
-            
+
             {voiceRecording.transcript && (
-              <div className="bg-[#0B3D2E]/5 rounded-2xl p-4">
-                <div className="text-sm text-[#0B3D2E]/60 mb-2">识别内容：</div>
-                <div className="text-[#0B3D2E]">{voiceRecording.transcript}</div>
+              <div className="bg-[#FAF6EF] rounded-lg border border-[#E7E1D6] p-4 mb-3">
+                <div className="text-xs font-mono font-bold text-[#0B3D2E]/40 mb-2 uppercase">识别内容</div>
+                <div className="text-[#0B3D2E] text-sm leading-relaxed">{voiceRecording.transcript}</div>
               </div>
             )}
-            
+
             {aiSummary && (
-              <div className="bg-blue-50 rounded-2xl p-4 mt-3">
+              <div className="bg-[#F0F7FF] border border-blue-100 rounded-lg p-4 mt-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">AI分析总结</span>
+                  <span className="text-xs font-bold text-blue-800 uppercase tracking-widest">AI分析总结</span>
                 </div>
-                <div className="text-sm text-blue-700">{aiSummary}</div>
+                <div className="text-sm text-blue-900 leading-relaxed font-medium">{aiSummary}</div>
               </div>
             )}
           </div>
@@ -484,57 +483,58 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
         {/* 快速记录表单 - 简化版本 */}
         <AnimatedSection>
-          <div className="glass-card rounded-3xl p-6">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="bg-white rounded-xl border border-[#E7E1D6] p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6 border-b border-[#E7E1D6] pb-4">
               <Calendar className="w-6 h-6 text-[#0B3D2E]" />
               <div>
-                <h3 className="text-lg font-semibold text-[#0B3D2E]">今日状态记录</h3>
-                <p className="text-sm text-[#0B3D2E]/60">
-                  {new Date().toLocaleDateString('zh-CN', { 
-                    year: 'numeric', 
-                    month: 'long', 
+                <h3 className="text-lg font-serif font-bold text-[#0B3D2E]">今日状态记录</h3>
+                <p className="text-xs font-mono text-[#0B3D2E]/60 uppercase tracking-wider">
+                  {new Date().toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
                     day: 'numeric',
-                    weekday: 'long' 
+                    weekday: 'long'
                   })}
                 </p>
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* 睡眠时长 - 滑动条 */}
               <div>
-                <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
+                <label className="block text-sm font-bold text-[#0B3D2E] mb-3 uppercase tracking-wider">
                   睡眠时长
                 </label>
-                <Slider
-                  min={180}
-                  max={600}
-                  step={30}
-                  value={formState.sleepDuration ? Number(formState.sleepDuration) : 420}
-                  onChange={(value) => updateFormField('sleepDuration', value.toString())}
-                  formatValue={(v) => `${(v / 60).toFixed(1)} 小时`}
-                  color="#0B3D2E"
-                  marks={[
-                    { value: 180, label: '3h' },
-                    { value: 420, label: '7h' },
-                    { value: 600, label: '10h' },
-                  ]}
-                />
+                <div className="px-1">
+                  <Slider
+                    min={180}
+                    max={600}
+                    step={30}
+                    value={formState.sleepDuration ? Number(formState.sleepDuration) : 420}
+                    onChange={(value) => updateFormField('sleepDuration', value.toString())}
+                    formatValue={(v) => `${(v / 60).toFixed(1)} h`}
+                    color="#0B3D2E"
+                    marks={[
+                      { value: 180, label: '3h' },
+                      { value: 420, label: '7h' },
+                      { value: 600, label: '10h' },
+                    ]}
+                  />
+                </div>
               </div>
 
               {/* 睡眠质量 */}
               <div>
-                <label className="block text-sm font-medium text-[#0B3D2E] mb-3">睡眠质量</label>
+                <label className="block text-sm font-bold text-[#0B3D2E] mb-3 uppercase tracking-wider">睡眠质量</label>
                 <div className="grid grid-cols-2 gap-2">
                   {sleepQualityMarks.map((mark) => (
                     <button
                       key={mark.value}
                       onClick={() => updateFormField('sleepQuality', mark.value)}
-                      className={`p-3 rounded-xl text-sm font-medium transition-all ${
-                        formState.sleepQuality === mark.value
-                          ? 'bg-[#0B3D2E] text-white'
-                          : 'bg-[#0B3D2E]/10 text-[#0B3D2E] hover:bg-[#0B3D2E]/20'
-                      }`}
+                      className={`p-3 rounded-lg text-sm font-medium transition-all ${formState.sleepQuality === mark.value
+                          ? 'bg-[#0B3D2E] text-white shadow-md transform scale-[1.02]'
+                          : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
+                        }`}
                     >
                       {mark.label}
                     </button>
@@ -544,37 +544,38 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
               {/* 运动时长 - 滑动条 */}
               <div>
-                <label className="block text-sm font-medium text-[#0B3D2E] mb-3">运动时长</label>
-                <Slider
-                  min={0}
-                  max={120}
-                  step={5}
-                  value={formState.exerciseDuration ? Number(formState.exerciseDuration) : 0}
-                  onChange={(value) => updateFormField('exerciseDuration', value.toString())}
-                  formatValue={(v) => v === 0 ? '未运动' : `${v} 分钟`}
-                  color="#92E82A"
-                  marks={[
-                    { value: 0, label: '0' },
-                    { value: 60, label: '60分钟' },
-                    { value: 120, label: '120分钟' },
-                  ]}
-                />
+                <label className="block text-sm font-bold text-[#0B3D2E] mb-3 uppercase tracking-wider">运动时长</label>
+                <div className="px-1">
+                  <Slider
+                    min={0}
+                    max={120}
+                    step={5}
+                    value={formState.exerciseDuration ? Number(formState.exerciseDuration) : 0}
+                    onChange={(value) => updateFormField('exerciseDuration', value.toString())}
+                    formatValue={(v) => v === 0 ? '未运动' : `${v} min`}
+                    color="#9CAF88"
+                    marks={[
+                      { value: 0, label: '0' },
+                      { value: 60, label: '60m' },
+                      { value: 120, label: '120m' },
+                    ]}
+                  />
+                </div>
               </div>
-              
+
               {/* 运动类型选择器 */}
               {Number(formState.exerciseDuration) > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-[#0B3D2E] mb-3">运动类型</label>
+                  <label className="block text-sm font-bold text-[#0B3D2E] mb-3 uppercase tracking-wider">运动类型</label>
                   <div className="grid grid-cols-4 gap-2">
                     {exerciseTypes.map((type) => (
                       <button
                         key={type.id}
                         onClick={() => updateFormField('exerciseType', type.id)}
-                        className={`p-3 rounded-xl text-center transition-all ${
-                          formState.exerciseType === type.id
-                            ? 'bg-[#92E82A] text-[#0B3D2E] shadow-md'
-                            : 'bg-[#0B3D2E]/10 text-[#0B3D2E] hover:bg-[#0B3D2E]/20'
-                        }`}
+                        className={`p-3 rounded-lg text-center transition-all ${formState.exerciseType === type.id
+                            ? 'bg-[#9CAF88] text-white shadow-md'
+                            : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
+                          }`}
                       >
                         <div className="text-xl mb-1">{type.icon}</div>
                         <div className="text-xs font-medium">{type.name}</div>
@@ -586,17 +587,16 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
               {/* 心情状态 */}
               <div>
-                <label className="block text-sm font-medium text-[#0B3D2E] mb-3">心情状态</label>
+                <label className="block text-sm font-bold text-[#0B3D2E] mb-3 uppercase tracking-wider">心情状态</label>
                 <div className="grid grid-cols-2 gap-2">
                   {moodMarks.map((mark) => (
                     <button
                       key={mark.value}
                       onClick={() => updateFormField('moodStatus', mark.value)}
-                      className={`p-3 rounded-xl text-sm font-medium transition-all ${
-                        formState.moodStatus === mark.value
-                          ? 'bg-[#0B3D2E] text-white'
-                          : 'bg-[#0B3D2E]/10 text-[#0B3D2E] hover:bg-[#0B3D2E]/20'
-                      }`}
+                      className={`p-3 rounded-lg text-sm font-medium transition-all ${formState.moodStatus === mark.value
+                          ? 'bg-[#0B3D2E] text-white shadow-md transform scale-[1.02]'
+                          : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
+                        }`}
                     >
                       {mark.label}
                     </button>
@@ -606,41 +606,43 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
               {/* 压力等级 - 滑动条 */}
               <div>
-                <label className="block text-sm font-medium text-[#0B3D2E] mb-3">
+                <label className="block text-sm font-bold text-[#0B3D2E] mb-3 uppercase tracking-wider">
                   压力等级
                 </label>
-                <Slider
-                  min={1}
-                  max={10}
-                  step={1}
-                  value={formState.stressLevel ? Number(formState.stressLevel) : 5}
-                  onChange={(value) => updateFormField('stressLevel', value.toString())}
-                  formatValue={(v) => {
-                    if (v <= 3) return `${v} - 轻松`;
-                    if (v <= 6) return `${v} - 中等`;
-                    if (v <= 8) return `${v} - 较高`;
-                    return `${v} - 高压`;
-                  }}
-                  color={
-                    Number(formState.stressLevel || 5) <= 3 ? '#10b981' :
-                    Number(formState.stressLevel || 5) <= 6 ? '#f59e0b' : '#ef4444'
-                  }
-                  marks={[
-                    { value: 1, label: '轻松' },
-                    { value: 5, label: '中等' },
-                    { value: 10, label: '高压' },
-                  ]}
-                />
+                <div className="px-1">
+                  <Slider
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={formState.stressLevel ? Number(formState.stressLevel) : 5}
+                    onChange={(value) => updateFormField('stressLevel', value.toString())}
+                    formatValue={(v) => {
+                      if (v <= 3) return `${v} - 轻松`;
+                      if (v <= 6) return `${v} - 中等`;
+                      if (v <= 8) return `${v} - 较高`;
+                      return `${v} - 高压`;
+                    }}
+                    color={
+                      Number(formState.stressLevel || 5) <= 3 ? '#10b981' :
+                        Number(formState.stressLevel || 5) <= 6 ? '#f59e0b' : '#ef4444'
+                    }
+                    marks={[
+                      { value: 1, label: '1' },
+                      { value: 5, label: '5' },
+                      { value: 10, label: '10' },
+                    ]}
+                  />
+                </div>
               </div>
 
               {/* 备注 */}
               <div>
-                <label className="block text-sm font-medium text-[#0B3D2E] mb-3">其他备注</label>
+                <label className="block text-sm font-bold text-[#0B3D2E] mb-3 uppercase tracking-wider">其他备注</label>
                 <textarea
                   value={formState.notes}
                   onChange={(e) => updateFormField('notes', e.target.value)}
                   placeholder="记录其他感受、事件或观察..."
-                  className="w-full p-4 bg-[#0B3D2E]/5 border border-[#0B3D2E]/10 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20"
+                  className="w-full p-4 bg-[#FAF6EF] border border-[#E7E1D6] rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#0B3D2E] focus:border-[#0B3D2E]"
                   rows={3}
                 />
               </div>
@@ -648,25 +650,25 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
             {/* 今日已记录提示 */}
             {todayLog && (
-              <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                <div className="flex items-center gap-2 text-emerald-700">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="mt-8 p-4 bg-[#0B3D2E]/5 border border-[#0B3D2E]/10 rounded-lg flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#0B3D2E] flex items-center justify-center text-white">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="font-medium">今日已记录</span>
                 </div>
-                <p className="text-sm text-emerald-600 mt-1">
-                  您可以修改数据后重新保存，系统会自动更新记录。
-                </p>
+                <div>
+                  <div className="font-bold text-[#0B3D2E] text-sm">今日已记录</div>
+                  <div className="text-xs text-[#0B3D2E]/70">修改后重新保存即可更新。</div>
+                </div>
               </div>
             )}
 
             {/* 保存按钮 */}
-            <div className="mt-8 pt-6 border-t border-[#0B3D2E]/10">
+            <div className="mt-8 pt-6 border-t border-[#E7E1D6]">
               <button
                 onClick={handleSaveLog}
                 disabled={isSaving}
-                className="w-full flex items-center justify-center gap-3 py-4 bg-[#0B3D2E] text-white rounded-2xl font-semibold hover:bg-[#0B3D2E]/90 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 py-4 bg-[#0B3D2E] text-white rounded-lg font-bold hover:bg-[#0a3629] transition-all disabled:opacity-50 shadow-md hover:shadow-lg"
               >
                 {isSaving ? (
                   <>
@@ -681,11 +683,11 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                 )}
               </button>
             </div>
-            
+
             {/* 活动环展示 - 保存成功后显示 */}
             {showActivityRing && todayLog && (
-              <div className="mt-6 p-6 bg-white border border-[#E7E1D6] rounded-2xl">
-                <h4 className="text-center text-lg font-semibold text-[#0B3D2E] mb-4">今日活动概览</h4>
+              <div className="mt-6 p-6 bg-white border border-[#E7E1D6] rounded-xl shadow-sm">
+                <h4 className="text-center text-lg font-serif font-bold text-[#0B3D2E] mb-4">今日活动概览</h4>
                 <div className="flex justify-center">
                   <ActivityRing
                     {...calculateRingPercentages(todayLog)}
@@ -702,7 +704,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
         {/* Toast通知 */}
         {toast && (
           <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-            <div className="bg-[#0B3D2E] text-white px-6 py-3 rounded-2xl shadow-lg">
+            <div className="bg-[#0B3D2E] text-white px-6 py-3 rounded-xl shadow-lg font-medium border border-[#E7E1D6]/20">
               {toast}
             </div>
           </div>

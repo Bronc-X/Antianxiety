@@ -2,10 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import OnboardingFlow from '@/components/OnboardingFlow';
-import { mapAnswersToProfile, generatePersonaContext } from '@/lib/questions';
+import AdaptiveOnboardingFlow from '@/components/AdaptiveOnboardingFlow';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { tr, useI18n } from '@/lib/i18n';
+import type { OnboardingResult } from '@/types/adaptive-interaction';
 
 interface OnboardingFlowClientProps {
   userId: string;
@@ -16,44 +16,68 @@ export default function OnboardingFlowClient({ userId }: OnboardingFlowClientPro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { language } = useI18n();
 
-  const handleComplete = async (answers: Record<string, string>) => {
+  const handleComplete = async (result: OnboardingResult) => {
     setIsSubmitting(true);
 
     try {
-      // 1. 将答案映射为代谢档案
-      const metabolicProfile = mapAnswersToProfile(answers);
-      
-      // 2. 生成AI人格上下文
-      const personaContext = generatePersonaContext(metabolicProfile);
-
-      // 3. 保存到 Supabase（使用upsert确保profile存在）
       const supabase = createClientSupabaseClient();
       
-      // 只保存最小必需字段（metabolic_profile）
-      // 其他字段在migration执行后再添加
-      const { error: upsertError } = await supabase
+      // 1. Save metabolic profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: userId,
-          metabolic_profile: metabolicProfile,
+          metabolic_profile: result.metabolicProfile,
         }, {
           onConflict: 'id',
           ignoreDuplicates: false,
         });
 
-      if (upsertError) {
-        console.error('保存问卷结果失败:', upsertError);
-        alert(
-          language === 'en'
-            ? `Save failed: ${upsertError.message || 'Please try again.'}`
-            : `保存失败：${upsertError.message || '请重试'}`
-        );
-        setIsSubmitting(false);
-        return;
+      if (profileError) {
+        console.error('保存代谢档案失败:', profileError);
+        throw profileError;
       }
 
-      // 4. 跳转到升级页面（新营销漏斗）
-      console.log('✅ 问卷保存成功，引导至升级页面');
+      // 2. Save Phase Goals
+      for (const goal of result.recommendedGoals) {
+        const { error: goalError } = await supabase
+          .from('phase_goals')
+          .upsert({
+            id: goal.id,
+            user_id: userId,
+            goal_type: goal.goal_type,
+            priority: goal.priority,
+            title: goal.title,
+            rationale: goal.rationale,
+            citations: goal.citations,
+            is_ai_recommended: true,
+            user_modified: goal.user_modified || false,
+          }, {
+            onConflict: 'user_id,priority',
+          });
+
+        if (goalError) {
+          console.error('保存目标失败:', goalError);
+        }
+      }
+
+      // 3. Save onboarding answers
+      let sequenceOrder = 0;
+      for (const [questionId, answerValue] of Object.entries(result.answers)) {
+        await supabase
+          .from('onboarding_answers')
+          .insert({
+            user_id: userId,
+            question_id: questionId,
+            question_type: sequenceOrder < 3 ? 'template' : 'decision_tree',
+            question_text: questionId,
+            answer_value: answerValue,
+            sequence_order: sequenceOrder++,
+          });
+      }
+
+      // 4. Navigate to upgrade page
+      console.log('✅ 自适应问卷保存成功，引导至升级页面');
       router.push('/onboarding/upgrade');
       router.refresh();
     } catch (error) {
@@ -71,5 +95,5 @@ export default function OnboardingFlowClient({ userId }: OnboardingFlowClientPro
     );
   }
 
-  return <OnboardingFlow onComplete={handleComplete} />;
+  return <AdaptiveOnboardingFlow onComplete={handleComplete} />;
 }

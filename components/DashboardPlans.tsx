@@ -27,20 +27,20 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
   // 加载计划列表
   useEffect(() => {
     loadPlans();
-    
+
     // 每30秒自动刷新一次
     const interval = setInterval(() => {
       loadPlans();
     }, 30000);
-    
+
     // 监听全局事件，当保存新计划时自动刷新
     const handlePlanSaved = (event: Event) => {
       console.log('🔔 DashboardPlans: 收到 planSaved 事件，刷新计划列表');
       loadPlans();
     };
-    
+
     window.addEventListener('planSaved', handlePlanSaved);
-    
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('planSaved', handlePlanSaved);
@@ -50,16 +50,16 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
   const loadPlans = async () => {
     try {
       setIsLoading(true);
-      
+
       console.log('📤 发起请求: /api/plans/list');
       const response = await fetch('/api/plans/list?status=active&limit=20');
       console.log('📊 HTTP状态:', response.status);
-      
+
       const result = await response.json();
       console.log('📦 API完整响应:', result);
       console.log('📦 result.data:', result.data);
       console.log('📦 result.data.plans:', result.data?.plans);
-      
+
       if (result.success) {
         const plansList = result.data?.plans || [];
         console.log('✅ 计划列表加载成功:', plansList.length, '个方案');
@@ -80,7 +80,7 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
   const handleCompletePlan = async (planId: string) => {
     try {
       setCompletingPlanId(planId);
-      
+
       const response = await fetch('/api/plans/complete', {
         method: 'POST',
         headers: {
@@ -92,17 +92,17 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
           completionDate: new Date().toISOString().split('T')[0],
         }),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || '记录失败');
       }
-      
+
       console.log('✅ 计划完成记录成功');
-      
+
       // TODO: 显示成功提示或更新UI
-      
+
     } catch (error) {
       console.error('❌ 记录完成失败:', error);
       alert('记录失败，请稍后重试');
@@ -115,13 +115,13 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
   const formatDate = (date: Date) => {
     const today = new Date();
     const isToday = date.toDateString() === today.toDateString();
-    
+
     if (isToday) {
       return '今天';
     }
-    
-    return date.toLocaleDateString('zh-CN', { 
-      month: 'long', 
+
+    return date.toLocaleDateString('zh-CN', {
+      month: 'long',
       day: 'numeric',
       weekday: 'short'
     });
@@ -168,8 +168,8 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
         <p className="text-sm text-[#0B3D2E]/60 mb-4">
           与AI助理对话，让它为你生成个性化的健康方案
         </p>
-        <button 
-          onClick={() => {/* 打开AI助理 */}}
+        <button
+          onClick={() => {/* 打开AI助理 */ }}
           className="px-6 py-2 bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white rounded-lg hover:shadow-lg transition-all"
         >
           开始对话
@@ -180,21 +180,19 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-[#E7E1D6] overflow-hidden">
-      {/* 头部 - iOS风格 */}
-      <div className="bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-6 py-4">
+      {/* 头部 - Scientific Premium 风格 */}
+      <div className="bg-white/50 backdrop-blur-sm border-b border-[#E7E1D6] px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white">我的计划</h2>
-            <p className="text-sm text-white/70 mt-1">
+            <h2 className="text-lg font-bold text-[#0B3D2E]">Plans & Protocol</h2>
+            <p className="text-xs text-[#0B3D2E]/60 mt-0.5 font-mono uppercase tracking-wider">
               {formatDate(selectedDate)}
             </p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-white">
-              {plans.length}
-            </div>
-            <div className="text-xs text-white/70">
-              个活跃方案
+            <div className="flex items-baseline gap-1 justify-end">
+              <span className="text-2xl font-bold text-[#0B3D2E]">{plans.length}</span>
+              <span className="text-xs text-[#0B3D2E]/40 font-bold uppercase">Active</span>
             </div>
           </div>
         </div>
@@ -230,11 +228,11 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
                       </span>
                     )}
                   </div>
-                  
+
                   {/* 方案描述 */}
                   {plan.content?.description && (
                     <p className="text-sm text-[#0B3D2E]/70 line-clamp-2 mb-2">
-                      {typeof plan.content.description === 'string' 
+                      {typeof plan.content.description === 'string'
                         ? plan.content.description.substring(0, 100) + (plan.content.description.length > 100 ? '...' : '')
                         : ''}
                     </p>
@@ -255,7 +253,7 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
 
                 {/* 勾选按钮 */}
                 <div className="flex-shrink-0">
-                  <button 
+                  <button
                     className="w-8 h-8 rounded-full border-2 border-[#0B3D2E] hover:bg-[#0B3D2E] hover:text-white transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={completingPlanId === plan.id}
                     onClick={(e) => {

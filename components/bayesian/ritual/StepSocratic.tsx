@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, ArrowRight, ShieldAlert, BadgeCheck, MessageSquare } from 'lucide-react';
+import { ArrowRight, ShieldAlert, BadgeCheck, MessageSquare, Check } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface StepSocraticProps {
@@ -10,7 +10,7 @@ interface StepSocraticProps {
         phantom_definition: string;
         worst_case_reality: boolean;
         objective_perspective: string;
-        logic_score: number; // 0-1 score reducing the prior
+        logic_score: number;
     }) => void;
     onNext: () => void;
 }
@@ -20,18 +20,15 @@ export default function StepSocratic({ onComplete, onNext }: StepSocraticProps) 
     const [step, setStep] = useState(0);
     const [answers, setAnswers] = useState({
         phantom: '',
-        history: false, // Has this actually happened before?
-        friend: ''      // What would you tell a friend?
+        history: false,
+        friend: ''
     });
 
     const handleNext = () => {
         if (step < 2) {
             setStep(prev => prev + 1);
         } else {
-            // Calculate pseudo "Logic Score" to help reduce anxiety
-            // If it hasn't happened before, logic score is higher (more effective at reduction)
             const logicScore = answers.history ? 0.6 : 0.9;
-
             onComplete({
                 phantom_definition: answers.phantom,
                 worst_case_reality: answers.history,
@@ -46,7 +43,7 @@ export default function StepSocratic({ onComplete, onNext }: StepSocraticProps) 
         {
             id: 'phantom',
             icon: ShieldAlert,
-            title: t('ritual.socratic.q1.title') || "Define the Phantom", // Fallback if key missing
+            title: t('ritual.socratic.q1.title') || "Define the Phantom",
             subtitle: t('ritual.socratic.q1.subtitle') || "What is the absolute worst-case scenario you are fearing?",
             type: 'text',
             placeholder: "e.g., Everyone will laugh and I'll lose my job..."
@@ -71,89 +68,85 @@ export default function StepSocratic({ onComplete, onNext }: StepSocraticProps) 
     const currentQ = questions[step];
 
     return (
-        <div className="flex flex-col h-full pt-4 md:pt-10 max-w-2xl mx-auto">
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-10"
-            >
-                <div className="inline-block px-3 py-1 rounded-full bg-[#9CAF88]/10 text-[#0B3D2E] text-xs font-medium tracking-wider mb-4 border border-[#9CAF88]/20">
-                    PHASE 1.5 : LOGIC EXAMINATION
-                </div>
-                {/* Progress Dots */}
-                <div className="flex justify-center gap-2 mb-4">
-                    {[0, 1, 2].map(i => (
-                        <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === step ? 'bg-[#0B3D2E]' : 'bg-[#E7E1D6]'}`} />
-                    ))}
-                </div>
-            </motion.div>
+        <div className="flex flex-col h-full w-full justify-center">
 
-            {/* Question Card - Card Stack Effect */}
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={step}
-                    initial={{ x: 100, opacity: 0, rotate: 5, scale: 0.9 }}
-                    animate={{ x: 0, opacity: 1, rotate: 0, scale: 1 }}
-                    exit={{ x: -100, opacity: 0, rotate: -5, scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                    className="bg-white rounded-2xl p-8 border border-[#E7E1D6] shadow-2xl shadow-[#0B3D2E]/5 min-h-[300px] flex flex-col origin-bottom"
-                >
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="w-12 h-12 rounded-xl bg-[#FAF6EF] flex items-center justify-center border border-[#E7E1D6]">
-                            <currentQ.icon className="w-6 h-6 text-[#0B3D2E]" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-serif text-[#0B3D2E]">{currentQ.title}</h3>
-                        </div>
-                    </div>
+            {/* Progress Dots - simplified */}
+            <div className="flex justify-center gap-2 mb-8">
+                {[0, 1, 2].map(i => (
+                    <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full transition-colors duration-300 ${i === step ? 'bg-[#E76F51] scale-125' : 'bg-[#E76F51]/20'}`}
+                    />
+                ))}
+            </div>
 
-                    <p className="text-[#0B3D2E]/70 mb-8 text-lg">{currentQ.subtitle}</p>
-
-                    <div className="flex-1">
-                        {currentQ.type === 'text' ? (
-                            <textarea
-                                value={currentQ.id === 'phantom' ? answers.phantom : answers.friend}
-                                onChange={(e) => setAnswers(prev => ({ ...prev, [currentQ.id]: e.target.value }))}
-                                placeholder={currentQ.placeholder}
-                                className="w-full h-32 p-4 rounded-xl bg-[#FAF6EF] border-0 text-[#0B3D2E] placeholder:text-[#0B3D2E]/30 focus:ring-1 focus:ring-[#0B3D2E] resize-none transform transition-transform focus:scale-[1.01]"
-                                autoFocus
-                            />
-                        ) : (
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => {
-                                        setAnswers(prev => ({ ...prev, history: true }));
-                                    }}
-                                    className={`p-6 rounded-xl border-2 transition-all text-center transform hover:scale-105 active:scale-95 ${answers.history ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white shadow-lg' : 'border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'}`}
-                                >
-                                    <span className="block text-lg font-medium mb-1">Yes</span>
-                                    <span className="text-xs opacity-70">It has happened</span>
-                                </button>
-                                <button
-                                    onClick={() => setAnswers(prev => ({ ...prev, history: false }))}
-                                    className={`p-6 rounded-xl border-2 transition-all text-center transform hover:scale-105 active:scale-95 ${!answers.history ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white shadow-lg' : 'border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'}`}
-                                >
-                                    <span className="block text-lg font-medium mb-1">No</span>
-                                    <span className="text-xs opacity-70">Never happened</span>
-                                </button>
+            {/* Content Area */}
+            <div className="relative w-full max-w-xl mx-auto min-h-[400px]">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={step}
+                        initial={{ x: 50, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -50, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        className="bg-white"
+                    >
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-12 rounded-full bg-[#E76F51]/10 flex items-center justify-center text-[#E76F51]">
+                                <currentQ.icon className="w-6 h-6" />
                             </div>
-                        )}
-                    </div>
-                </motion.div>
-            </AnimatePresence>
+                            <h3 className="text-xl font-bold text-[#2D3436] tracking-tight">{currentQ.title}</h3>
+                        </div>
+
+                        <p className="text-[#2D3436]/70 text-lg mb-8 leading-relaxed font-medium">
+                            {currentQ.subtitle}
+                        </p>
+
+                        <div className="mb-8">
+                            {currentQ.type === 'text' ? (
+                                <textarea
+                                    value={currentQ.id === 'phantom' ? answers.phantom : answers.friend}
+                                    onChange={(e) => setAnswers(prev => ({ ...prev, [currentQ.id]: e.target.value }))}
+                                    placeholder={currentQ.placeholder}
+                                    className="w-full h-40 p-5 rounded-2xl bg-[#F8F9FA] border-2 border-transparent focus:border-[#E76F51]/20 focus:bg-white text-[#2D3436] placeholder:text-[#B2BEC3] focus:outline-none transition-all resize-none text-lg shadow-inner"
+                                    autoFocus
+                                />
+                            ) : (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => setAnswers(prev => ({ ...prev, history: true }))}
+                                        className={`group p-6 rounded-2xl border-2 transition-all text-center relative overflow-hidden ${answers.history ? 'border-[#E76F51] bg-[#E76F51] text-white shadow-lg shadow-[#E76F51]/30' : 'border-[#E76F51]/10 hover:border-[#E76F51]/40 hover:bg-[#E76F51]/5 text-[#2D3436]'}`}
+                                    >
+                                        {answers.history && <Check className="absolute top-3 right-3 w-5 h-5 text-white/50" />}
+                                        <span className="block text-xl font-bold mb-1">Yes</span>
+                                        <span className={`text-xs uppercase tracking-wide font-bold ${answers.history ? 'text-white/80' : 'text-[#2D3436]/40'}`}>It has happened</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setAnswers(prev => ({ ...prev, history: false }))}
+                                        className={`group p-6 rounded-2xl border-2 transition-all text-center relative overflow-hidden ${answers.history === false ? 'border-[#E76F51] bg-[#E76F51] text-white shadow-lg shadow-[#E76F51]/30' : 'border-[#E76F51]/10 hover:border-[#E76F51]/40 hover:bg-[#E76F51]/5 text-[#2D3436]'}`}
+                                    >
+                                        {answers.history === false && <Check className="absolute top-3 right-3 w-5 h-5 text-white/50" />}
+                                        <span className="block text-xl font-bold mb-1">No</span>
+                                        <span className={`text-xs uppercase tracking-wide font-bold ${answers.history === false ? 'text-white/80' : 'text-[#2D3436]/40'}`}>Never happened</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                    </motion.div>
+                </AnimatePresence>
+            </div>
 
             {/* Actions */}
-            <div className="mt-8 flex justify-center">
+            <div className="flex justify-end mt-auto pt-4">
                 <button
                     onClick={handleNext}
                     disabled={currentQ.type === 'text' && (currentQ.id === 'phantom' ? !answers.phantom : !answers.friend)}
-                    className="group flex items-center gap-2 px-8 py-4 bg-[#0B3D2E] text-[#FAF6EF] rounded-xl hover:bg-[#154a3a] transition-all shadow-lg shadow-[#0B3D2E]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-8 py-3 bg-[#2D3436] text-white rounded-full font-bold shadow-lg hover:bg-[#000] hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
                 >
-                    <span className="text-sm font-medium tracking-wider uppercase">
-                        {step === 2 ? 'Complete Analysis' : 'Next Question'}
-                    </span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    <span>{step === 2 ? t('ritual.button.analyze') : t('ritual.button.next')}</span>
+                    <ArrowRight className="w-5 h-5" />
                 </button>
             </div>
         </div>

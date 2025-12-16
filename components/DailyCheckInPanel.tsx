@@ -127,22 +127,22 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
     const fallbackSleepMinutes = initialProfile?.sleep_hours ? Number(initialProfile.sleep_hours) * 60 : '';
     const nextState = todayLog
       ? {
-          sleepDuration: todayLog.sleep_duration_minutes !== null ? String(todayLog.sleep_duration_minutes) : '',
-          sleepQuality: todayLog.sleep_quality || '',
-          exerciseDuration:
-            todayLog.exercise_duration_minutes !== null ? String(todayLog.exercise_duration_minutes) : '',
-          moodStatus: todayLog.mood_status || '',
-          stressLevel: todayLog.stress_level !== null ? String(todayLog.stress_level) : '',
-          notes: todayLog.notes || '',
-        }
+        sleepDuration: todayLog.sleep_duration_minutes !== null ? String(todayLog.sleep_duration_minutes) : '',
+        sleepQuality: todayLog.sleep_quality || '',
+        exerciseDuration:
+          todayLog.exercise_duration_minutes !== null ? String(todayLog.exercise_duration_minutes) : '',
+        moodStatus: todayLog.mood_status || '',
+        stressLevel: todayLog.stress_level !== null ? String(todayLog.stress_level) : '',
+        notes: todayLog.notes || '',
+      }
       : {
-          sleepDuration: fallbackSleepMinutes ? String(Math.round(fallbackSleepMinutes / 30) * 30) : '',
-          sleepQuality: '',
-          exerciseDuration: '',
-          moodStatus: '',
-          stressLevel: initialProfile?.stress_level ? String(initialProfile.stress_level) : '',
-          notes: '',
-        };
+        sleepDuration: fallbackSleepMinutes ? String(Math.round(fallbackSleepMinutes / 30) * 30) : '',
+        sleepQuality: '',
+        exerciseDuration: '',
+        moodStatus: '',
+        stressLevel: initialProfile?.stress_level ? String(initialProfile.stress_level) : '',
+        notes: '',
+      };
     startTransition(() => {
       setFormState(nextState);
     });
@@ -186,7 +186,7 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
 
     console.log('=== 保存每日记录 ===');
     console.log('保存 payload:', payload);
-    
+
     const { data, error } = await supabase
       .from('daily_wellness_logs')
       .upsert(payload, { onConflict: 'user_id,log_date' })
@@ -205,7 +205,7 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
       setIsSaving(false);
       return;
     }
-    
+
     console.log('保存成功:', data);
 
     setLogs((prev) => {
@@ -215,7 +215,7 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
 
     setToast('✅ 保存成功！即将返回主页...');
     setIsSaving(false);
-    
+
     // 保存成功后返回首页
     setTimeout(() => {
       router.push('/landing');
@@ -257,22 +257,21 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
   return (
     <AnimatedSection inView variant="fadeUp" className="mb-8">
       <div
-        className={`rounded-2xl border ${
-          shouldPrompt ? 'border-[#0B3D2E]' : 'border-[#E7E1D6]'
-        } bg-white p-6 shadow-sm transition-shadow duration-300`}
+        className={`rounded-2xl border ${shouldPrompt ? 'border-[#0B3D2E]' : 'border-[#E7E1D6]'
+          } bg-white p-6 shadow-sm transition-shadow duration-300`}
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-[#0B3D2E]">今日生理信号记录</h2>
-            <p className="mt-1 text-sm text-[#0B3D2E]/70">
-              按照设置的提醒时间，快速记录睡眠、运动、心情与压力；这些数据会直接影响 AI 的建议。
+            <h2 className="text-xl font-serif font-bold text-[#0B3D2E]">今日生理信号记录</h2>
+            <p className="mt-1 text-xs font-mono text-[#0B3D2E]/70 uppercase tracking-wide">
+              按照设置的提醒时间，快速记录生理状态。
             </p>
           </div>
-          <div className="flex flex-col items-end text-sm text-[#0B3D2E]/60">
-            <span>记录日期：{formatDate(todayKey)}</span>
+          <div className="flex flex-col items-end text-xs font-mono text-[#0B3D2E]/50">
+            <span>DATE: {formatDate(todayKey)}</span>
             {todayLog?.updated_at && (
               <span>
-                最近更新：{new Date(todayLog.updated_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                UPDATED: {new Date(todayLog.updated_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
           </div>

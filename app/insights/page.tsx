@@ -1,115 +1,146 @@
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { getServerLanguage } from '@/lib/i18n-server';
 import { tr } from '@/lib/i18n-core';
+import AIAnalysisDisplay from '@/components/AIAnalysisDisplay';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export default async function InsightsPage() {
   const language = await getServerLanguage();
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let profile = null;
+  if (user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    profile = data;
+  }
+
+  // Placeholder data if no real analysis exists to show the UI structure
+  const placeholderAnalysis = {
+    confidence_score: 85,
+    metabolic_rate_estimate: 'medium',
+    sleep_quality: 'good',
+    cortisol_pattern: 'elevated',
+    recovery_capacity: 'medium',
+    stress_resilience: 'low',
+    inflammation_risk: 'low',
+    energy_stability: 'stable',
+    cardiovascular_health: 'good'
+  };
+
+  const placeholderPlan = {
+    micro_habits: []
+  };
+
+  const analysis = profile?.ai_analysis_result || placeholderAnalysis;
+  const plan = profile?.ai_recommendation_plan || placeholderPlan;
+
   return (
-    <div className="min-h-screen bg-[#FAF6EF]">
-      {/* 简洁导航 */}
-      <nav className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur border-b border-[#E7E1D6]">
+    <div className="min-h-screen bg-[#FDFBF7] text-[#0B3D2E]">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-30 bg-[#FDFBF7]/90 backdrop-blur border-b border-[#E7E1D6]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <Link href="/landing" className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />
-              <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
-                AntiAnxiety™
-              </span>
+            <Link href="/landing" className="flex items-center gap-3 group">
+              <div className="w-8 h-8 bg-[#0B3D2E] rounded-lg flex items-center justify-center text-white group-hover:bg-[#0a3629] transition-colors">
+                <span className="font-serif italic font-bold">I</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold tracking-wide leading-none">INSIGHTS & BIOMETRICS</span>
+                <span className="text-[10px] text-[#0B3D2E]/50 font-mono uppercase mt-0.5">MEDICAL GRADE ANALYSIS</span>
+              </div>
             </Link>
-            <Link
-              href="/landing"
-              className="text-sm text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
-            >
-              {tr(language, { zh: '← 返回主页', en: '← Back to Home' })}
+
+            <Link href="/assistant" className="text-sm font-medium text-[#0B3D2E]/60 hover:text-[#0B3D2E] transition-colors">
+              Base Command
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* 核心洞察内容 */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-semibold text-[#0B3D2E] leading-tight mb-4">
-            <span className="block">
-              {tr(language, { zh: '健康产业是「噪音」。', en: 'The health industry is “noise”.' })}
-            </span>
-            <span className="block">
-              {tr(language, { zh: '生理信号是「真相」。', en: 'Physiological signals are “truth”.' })}
-            </span>
-          </h1>
+      {/* Main Report Content */}
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
 
-          <div className="mt-10 grid md:grid-cols-3 gap-6">
-            {/* 认知负荷 */}
-            <div className="rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md">
-              <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60 mb-2">
-                Cognitive Load
-              </div>
-              <h3 className="text-xl font-medium text-[#0B3D2E] mb-4">
-                {tr(language, { zh: '「认知负荷」已满。', en: 'Cognitive load is maxed out.' })}
-              </h3>
-              <div className="text-[#0B3D2E]/80 space-y-3 leading-relaxed text-sm">
-                <p>
-                  {tr(language, {
-                    zh: '你知道有氧和力量训练；你懂得区分优质的蛋白质、脂肪和碳水；你也明白要保证充足睡眠。',
-                    en: 'You know cardio and strength training. You can tell protein from fat and carbs. You know sleep matters.',
-                  })}
-                </p>
-                <p>
-                  {tr(language, { zh: '但身体仍像一个失控的「黑匣子」。', en: 'Yet your body still feels like a runaway black box.' })}
-                </p>
-                <p>
-                  {tr(language, {
-                    zh: '你发现：只是更努力地去坚持这些「规则」，并不是最终答案。',
-                    en: 'And you’ve learned: trying harder to follow rules is not the answer.',
-                  })}
-                </p>
-              </div>
+        {/* Executive Summary Section */}
+        <section className="mb-12 grid md:grid-cols-2 gap-8 items-center border-b border-[#E7E1D6] pb-12">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0B3D2E]/5 border border-[#0B3D2E]/10 mb-6">
+              <span className="w-2 h-2 rounded-full bg-[#0B3D2E] animate-pulse"></span>
+              <span className="text-xs font-mono font-medium text-[#0B3D2E]/80 uppercase tracking-wider">
+                {tr(language, { zh: '生理系统状态：监测中', en: 'SYSTEM STATUS: MONITORING' })}
+              </span>
             </div>
 
-            {/* 打卡游戏 */}
-            <div className="rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md">
-              <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60 mb-2">
-                Habit Streaks
-              </div>
-              <h3 className="text-xl font-medium text-[#0B3D2E] mb-4">
-                {tr(language, { zh: '打卡游戏好玩吗？', en: 'Are streak games helping?' })}
-              </h3>
-              <p className="text-[#0B3D2E]/80 leading-relaxed text-sm">
-                {tr(language, {
-                  zh: '许多健康 App 依赖「羞耻感」和「强制打卡」。功能越堆越多，认知负荷越压越重，却不触及「根本原因」。你的身体并没有崩溃，它只是在诚实地对压力做出反应。',
-                  en: 'Many health apps rely on shame and forced streaks. More features, more cognitive load—yet they miss the root cause. Your body isn’t broken; it’s responding honestly to stress.',
-                })}
-              </p>
-            </div>
+            <h1 className="text-4xl sm:text-5xl font-serif font-medium text-[#0B3D2E] mb-6 tracking-tight leading-[1.1]">
+              {tr(language, { zh: '从噪音中提取信号。', en: 'Extracting Signal from Noise.' })}
+            </h1>
 
-            {/* 信号 */}
-            <div className="rounded-2xl border border-[#E7E1D6] bg-white/90 backdrop-blur p-6 shadow-md">
-              <div className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D2E]/60 mb-2">
-                The Signal
-              </div>
-              <h3 className="text-xl font-medium text-[#0B3D2E] mb-4">
-                {tr(language, { zh: '信号：接受生理真相。', en: 'The signal: accept physiological truth.' })}
-              </h3>
-              <p className="text-[#0B3D2E]/80 leading-relaxed text-sm">
+            <div className="prose prose-lg text-[#0B3D2E]/70">
+              <p className="font-serif italic text-lg opacity-80">
                 {tr(language, {
-                  zh: '我们承认新陈代谢的不可逆趋势，但可以选择如何「反应」。先解决「焦虑」（领先指标），自然改善「身体机能」（滞后指标）。不对抗真相，与真相和解。',
-                  en: 'We acknowledge metabolic decline, but we can choose our response. Reduce anxiety (a leading indicator), and physiology (a lagging indicator) improves naturally. Don’t fight truth—make peace with it.',
+                  zh: '“健康产业充斥着噪音。我们只关注生理真相。你的焦虑不是性格缺陷，而是皮质醇失调的生理反应。”',
+                  en: '"The health industry is full of noise. We focus on physiological truth. Your anxiety is not a character flaw, but a physiological response to cortisol dysregulation."'
                 })}
               </p>
             </div>
           </div>
 
-          <div className="mt-12 text-center">
-            <Link
-              href="/landing"
-              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium bg-[#0B3D2E] text-white rounded-lg hover:bg-[#0a3629] transition-colors"
-            >
-              {tr(language, { zh: '开始使用', en: 'Get Started' })}
-            </Link>
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-6 bg-white rounded-xl border border-[#E7E1D6] shadow-sm">
+              <div className="text-xs font-mono uppercase tracking-widest text-[#0B3D2E]/40 mb-2">Cognitive Load</div>
+              <div className="text-3xl font-bold text-[#0B3D2E]">High</div>
+              <div className="text-xs text-[#0B3D2E]/60 mt-1">Mental resource depletion</div>
+            </div>
+            <div className="p-6 bg-white rounded-xl border border-[#E7E1D6] shadow-sm">
+              <div className="text-xs font-mono uppercase tracking-widest text-[#0B3D2E]/40 mb-2">Physiological Resilience</div>
+              <div className="text-3xl font-bold text-[#9CAF88]">Fair</div>
+              <div className="text-xs text-[#0B3D2E]/60 mt-1">Recovery capacity moderate</div>
+            </div>
+            <div className="col-span-2 p-6 bg-[#0B3D2E] rounded-xl border border-[#0B3D2E] shadow-sm text-white relative overflow-hidden">
+              <div className="relative z-10">
+                <div className="text-xs font-mono uppercase tracking-widest text-white/40 mb-2">Primary Directive</div>
+                <div className="text-2xl font-serif font-medium text-white mb-1">
+                  {tr(language, { zh: '接受真相，重获掌控。', en: 'Accept Truth. Regain Control.' })}
+                </div>
+                <div className="text-xs text-white/60">
+                  {tr(language, { zh: '减少内耗，专注生理修复。', en: 'Reduce internal friction. Focus on physiological repair.' })}
+                </div>
+              </div>
+              {/* Decorative background element */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/4"></div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* Detailed Report Component */}
+        <section>
+          <h2 className="text-xl font-bold text-[#0B3D2E] mb-6 flex items-center gap-2">
+            <svg className="w-5 h-5 text-[#0B3D2E]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            {tr(language, { zh: '完整生理分析报告', en: 'Full Physiological Analysis Report' })}
+          </h2>
+          <AIAnalysisDisplay analysis={analysis} plan={plan} />
+        </section>
+
+      </main>
     </div>
   );
 }

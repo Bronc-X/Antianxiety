@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft } from 'lucide-react';
+import { X, ChevronLeft, Hexagon, Brain, Fingerprint, Calculator, Award } from 'lucide-react'; // Added icons for visual steps
 import StepInput from '@/components/bayesian/ritual/StepInput';
 import StepSocratic from '@/components/bayesian/ritual/StepSocratic';
 import StepEvidence from '@/components/bayesian/ritual/StepEvidence';
@@ -20,9 +20,47 @@ interface BayesianRitualModalProps {
 // Stages of the ritual
 type RitualStep = 'input' | 'socratic' | 'evidence' | 'calculation' | 'result';
 
+const stepConfig: Record<RitualStep, {
+    labelKey: string;
+    icon: React.ElementType;
+    color: string;
+    gradient: string
+}> = {
+    input: {
+        labelKey: 'ritual.step.define',
+        icon: Brain,
+        color: '#2A9D8F',
+        gradient: 'from-[#43cea2] to-[#185a9d]' // Teal to Blue
+    },
+    socratic: {
+        labelKey: 'ritual.step.logic',
+        icon: Hexagon,
+        color: '#E76F51',
+        gradient: 'from-[#ff9966] to-[#ff5e62]' // Orange to Red
+    },
+    evidence: {
+        labelKey: 'ritual.step.evidence',
+        icon: Fingerprint,
+        color: '#264653',
+        gradient: 'from-[#603813] to-[#b29f94]' // Earth tones
+    },
+    calculation: {
+        labelKey: 'ritual.step.calibration',
+        icon: Calculator,
+        color: '#E9C46A',
+        gradient: 'from-[#11998e] to-[#38ef7d]' // Green (Matrix-like)
+    },
+    result: {
+        labelKey: 'ritual.step.truth',
+        icon: Award,
+        color: '#F4A261',
+        gradient: 'from-[#fce38a] to-[#f38181]' // Gold/Pink
+    }
+};
+
 const variants = {
     enter: (direction: number) => ({
-        x: direction > 0 ? 50 : -50,
+        x: direction > 0 ? 20 : -20,
         opacity: 0,
         scale: 0.98
     }),
@@ -34,7 +72,7 @@ const variants = {
     },
     exit: (direction: number) => ({
         zIndex: 0,
-        x: direction < 0 ? 50 : -50,
+        x: direction < 0 ? 20 : -20,
         opacity: 0,
         scale: 0.98
     })
@@ -71,6 +109,8 @@ export default function BayesianRitualModal({ onComplete, onCancel, mockHrv = fa
     // Navigation Handlers
     const stepsOrder: RitualStep[] = ['input', 'socratic', 'evidence', 'calculation', 'result'];
     const currentStepIndex = stepsOrder.indexOf(currentStep);
+
+    // Calculate progress for the bar
     const progress = ((currentStepIndex + 1) / stepsOrder.length) * 100;
 
     const goToStep = (step: RitualStep) => {
@@ -168,199 +208,168 @@ export default function BayesianRitualModal({ onComplete, onCancel, mockHrv = fa
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentStep, isCalculating, ritualData.posterior]);
 
+    const activeConfig = stepConfig[currentStep];
+    const ActiveIcon = activeConfig.icon;
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
         >
-            {/* Backdrop with Blur */}
-            <div className="absolute inset-0 bg-[#FAF6EF]/90 backdrop-blur-3xl" />
+            {/* Backdrop with High Blur */}
+            <div className="absolute inset-0 bg-[#FDFBF7]/90 backdrop-blur-3xl" />
 
-            {/* Main Container */}
-            <div className="relative w-full h-full max-w-6xl bg-white/40 border border-[#E7E1D6] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
+            {/* Main Container - Centered 'Card' */}
+            <div className="relative w-full max-w-2xl bg-white border border-[#EBE5da] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[85vh] sm:h-auto sm:min-h-[600px] sm:aspect-[4/5] lg:aspect-auto transform transition-all">
 
-                {/* Close Button */}
-                <button
-                    onClick={onCancel}
-                    className="absolute top-6 right-6 z-20 p-2 rounded-full bg-white/50 hover:bg-white text-[#0B3D2E]/60 hover:text-[#0B3D2E] transition-all"
-                >
-                    <X className="w-6 h-6" />
-                </button>
-
-                {/* Left Panel: Context/Nav (Hidden on mobile) */}
-                <div className="hidden md:flex w-1/4 bg-[#FAF6EF] border-r border-[#E7E1D6] flex-col p-8 justify-between relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#9CAF88]/10 rounded-full blur-3xl -mr-32 -mt-10 pointer-events-none" />
-
-                    <div>
-                        <div className="flex items-center gap-2 text-[#0B3D2E] font-serif text-xl mb-12">
-                            <ChevronLeft className="w-5 h-5 cursor-pointer opacity-50 hover:opacity-100" onClick={onCancel} />
-                            <span>{t('ritual.title')}</span>
-                        </div>
-
-                        <div className="space-y-8">
-                            {[
-                                t('ritual.step.define'),
-                                t('ritual.step.logic'),
-                                t('ritual.step.evidence'),
-                                t('ritual.step.calibration'),
-                                t('ritual.step.truth')
-                            ].map((step, idx) => (
-                                <div key={step} className="flex items-center gap-4 group">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${idx === currentStepIndex
-                                        ? 'bg-[#0B3D2E] text-[#FAF6EF] shadow-lg shadow-[#0B3D2E]/20 scale-110'
-                                        : idx < currentStepIndex
-                                            ? 'bg-[#9CAF88] text-white'
-                                            : 'bg-[#E7E1D6] text-[#0B3D2E]/40'
-                                        }`}>
-                                        {idx + 1}
-                                    </div>
-                                    <span className={`text-sm font-medium transition-colors ${idx === currentStepIndex ? 'text-[#0B3D2E]' : 'text-[#0B3D2E]/40'
-                                        }`}>
-                                        {step}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="text-xs text-[#0B3D2E]/30 leading-relaxed">
-                        {t('ritual.quote.text')}
-                        <br />{t('ritual.quote.author')}
-                    </div>
+                {/* Progress Bar (Integrated into top) */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-black/5 z-20">
+                    <motion.div
+                        className="h-full bg-gradient-to-r from-transparent to-white/50"
+                        style={{ backgroundColor: activeConfig.color }}
+                        animate={{ width: `${progress}%` }}
+                    />
                 </div>
 
-                {/* Right Panel: Active Step */}
-                <div className="flex-1 relative flex flex-col bg-white/60">
-                    {/* Top Progress Bar (Mobile) */}
-                    <div className="md:hidden w-full h-1 bg-[#E7E1D6]">
-                        <motion.div
-                            className="h-full bg-[#0B3D2E]"
-                            animate={{ width: `${progress}%` }}
-                        />
+                {/* Step Header (Theme-based) */}
+                <div className={`relative h-32 w-full bg-gradient-to-br ${activeConfig.gradient} flex items-center justify-between px-8 text-white transition-all duration-500 overflow-hidden shrink-0`}>
+                    {/* Abstract shapes */}
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-2xl mix-blend-overlay" />
+                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/10 rounded-full blur-2xl mix-blend-overlay" />
+
+                    <div className="relative z-10 flex items-center gap-4">
+                        <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl shadow-inner border border-white/20">
+                            <ActiveIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-80">
+                                Step {currentStepIndex + 1} of {stepsOrder.length}
+                            </div>
+                            <h2 className="text-2xl font-bold tracking-tight">
+                                {t(activeConfig.labelKey)}
+                            </h2>
+                        </div>
                     </div>
 
-                    <div className="flex-1 p-6 md:p-12 overflow-y-auto overflow-x-hidden relative">
-                        <AnimatePresence mode="wait" custom={direction} initial={false}>
-                            {currentStep === 'input' && (
-                                <motion.div
-                                    key="step-input"
-                                    custom={direction}
-                                    variants={variants}
-                                    initial="enter"
-                                    animate="center"
-                                    exit="exit"
-                                    transition={{
-                                        x: { type: "spring", stiffness: 300, damping: 30 },
-                                        opacity: { duration: 0.2 }
-                                    }}
-                                    className="w-full h-full"
-                                >
-                                    <StepInput
-                                        worry={ritualData.worry}
-                                        prior={ritualData.prior}
-                                        onChange={(updates) => setRitualData((prev) => ({ ...prev, ...updates }))}
-                                        onNext={() => handleInputComplete({ prior: ritualData.prior, worry: ritualData.worry })}
-                                    />
-                                </motion.div>
-                            )}
-                            {currentStep === 'socratic' && (
-                                <motion.div
-                                    key="step-socratic"
-                                    custom={direction}
-                                    variants={variants}
-                                    initial="enter"
-                                    animate="center"
-                                    exit="exit"
-                                    transition={{
-                                        x: { type: "spring", stiffness: 300, damping: 30 },
-                                        opacity: { duration: 0.2 }
-                                    }}
-                                    className="w-full h-full"
-                                >
-                                    <StepSocratic
-                                        onComplete={handleSocraticComplete}
-                                        onNext={() => { }} // Internal next handling
-                                    />
-                                </motion.div>
-                            )}
-                            {currentStep === 'evidence' && (
-                                <motion.div
-                                    key="step-evidence"
-                                    custom={direction}
-                                    variants={variants}
-                                    initial="enter"
-                                    animate="center"
-                                    exit="exit"
-                                    transition={{
-                                        x: { type: "spring", stiffness: 300, damping: 30 },
-                                        opacity: { duration: 0.2 }
-                                    }}
-                                    className="w-full h-full"
-                                >
-                                    <StepEvidence
-                                        onEvidenceCollected={handleEvidenceCollected}
-                                        onNext={() => goToStep('calculation')}
-                                    />
-                                </motion.div>
-                            )}
-                            {currentStep === 'calculation' && (
-                                <motion.div
-                                    key="step-calc"
-                                    custom={direction}
-                                    variants={variants}
-                                    initial="enter"
-                                    animate="center"
-                                    exit="exit"
-                                    transition={{
-                                        x: { type: "spring", stiffness: 300, damping: 30 },
-                                        opacity: { duration: 0.2 }
-                                    }}
-                                    className="w-full h-full"
-                                >
-                                    <StepCalculation
-                                        prior={Math.round(ritualData.prior * ritualData.logic_modifier)} // Show MODIFIED prior
-                                        likelihood={ritualData.likelihood}
-                                        evidence={ritualData.evidenceWeight}
-                                        posterior={ritualData.posterior}
-                                        onNext={() => goToStep('result')}
-                                    />
-                                </motion.div>
-                            )}
-                            {currentStep === 'result' && (
-                                <motion.div
-                                    key="step-result"
-                                    custom={direction}
-                                    variants={variants}
-                                    initial="enter"
-                                    animate="center"
-                                    exit="exit"
-                                    transition={{
-                                        x: { type: "spring", stiffness: 300, damping: 30 },
-                                        opacity: { duration: 0.2 }
-                                    }}
-                                    className="w-full h-full"
-                                >
-                                    <StepResult
-                                        prior={ritualData.prior} // Show ORIGINAL prior for contrast
-                                        posterior={ritualData.posterior}
-                                        worry={ritualData.worry}
-                                        onComplete={() => onComplete({
-                                            prior: ritualData.prior,
-                                            likelihood: ritualData.likelihood,
-                                            evidence: ritualData.evidenceWeight,
-                                            posterior: ritualData.posterior,
-                                            papers_used: ritualData.papers,
-                                            calculation_steps: []
-                                        })}
-                                        onRedo={() => goToStep('input')}
-                                    />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                    <button
+                        onClick={onCancel}
+                        className="relative z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-sm"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
 
+                {/* Content Area */}
+                <div className="flex-1 bg-white relative overflow-hidden">
+                    <div className="absolute inset-0 overflow-y-auto p-0 sm:p-2">
+                        {/* Centered Content Container */}
+                        <div className="w-full h-full p-6 sm:p-8 flex flex-col">
+                            <AnimatePresence mode="wait" custom={direction} initial={false}>
+                                {currentStep === 'input' && (
+                                    <motion.div
+                                        key="step-input"
+                                        custom={direction}
+                                        variants={variants}
+                                        initial="enter"
+                                        animate="center"
+                                        exit="exit"
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="flex-1 flex flex-col"
+                                    >
+                                        <StepInput
+                                            worry={ritualData.worry}
+                                            prior={ritualData.prior}
+                                            onChange={(updates) => setRitualData((prev) => ({ ...prev, ...updates }))}
+                                            onNext={() => handleInputComplete({ prior: ritualData.prior, worry: ritualData.worry })}
+                                        />
+                                    </motion.div>
+                                )}
+                                {currentStep === 'socratic' && (
+                                    <motion.div
+                                        key="step-socratic"
+                                        custom={direction}
+                                        variants={variants}
+                                        initial="enter"
+                                        animate="center"
+                                        exit="exit"
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="flex-1"
+                                    >
+                                        <StepSocratic
+                                            onComplete={handleSocraticComplete}
+                                            onNext={() => { }}
+                                        />
+                                    </motion.div>
+                                )}
+                                {currentStep === 'evidence' && (
+                                    <motion.div
+                                        key="step-evidence"
+                                        custom={direction}
+                                        variants={variants}
+                                        initial="enter"
+                                        animate="center"
+                                        exit="exit"
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="flex-1"
+                                    >
+                                        <StepEvidence
+                                            onEvidenceCollected={handleEvidenceCollected}
+                                            onNext={() => goToStep('calculation')}
+                                        />
+                                    </motion.div>
+                                )}
+                                {currentStep === 'calculation' && (
+                                    <motion.div
+                                        key="step-calc"
+                                        custom={direction}
+                                        variants={variants}
+                                        initial="enter"
+                                        animate="center"
+                                        exit="exit"
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="flex-1"
+                                    >
+                                        <StepCalculation
+                                            prior={Math.round(ritualData.prior * ritualData.logic_modifier)}
+                                            likelihood={ritualData.likelihood}
+                                            evidence={ritualData.evidenceWeight}
+                                            posterior={ritualData.posterior}
+                                            onNext={() => goToStep('result')}
+                                        />
+                                    </motion.div>
+                                )}
+                                {currentStep === 'result' && (
+                                    <motion.div
+                                        key="step-result"
+                                        custom={direction}
+                                        variants={variants}
+                                        initial="enter"
+                                        animate="center"
+                                        exit="exit"
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="flex-1"
+                                    >
+                                        <StepResult
+                                            prior={ritualData.prior}
+                                            posterior={ritualData.posterior}
+                                            worry={ritualData.worry}
+                                            onComplete={() => onComplete({
+                                                prior: ritualData.prior,
+                                                likelihood: ritualData.likelihood,
+                                                evidence: ritualData.evidenceWeight,
+                                                posterior: ritualData.posterior,
+                                                papers_used: ritualData.papers,
+                                                calculation_steps: []
+                                            })}
+                                            onRedo={() => goToStep('input')}
+                                        />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
                 </div>
             </div>
         </motion.div>
