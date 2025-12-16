@@ -216,32 +216,27 @@ export function DailyInsightHub({
   return (
     <div className="w-full">
       <div className="relative">
-        <div className="glass-panel overflow-hidden rounded-2xl relative border-glow">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent pointer-events-none" />
-
-          {/* 标签栏 - Sliding Pill Design */}
-          <div className="relative z-20 px-4 pt-4">
-            <div className="flex gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl backdrop-blur-sm relative">
+        <div className="glass-panel relative border-l-2 border-l-[#D4AF37]">
+          {/* 标签栏 - Luxury Minimal Tab */}
+          <div className="relative z-20 px-6 pt-6 mb-6">
+            <div className="flex gap-8 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-1">
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all relative z-10 ${isActive
-                      ? 'text-[#0B3D2E] dark:text-white'
-                      : 'text-[#0B3D2E]/70 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white'
-                      }`}
+                    className={`flex items-center gap-2 pb-3 text-xs uppercase tracking-[0.2em] transition-all relative ${
+                      isActive 
+                        ? 'text-[#1A1A1A] dark:text-white font-medium' 
+                        : 'text-[#1A1A1A]/40 dark:text-white/40 hover:text-[#1A1A1A] dark:hover:text-white'
+                    }`}
                   >
                     {isActive && (
-                      <motion.div
-                        layoutId="activeTab"
-                        className="absolute inset-0 bg-white dark:bg-neutral-800 rounded-lg shadow-sm z-[-1]"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
+                      <motion.div layoutId="activeTabLine" className="absolute bottom-[-5px] left-0 right-0 h-[2px] bg-[#D4AF37]" />
                     )}
                     {tab.icon}
-                    <span>{language === 'en' ? tab.labelEn : tab.labelZh}</span>
+                    <span>{language === 'en' ? tab.labelEn.toUpperCase() : tab.labelZh}</span>
                   </button>
                 );
               })}
@@ -295,7 +290,7 @@ export function DailyInsightHub({
             </AnimatePresence>
           </CardContent>
 
-          <div className="h-1 bg-gradient-to-r from-emerald-500/20 via-amber-500/20 to-emerald-500/20" />
+          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#1A1A1A]/5 dark:bg-white/5" />
         </div>
       </div>
     </div>
@@ -387,12 +382,12 @@ function InsightPanel({
         </p>
         {onStartCalibration && (
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onStartCalibration}
-            className="mt-5 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#9CAF88] to-[#7A9A6A] text-white text-sm font-medium shadow-lg shadow-[#9CAF88]/25"
+            className="btn-luxury mt-6 px-8 py-3 w-full"
           >
-            {language === 'en' ? 'Start Calibration' : '开始校准'}
+            <span>{language === 'en' ? 'Start Calibration' : '开始校准'}</span>
           </motion.button>
         )}
       </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Edit3, AlertCircle, Check, X } from 'lucide-react';
+import { Loader2, Edit3, X } from 'lucide-react';
 import { 
   getTemplateQuestions, 
   getNextDecisionTreeQuestion,
@@ -16,7 +16,6 @@ import type {
   PhaseGoal,
   MetabolicProfile,
   OnboardingResult,
-  GoalType,
 } from '@/types/adaptive-interaction';
 import { useI18n } from '@/lib/i18n';
 
@@ -29,10 +28,9 @@ type FlowStep = 'questions' | 'analyzing' | 'goals';
 interface GoalModificationState {
   isOpen: boolean;
   goalId: string | null;
-  explanation: string;
-  alternatives: Array<{ type: GoalType; title: string; rationale: string }>;
+  goalTitle: string;
+  userInput: string;
   isLoading: boolean;
-  selectedAlternative: GoalType | null;
 }
 
 export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardingFlowProps) {
@@ -51,15 +49,15 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
   const [modificationState, setModificationState] = useState<GoalModificationState>({
     isOpen: false,
     goalId: null,
-    explanation: '',
-    alternatives: [],
+    goalTitle: '',
+    userInput: '',
     isLoading: false,
-    selectedAlternative: null,
   });
 
   const templateQuestions = getTemplateQuestions(language === 'en' ? 'en' : 'zh');
   const totalAnswered = Object.keys(templateAnswers).length + Object.keys(decisionTreeAnswers).length;
-  const progress = (totalAnswered / MAX_TOTAL_QUESTIONS) * 100;
+  const currentQuestionNumber = totalAnswered + 1;
+  const progress = (currentQuestionNumber / MAX_TOTAL_QUESTIONS) * 100;
 
   // Countdown timer
   useEffect(() => {
@@ -158,86 +156,37 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
   };
 
   // Handle goal modification request (Requirement 2.3)
-  const handleModifyGoal = async (goal: PhaseGoal) => {
-    setModificationState(prev => ({
-      ...prev,
+  const handleModifyGoal = (goal: PhaseGoal) => {
+    setModificationState({
       isOpen: true,
       goalId: goal.id,
-      isLoading: true,
-      selectedAlternative: null,
-    }));
-
-    try {
-      const response = await fetch('/api/onboarding/modify-goal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          goalId: goal.id,
-          action: 'explain',
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setModificationState(prev => ({
-          ...prev,
-          explanation: data.explanation,
-          alternatives: data.alternativeGoals,
-          isLoading: false,
-        }));
-      } else {
-        setModificationState(prev => ({
-          ...prev,
-          explanation: '无法获取解释，请稍后再试。',
-          isLoading: false,
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching goal explanation:', error);
-      setModificationState(prev => ({
-        ...prev,
-        explanation: '网络错误，请检查连接。',
-        isLoading: false,
-      }));
-    }
+      goalTitle: goal.title,
+      userInput: '',
+      isLoading: false,
+    });
   };
 
   // Confirm goal modification (Requirement 2.4)
   const handleConfirmModification = async () => {
-    if (!modificationState.goalId || !modificationState.selectedAlternative) return;
+    if (!modificationState.goalId || !modificationState.userInput.trim()) return;
 
     setModificationState(prev => ({ ...prev, isLoading: true }));
 
-    try {
-      const response = await fetch('/api/onboarding/modify-goal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          goalId: modificationState.goalId,
-          newGoalType: modificationState.selectedAlternative,
-          action: 'confirm',
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Update local goals state
-        setRecommendedGoals(prev => 
-          prev.map(g => g.id === modificationState.goalId ? data.updatedGoal : g)
-        );
-        setModificationState({
-          isOpen: false,
-          goalId: null,
-          explanation: '',
-          alternatives: [],
-          isLoading: false,
-          selectedAlternative: null,
-        });
-      }
-    } catch (error) {
-      console.error('Error confirming modification:', error);
-      setModificationState(prev => ({ ...prev, isLoading: false }));
-    }
+    // Update local goals state with user's custom title
+    setRecommendedGoals(prev => 
+      prev.map(g => g.id === modificationState.goalId 
+        ? { ...g, title: modificationState.userInput.trim(), user_modified: true }
+        : g
+      )
+    );
+    
+    setModificationState({
+      isOpen: false,
+      goalId: null,
+      goalTitle: '',
+      userInput: '',
+      isLoading: false,
+    });
   };
 
   // Cancel modification
@@ -245,10 +194,9 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
     setModificationState({
       isOpen: false,
       goalId: null,
-      explanation: '',
-      alternatives: [],
+      goalTitle: '',
+      userInput: '',
       isLoading: false,
-      selectedAlternative: null,
     });
   };
 
@@ -282,9 +230,13 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
             animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
-          <p className="text-2xl font-serif text-[#0B3D2E] dark:text-white">
-            AI 正在分析你的代谢指纹...
-          </p>
+          <motion.p 
+            className="text-2xl font-serif text-[#0B3D2E] dark:text-white"
+            animate={{ opacity: [1, 0.5, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            Max 正在了解您，请稍后...
+          </motion.p>
         </motion.div>
       </div>
     );
@@ -328,7 +280,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
                     className="flex items-center gap-1 text-sm text-[#0B3D2E]/60 hover:text-[#0B3D2E] dark:text-neutral-400 dark:hover:text-white transition-colors"
                   >
                     <Edit3 className="w-4 h-4" />
-                    修改
+                    我要微调
                   </button>
                 </div>
                 <h3 className="text-xl font-semibold text-[#0B3D2E] dark:text-white mb-2">
@@ -375,12 +327,12 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto"
+                className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-lg w-full"
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold text-[#0B3D2E] dark:text-white">
-                    为什么推荐这个目标？
+                    微调目标
                   </h3>
                   <button
                     onClick={handleCancelModification}
@@ -390,82 +342,41 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
                   </button>
                 </div>
 
-                {modificationState.isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 text-[#0B3D2E] animate-spin" />
-                    <span className="ml-2 text-[#0B3D2E]/60">AI 正在分析...</span>
-                  </div>
-                ) : (
-                  <>
-                    {/* AI Explanation */}
-                    <div className="bg-[#FFFBF0] dark:bg-neutral-800 rounded-xl p-4 mb-6">
-                      <div className="flex items-start gap-2 mb-2">
-                        <AlertCircle className="w-5 h-5 text-[#9CAF88] flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-[#0B3D2E]/80 dark:text-neutral-300">
-                          {modificationState.explanation}
-                        </p>
-                      </div>
-                    </div>
+                <div className="mb-4">
+                  <p className="text-sm text-[#0B3D2E]/60 dark:text-neutral-400 mb-2">
+                    当前目标：{modificationState.goalTitle}
+                  </p>
+                  <p className="text-sm text-[#0B3D2E]/80 dark:text-neutral-300 mb-4">
+                    请输入您想要的目标描述：
+                  </p>
+                  <textarea
+                    value={modificationState.userInput}
+                    onChange={(e) => setModificationState(prev => ({ ...prev, userInput: e.target.value }))}
+                    placeholder="例如：每天早睡30分钟、减少咖啡摄入..."
+                    className="w-full p-4 rounded-xl border-2 border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFBF0] dark:bg-neutral-800 text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:border-[#0B3D2E] transition-colors resize-none"
+                    rows={3}
+                  />
+                </div>
 
-                    {/* Alternative Goals */}
-                    {modificationState.alternatives.length > 0 && (
-                      <>
-                        <p className="text-sm text-[#0B3D2E]/60 dark:text-neutral-400 mb-3">
-                          如果你想调整，可以选择以下替代目标：
-                        </p>
-                        <div className="space-y-3 mb-6">
-                          {modificationState.alternatives.map((alt) => (
-                            <button
-                              key={alt.type}
-                              onClick={() => setModificationState(prev => ({
-                                ...prev,
-                                selectedAlternative: alt.type,
-                              }))}
-                              className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                                modificationState.selectedAlternative === alt.type
-                                  ? 'border-[#0B3D2E] bg-[#0B3D2E]/5'
-                                  : 'border-[#E7E1D6] dark:border-neutral-700 hover:border-[#0B3D2E]/40'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium text-[#0B3D2E] dark:text-white">
-                                  {alt.title}
-                                </span>
-                                {modificationState.selectedAlternative === alt.type && (
-                                  <Check className="w-5 h-5 text-[#0B3D2E]" />
-                                )}
-                              </div>
-                              <p className="text-sm text-[#0B3D2E]/60 dark:text-neutral-400 mt-1">
-                                {alt.rationale}
-                              </p>
-                            </button>
-                          ))}
-                        </div>
-                      </>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleCancelModification}
+                    className="flex-1 py-3 border-2 border-[#E7E1D6] dark:border-neutral-700 text-[#0B3D2E] dark:text-white rounded-xl font-medium hover:bg-[#E7E1D6]/50 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleConfirmModification}
+                    disabled={!modificationState.userInput.trim() || modificationState.isLoading}
+                    className="flex-1 py-3 bg-[#0B3D2E] text-white rounded-xl font-medium hover:bg-[#0a3629] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {modificationState.isLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                    ) : (
+                      '确认'
                     )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3">
-                      <button
-                        onClick={handleCancelModification}
-                        className="flex-1 py-3 border-2 border-[#E7E1D6] dark:border-neutral-700 text-[#0B3D2E] dark:text-white rounded-xl font-medium hover:bg-[#E7E1D6]/50 transition-colors"
-                      >
-                        保持原目标
-                      </button>
-                      <button
-                        onClick={handleConfirmModification}
-                        disabled={!modificationState.selectedAlternative || modificationState.isLoading}
-                        className="flex-1 py-3 bg-[#0B3D2E] text-white rounded-xl font-medium hover:bg-[#0a3629] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {modificationState.isLoading ? (
-                          <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-                        ) : (
-                          '确认修改'
-                        )}
-                      </button>
-                    </div>
-                  </>
-                )}
+                  </button>
+                </div>
               </motion.div>
             </motion.div>
           )}
@@ -481,7 +392,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
       <div className="sticky top-0 z-10 bg-[#FFFBF0] dark:bg-neutral-950 pt-4 px-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-[#0B3D2E]/60 dark:text-neutral-400">
-            问题 {totalAnswered + 1} / {MAX_TOTAL_QUESTIONS}
+            问题 {currentQuestionNumber} / {MAX_TOTAL_QUESTIONS}
           </span>
           <span className="text-sm font-mono text-[#0B3D2E]/60 dark:text-neutral-400">
             ⏱ {formatTime(timeRemaining)}

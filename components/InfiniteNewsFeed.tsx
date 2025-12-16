@@ -43,11 +43,21 @@ export default function InfiniteNewsFeed({ language = 'en', variant = 'calm' as 
   const actualVariant = 'calm';
   const loadingRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const baseNews = language === 'zh' ? mockNewsZh : mockNewsEn;
+  // 支持所有中文变体：zh, zh-CN, zh-TW, zh-HK 等
+  const isZh = language?.startsWith('zh') || language === 'zh';
+  const baseNews = isZh ? mockNewsZh : mockNewsEn;
   
   const [items, setItems] = useState(baseNews);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  // 当语言变化时重置 items
+  useEffect(() => {
+    const isZhLang = language?.startsWith('zh') || language === 'zh';
+    const newBaseNews = isZhLang ? mockNewsZh : mockNewsEn;
+    setItems(newBaseNews);
+    setExpandedId(null);
+  }, [language]);
 
   const loadMore = () => {
     if (isLoading) return;
@@ -87,14 +97,14 @@ export default function InfiniteNewsFeed({ language = 'en', variant = 'calm' as 
         <div className="px-5 py-4 border-b border-[#E7E1D6] dark:border-neutral-800 bg-gradient-to-r from-[#FFFDF8] to-white dark:from-neutral-900 dark:to-neutral-900 z-20 relative">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">
-              {language === 'zh' ? '为你精选' : 'Curated For You'}
+              {isZh ? '为你精选' : 'Curated For You'}
             </h3>
             <span className="text-xs text-[#9CAF88] dark:text-neutral-400 font-mono">
               {new Date().toISOString().split('T')[0]}
             </span>
           </div>
           <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
-            {language === 'zh' 
+            {isZh 
               ? '基于你的健康画像，从 PubMed、Semantic Scholar 等学术源精选' 
               : 'Based on your health profile, curated from PubMed, Semantic Scholar & more'}
           </p>
@@ -148,7 +158,7 @@ export default function InfiniteNewsFeed({ language = 'en', variant = 'calm' as 
                         className="flex-shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md"
                         style={{ color: scoreColor, backgroundColor: scoreBg }}
                       >
-                        {language === 'zh' ? '匹配' : 'Match'} {item.matchScore}%
+                        {isZh ? '匹配' : 'Match'} {item.matchScore}%
                       </span>
                     </div>
                     
@@ -190,7 +200,7 @@ export default function InfiniteNewsFeed({ language = 'en', variant = 'calm' as 
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                               </svg>
-                              {language === 'zh' ? '查看原文' : 'View Source'}
+                              {isZh ? '查看原文' : 'View Source'}
                             </a>
                           </div>
                         </motion.div>
@@ -229,7 +239,7 @@ export default function InfiniteNewsFeed({ language = 'en', variant = 'calm' as 
     return (
       <div className="terminal-container relative h-full overflow-hidden rounded-xl" style={{ backgroundColor: '#050505' }}>
         <div className="absolute top-0 left-0 right-0 z-30 px-6 py-4" style={{ backgroundColor: '#050505' }}>
-          <span style={{ color: '#00ff41' }}>&gt; {language === 'zh' ? '研究动态' : 'RESEARCH_FEED'}</span>
+          <span style={{ color: '#00ff41' }}>&gt; {isZh ? '研究动态' : 'RESEARCH_FEED'}</span>
         </div>
         <div 
           className="absolute top-12 left-0 right-0 h-20 pointer-events-none z-20"
@@ -259,7 +269,7 @@ export default function InfiniteNewsFeed({ language = 'en', variant = 'calm' as 
   return (
     <div className="h-full flex flex-col">
       <div className="px-5 py-4 border-b border-[#E7E1D6]">
-        <h3 className="text-lg font-semibold text-[#0B3D2E]">{language === 'zh' ? '研究动态' : 'Research Feed'}</h3>
+        <h3 className="text-lg font-semibold text-[#0B3D2E]">{isZh ? '研究动态' : 'Research Feed'}</h3>
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain">
         {items.map((item, index) => (

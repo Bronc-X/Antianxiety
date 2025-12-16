@@ -38,46 +38,46 @@ export const CognitiveDistortionAnimation: React.FC<CognitiveDistortionAnimation
             {/* The Balance Beam Container */}
             <div className="relative h-24 flex items-center justify-center">
 
-                {/* 1. Prior Bar (The "Phantom" Size) */}
-                <div className="w-full h-8 bg-[#E7E1D6] rounded-full overflow-hidden relative flex">
-                    {/* The Objective Part (Green) */}
+                {/* Progress Bar */}
+                <div className="w-full h-8 bg-[#E7E1D6] rounded-full overflow-hidden relative">
+                    {/* Step 1: Yellow (Fear/Prior) rises to 70% */}
                     <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: `${posterior}%` }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="h-full bg-[#5A7A4A] relative z-10"
-                    />
-
-                    {/* The Distortion Part (Gold/Orange) - This represents the excess fear */}
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${distortion}%` }}
-                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-                        className="h-full bg-[#8B6914] relative z-0 flex items-center justify-center overflow-hidden"
+                        animate={{ width: `${prior}%` }}
+                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        className="absolute left-0 top-0 h-full bg-[#8B6914] flex items-center justify-center overflow-hidden"
                     >
-                        {/* Shimmer effect to show it's "fake" or "amplified" */}
+                        {/* Shimmer effect */}
                         <div className="absolute inset-0 bg-white/20 skew-x-12 animate-shimmer" />
                     </motion.div>
+
+                    {/* Step 2: Green (Truth/Posterior) calibrates down to 50% */}
+                    <motion.div
+                        initial={{ width: `${prior}%` }}
+                        animate={{ width: `${posterior}%` }}
+                        transition={{ duration: 1.2, ease: "easeOut", delay: 1.5 }}
+                        className="absolute left-0 top-0 h-full bg-[#5A7A4A] z-10"
+                    />
                 </div>
 
                 {/* Floating Labels */}
                 <div className="absolute top-0 w-full h-full pointer-events-none">
-                    {/* Fear Label */}
+                    {/* Fear Label (Yellow) - shows at prior position first */}
                     <motion.div
-                        className="absolute -top-6 text-[#8B6914] font-bold"
-                        initial={{ left: '0%' }}
-                        animate={{ left: `${prior - 5}%` }}
-                        transition={{ duration: 1.5 }}
+                        className="absolute -top-6 text-[#8B6914] font-bold text-sm"
+                        initial={{ left: '0%', opacity: 0 }}
+                        animate={{ left: `${prior - 5}%`, opacity: 1 }}
+                        transition={{ duration: 1.2 }}
                     >
                         {prior}%
                     </motion.div>
 
-                    {/* Truth Label */}
+                    {/* Truth Label (Green) - appears after calibration */}
                     <motion.div
-                        className="absolute -bottom-6 text-[#5A7A4A] font-bold"
-                        initial={{ left: '0%' }}
-                        animate={{ left: `${posterior - 5}%` }}
-                        transition={{ duration: 1.5 }}
+                        className="absolute -bottom-6 text-[#5A7A4A] font-bold text-sm"
+                        initial={{ left: `${prior - 5}%`, opacity: 0 }}
+                        animate={{ left: `${posterior - 5}%`, opacity: 1 }}
+                        transition={{ duration: 1.2, delay: 1.5 }}
                     >
                         {posterior}%
                     </motion.div>

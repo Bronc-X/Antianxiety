@@ -114,39 +114,20 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 // ============================================
-// Empty State
+// Demo Data - 7天演示数据
 // ============================================
 
-function EmptyState() {
-  return (
-    <motion.div
-      className="flex flex-col items-center justify-center h-48 text-center px-6"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 100 }}
-    >
-      <motion.div
-        className="text-4xl mb-4"
-        animate={{ 
-          y: [0, -5, 0],
-          rotate: [0, 5, -5, 0]
-        }}
-        transition={{ 
-          duration: 2,
-          repeat: Infinity,
-          ease: 'easeInOut'
-        }}
-      >
-        📊
-      </motion.div>
-      <p className="text-white/60 text-sm mb-2">
-        还没有足够的数据来绘制曲线
-      </p>
-      <p className="text-white/40 text-xs">
-        完成几次认知校准后，你的焦虑趋势将在这里显示 🌱
-      </p>
-    </motion.div>
-  );
+function generateDemoData(): DataPoint[] {
+  const now = new Date();
+  return [
+    { id: '1', date: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString(), belief_context: '工作压力', prior_score: 75, posterior_score: 58, evidence_stack: [], exaggeration_factor: 1.3 },
+    { id: '2', date: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(), belief_context: '睡眠不足', prior_score: 68, posterior_score: 52, evidence_stack: [], exaggeration_factor: 1.3 },
+    { id: '3', date: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString(), belief_context: '社交焦虑', prior_score: 72, posterior_score: 48, evidence_stack: [], exaggeration_factor: 1.5 },
+    { id: '4', date: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(), belief_context: '健康担忧', prior_score: 65, posterior_score: 42, evidence_stack: [], exaggeration_factor: 1.5 },
+    { id: '5', date: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(), belief_context: '财务压力', prior_score: 58, posterior_score: 38, evidence_stack: [], exaggeration_factor: 1.5 },
+    { id: '6', date: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(), belief_context: '未来不确定', prior_score: 52, posterior_score: 35, evidence_stack: [], exaggeration_factor: 1.5 },
+    { id: '7', date: now.toISOString(), belief_context: '日常焦虑', prior_score: 48, posterior_score: 32, evidence_stack: [], exaggeration_factor: 1.5 },
+  ];
 }
 
 // ============================================
@@ -161,27 +142,26 @@ export function AnxietyCurve({
 }: AnxietyCurveProps) {
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null);
 
+  // 使用演示数据如果没有真实数据
+  const displayData = data.length < 3 ? generateDemoData() : data;
+  const isDemo = data.length < 3;
+
   // Process data for chart
   const chartData = useMemo(() => {
-    return data.map((point, index) => ({
+    return displayData.map((point, index) => ({
       ...point,
       displayDate: formatDate(point.date),
       segmentColor: index > 0 
-        ? getSegmentColor(point.posterior_score, data[index - 1].posterior_score)
+        ? getSegmentColor(point.posterior_score, displayData[index - 1].posterior_score)
         : SAGE_GREEN
     }));
-  }, [data]);
+  }, [displayData]);
 
   // Handle point click
   const handlePointClick = (point: DataPoint) => {
     setSelectedPoint(point);
     onDataPointTap?.(point);
   };
-
-  // Show empty state if not enough data
-  if (data.length < 3) {
-    return <EmptyState />;
-  }
 
   return (
     <div className="w-full">
@@ -202,6 +182,15 @@ export function AnxietyCurve({
           </motion.button>
         ))}
       </div>
+
+      {/* Demo Badge */}
+      {isDemo && (
+        <div className="flex justify-center mb-3">
+          <span className="px-3 py-1 bg-[#D4AF37]/10 text-[#D4AF37] text-xs font-medium rounded-full">
+            演示数据 · 完成校准后显示真实趋势
+          </span>
+        </div>
+      )}
 
       {/* Chart */}
       <motion.div
@@ -236,20 +225,21 @@ export function AnxietyCurve({
               dataKey="displayDate"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+              tick={{ fill: '#0B3D2E', fontSize: 10, opacity: 0.5 }}
               interval="preserveStartEnd"
             />
             <YAxis
               domain={[0, 100]}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+              tick={{ fill: '#0B3D2E', fontSize: 10, opacity: 0.5 }}
               tickFormatter={(value) => `${value}%`}
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine
               y={50}
-              stroke="rgba(255,255,255,0.1)"
+              stroke="#0B3D2E"
+              strokeOpacity={0.1}
               strokeDasharray="3 3"
             />
             <Line

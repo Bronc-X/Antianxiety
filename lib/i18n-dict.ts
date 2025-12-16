@@ -20,6 +20,13 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.scienceInsight': '科学与洞察',
     'nav.upgrade': '升级',
 
+    // ========== Welcome 页面 ==========
+    'welcome.makeItBoring': '大巧若拙',
+    'welcome.slideToBegin': '滑动解锁，开启你的健康之旅',
+    'welcome.energyRestored': '能量已恢复',
+    'welcome.dashboardReady': '仪表盘已就绪',
+    'welcome.slideToActivate': '滑动激活',
+
     // ========== 通用 ==========
     'common.save': '保存',
     'common.cancel': '取消',
@@ -597,6 +604,13 @@ export const translations: Record<Language, Record<string, string>> = {
     'ritual.result.drop': '降幅',
   },
   'zh-TW': {
+    // ========== Welcome 頁面 ==========
+    'welcome.makeItBoring': '大巧若拙',
+    'welcome.slideToBegin': '滑動解鎖，開啟你的健康之旅',
+    'welcome.energyRestored': '能量已恢復',
+    'welcome.dashboardReady': '儀表盤已就緒',
+    'welcome.slideToActivate': '滑動激活',
+
     // ========== 導航 ==========
     'nav.core': '核心功能',
     'nav.model': '科學模型',
@@ -816,6 +830,13 @@ export const translations: Record<Language, Record<string, string>> = {
     'ritual.distortion.analysis': '你的恐懼被放大了 {percent}%。邏輯分析顯示這種結果並不常見，但你的情緒預測（先驗信念）仍然居高不下。',
   },
   en: {
+    // ========== Welcome Page ==========
+    'welcome.makeItBoring': 'Make It Boring',
+    'welcome.slideToBegin': 'Slide to unlock your health journey',
+    'welcome.energyRestored': 'Energy Restored',
+    'welcome.dashboardReady': 'Dashboard Ready',
+    'welcome.slideToActivate': 'Slide to Activate',
+
     // ========== Navigation ==========
     'nav.core': 'Core Features',
     'nav.model': 'Scientific Model',

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import AnimatedSection from '@/components/AnimatedSection';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { countryDialingCodes } from '@/data/countryDialingCodes';
 import { useI18n } from '@/lib/i18n';
 
@@ -43,7 +44,7 @@ export default function SignupPage() {
       setIsLoading(false);
       return;
     }
-    if (password.length < 6) {
+    if (password.length < 8) {
       setMessage({ type: 'error', text: t('signup.passwordTooShort') });
       setIsLoading(false);
       return;
@@ -56,7 +57,7 @@ export default function SignupPage() {
       if (error) { setMessage({ type: 'error', text: error.message }); setIsLoading(false); return; }
       if (data.user) {
         setMessage({ type: 'success', text: t('signup.success') });
-        if (data.session) { setTimeout(() => { router.push('/landing'); router.refresh(); }, 2000); }
+        if (data.session) { setTimeout(() => { router.push('/onboarding'); router.refresh(); }, 2000); }
       }
     } catch (error) {
       setMessage({ type: 'error', text: t('error.unknown') });
@@ -97,7 +98,7 @@ export default function SignupPage() {
       if (error) { setMessage({ type: 'error', text: error.message }); setIsVerifyingOtp(false); return; }
       if (data?.session) {
         setMessage({ type: 'success', text: t('signup.redirecting') });
-        setTimeout(() => { router.push('/landing'); router.refresh(); }, 1500);
+        setTimeout(() => { router.push('/onboarding'); router.refresh(); }, 1500);
       } else {
         setMessage({ type: 'success', text: t('signup.otpSuccess') });
       }
@@ -123,27 +124,16 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] dark:bg-neutral-950 px-4 py-12 transition-colors">
+    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] dark:bg-neutral-950 px-4 py-12 transition-colors relative">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
+      
       <div className="w-full max-w-md space-y-8">
         <AnimatedSection variant="fadeUp" className="text-center">
           <h1 className="text-3xl font-semibold text-[#0B3D2E] dark:text-white">{t('signup.title')}</h1>
           <p className="mt-2 text-sm text-[#0B3D2E]/80 dark:text-neutral-400">{t('signup.subtitle')}</p>
-          <div className="mt-4 flex justify-center gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-1 text-xs text-[#0B3D2E] dark:text-white shadow-sm">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1AAD19] text-white text-sm">微</span>
-              <span>{t('signup.wechatScan')}</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-1 text-xs text-[#0B3D2E] dark:text-white shadow-sm">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black dark:bg-white dark:text-black text-sm font-semibold text-white">X</span>
-              <span>{t('signup.xSignup')}</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-[#0B3D2E]/20 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-1 text-xs text-[#0B3D2E] dark:text-white shadow-sm">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#24292e] text-white text-xs">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-              </span>
-              <span>{t('signup.githubSignup')}</span>
-            </div>
-          </div>
         </AnimatedSection>
 
         <AnimatedSection variant="fadeUp" className="mt-8">
@@ -176,13 +166,13 @@ export default function SignupPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('signup.password')}</label>
                 <input id="password" name="password" type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)}
                   className="mt-1 block w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
-                  placeholder={t('signup.passwordPlaceholder')} minLength={6} />
+                  placeholder={t('signup.passwordPlaceholder')} minLength={8} />
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('signup.confirmPassword')}</label>
                 <input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                   className="mt-1 block w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
-                  placeholder={t('signup.confirmPlaceholder')} minLength={6} />
+                  placeholder={t('signup.confirmPlaceholder')} minLength={8} />
               </div>
               <button type="submit" disabled={isLoading}
                 className="w-full rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 dark:focus:ring-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-50">
@@ -259,8 +249,8 @@ export default function SignupPage() {
               <button type="button" onClick={() => setShowWechatModal(true)} disabled={oauthProviderLoading !== null}
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1AAD19] text-white shadow-sm transition-all hover:bg-[#1AAD19]/80 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t('login.useWechat')}>
-                <svg className="h-6 w-6" viewBox="0 0 1024 1024" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M690.1 377.4c5.9 0 11.8.2 17.6.5-15.8-73.2-88.5-127.5-177.2-127.5-95.4 0-172.8 63.8-172.8 142.3 0 44.4 24.1 80.8 64.3 108.8l-16.1 48.2 56.1-28.1c20.1 4 40.2 8.1 60.3 8.1 5.8 0 11.5-.3 17.2-.8-3.6-12.3-5.6-25.1-5.6-38.4 0-62.6 70.2-113.1 156.2-113.1zm-94.8-32.7c12 0 20.1 8.1 20.1 20.1 0 12-8.1 20.1-20.1 20.1s-20.1-8.1-20.1-20.1c0-12 8.1-20.1 20.1-20.1zm-136.2 40.2c-12 0-24.1-8.1-24.1-20.1 0-12 12.1-20.1 24.1-20.1 12 0 20.1 8.1 20.1 20.1 0 12-8.1 20.1-20.1 20.1zM889.7 539.4c0-66.3-64.3-120.4-136.2-120.4-80 0-140.2 54.1-140.2 120.4s60.2 120.4 140.2 120.4c16.1 0 32.2-4 48.2-8.1l44.1 24.1-12-40.2c32.1-24 56-56.1 55.9-96.2zm-176.3-20.1c-8.1 0-16.1-8.1-16.1-16.1 0-8.1 8.1-16.1 16.1-16.1 12 0 20.1 8.1 20.1 16.1 0 8-8.1 16.1-20.1 16.1zm80 0c-8.1 0-16.1-8.1-16.1-16.1 0-8.1 8.1-16.1 16.1-16.1 12 0 20.1 8.1 20.1 16.1 0 8-8.1 16.1-20.1 16.1z"/>
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178A1.17 1.17 0 014.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178 1.17 1.17 0 01-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 01.598.082l1.584.926a.272.272 0 00.14.045c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 01-.023-.156.49.49 0 01.201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.269-.03-.406-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.969-.982z"/>
                 </svg>
               </button>
             </div>

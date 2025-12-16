@@ -58,6 +58,11 @@ export default function BayesianDashboardPage() {
   // Passive nudge hook
   const { nudgeState, dismissNudge } = useBayesianNudge();
 
+  // 确保页面加载时滚动到顶部
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Fetch history data
   const { data: historyData, mutate: refreshHistory } = useSWR(
     `/api/bayesian/history?timeRange=${timeRange}`,

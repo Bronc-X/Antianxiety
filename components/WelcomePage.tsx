@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ImageComparisonSlider from "./ImageComparisonSlider";
 import { motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
 
 export default function WelcomePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [isActivated, setIsActivated] = useState(false);
   const [imageId, setImageId] = useState<number | null>(null);
   const [sliderProgress, setSliderProgress] = useState(0);
@@ -31,9 +33,9 @@ export default function WelcomePage() {
     audio.volume = 0.5;
     audio.play().catch((e) => console.log("Audio play failed", e));
 
-    // 2. 延迟后跳转到 Landing
+    // 2. 延迟后跳转到登录页面
     setTimeout(() => {
-      router.push("/landing");
+      router.push("/login");
     }, 1800);
   };
 
@@ -90,7 +92,7 @@ export default function WelcomePage() {
               WebkitTextFillColor: isActivated ? '#0B3D2E' : '#E8DFD0'
             }}
           >
-            {isActivated ? "Energy Restored." : "Make it Boring"}
+            {isActivated ? t('welcome.energyRestored') : t('welcome.makeItBoring')}
           </motion.h1>
           <motion.p
             layout
@@ -100,8 +102,8 @@ export default function WelcomePage() {
             }}
           >
             {isActivated
-              ? "Welcome back. Your dashboard is ready."
-              : "Slide across to clear the noise and begin."}
+              ? t('welcome.dashboardReady')
+              : t('welcome.slideToBegin')}
           </motion.p>
         </div>
 
@@ -117,6 +119,7 @@ export default function WelcomePage() {
             afterImage={imgColor}
             onComplete={handleActivation}
             onProgressChange={setSliderProgress}
+            slideText={t('welcome.slideToActivate')}
           />
         </motion.div>
       </div>

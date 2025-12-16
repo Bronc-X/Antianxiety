@@ -93,12 +93,6 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
                   {t('nav.bayesian')}
                 </Link>
                 <Link
-                  href="/plans"
-                  className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors"
-                >
-                  {t('nav.plans')}
-                </Link>
-                <Link
                   href="/onboarding/upgrade?from=landing"
                   className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors"
                 >
