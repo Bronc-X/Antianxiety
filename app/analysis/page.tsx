@@ -30,11 +30,22 @@ export default async function AIAnalysisPage() {
   const supabase = await createServerSupabaseClient();
 
   // 检查用户是否完成了个人设置
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('height, weight, age, gender')
-    .eq('id', user.id)
-    .single();
+  const [profileResult, plansResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('height, weight, age, gender, full_name')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('user_plans')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+  ]);
+
+  const { data: profile, error } = profileResult;
+  const plans = plansResult.data || [];
 
   // 如果查询出错，重定向到profile设置
   if (error) {
@@ -67,5 +78,5 @@ export default async function AIAnalysisPage() {
   }
 
   // 已完成设置，显示分析报告
-  return <AnalysisClientView profile={profile} />;
+  return <AnalysisClientView profile={profile} plans={plans} />;
 }

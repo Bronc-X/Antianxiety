@@ -16,6 +16,6 @@ export default async function Home() {
     return redirect('/landing');
   }
 
-  // 如果用户未登录，重定向到登录页面
-  return redirect('/login');
+  // 如果用户未登录，重定向到欢迎页面
+  return redirect('/welcome');
 }

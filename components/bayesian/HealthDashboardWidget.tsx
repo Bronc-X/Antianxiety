@@ -5,8 +5,8 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
-// 颜色常量：提取自原视频的精准渐变
-const GRADIENT_CLASS = "bg-gradient-to-t from-[#FF9A62] to-[#FF5D5D]";
+// 颜色常量：红色→橙色→绿色渐变
+const GRADIENT_CLASS = "bg-gradient-to-t from-[#FF5D5D] via-[#FF9A62] to-[#5A7A4A]";
 
 const CardShell = ({
   title,
@@ -19,17 +19,17 @@ const CardShell = ({
   children: React.ReactNode;
   linkText: string;
 }) => (
-  <div className="flex flex-col justify-between p-8 md:p-10 bg-white dark:bg-neutral-900 border border-gray-100 dark:border-neutral-800 shadow-[0_2px_20px_rgba(0,0,0,0.04)] dark:shadow-none rounded-[32px] h-[580px] md:h-[640px] relative overflow-hidden group hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:hover:shadow-none transition-all duration-500">
+  <div className="flex flex-col justify-between p-6 bg-white dark:bg-neutral-900 border border-gray-100 dark:border-neutral-800 shadow-[0_2px_20px_rgba(0,0,0,0.04)] dark:shadow-none rounded-[24px] h-[320px] relative overflow-hidden group hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:hover:shadow-none transition-all duration-500">
     <div className="z-10 relative">
-      <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">{title}</h3>
-      <p className="text-sm md:text-base text-gray-500 dark:text-neutral-400 leading-relaxed max-w-[95%] font-medium">{subtitle}</p>
-      <div className="mt-6 flex items-center text-sm font-semibold text-gray-400 dark:text-neutral-500 group-hover:text-[#FF5D5D] dark:group-hover:text-orange-400 transition-colors cursor-pointer">
-        {linkText}
-        <ArrowRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
-      </div>
+      <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 tracking-tight">{title}</h3>
+      <p className="text-xs text-gray-500 dark:text-neutral-400 leading-relaxed line-clamp-2">{subtitle}</p>
     </div>
-    <div className="mt-auto relative w-full h-72 md:h-80 flex items-end justify-center pb-4">
+    <div className="relative w-full h-40 flex items-end justify-center">
       {children}
+    </div>
+    <div className="flex items-center text-xs font-semibold text-gray-400 dark:text-neutral-500 group-hover:text-[#FF5D5D] dark:group-hover:text-orange-400 transition-colors cursor-pointer">
+      {linkText}
+      <ArrowRight className="w-3 h-3 ml-1 transform group-hover:translate-x-1 transition-transform" />
     </div>
   </div>
 );
@@ -50,10 +50,10 @@ const SliderItem = ({ index, total }: { index: number; total: number }) => {
     animate: {
       height: ["30%", "75%", "30%"],
       transition: {
-        duration: 3,
+        duration: 5,
         repeat: Infinity,
         ease: "easeInOut" as const,
-        delay: index * 0.4,
+        delay: index * 0.6,
       },
     },
   };
@@ -97,11 +97,11 @@ const BarItem = ({ index }: { index: number }) => {
     animate: {
       height: [`${20 + Math.random() * 10}%`, `${40 + Math.random() * 40}%`, `${20 + Math.random() * 10}%`],
       transition: {
-        duration: 1.5 + Math.random(),
+        duration: 3 + Math.random() * 2,
         repeat: Infinity,
         repeatType: "mirror" as const,
         ease: "easeInOut" as const,
-        delay: index * 0.1,
+        delay: index * 0.2,
       },
     },
   };

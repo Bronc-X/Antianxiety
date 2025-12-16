@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Sparkles, Zap, Brain, TrendingUp, Lock, X } from 'lucide-react';
+import { Sparkles, Zap, Brain, TrendingUp, Lock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 
@@ -48,7 +48,7 @@ export default function UpgradePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B3D2E] via-[#0B3D2E] to-[#1a5c47] flex items-center justify-center p-6 relative overflow-hidden" style={{ color: 'white' }}>
+    <div className="min-h-screen bg-gradient-to-br from-[#0B3D2E] via-[#0B3D2E] to-[#1a5c47] flex items-center justify-center p-6 relative overflow-hidden text-white-force">
 
       {/* 背景装饰 */}
       <div className="absolute inset-0 opacity-10">
@@ -56,18 +56,7 @@ export default function UpgradePage() {
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-emerald-400 rounded-full filter blur-3xl animate-pulse delay-1000" />
       </div>
 
-      {/* 关闭/跳过按钮 - 非常小且不显眼 */}
-      <button
-        onClick={handleSkip}
-        disabled={isSkipping}
-        className="absolute top-6 right-6 p-2 text-white/70 hover:text-white transition-colors z-20 group"
-        aria-label={t('upgrade.skipUpgrade')}
-      >
-        <X className="w-5 h-5" />
-        <span className="absolute top-full right-0 mt-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          {t('upgrade.continueFree')}
-        </span>
-      </button>
+
 
       <div className="relative z-10 max-w-4xl mx-auto text-center">
 
@@ -78,9 +67,9 @@ export default function UpgradePage() {
             <span className="text-sm font-medium text-amber-200">{t('upgrade.limitedOffer')}</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-serif font-medium leading-tight mb-4">
+          <h1 className="text-4xl md:text-5xl font-serif font-medium leading-tight mb-4 text-white-force">
             {t('upgrade.unlockFull')}<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-400">
+            <span style={{ color: '#FFFFFF' }}>
               {t('upgrade.metabolicPotential')}
             </span>
           </h1>
@@ -202,8 +191,8 @@ function FeatureCard({
       <div className="w-12 h-12 bg-gradient-to-br from-amber-400/20 to-orange-400/20 rounded-xl flex items-center justify-center text-amber-300 mb-4 group-hover:scale-110 transition-transform">
         {icon}
       </div>
-      <h3 className="font-semibold text-white mb-2">{title}</h3>
-      <p className="text-sm text-white/80 leading-relaxed">{description}</p>
+      <h3 className="font-semibold mb-2 text-white-force">{title}</h3>
+      <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>{description}</p>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
-import { User, Activity, Calendar, Scale } from 'lucide-react';
+import { User, Activity, Calendar, Scale, Smile } from 'lucide-react';
 import { tr, useI18n } from '@/lib/i18n';
 
 /**
@@ -20,6 +20,7 @@ export default function ProfileSetupPage() {
   const [userId, setUserId] = useState<string | null>(null);
   
   // 表单字段
+  const [nickname, setNickname] = useState('');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
@@ -93,6 +94,7 @@ export default function ProfileSetupPage() {
       const { error } = await supabase
         .from('profiles')
         .update({
+          full_name: nickname.trim() || null,
           height: heightNum,
           weight: weightNum,
           age: ageNum,
@@ -155,6 +157,28 @@ export default function ProfileSetupPage() {
         {/* 表单 */}
         <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-8 border border-[#E7E1D6] shadow-sm">
           
+          {/* 昵称输入 */}
+          <div className="mb-6">
+            <label htmlFor="nickname" className="block text-sm font-medium text-[#0B3D2E] mb-3">
+              <div className="flex items-center gap-2">
+                <Smile className="w-4 h-4" />
+                {tr(language, { zh: '我应该怎么称呼你', en: 'What should I call you?' })}
+              </div>
+            </label>
+            <input
+              id="nickname"
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder={tr(language, { zh: '例如：小明、Alex', en: 'e.g., Alex, 小明' })}
+              maxLength={20}
+              className="w-full px-4 py-3 border-2 border-[#E7E1D6] rounded-xl focus:outline-none focus:border-[#0B3D2E] transition-colors text-[#0B3D2E]"
+            />
+            <p className="mt-2 text-xs text-[#0B3D2E]/50">
+              {tr(language, { zh: '这个名字会出现在首页问候语中', en: 'This name will appear in the homepage greeting' })}
+            </p>
+          </div>
+
           {/* 性别选择 */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-[#0B3D2E] mb-3">

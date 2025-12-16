@@ -1,15 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { 
   Activity, 
   Brain, 
   Flame, 
   Moon, 
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
 import ProAntiAgingFoods from '@/components/ProAntiAgingFoods';
 import { useI18n } from '@/lib/i18n';
+
+const PlanListWithActions = lazy(() => import('@/components/PlanListWithActions'));
+
+function LoadingPlaceholder({ height = 'h-32' }: { height?: string }) {
+  return (
+    <div className={`${height} flex items-center justify-center bg-white/50 rounded-xl border border-[#E7E1D6]/50`}>
+      <Loader2 className="w-5 h-5 text-[#9CAF88] animate-spin" />
+    </div>
+  );
+}
 
 
 interface AnalysisClientViewProps {
@@ -20,13 +31,14 @@ interface AnalysisClientViewProps {
     gender: string;
     full_name?: string;
   };
+  plans?: any[];
 }
 
 
 
 
 
-export default function AnalysisClientView({ profile }: AnalysisClientViewProps) {
+export default function AnalysisClientView({ profile, plans = [] }: AnalysisClientViewProps) {
   const { t, language } = useI18n();
   const [isGenerating, setIsGenerating] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -186,6 +198,23 @@ export default function AnalysisClientView({ profile }: AnalysisClientViewProps)
       <div className="max-w-4xl mx-auto mt-12">
         <ProAntiAgingFoods />
       </div>
+
+      {/* SECTION 4: 我的健康计划 */}
+      {plans.length > 0 && (
+        <div className="max-w-4xl mx-auto mt-12">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-medium opacity-80 px-2">
+              {language === 'en' ? 'My Health Plans' : '我的健康计划'}
+            </h3>
+            <span className="text-xs font-mono text-[#0B3D2E]/40 dark:text-neutral-500">
+              {plans.length} {language === 'en' ? 'ACTIVE' : '进行中'}
+            </span>
+          </div>
+          <Suspense fallback={<LoadingPlaceholder height="h-64" />}>
+            <PlanListWithActions initialPlans={plans} />
+          </Suspense>
+        </div>
+      )}
 
     </div>
   );

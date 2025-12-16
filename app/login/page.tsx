@@ -5,6 +5,7 @@ import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AnimatedSection from '@/components/AnimatedSection';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/lib/i18n';
 
 function LoginFormContent() {
@@ -25,7 +26,7 @@ function LoginFormContent() {
     const checkExistingSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        const redirectTo = searchParams.get('redirectedFrom') || '/welcome';
+        const redirectTo = searchParams.get('redirectedFrom') || '/landing';
         window.location.href = redirectTo;
       }
     };
@@ -66,7 +67,7 @@ function LoginFormContent() {
         await new Promise(resolve => setTimeout(resolve, 500));
         const { data: { user }, error } = await supabase.auth.getUser();
         if (user && !error) {
-          const redirectedFrom = searchParams.get('redirectedFrom') || '/welcome';
+          const redirectedFrom = searchParams.get('redirectedFrom') || '/landing';
           window.location.href = redirectedFrom;
         } else {
           setMessage({ type: 'error', text: t('error.auth') });
@@ -113,7 +114,7 @@ function LoginFormContent() {
         setMessage({ type: 'success', text: t('login.success') });
         isEmailLoginRedirectingRef.current = true;
         setIsLoading(false);
-        window.location.href = '/welcome';
+        window.location.href = '/landing';
         return;
       } else if (data.user) {
         setMessage({ type: 'success', text: t('login.sessionSetting') });
@@ -151,7 +152,12 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] dark:bg-neutral-950 px-4 py-12 transition-colors">
+    <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] dark:bg-neutral-950 px-4 py-12 transition-colors relative">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
+      
       <div className="w-full max-w-md space-y-8">
         <AnimatedSection variant="fadeUp" className="text-center">
           <div className="mb-6 flex items-center justify-center gap-3">
@@ -231,8 +237,8 @@ function LoginFormContent() {
               <button type="button" onClick={() => handleOAuthLogin('wechat')} disabled={oauthProviderLoading !== null}
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1AAD19] text-white shadow-sm transition-all hover:bg-[#1AAD19]/80 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t('login.useWechat')}>
-                <svg className="h-6 w-6" viewBox="0 0 1024 1024" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M690.1 377.4c5.9 0 11.8.2 17.6.5-15.8-73.2-88.5-127.5-177.2-127.5-95.4 0-172.8 63.8-172.8 142.3 0 44.4 24.1 80.8 64.3 108.8l-16.1 48.2 56.1-28.1c20.1 4 40.2 8.1 60.3 8.1 5.8 0 11.5-.3 17.2-.8-3.6-12.3-5.6-25.1-5.6-38.4 0-62.6 70.2-113.1 156.2-113.1zm-94.8-32.7c12 0 20.1 8.1 20.1 20.1 0 12-8.1 20.1-20.1 20.1s-20.1-8.1-20.1-20.1c0-12 8.1-20.1 20.1-20.1zm-136.2 40.2c-12 0-24.1-8.1-24.1-20.1 0-12 12.1-20.1 24.1-20.1 12 0 20.1 8.1 20.1 20.1 0 12-8.1 20.1-20.1 20.1zM889.7 539.4c0-66.3-64.3-120.4-136.2-120.4-80 0-140.2 54.1-140.2 120.4s60.2 120.4 140.2 120.4c16.1 0 32.2-4 48.2-8.1l44.1 24.1-12-40.2c32.1-24 56-56.1 55.9-96.2zm-176.3-20.1c-8.1 0-16.1-8.1-16.1-16.1 0-8.1 8.1-16.1 16.1-16.1 12 0 20.1 8.1 20.1 16.1 0 8-8.1 16.1-20.1 16.1zm80 0c-8.1 0-16.1-8.1-16.1-16.1 0-8.1 8.1-16.1 16.1-16.1 12 0 20.1 8.1 20.1 16.1 0 8-8.1 16.1-20.1 16.1z" />
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178A1.17 1.17 0 014.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178 1.17 1.17 0 01-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 01.598.082l1.584.926a.272.272 0 00.14.045c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 01-.023-.156.49.49 0 01.201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.269-.03-.406-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.969-.982z" />
                 </svg>
               </button>
             </div>

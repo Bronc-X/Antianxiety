@@ -9,6 +9,9 @@ interface ImageComparisonSliderProps {
   afterImage: string;
   onComplete?: () => void;
   onProgressChange?: (progress: number) => void;
+  slideText?: string;
+  beforeAlt?: string;
+  afterAlt?: string;
 }
 
 export default function ImageComparisonSlider({
@@ -16,6 +19,7 @@ export default function ImageComparisonSlider({
   afterImage,
   onComplete,
   onProgressChange,
+  slideText = "Slide to Activate Energy",
 }: ImageComparisonSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -153,7 +157,7 @@ export default function ImageComparisonSlider({
         className="absolute bottom-6 left-0 right-0 text-center pointer-events-none z-20"
       >
         <span className="bg-[#2C2C2C]/70 backdrop-blur-md text-[#E8DFD0] px-4 py-2 rounded-full text-sm font-medium tracking-wide border border-[#C4A77D]/30">
-          Slide to Activate Energy
+          {slideText}
         </span>
       </motion.div>
     </div>
