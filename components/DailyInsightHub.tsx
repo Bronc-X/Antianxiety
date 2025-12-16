@@ -57,19 +57,19 @@ const CONTENT_MIN_HEIGHT = 280;
 // 抽卡效果 Hook
 function useCardTilt() {
   const ref = useRef<HTMLDivElement>(null);
-  
+
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  
+
   const mouseXSpring = useSpring(x, { stiffness: 500, damping: 50 });
   const mouseYSpring = useSpring(y, { stiffness: 500, damping: 50 });
-  
+
   const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ['12deg', '-12deg']);
   const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ['-12deg', '12deg']);
-  
+
   const sheenX = useTransform(mouseXSpring, [-0.5, 0.5], ['0%', '100%']);
   const sheenY = useTransform(mouseYSpring, [-0.5, 0.5], ['0%', '100%']);
-  
+
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
@@ -78,9 +78,9 @@ function useCardTilt() {
     x.set(mouseX / rect.width - 0.5);
     y.set(mouseY / rect.height - 0.5);
   };
-  
+
   const handleMouseLeave = () => { x.set(0); y.set(0); };
-  
+
   return { ref, rotateX, rotateY, sheenX, sheenY, handleMouseMove, handleMouseLeave };
 }
 
@@ -112,14 +112,14 @@ export function DailyInsightHub({
   useEffect(() => {
     const checkQuestionnaireCompletion = async () => {
       const today = new Date().toISOString().split('T')[0];
-      
+
       // 先检查 localStorage
       const completedDate = localStorage.getItem('nma_questionnaire_date');
       if (completedDate === today) {
         setQuestionnaireCompleted(true);
         return;
       }
-      
+
       // 从数据库检查
       if (userId) {
         try {
@@ -131,7 +131,7 @@ export function DailyInsightHub({
             .gte('created_at', `${today}T00:00:00`)
             .lt('created_at', `${today}T23:59:59`)
             .limit(1);
-          
+
           if (data && data.length > 0) {
             localStorage.setItem('nma_questionnaire_date', today);
             setQuestionnaireCompleted(true);
@@ -143,7 +143,7 @@ export function DailyInsightHub({
         }
       }
     };
-    
+
     checkQuestionnaireCompletion();
   }, [userId]);
 
@@ -154,7 +154,7 @@ export function DailyInsightHub({
         setQuestionnaireSummary(undefined);
         return;
       }
-      
+
       // 先尝试从 localStorage 获取
       const today = new Date().toISOString().split('T')[0];
       const cachedData = localStorage.getItem(`nma_questionnaire_summary_${today}`);
@@ -162,9 +162,9 @@ export function DailyInsightHub({
         try {
           setQuestionnaireSummary(JSON.parse(cachedData));
           return;
-        } catch {}
+        } catch { }
       }
-      
+
       // 从数据库获取
       if (userId) {
         try {
@@ -177,7 +177,7 @@ export function DailyInsightHub({
             .lt('created_at', `${today}T23:59:59`)
             .order('created_at', { ascending: false })
             .limit(1);
-          
+
           if (data && data.length > 0 && data[0].responses) {
             const responses = data[0].responses as Record<string, number>;
             const summary: QuestionnaireSummary = {
@@ -195,7 +195,7 @@ export function DailyInsightHub({
         }
       }
     };
-    
+
     fetchQuestionnaireSummary();
   }, [questionnaireCompleted, userId]);
 
@@ -216,26 +216,35 @@ export function DailyInsightHub({
   return (
     <div className="w-full">
       <div className="relative">
-        <Card className="shadow-xl bg-gradient-to-br from-[#FFFDF8] to-[#FAF6EF] border-[#E7E1D6] overflow-hidden rounded-2xl relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent pointer-events-none" />
-          
-          {/* 标签栏 */}
+        <div className="glass-panel overflow-hidden rounded-2xl relative border-glow">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent pointer-events-none" />
+
+          {/* 标签栏 - Sliding Pill Design */}
           <div className="relative z-20 px-4 pt-4">
-            <div className="flex gap-1 p-1 bg-[#E8E3D9] rounded-xl">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-[#0B3D2E] text-white shadow-sm'
-                      : 'text-[#0B3D2E] hover:text-[#0B3D2E]/80 hover:bg-[#F5F0E8]'
-                  }`}
-                >
-                  {tab.icon}
-                  <span>{language === 'en' ? tab.labelEn : tab.labelZh}</span>
-                </button>
-              ))}
+            <div className="flex gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl backdrop-blur-sm relative">
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all relative z-10 ${isActive
+                      ? 'text-[#0B3D2E] dark:text-white'
+                      : 'text-[#0B3D2E]/70 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white'
+                      }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute inset-0 bg-white dark:bg-neutral-800 rounded-lg shadow-sm z-[-1]"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    {tab.icon}
+                    <span>{language === 'en' ? tab.labelEn : tab.labelZh}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -285,9 +294,9 @@ export function DailyInsightHub({
               )}
             </AnimatePresence>
           </CardContent>
-          
-          <div className="h-1 bg-gradient-to-r from-[#9CAF88]/30 via-[#C4A77D]/30 to-[#9CAF88]/30" />
-        </Card>
+
+          <div className="h-1 bg-gradient-to-r from-emerald-500/20 via-amber-500/20 to-emerald-500/20" />
+        </div>
       </div>
     </div>
   );
@@ -297,15 +306,15 @@ export function DailyInsightHub({
 // 生成问卷总结文案
 function generateQuestionnaireSummaryText(summary: QuestionnaireSummary, language: string): string {
   const parts: string[] = [];
-  
+
   // 睡眠质量
   if (summary.sleepQuality !== undefined) {
-    const sleepLabels = language === 'en' 
+    const sleepLabels = language === 'en'
       ? ['poor sleep', 'light sleep', 'average sleep', 'good sleep', 'excellent sleep']
       : ['睡眠较浅', '睡眠一般', '睡眠尚可', '睡眠良好', '睡眠充足'];
     parts.push(sleepLabels[summary.sleepQuality]);
   }
-  
+
   // 能量水平
   if (summary.energyLevel !== undefined) {
     const energyLabels = language === 'en'
@@ -313,7 +322,7 @@ function generateQuestionnaireSummaryText(summary: QuestionnaireSummary, languag
       : ['能量偏低', '能量一般', '能量稳定', '能量良好', '能量充沛'];
     parts.push(energyLabels[summary.energyLevel]);
   }
-  
+
   // 压力水平（反向，0=轻松，4=压力大）
   if (summary.stressLevel !== undefined) {
     const stressLabels = language === 'en'
@@ -321,9 +330,9 @@ function generateQuestionnaireSummaryText(summary: QuestionnaireSummary, languag
       : ['非常放松', '较为放松', '状态平衡', '略有紧张', '压力较大'];
     parts.push(stressLabels[summary.stressLevel]);
   }
-  
+
   if (parts.length === 0) return '';
-  
+
   const connector = language === 'en' ? ', ' : '、';
   const prefix = language === 'en' ? 'Today: ' : '今日状态：';
   return prefix + parts.join(connector);
@@ -363,7 +372,7 @@ function InsightPanel({
   if (!todayTask) {
     return (
       <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: CONTENT_MIN_HEIGHT - 40 }}>
-        <motion.div 
+        <motion.div
           className="w-16 h-16 mb-4 rounded-full bg-gradient-to-br from-[#9CAF88]/30 to-[#C4A77D]/20 flex items-center justify-center"
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 3, repeat: Infinity }}
@@ -396,16 +405,15 @@ function InsightPanel({
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-4">
-        <motion.div 
-          className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
-            todayTask.mode === 'low_energy' 
-              ? 'bg-gradient-to-br from-indigo-100 to-purple-100' 
-              : 'bg-gradient-to-br from-[#9CAF88]/30 to-[#C4A77D]/20'
-          }`}
+        <motion.div
+          className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${todayTask.mode === 'low_energy'
+            ? 'bg-gradient-to-br from-indigo-100 to-purple-100'
+            : 'bg-gradient-to-br from-[#9CAF88]/30 to-[#C4A77D]/20'
+            }`}
           animate={{ rotate: [0, 5, -5, 0] }}
           transition={{ duration: 4, repeat: Infinity }}
         >
-          {todayTask.mode === 'low_energy' 
+          {todayTask.mode === 'low_energy'
             ? <Moon className="w-6 h-6 text-indigo-600" />
             : <Brain className="w-6 h-6 text-[#9CAF88]" />
           }
@@ -419,12 +427,11 @@ function InsightPanel({
       </div>
 
       <div className="flex items-center gap-2 pt-3 border-t border-[#E7E1D6]/30">
-        <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${
-          todayTask.mode === 'low_energy'
-            ? 'bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700'
-            : 'bg-gradient-to-r from-[#9CAF88]/20 to-[#C4A77D]/20 text-[#0B3D2E]'
-        }`}>
-          {todayTask.mode === 'low_energy' 
+        <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${todayTask.mode === 'low_energy'
+          ? 'bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700'
+          : 'bg-gradient-to-r from-[#9CAF88]/20 to-[#C4A77D]/20 text-[#0B3D2E]'
+          }`}>
+          {todayTask.mode === 'low_energy'
             ? (language === 'en' ? '🌙 Recovery Mode' : '🌙 恢复模式')
             : (language === 'en' ? '⚡ Balanced Mode' : '⚡ 平衡模式')
           }
@@ -437,7 +444,7 @@ function InsightPanel({
 
       {/* 问卷已完成：显示总结 */}
       {questionnaireCompleted && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="p-3 rounded-xl bg-gradient-to-r from-[#9CAF88]/10 to-[#C4A77D]/10 border border-[#9CAF88]/20"
@@ -489,7 +496,7 @@ function InsightPanel({
 // 健康工具面板
 function ToolsPanel() {
   const { language } = useI18n();
-  
+
   const tools = [
     {
       href: '/assessment',
@@ -577,7 +584,7 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
   const [isCompleted, setIsCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const todayQuestions = getTodayQuestions();
   const currentQuestion = todayQuestions[currentIndex];
   const progress = (Object.keys(answers).length / todayQuestions.length) * 100;
@@ -638,7 +645,7 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
       onComplete?.();
 
       // 后台刷新：让 AI 方案与内容推荐跟随问卷状态更新
-      fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
+      fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
     } catch (error) { console.error(error); }
     finally { setIsSubmitting(false); }
   };
@@ -700,11 +707,10 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
                 <button
                   key={index}
                   onClick={() => handleAnswer(index)}
-                  className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left ${
-                    isSelected
-                      ? 'bg-amber-500 text-white shadow-md'
-                      : 'bg-[#F9FAFB] text-[#374151] hover:bg-amber-50 border border-[#E5E7EB]'
-                  }`}
+                  className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left ${isSelected
+                    ? 'bg-amber-500 text-white shadow-md'
+                    : 'bg-[#F9FAFB] text-[#374151] hover:bg-amber-50 border border-[#E5E7EB]'
+                    }`}
                 >
                   {option}
                 </button>
@@ -819,11 +825,11 @@ function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number;
 
       {/* 状态提示 */}
       <p className="text-sm text-[#0B3D2E]/70 mb-4">
-        {completedCount === tasks.length 
+        {completedCount === tasks.length
           ? (language === 'en' ? '🎉 All tasks completed!' : '🎉 今日计划已完成！')
-          : energyLevel >= 7 
+          : energyLevel >= 7
             ? (language === 'en' ? 'Good state, keep the rhythm' : '状态良好，保持节奏')
-            : energyLevel >= 4 
+            : energyLevel >= 4
               ? (language === 'en' ? 'System stable, ready to go' : '系统稳定，准备生成计划')
               : (language === 'en' ? 'Low energy, rest first' : '能量偏低，建议优先休息')}
       </p>
@@ -834,17 +840,15 @@ function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number;
           <motion.div
             key={task.id}
             layout
-            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-              task.completed 
-                ? 'bg-emerald-50/50 border-emerald-100' 
-                : 'bg-white border-gray-100 hover:border-gray-200'
-            }`}
+            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${task.completed
+              ? 'bg-emerald-50/50 border-emerald-100'
+              : 'bg-white border-gray-100 hover:border-gray-200'
+              }`}
           >
             <button
               onClick={() => handleComplete(task.id)}
-              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                task.completed ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 hover:border-emerald-400'
-              }`}
+              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 hover:border-emerald-400'
+                }`}
             >
               {task.completed && <Check className="w-3.5 h-3.5 text-white" />}
             </button>

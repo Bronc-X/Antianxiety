@@ -648,3 +648,119 @@ input, textarea, select {
     margin-left: 100%;
   }
 }
+
+/* ==========================================
+   PREMIUM AURA DESIGN SYSTEM
+   Gradient, Glass, and Light
+   ========================================== */
+
+/* 1. Aurora Gradients */
+.bg-gradient-aurora {
+  background: radial-gradient(at top left, rgba(11, 61, 46, 0.15) 0%, transparent 50%),
+              radial-gradient(at top right, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+              radial-gradient(at bottom left, rgba(147, 197, 253, 0.1) 0%, transparent 50%);
+  background-size: 100% 100%;
+}
+
+.dark .bg-gradient-aurora {
+  background: radial-gradient(at top left, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+              radial-gradient(at top right, rgba(251, 146, 60, 0.1) 0%, transparent 50%),
+              radial-gradient(at bottom left, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+}
+
+/* 2. Text Gradients - Premium */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #FFD700 0%, #F59E0B 50%, #B45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-ocean {
+  background: linear-gradient(135deg, #2DD4BF 0%, #0EA5E9 50%, #3B82F6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 3. Advanced Glassmorphism */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass-panel {
+  background: rgba(23, 23, 23, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* 4. Spotlight Effect Container */
+.spotlight-group {
+  position: relative;
+  overflow: hidden;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+}
+
+.spotlight-group::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(
+    800px circle at var(--mouse-x) var(--mouse-y), 
+    rgba(255, 255, 255, 0.06), 
+    transparent 40%
+  );
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.spotlight-group:hover::before {
+  opacity: 1;
+}
+
+/* 5. Shimmer Animation */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.4) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+/* 6. Utility: Glow Border */
+.border-glow {
+  box-shadow: 0 0 0 1px rgba(11, 61, 46, 0.05), 0 0 15px rgba(11, 61, 46, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.border-glow:hover {
+  box-shadow: 0 0 0 1px rgba(11, 61, 46, 0.1), 0 0 25px rgba(11, 61, 46, 0.15);
+}
+
+.dark .border-glow {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 15px rgba(255, 255, 255, 0.05);
+}
+
+.dark .border-glow:hover {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), 0 0 25px rgba(255, 255, 255, 0.1);
+}
