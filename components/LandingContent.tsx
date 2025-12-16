@@ -126,50 +126,61 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
   const anomalyLabels = language === 'en' ? ['🍷 Alcohol', '🍜 Late Dinner', '😰 High Stress', 'None'] : ['🍷 饮酒', '🍜 晚餐过晚', '😰 压力大', '都没有'];
 
   return (
-    <div className="min-h-screen bg-[#FAF6EF] dark:bg-neutral-950 p-4 pb-24 md:pb-4 transition-colors">
-      <header className="mb-8 pt-4">
-        <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="display-text text-4xl md:text-5xl font-black text-[#0a0a0a] dark:text-white tracking-tight">
-          {t('landing.hello')}<motion.span className="text-[#9CAF88] dark:text-white cursor-pointer inline-block relative" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ type: 'spring', stiffness: 400, damping: 10 }}>
+    <div className="min-h-screen bg-[#FAF6EF] dark:bg-neutral-950 p-4 pb-24 md:pb-4 transition-colors relative overflow-hidden">
+      {/* Breathing Aura Background */}
+      <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] bg-amber-200/20 dark:bg-amber-500/10 rounded-full blur-[120px] animate-blob" />
+        <div className="absolute top-[10%] -right-[10%] w-[60%] h-[60%] bg-emerald-200/20 dark:bg-emerald-500/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+        <div className="absolute -bottom-[20%] left-[20%] w-[50%] h-[50%] bg-blue-200/20 dark:bg-blue-500/10 rounded-full blur-[120px] animate-blob animation-delay-4000" />
+      </div>
+
+      <header className="mb-8 pt-6 relative z-10">
+        <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="display-text text-4xl md:text-6xl font-black text-[#0a0a0a] dark:text-white tracking-tight leading-none">
+          {t('landing.hello')}
+          {/* Enhanced Name Gradient */}
+          <motion.span
+            className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-400 cursor-pointer inline-block relative ml-2"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             {profile?.full_name || profile?.username || t('landing.friend')}
-            <span className="absolute -top-3 -right-10 px-2.5 py-1 text-xs font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-md shadow-md tracking-wider">PRO</span>
+            <span className="absolute -top-4 -right-8 px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-lg tracking-wider border border-white/20">PRO</span>
           </motion.span>
         </motion.h1>
-        <div className="subtitle text-lg text-gray-600 dark:text-neutral-400 mt-2 min-h-[1.75rem]">
+        <div className="subtitle text-lg text-gray-600 dark:text-neutral-400 mt-3 min-h-[1.75rem] font-medium opacity-80">
           <TypewriterText text={t('landing.findBalance')} delay={0.5} />
         </div>
       </header>
 
-      {/* 金句轮播 - 懒加载 */}
-      <div className="max-w-4xl mx-auto mb-4">
+      {/* Wisdom Carousel */}
+      <div className="max-w-4xl mx-auto mb-6 relative z-10">
         <Suspense fallback={<LoadingPlaceholder height="h-24" />}>
-          <WisdomCarousel autoPlay={true} interval={8000} />
+          <div className="glass-panel rounded-2xl p-1 shadow-sm">
+            <WisdomCarousel autoPlay={true} interval={8000} />
+          </div>
         </Suspense>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto relative z-10">
         <AnimatePresence>
           {showAnomalyCard && (
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="md:col-span-2">
-              <Card className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800 shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />{t('landing.changeDetected')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">{anomalyQuestion}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {anomalyLabels.map((label, i) => (
-                      <MotionButton key={i} variant="outline" size="sm" onClick={() => handleAnomalyAnswer(['alcohol', 'late_meal', 'stress', 'none'][i])} className="text-xs">{label}</MotionButton>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="md:col-span-2">
+              <div className="glass-panel bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/50 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2 text-amber-700 dark:text-amber-300 font-medium text-sm">
+                  <AlertTriangle className="w-4 h-4" />{t('landing.changeDetected')}
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{anomalyQuestion}</p>
+                <div className="flex flex-wrap gap-2">
+                  {anomalyLabels.map((label, i) => (
+                    <MotionButton key={i} variant="ghost" size="sm" onClick={() => handleAnomalyAnswer(['alcohol', 'late_meal', 'stress', 'none'][i])} className="text-xs bg-white/50 hover:bg-white">{label}</MotionButton>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* 每日洞察中心 - 懒加载 */}
+        {/* Daily Insight Hub */}
         <div className="md:col-span-2">
           <Suspense fallback={<LoadingPlaceholder height="h-64" />}>
             <DailyInsightHub todayTask={todayTask} insight={insight} isLoading={isLoading} questionnaireCompleted={!!latestLog}
@@ -180,42 +191,65 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
         </div>
       </div>
 
-      {/* 研究动态 - 懒加载 */}
-      <div className="max-w-4xl mx-auto mt-4">
-        <div className="rounded-xl border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg overflow-hidden h-[420px]">
+      {/* Infinite News Feed */}
+      <div className="max-w-4xl mx-auto mt-6 relative z-10">
+        <div className="glass-panel rounded-2xl overflow-hidden h-[420px] border-glow">
           <Suspense fallback={<LoadingPlaceholder height="h-[420px]" />}>
             <InfiniteNewsFeed language={language} variant="calm" />
           </Suspense>
         </div>
       </div>
 
-      {/* 工具卡片 */}
-      <div className="max-w-4xl mx-auto mt-4">
-        <div className="rounded-xl border border-[#E7E1D6] dark:border-neutral-800 bg-gradient-to-br from-[#FFFDF8] to-[#FAF6EF] dark:from-neutral-900 dark:to-neutral-950 shadow-xl p-4">
-          <div className="text-base font-semibold text-[#0B3D2E] dark:text-white flex items-center gap-2 mb-3">
-            <Activity className="w-5 h-5" />
+      {/* Tool Cards with Spotlight */}
+      <div className="max-w-4xl mx-auto mt-6 relative z-10">
+        <div className="glass-panel rounded-2xl p-6 relative overflow-hidden bg-gradient-aurora">
+
+          <div className="text-sm font-bold text-[#0B3D2E] dark:text-white flex items-center gap-2 mb-4 uppercase tracking-wider opacity-70">
+            <Activity className="w-4 h-4" />
             {language === 'en' ? 'Health Tools' : '健康工具'}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Link href="/assessment" className="block">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className="p-4 rounded-xl bg-gradient-to-br from-[#9CAF88] to-[#7A9A6A] cursor-pointer shadow-md flex items-center justify-center min-h-[120px]">
+
+          <div className="grid grid-cols-2 gap-4">
+            <Link href="/assessment" className="block group spotlight-group">
+              <div
+                className="p-5 rounded-2xl bg-white/40 dark:bg-black/20 border border-white/20 hover:border-emerald-400/30 transition-all duration-300 h-full hover:shadow-lg hover:shadow-emerald-500/5 relative z-10"
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                  e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                }}
+              >
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-2"><Sparkles className="w-6 h-6 text-white" /></div>
-                  <p className="text-base font-semibold text-white">{language === 'en' ? 'Symptom Assessment' : '症状评估'}</p>
-                  <p className="text-sm text-white/80 mt-1">{language === 'en' ? 'AI Health Consult' : 'AI 健康问诊'}</p>
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-300">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <p className="text-base font-bold text-[#0B3D2E] dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                    {language === 'en' ? 'Symptom Assessment' : '症状评估'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{language === 'en' ? 'AI Health Consult' : 'AI 健康问诊'}</p>
                 </div>
-              </motion.div>
+              </div>
             </Link>
-            <Link href="/bayesian" className="block">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className="p-4 rounded-xl bg-gradient-to-br from-[#C4A77D] to-[#A68B5B] cursor-pointer shadow-md flex items-center justify-center min-h-[120px]">
+
+            <Link href="/bayesian" className="block group spotlight-group">
+              <div
+                className="p-5 rounded-2xl bg-white/40 dark:bg-black/20 border border-white/20 hover:border-indigo-400/30 transition-all duration-300 h-full hover:shadow-lg hover:shadow-indigo-500/5 relative z-10"
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                  e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                }}
+              >
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-2"><Brain className="w-6 h-6 text-white" /></div>
-                  <p className="text-base font-semibold text-white">{language === 'en' ? 'Cognitive Scale' : '认知天平'}</p>
-                  <p className="text-sm text-white/80 mt-1">{language === 'en' ? 'Bayesian Loop' : '贝叶斯循环'}</p>
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center mb-3 shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <p className="text-base font-bold text-[#0B3D2E] dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">
+                    {language === 'en' ? 'Cognitive Scale' : '认知天平'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{language === 'en' ? 'Bayesian Loop' : '贝叶斯循环'}</p>
                 </div>
-              </motion.div>
+              </div>
             </Link>
           </div>
         </div>
