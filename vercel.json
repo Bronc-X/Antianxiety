@@ -3,6 +3,10 @@
     {
       "path": "/api/ingest-content",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/curate-content",
+      "schedule": "0 3 * * *"
     }
   ]
 }

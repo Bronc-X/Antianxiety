@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { MotionButton } from '@/components/motion/MotionButton';
@@ -14,6 +14,7 @@ import {
   Wind,
   Flame,
   ArrowUpRight,
+  TrendingUp,
 } from 'lucide-react';
 import {
   CalibrationInput,
@@ -27,6 +28,13 @@ import {
   generateTask,
   GeneratedTask,
 } from '@/lib/calibration-service';
+import {
+  generateDailyQuestions,
+  shouldEvolve,
+  calculateEvolutionLevel,
+  ANCHOR_QUESTIONS,
+} from '@/lib/calibration-engine';
+import type { CalibrationQuestion, PhaseGoal } from '@/types/adaptive-interaction';
 
 type CalibrationStep = 'input' | 'inquiry' | 'result' | 'complete';
 
@@ -35,6 +43,8 @@ interface DailyCheckinProps {
   onOpenChange: (open: boolean) => void;
   onComplete?: (result: { input: CalibrationInput; task: GeneratedTask }) => void;
   weeklyRecords?: CalibrationInput[];
+  phaseGoals?: PhaseGoal[];
+  consecutiveDays?: number;
 }
 
 // California Calm 配色方案
@@ -62,6 +72,8 @@ export function DailyCheckin({
   onOpenChange,
   onComplete,
   weeklyRecords = [],
+  phaseGoals = [],
+  consecutiveDays = 0,
 }: DailyCheckinProps) {
   const [step, setStep] = useState<CalibrationStep>('input');
 
@@ -76,6 +88,25 @@ export function DailyCheckin({
 
   // Result state
   const [generatedTask, setGeneratedTask] = useState<GeneratedTask | null>(null);
+  
+  // Adaptive questions from CalibrationEngine (Requirements 3.1, 3.2)
+  const [adaptiveQuestions, setAdaptiveQuestions] = useState<CalibrationQuestion[]>([]);
+  const [adaptiveAnswers, setAdaptiveAnswers] = useState<Record<string, string | number>>({});
+  const [currentAdaptiveIndex, setCurrentAdaptiveIndex] = useState(0);
+  
+  // Evolution state (Requirement 3.3)
+  const evolutionLevel = calculateEvolutionLevel(consecutiveDays);
+  const isEvolutionDay = shouldEvolve(consecutiveDays);
+  
+  // Generate adaptive questions based on Phase Goals
+  useEffect(() => {
+    if (phaseGoals.length > 0) {
+      const questions = generateDailyQuestions(phaseGoals, consecutiveDays);
+      // Filter out anchor questions (handled separately)
+      const nonAnchorQuestions = questions.filter(q => q.type !== 'anchor');
+      setAdaptiveQuestions(nonAnchorQuestions);
+    }
+  }, [phaseGoals, consecutiveDays]);
 
   const stressTone = useMemo<OptionTone>(() => {
     if (stressLevel === 'high') return 'sand';
@@ -181,9 +212,25 @@ export function DailyCheckin({
                 数据化地校正睡眠、压力与运动意图
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-xl bg-white/60 px-3 py-2 ring-1 ring-[#E7E1D6] backdrop-blur">
-              <Sparkles className="w-4 h-4 text-[#C4A77D]" />
-              <div className="text-[11px] text-[#0B3D2E]/70">实时</div>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2 rounded-xl bg-white/60 px-3 py-2 ring-1 ring-[#E7E1D6] backdrop-blur">
+                <Sparkles className="w-4 h-4 text-[#C4A77D]" />
+                <div className="text-[11px] text-[#0B3D2E]/70">实时</div>
+              </div>
+              {/* Evolution Level Indicator (Requirement 3.3) */}
+              {consecutiveDays > 0 && (
+                <div className={`flex items-center gap-1.5 rounded-lg px-2 py-1 ${
+                  isEvolutionDay 
+                    ? 'bg-[#9CAF88]/20 ring-1 ring-[#9CAF88]/40' 
+                    : 'bg-white/60 ring-1 ring-[#E7E1D6]'
+                }`}>
+                  <TrendingUp className={`w-3 h-3 ${isEvolutionDay ? 'text-[#9CAF88]' : 'text-[#0B3D2E]/40'}`} />
+                  <span className={`text-[10px] font-medium ${isEvolutionDay ? 'text-[#9CAF88]' : 'text-[#0B3D2E]/50'}`}>
+                    Lv.{evolutionLevel}
+                  </span>
+                  {isEvolutionDay && <span className="text-[10px]">🎉</span>}
+                </div>
+              )}
             </div>
           </div>
           <div className="relative mt-3 grid grid-cols-3 gap-2">

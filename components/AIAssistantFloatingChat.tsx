@@ -547,18 +547,32 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
                     key={index}
                     className={`flex gap-4 ${message.role === AI_ROLES.USER ? 'flex-row-reverse' : ''}`}
                   >
-                    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${message.role === AI_ROLES.USER ? 'bg-[#0B3D2E] text-white' : 'bg-gray-200 text-gray-600'}`}>
-                      {message.role === AI_ROLES.USER ? 'U' : 'AI'}
+                    {/* AVATAR SECTION */}
+                    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 ${message.role === AI_ROLES.USER ? 'bg-emerald-600' : 'bg-white'}`}>
+                      {message.role === AI_ROLES.USER ? (
+                        <span className="text-white font-sans font-bold text-lg">
+                          {/* Get first char, default to 'U' if empty */}
+                          {(resolveDisplayName(initialProfile) || 'User').charAt(0).toUpperCase()}
+                        </span>
+                      ) : (
+                        <img src="/max-avatar.png" alt="Max" className="w-full h-full object-cover" />
+                      )}
                     </div>
+
                     <div className={`max-w-[80%] space-y-2`}>
-                      <div className={`p-4 rounded-2xl ${message.role === AI_ROLES.USER ? 'bg-[#0B3D2E] text-white' : 'bg-white border border-gray-100 text-gray-800 shadow-sm'}`}>
-                        <div className="whitespace-pre-wrap leading-relaxed">
+                      {/* MESSAGE BUBBLE */}
+                      <div className={`p-4 rounded-2xl shadow-sm ${message.role === AI_ROLES.USER
+                        ? 'bg-emerald-600 text-white rounded-tr-none'
+                        : 'bg-white border border-[#E7E1D6] text-[#0B3D2E] rounded-tl-none'
+                        }`}>
+                        <div className="whitespace-pre-wrap leading-relaxed font-sans">
                           {message.role === AI_ROLES.ASSISTANT && containsPlans(message.content)
                             ? removePlansFromContent(message.content)
                             : message.content}
                         </div>
                       </div>
-                      {/* Plan Cards & Papers */}
+
+                      {/* AI EXTRAS */}
                       {message.role === AI_ROLES.ASSISTANT && containsPlans(message.content) && (
                         <div className="mt-2">
                           <AIPlanCard
@@ -575,7 +589,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
                               paperId: p.url || `paper-${p.rank}`,
                               title: p.title,
                               citationCount: p.citationCount,
-                              url: p.url || '#',
+                              url: p.url || `https://scholar.google.com/scholar?q=${encodeURIComponent(p.title)}`, // Fallback to Google Scholar
                               year: p.year,
                             }))}
                             defaultExpanded={false}

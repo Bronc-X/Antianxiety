@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import MatrixText from '@/components/motion/MatrixText';
 
 interface AIThinkingLoaderProps {
   size?: 'sm' | 'md' | 'lg';
@@ -99,7 +100,7 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
               className="text-center mb-3"
             >
               <span className="text-xs font-medium text-[#0B3D2E]/80 tracking-wide">
-                {currentStageData.label}
+                <MatrixText text={currentStageData.label} speed={40} />
               </span>
             </motion.div>
           )}
@@ -132,10 +133,10 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
                 <motion.div
                   key={stage.id}
                   className={`w-1 h-1 rounded-full transition-colors duration-500 ${idx < currentStage
-                      ? 'bg-[#0B3D2E]'
-                      : idx === currentStage
-                        ? 'bg-[#22c55e]'
-                        : 'bg-[#E7E1D6]'
+                    ? 'bg-[#0B3D2E]'
+                    : idx === currentStage
+                      ? 'bg-[#22c55e]'
+                      : 'bg-[#E7E1D6]'
                     }`}
                   animate={idx === currentStage ? {
                     scale: [1, 1.5, 1],

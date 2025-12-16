@@ -1,5 +1,13 @@
 'use client';
 
+/**
+ * @deprecated Use AdaptiveOnboardingFlow instead.
+ * This component is kept for backward compatibility but will be removed in a future version.
+ * 
+ * Migration: Replace `<OnboardingFlow onComplete={...} />` with `<AdaptiveOnboardingFlow onComplete={...} />`
+ * Note: The onComplete callback signature has changed to accept OnboardingResult instead of Record<string, string>
+ */
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ONBOARDING_FLOW, ONBOARDING_FLOW_EN, type Question } from '@/lib/questions';
