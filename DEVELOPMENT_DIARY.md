@@ -2,6 +2,74 @@
 
 ---
 
+## 2025-12-18 (晚间) - 引导线动画 + 卡片交互优化
+
+### 🎯 核心更新
+
+#### 1. GuideLine 引导线动画组件
+- ✅ 新建 `components/motion/GuideLine.tsx` - 金色粒子流动引导线
+- ✅ 使用 SVG + Framer Motion 实现三个大小不同的发光粒子
+- ✅ 粒子沿贝塞尔曲线从提示区流向目标按钮
+- ✅ 支持动态目标位置追踪
+- ✅ 客户端挂载检测，避免 SSR 问题
+
+#### 2. LandingContent 引导交互
+- ✅ 集成 GuideLine 组件到首页
+- ✅ 当用户 hover 提示区时，触发引导线动画
+- ✅ 校准按钮高亮效果（scale + 金色光晕 + ring）
+- ✅ 校准完成后显示"今天您的状态我已知晓"确认状态
+
+#### 3. FeatureCards 卡片优化
+- ✅ SymptomAssessmentCard 使用 California Calm 配色（Clay/Sand）
+- ✅ BayesianCycleCard 轨道旋转动画 + 标签反向旋转保持水平
+- ✅ 两个卡片统一 hover 缩放效果
+
+### 📊 代码统计
+- **新增文件**: 1 个 (`GuideLine.tsx`)
+- **修改文件**: 3 个
+- **新增代码**: ~150 行
+
+### 🚀 下一步计划
+- [ ] 移动端引导线适配
+- [ ] 更多微交互动画
+
+---
+
+## 2025-12-18 - 首页三卡片设计统一
+
+### 🎯 核心更新
+
+#### 1. 三卡片全屏填充设计
+- ✅ DailyInsightHub、SymptomAssessmentCard、BayesianCycleCard 统一为全屏背景填充
+- ✅ 底部内容区使用渐变覆盖层，文字改为白色
+- ✅ 三个按钮统一使用 `absolute bottom-5` 定位，确保对齐
+
+#### 2. California Calm 配色调整
+- ✅ SymptomAssessmentCard 从橙色改为 Clay/Sand 色调 (#D4C4A8, #A89070, #6B5344)
+- ✅ 移除所有让人焦虑的红色/橙色元素
+- ✅ 符合项目宪法中的 "California Calm" 设计理念
+
+#### 3. BayesianCycleCard 旋转动画优化
+- ✅ 使用 Framer Motion 实现轨道旋转
+- ✅ 三个标签（先验、证据、后验）字体增大到 text-sm
+- ✅ 标签文字始终保持水平正向（反向旋转抵消）
+
+#### 4. DailyInsightHub 三 Tab 样式统一
+- ✅ 今日、问诊、计划三个 Tab 内容区统一为深色背景 + 白色文字
+- ✅ PlanPanel 任务列表样式适配新设计
+- ✅ QuestionnairePanel 问卷选项样式适配新设计
+
+### 📊 代码统计
+- **文件变更**: 14 个文件
+- **新增代码**: 760 行
+- **删除代码**: 467 行
+
+### 🚀 下一步计划
+- [ ] 移动端适配测试
+- [ ] 动画性能优化
+
+---
+
 ## 2025-12-17 - 动态计划适应系统完成
 
 ### 🎯 核心更新
