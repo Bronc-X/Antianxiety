@@ -1,6 +1,6 @@
 -- Adaptive Plan Follow-up System Migration
 -- 动态计划适应系统数据库迁移
--- Created: 2024-12-17
+-- Created: 2025-12-17
 
 -- ============================================
 -- 1. Follow-up Sessions Table (问询会话表)
