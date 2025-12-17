@@ -27,6 +27,22 @@ import {
 // Arbitrary Generators
 // ============================================
 
+// Keep generated timestamps within ISO-safe Date range for `toISOString()`
+// (JS Date supports a wider range, but `toISOString()` throws outside year 0..9999)
+const ISO_DATE_MIN = new Date('2024-01-01T00:00:00.000Z');
+const ISO_DATE_MAX = new Date('2025-12-31T23:59:59.999Z');
+
+const ISO_DATE_MIN_MS = ISO_DATE_MIN.getTime();
+const ISO_DATE_MAX_MS = ISO_DATE_MAX.getTime();
+
+const isoDateTimeArb = fc
+  .integer({ min: ISO_DATE_MIN_MS, max: ISO_DATE_MAX_MS })
+  .map((ms) => new Date(ms).toISOString());
+
+const isoDateArb = fc
+  .integer({ min: ISO_DATE_MIN_MS, max: ISO_DATE_MAX_MS })
+  .map((ms) => new Date(ms).toISOString().split('T')[0]);
+
 const scientificExplanationArb: fc.Arbitrary<ScientificExplanation> = fc.record({
   physiology: fc.string({ minLength: 1, maxLength: 200 }),
   neurology: fc.string({ minLength: 1, maxLength: 200 }),
@@ -60,8 +76,8 @@ const actionItemArb: fc.Arbitrary<ActionItem> = fc.record({
   order: fc.nat({ max: 100 }),
   is_established: fc.boolean(),
   replacement_count: fc.nat({ max: 10 }),
-  created_at: fc.option(fc.date().map(d => d.toISOString()), { nil: undefined }),
-  updated_at: fc.option(fc.date().map(d => d.toISOString()), { nil: undefined }),
+  created_at: fc.option(isoDateTimeArb, { nil: undefined }),
+  updated_at: fc.option(isoDateTimeArb, { nil: undefined }),
 });
 
 
@@ -72,8 +88,8 @@ const adaptivePlanArb: fc.Arbitrary<AdaptivePlan> = fc.record({
   problem_analysis: problemAnalysisArb,
   action_items: fc.array(actionItemArb, { minLength: 5, maxLength: 10 }),
   version: fc.nat({ max: 100 }),
-  created_at: fc.date().map(d => d.toISOString()),
-  last_evolved_at: fc.date().map(d => d.toISOString()),
+  created_at: isoDateTimeArb,
+  last_evolved_at: isoDateTimeArb,
   evolution_count: fc.nat({ max: 50 }),
   user_summary: fc.option(fc.string({ minLength: 1, maxLength: 500 }), { nil: undefined }),
   status: fc.constantFrom('active', 'paused', 'completed'),
@@ -83,12 +99,12 @@ const executionRecordArb: fc.Arbitrary<ExecutionRecord> = fc.record({
   id: fc.uuid(),
   action_item_id: fc.uuid(),
   user_id: fc.uuid(),
-  date: fc.date({ min: new Date('2024-01-01'), max: new Date('2025-12-31') }).map(d => d.toISOString().split('T')[0]),
+  date: isoDateArb,
   status: fc.constantFrom('completed', 'partial', 'skipped', 'replaced'),
   needs_replacement: fc.boolean(),
   user_notes: fc.option(fc.string({ minLength: 1, maxLength: 200 }), { nil: undefined }),
   replacement_reason: fc.option(fc.string({ minLength: 1, maxLength: 200 }), { nil: undefined }),
-  created_at: fc.option(fc.date().map(d => d.toISOString()), { nil: undefined }),
+  created_at: fc.option(isoDateTimeArb, { nil: undefined }),
 });
 
 const scoreBreakdownArb: fc.Arbitrary<ScoreBreakdown> = fc.record({
@@ -471,7 +487,7 @@ describe('Follow-up Session - Property Tests', () => {
       question_type: fc.constantFrom('feeling', 'energy', 'execution', 'replacement'),
       user_response: fc.string({ minLength: 1, maxLength: 500 }),
       ai_interpretation: fc.string({ minLength: 1, maxLength: 500 }),
-      timestamp: fc.date().map(d => d.toISOString()),
+      timestamp: isoDateTimeArb,
     });
 
     fc.assert(
@@ -983,16 +999,16 @@ describe('Plan Evolution - Property Tests', () => {
    * **Validates: Requirements 3.5, 5.3**
    */
   it('Property 9: Evolution records have required fields', () => {
-    const planEvolutionArb = fc.record({
-      id: fc.uuid(),
-      plan_id: fc.uuid(),
-      version: fc.nat({ max: 100 }),
-      changed_at: fc.date().map(d => d.toISOString()),
-      change_type: fc.constantFrom('replacement', 'addition', 'removal', 'modification'),
-      reason: fc.string({ minLength: 1, maxLength: 200 }),
-      user_initiated: fc.boolean(),
-      understanding_score_at_change: fc.float({ min: 0, max: 100, noNaN: true }),
-    });
+      const planEvolutionArb = fc.record({
+        id: fc.uuid(),
+        plan_id: fc.uuid(),
+        version: fc.nat({ max: 100 }),
+        changed_at: isoDateTimeArb,
+        change_type: fc.constantFrom('replacement', 'addition', 'removal', 'modification'),
+        reason: fc.string({ minLength: 1, maxLength: 200 }),
+        user_initiated: fc.boolean(),
+        understanding_score_at_change: fc.float({ min: 0, max: 100, noNaN: true }),
+      });
 
     fc.assert(
       fc.property(planEvolutionArb, (evolution) => {
