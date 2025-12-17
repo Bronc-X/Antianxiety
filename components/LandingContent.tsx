@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Loader2 } from 'lucide-react';
@@ -10,6 +10,7 @@ import { MotionButton } from '@/components/motion/MotionButton';
 import TypewriterText from '@/components/motion/TypewriterText';
 import { CalibrationInput, GeneratedTask } from '@/lib/calibration-service';
 import { useI18n } from '@/lib/i18n';
+import { GuideLine } from '@/components/motion/GuideLine';
 
 // 懒加载重型组件 - 显著提升首屏渲染速度
 const WisdomCarousel = lazy(() => import('@/components/WisdomCarousel'));
@@ -45,6 +46,28 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
   const [anomalyQuestion, setAnomalyQuestion] = useState('');
   const [showCalibrationSheet, setShowCalibrationSheet] = useState(false);
   const [todayTask, setTodayTask] = useState<GeneratedTask | null>(null);
+  const [highlightCalibrationBtn, setHighlightCalibrationBtn] = useState(false);
+  const calibrationBtnRef = useRef<HTMLButtonElement>(null);
+  const [btnPosition, setBtnPosition] = useState<{ x: number; y: number } | null>(null);
+  const [hasCalibrated, setHasCalibrated] = useState(false);
+
+  // 检查今天是否已校准
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const lastCalibration = localStorage.getItem('nma_daily_calibration');
+    setHasCalibrated(lastCalibration === today);
+  }, []);
+
+  // 获取按钮位置
+  useEffect(() => {
+    if (highlightCalibrationBtn && calibrationBtnRef.current) {
+      const rect = calibrationBtnRef.current.getBoundingClientRect();
+      setBtnPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.bottom
+      });
+    }
+  }, [highlightCalibrationBtn]);
 
   const latestLog = dailyLogs?.[0];
   const previousLog = dailyLogs?.[1];
@@ -63,18 +86,20 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
     }
   }, [latestLog, previousLog, language]);
 
-  useEffect(() => {
-    if (!user) return;
-    const today = new Date().toDateString();
-    const lastCalibration = localStorage.getItem('nma_daily_calibration');
-    if (lastCalibration !== today) {
-      const timer = setTimeout(() => setShowCalibrationSheet(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [user]);
+  // 禁用自动弹出校准弹窗 - 用户可以通过点击按钮手动触发
+  // useEffect(() => {
+  //   if (!user) return;
+  //   const today = new Date().toDateString();
+  //   const lastCalibration = localStorage.getItem('nma_daily_calibration');
+  //   if (lastCalibration !== today) {
+  //     const timer = setTimeout(() => setShowCalibrationSheet(true), 1500);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [user]);
 
   const handleCalibrationComplete = (result: { input: CalibrationInput; task: GeneratedTask }) => {
     setTodayTask(result.task);
+    setHasCalibrated(true);
     localStorage.setItem('nma_today_task', JSON.stringify(result.task));
   };
 
@@ -127,7 +152,10 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
   const anomalyLabels = language === 'en' ? ['🍷 Alcohol', '🍜 Late Dinner', '😰 High Stress', 'None'] : ['🍷 饮酒', '🍜 晚餐过晚', '😰 压力大', '都没有'];
 
   return (
-    <div className="min-h-screen bg-[#F9F8F6] dark:bg-neutral-950 p-0 transition-colors relative overflow-hidden">
+    <div className="min-h-screen bg-[#FAF6EF] dark:bg-neutral-950 p-0 transition-colors relative overflow-hidden">
+      {/* 引导线动画 */}
+      <GuideLine show={highlightCalibrationBtn} targetPosition={btnPosition} />
+      
       {/* Fixed Grid Lines (Visible Grid System) */}
       <div className="fixed inset-0 pointer-events-none z-0 flex justify-between px-8 md:px-16 max-w-[1600px] mx-auto">
         <div className="bg-grid-lines w-full h-full absolute inset-0 mix-blend-multiply opacity-[0.4]" />
@@ -165,14 +193,36 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
               </div>
               <div className="flex gap-4">
                 <AnimatePresence>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowCalibrationSheet(true)}
-                    className="btn-luxury h-14 px-12 min-w-[160px]"
-                  >
-                    <span className="text-lg whitespace-nowrap">{t('landing.startCalibration') || 'Start Calibration'}</span>
-                  </motion.button>
+                  {hasCalibrated ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="h-14 px-8 min-w-[160px] flex items-center justify-center gap-2 rounded-xl bg-[#9CAF88]/20 border border-[#9CAF88]/30"
+                    >
+                      <span className="text-[#9CAF88]">✓</span>
+                      <span className="text-sm text-[#0B3D2E]/70 whitespace-nowrap">
+                        {language === 'en' ? 'Today\'s status noted' : '谢谢，今天您的状态我已知晓'}
+                      </span>
+                    </motion.div>
+                  ) : (
+                    <motion.button
+                      ref={calibrationBtnRef}
+                      animate={{ 
+                        scale: highlightCalibrationBtn ? 1.08 : 1,
+                        boxShadow: highlightCalibrationBtn 
+                          ? '0 0 30px rgba(212, 175, 55, 0.5), 0 0 60px rgba(212, 175, 55, 0.3)' 
+                          : '0 4px 14px rgba(0, 0, 0, 0.1)'
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setShowCalibrationSheet(true)}
+                      className={`btn-luxury h-14 px-12 min-w-[160px] transition-all duration-300 ${
+                        highlightCalibrationBtn ? 'ring-2 ring-[#D4AF37] ring-offset-2' : ''
+                      }`}
+                    >
+                      <span className="text-lg whitespace-nowrap">{t('landing.startCalibration') || 'Start Calibration'}</span>
+                    </motion.button>
+                  )}
                 </AnimatePresence>
               </div>
             </div>
@@ -182,9 +232,7 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
         {/* Wisdom Carousel */}
         <div className="mb-24 relative z-10 max-w-5xl mx-auto">
           <Suspense fallback={<LoadingPlaceholder height="h-24" />}>
-            <div className="glass-panel p-1 border-[#1A1A1A]/10 dark:border-white/10">
-              <WisdomCarousel autoPlay={true} interval={8000} />
-            </div>
+            <WisdomCarousel autoPlay={true} interval={8000} />
           </Suspense>
         </div>
 
@@ -207,29 +255,27 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
             )}
           </AnimatePresence>
 
-        {/* Daily Insight Hub */}
-        <div className="md:col-span-2">
-          <Suspense fallback={<LoadingPlaceholder height="h-64" />}>
-            <DailyInsightHub todayTask={todayTask} insight={insight} isLoading={isLoading} questionnaireCompleted={!!latestLog}
-              onStartCalibration={() => setShowCalibrationSheet(true)} userId={user?.id}
-              onQuestionnaireComplete={() => { setIsLoading(true); setTimeout(() => setIsLoading(false), 1000); }}
-              stressLevel={biometrics.stress ?? 5} energyLevel={biometrics.sleep && biometrics.sleep > 6 ? 6 : 4} />
-          </Suspense>
-        </div>
       </div>
 
-        {/* Tool Cards (New Mango Style) */}
-        <section className="max-w-6xl mx-auto mt-24 relative z-20 border-t border-[#1A1A1A]/10 pt-12">
-          <div className="mb-12">
-            <h3 className="font-heading text-3xl md:text-4xl text-[#1A1A1A] dark:text-white">
-              {language === 'en' ? <>Health <span className="italic text-[#D4AF37]">Tools</span></> : <>健康<span className="italic text-[#D4AF37]">工具</span></>}
-            </h3>
-          </div>
-          <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
-            <Link href="/assessment" className="block">
+        {/* 三卡片一排：今日洞察 + 症状评估 + 贝叶斯循环 */}
+        <section className="max-w-[1400px] mx-auto mt-16 px-4 relative z-20">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Daily Insight Hub */}
+            <div className="h-[546px]">
+              <Suspense fallback={<LoadingPlaceholder height="h-[546px]" />}>
+                <DailyInsightHub todayTask={todayTask} insight={insight} isLoading={isLoading} questionnaireCompleted={!!latestLog}
+                  onStartCalibration={() => setShowCalibrationSheet(true)} userId={user?.id}
+                  onQuestionnaireComplete={() => { setIsLoading(true); setTimeout(() => setIsLoading(false), 1000); }}
+                  stressLevel={biometrics.stress ?? 5} energyLevel={biometrics.sleep && biometrics.sleep > 6 ? 6 : 4}
+                  onHintHover={setHighlightCalibrationBtn} />
+              </Suspense>
+            </div>
+            {/* 症状评估卡片 */}
+            <Link href="/assessment" className="block h-[546px]">
               <SymptomAssessmentCard />
             </Link>
-            <Link href="/bayesian" className="block">
+            {/* 贝叶斯循环卡片 */}
+            <Link href="/bayesian" className="block h-[546px]">
               <BayesianCycleCard />
             </Link>
           </div>

@@ -54,9 +54,9 @@ export default async function InsightsPage() {
   const plan = profile?.ai_recommendation_plan || placeholderPlan;
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#0B3D2E]">
+    <div className="min-h-screen bg-[#FAF6EF] text-[#0B3D2E]">
       {/* Navigation */}
-      <nav className="sticky top-0 z-30 bg-[#FDFBF7]/90 backdrop-blur border-b border-[#E7E1D6]">
+      <nav className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur border-b border-[#E7E1D6]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link href="/landing" className="flex items-center gap-3 group">

@@ -49,9 +49,9 @@ export default async function MethodologyPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7]">
+    <div className="min-h-screen bg-[#FAF6EF]">
       {/* Navigation */}
-      <nav className="sticky top-0 z-30 bg-[#FDFBF7]/80 backdrop-blur-md border-b border-black/5">
+      <nav className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur-md border-b border-[#E7E1D6]">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex h-20 items-center justify-between">
             <Link href="/landing" className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
