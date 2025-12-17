@@ -2,6 +2,61 @@
 
 ---
 
+## 2025-12-17 - 动态计划适应系统完成
+
+### 🎯 核心更新
+
+#### 1. 数据库层
+- ✅ 创建 `supabase/migrations/20251217_adaptive_plan_followup.sql`
+- ✅ 6 个新表: follow_up_sessions, plan_action_items, execution_tracking, plan_evolution_history, user_understanding_scores, user_preference_profiles
+- ✅ 完整 RLS 策略和索引
+
+#### 2. 核心服务 (8 个模块)
+- ✅ `follow-up-service.ts` - 问询会话管理
+- ✅ `execution-tracking-service.ts` - 执行追踪
+- ✅ `alternative-generation-service.ts` - 智能平替推荐
+- ✅ `plan-evolution-service.ts` - 计划演化历史
+- ✅ `scientific-explanation-service.ts` - 四维科学解释
+- ✅ `detailed-plan-generator.ts` - 详细计划生成
+- ✅ `understanding-score-service.ts` - 理解度评分
+- ✅ `preference-profile-service.ts` - 用户偏好档案
+
+#### 3. API 端点 (5 个路由)
+- ✅ `/api/follow-up` - 问询会话 CRUD
+- ✅ `/api/execution-tracking` - 执行记录
+- ✅ `/api/alternatives` - 平替生成与选择
+- ✅ `/api/understanding-score` - 理解度查询
+- ✅ `/api/cron/follow-up-scheduler` - 定时问询调度
+
+#### 4. 前端组件 (5 个组件)
+- ✅ `FollowUpSessionModal.tsx` - 问询会话弹窗
+- ✅ `FollowUpNotificationBanner.tsx` - 问询通知横幅
+- ✅ `UnderstandingScoreWidget.tsx` - 理解度展示
+- ✅ `ActionItemDetail.tsx` - 行动项详情
+- ✅ `AlternativeSelectionModal.tsx` - 平替选择弹窗
+
+#### 5. AIAssistantChat 集成
+- ✅ 添加 follow-up mode 支持
+- ✅ 行动项追踪 UI (完成/部分/跳过/替换)
+- ✅ 执行状态内联显示
+- ✅ followUpContext 传递给 AI
+
+#### 6. 属性测试 (17 个)
+- ✅ Property 1-17 全部实现
+- ✅ 覆盖: 调度、存储、执行率、连续失败、平替、演化、科学解释、理解度
+
+### 📊 代码统计
+- **新增文件**: 22 个
+- **新增代码**: ~3500 行
+- **测试**: 17 个属性测试
+
+### 🚀 下一步计划
+- [ ] 在 Supabase 执行 `20251217_adaptive_plan_followup.sql` 迁移
+- [ ] 部署到 Vercel 激活 Cron Job
+- [ ] 集成测试
+
+---
+
 ## 2025-12-16 (晚间) - 内容策展系统重构 & 部署准备
 
 ### 🎯 核心更新
@@ -888,8 +943,8 @@
 
 | 配置项 | 值 |
 |--------|-----|
-| App ID | `com.nomoreanxious.app` |
-| App Name | `No More Anxious` |
+| App ID | `com.antianxiety.app` |
+| App Name | `Antianxiety` |
 | 运行模式 | 在线（WebView 加载 Vercel） |
 | Android Scheme | `https` |
 | 启动画面背景 | `#FAF6EF` (Warm Cream) |
@@ -1606,7 +1661,7 @@ supabase/       # SQL 脚本
 
 ### 🔧 技术要点
 - 使用 `AnimatedSection` + 品牌渐变/纹理保持现有视觉。
-- 下载按钮与截图引用统一为 `.png`，指向 `nomoreanxious_ui_matrix.png`。
+- 下载按钮与截图引用统一为 `.png`，指向 `antianxiety_ui_matrix.png`。
 - Lint 校验：`npm run lint -- app/roadshow/page.tsx`。
 
 ### ✅ 推进

@@ -1,5 +1,5 @@
 {
-  "name": "antianxiety-app",
+  "name": "antianxiety",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -60,7 +60,7 @@
     "recharts": "^3.5.0",
     "resend": "^6.5.2",
     "tailwind-merge": "^3.4.0",
-    "zod": "^4.1.13"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

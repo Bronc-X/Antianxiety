@@ -177,7 +177,7 @@ async function runCuration(): Promise<NextResponse> {
               `${SEMANTIC_SCHOLAR_API}/paper/search?query=${encodeURIComponent(query)}&limit=3&fields=paperId,title,abstract,url,year,citationCount`,
               {
                 headers: {
-                  'User-Agent': 'NoMoreAnxious/1.0',
+                  'User-Agent': 'Antianxiety/1.0',
                 },
               }
             );

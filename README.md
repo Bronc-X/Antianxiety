@@ -1,277 +1,160 @@
-# 🌿 AntiAnxiety™
+# Antianxiety
 
-> **A Cognitive Prosthetic based on Truth Architecture & Bio-Voltage.**  
-> “真相是摒弃臆想之后的安慰。” — Truth is the comfort after discarding imagination.
+> A Next.js + Supabase app for evidence-based anxiety reduction and health behavior change.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Stack](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
-[![Mobile](https://img.shields.io/badge/Capacitor-Android-green)](https://capacitorjs.com/)
-[![AI](https://img.shields.io/badge/Model-Claude_4.5-purple)](https://www.anthropic.com/)
-[![IDE](https://img.shields.io/badge/Built_with-Kiro-orange)](https://kiro.dev/)
-[![Backend](https://img.shields.io/badge/Supabase-Powered-brightgreen)](https://supabase.com/)
+## 功能概览
 
----
+- **AI 助手（Max）**：基于用户画像/近期记录/问卷/对话记忆的 grounded 对话（避免“编造事实”）。
+- **Bayesian Belief Loop**：贝叶斯信念更新（主动仪式 / 被动微调）+ 相关 API 与测试。
+- **动态计划适应系统**：智能问询 + 执行追踪 + 平替推荐 + 理解度评分，让健康计划随用户节奏动态演化。
+- **个性化内容流**：内容入库与向量检索，支持定时抓取与推送队列。
+- **移动端壳（Capacitor）**：Android WebView 在线运行模式（加载远程 Web）。
 
-## 🎯 项目愿景 (Identity)
+## 技术栈
 
-**我们不是健身追踪器，我们是“抗焦虑认知义肢”。**
+- Next.js 16（App Router）+ TypeScript
+- Supabase（Auth + Postgres + RLS + pgvector）
+- Vercel AI SDK（OpenAI-compatible Gateway）
+- Vitest + fast-check（含属性测试）
+- Capacitor（Android）
 
-Neuromind 是一个专为 30+ 代谢退行人群设计的智能体，拒绝传统的“数据监控”（Tracking Fatigue），采用 **“真相架构” (Truth Architecture)**。核心哲学是利用 **数学（贝叶斯概率）** 与 **生理学（生物电压）**，把模糊的焦虑重构为精确、可控的生理适应过程。
+## 快速开始（本地开发）
 
-### 目标用户
-- 💼 科技从业者、创业者、高压人群
-- 🌍 海外中产、硅谷科技圈等多语种用户
-- 📈 对数据准确度、证据溯源要求高
-- 🎯 追求高效、科学、可执行的健康管理方式
+### 1) 安装依赖
 
----
-
-## 🧠 核心功能 I: 贝叶斯信念循环 (The Bayesian Belief Loop)
-
-**这是项目的灵魂引擎。我们将认知行为疗法 (CBT) 的逻辑转化为可视化的数学过程。**
-
-焦虑的本质是过高的 **先验概率**（Prior Probability，例如：认为自己会猝死）。我们通过引入 **高权重证据**（Evidence），强制大脑更新 **后验概率**（Posterior Probability）。
-
-### 1. 交互模式 (Dual-Mode Interaction)
-
-#### 🔴 主动式：沉浸重构仪式 (Active Ritual)
-* **场景：** 每日校准后，或用户主动触发“高焦虑”状态。  
-* **交互：** 全屏沉浸式体验。用户在一个可视化的 **“认知天平”** 上拖动滑块设定恐惧值。  
-* **过程：**
-    1. **Input:** 用户设定 Prior (e.g., 90% 恐惧)。
-    2. **Weighing:** AI 投放“证据砝码”（生理数据 + 科学论文）。
-    3. **Animation:** 贝叶斯公式 $P(H|E)$ 运转，伴随机械咬合声效，数字滚动下降。
-    4. **Output:** 最终定格于 Posterior (e.g., 12% 风险)，用户点击“接受新信念”。
-
-#### 🟢 被动式：静默微修正 (Passive Nudge)
-* **场景：** 用户完成一个微习惯（如“深呼吸 3 分钟”）。  
-* **交互：** 不打断当前流。  
-* **过程：** 一个微小的绿色粒子飞入主页的“信念指数”中，Toast 提示：“皮质醇风险概率修正：-5%。”
-
-### 2. 数据归一化 (Data Normalization)
-所有信念更新基于统一的数据结构，确保证据可溯源、可计算。
-
-```typescript
-interface BayesianBelief {
-  context: "Metabolic_Crash" | "Cardiac_Fear" | "Social_Rejection";
-  prior_score: number;      // 用户输入的初始恐惧 (0-100)
-  posterior_score: number;  // 计算后的修正值
-  evidence_stack: Array<{
-    type: "bio" | "science" | "action";
-    weight: number;         // 证据权重 (0.1 - 0.9)
-    source: string;         // e.g., "HRV=55ms" or "Paper ID"
-  }>;
-}
-```
-
----
-
-## 🛰️ 去噪的高清信息流 (Weighted Truth over Comfort)
-
-去噪的高清信息流，拒绝安慰剂，只提供“加权真相”。
-
-1. **双源并行搜索 (Dual-Source Search)**  
-   - 广度：Semantic Scholar API（覆盖全学科引用）。  
-   - 深度：PubMed / E-utilities（覆盖临床医学核心）。  
-   - 机制：`Promise.all` 并行调用，毫秒级响应。
-2. **加权修正算法 (Weighted Correction)**  
-   - 我们不迷信引用数，我们计算“真相权重”：  
-   - `Score = (权威度_Log * 0.4) + (时效性_Decay * 0.3) + (来源质量 * 0.3)`
-3. **共识度仪表盘 (Consensus Meter)**  
-   - UI：每一个 AI 洞察旁边都有一个微型仪表盘。  
-   - 显示：🟢 高度共识 / 🟡 新兴证据 / ⚪️ 争议中。  
-   - 交互：点击即可跳转至原始论文链接。
-
----
-
-## 🧩 产品功能总览
-
-1. **智能状态感知系统**  
-   - 能量电池可视化：高效 / 平衡 / 恢复模式。  
-   - 智能休息许可：检测高负荷时允许暂停打卡。  
-   - 个性化洞察：睡眠、HRV、压力等多维数据综合分析。  
-   - 数据来源：每日健康日志（睡眠时长、运动量、压力水平、HRV 等）。
-2. **唯一核心任务 (The One Thing)**  
-   - 动态任务推荐：AI 根据身体状态和健康目标智能推送。  
-   - 最小阻力设计：任务匹配当前能量水平。  
-   - 即时交互反馈：完成即可获得鼓励；完成后可解锁进阶习惯。  
-   - 设计理念：避免任务列表焦虑，专注当下最重要的一件事。
-3. **长期趋势分析**  
-   - 3 天数据门槛后自动生成趋势分析。  
-   - 多维度洞察：睡眠质量、运动量、压力水平、心情变化。  
-   - 趋势可视化 + 智能建议，突出长期改善方向。
-4. **动态健康贴士**  
-   - 智能匹配算法：基于睡眠质量、运动量、压力状态推送。  
-   - 15+ 专业贴士库，覆盖睡眠、运动、营养、压力、长寿。  
-   - 自动轮播与去 AI 化表述，降低理解门槛。
-5. **AI 健康助手**  
-   - 双模型架构：Claude + DeepSeek，确保响应质量。  
-   - 记忆系统：记住用户偏好和历史对话，自动加载 50 条上下文。  
-   - 方案生成：AI 自动生成个性化健康方案，确认后同步到计划表。  
-   - 闭环：AI 生成 → 用户确认 → 执行记录 → AI 优化。
-6. **健康计划管理**  
-   - iOS 日程表风格：计划展开/折叠、完整方案详情。  
-   - 执行记录：每日完成情况追踪，可删除与调整。  
-   - 数据流：用户执行数据 → AI 学习 → 优化下一个方案。
-7. **个性化内容推荐**  
-   - 多源抓取：Reddit、PubMed、X.com 精选内容。  
-   - 向量检索：基于用户画像智能匹配，相关性评分门槛 4.5+。  
-   - 独立推荐路由：`/feed` 与 `/inspiration`。  
-   - 目标：高置信度信息推送，避免信息噪音。
-8. **用户系统**  
-   - 邮箱/密码认证 + 第三方登录（Google、X、GitHub）。  
-   - 头像上传（2MB 限制）、社交平台绑定、多语言切换。  
-   - 会员系统：Pro 升级功能。
-
----
-
-## 🚀 快速开始
-
-### 环境要求
-- Node.js 18+
-- npm 或 pnpm
-- Supabase 账号
-- Claude API Key（可选：DeepSeek API Key）
-
-### 本地开发
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/Bronc-X/Nomoreanxiousweb.git
-cd Nomoreanxiousweb
-
-# 2. 安装依赖
 npm install
-
-# 3. 配置环境变量
-cp .env.example .env.local
-# 编辑 .env.local 填入你的 API Keys
-
-# 4. 启动开发服务器
-npm run dev
-
-# 5. 访问应用
-# http://localhost:3000
 ```
 
-### 环境变量配置
+### 2) 配置环境变量
 
-在 `.env.local` 配置以下变量：
+复制示例文件并填入真实值：
 
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=你的Supabase项目URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=你的Supabase匿名密钥
-
-# AI 服务
-ANTHROPIC_API_KEY=你的Claude API Key
-DEEPSEEK_API_KEY=你的DeepSeek API Key（可选）
-
-# OAuth（可选）
-GITHUB_CLIENT_ID=你的GitHub OAuth Client ID
-GITHUB_CLIENT_SECRET=你的GitHub OAuth Client Secret
+cp .env.example .env.local
 ```
 
-⚠️ **安全提示**：不要将 `.env.local` 提交到 Git，所有 API Keys 必须通过环境变量配置。
+Windows PowerShell：
 
-### 数据库设置
-1. 在 Supabase 控制台创建新项目。  
-2. 执行 SQL 脚本初始化数据库：  
-   - `supabase_init_complete.sql` - 基础表结构  
-   - `supabase_ai_memory_vector.sql` - AI 记忆系统  
-   - `supabase_content_feed_vectors.sql` - 内容推荐系统  
-   - 根据需求执行其他 SQL 文件  
-3. 启用 Realtime（Supabase 控制台）：`habits`、`habit_completions`、`ai_reminders` 等表。
-
----
-
-## 📁 项目结构
-
-```
-├── app/                    # Next.js App Router
-│   ├── landing/            # 主页（智能状态感知）
-│   ├── assistant/          # AI 助手
-│   ├── plans/              # 健康计划管理
-│   ├── feed/               # 个性化内容推荐
-│   ├── analysis/           # AI 分析报告
-│   ├── settings/           # 用户设置
-│   └── api/                # Serverless API 路由
-├── components/             # React 组件
-├── lib/                    # 业务与工具函数
-├── types/                  # TypeScript 类型定义
-├── supabase/               # Supabase SQL 脚本
-├── scripts/                # 开发/部署脚本
-└── public/                 # 静态资源
+```powershell
+Copy-Item .env.example .env.local
 ```
 
----
+### 3) 启动开发服务
 
-## 🧭 系统架构概要
+```bash
+npm run dev
+```
 
-### A. 客户端 App
-- 路由：Expo Router + Next.js App Router（文件式）。  
-- 认证：Supabase JS SDK 处理邮箱/第三方登录。  
-- 输入：习惯打卡、情绪日志等原始数据表单。  
-- 展示：实时订阅 Supabase Realtime 或查询“状态大脑”计算结果。  
-- 规则：业务计算不在前端执行，前端只读取结果与可视化。
+访问 `http://localhost:3000`
 
-### B. 逻辑/计算层 (AI Agent on Vercel Functions)
-- 技术栈：Vercel Serverless Functions (Node.js) + Vercel AI SDK + LangChain.js。  
-- `/api/chat`：接收用户消息 → pgvector 检索历史记忆 → 构建 Prompt → 调用 LLM → 写回记忆闭环。  
-- `/api/feed`：获取用户画像 → 在内容池向量表执行 RAG → 返回高置信度信息。  
-- `/api/ingest-content`：由 `pg_cron` 触发，爬取 X/Reddit/期刊，嵌入并入库。
+## 环境变量（重点）
 
-### C. 状态大脑 (Supabase / PostgreSQL)
-- 认证：统一管理邮箱、Google、X、微信等登录。  
-- AI 记忆：`ai_memory` (user_id, embedding, content_text, created_at)。  
-- 贝叶斯逻辑：`pl/pgsql` 函数在 habit_completions 触发，计算 `belief_score`、`confidence_score` 写入 `user_metrics`。  
-- 定时任务：`pg_cron` 负责预测与前瞻性提醒（如未完成最小阻力习惯时主动推送）。
+以 `.env.example` 为准，常用变量如下：
 
-### 核心数据模型 (Supabase)
-- `profiles`：用户信息、语言、用户画像向量。  
-- `habits`：习惯定义、最小阻力等级。  
-- `habit_completions`：习惯打卡记录与备注。  
-- `user_metrics`：真相/指标表（belief_curve_score、confidence_score、physical_performance_score 等）。  
-- `bayesian_beliefs`：先验/后验与 `evidence_stack`，触发器自动调用 `calculate_bayesian_posterior` 并写入 `calculation_details`（RLS 已启用）。  
-- `evidence_cache`：Semantic Scholar 论文缓存，带过期时间与检索索引。  
-- `ai_memory`：LLM 对话向量记忆。  
-- `content_feed_vectors`：内容池向量表，含 source_url、content_text、embedding、relevance_score。
+### 必需（本地/生产）
 
----
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-## 🔄 AI 方案闭环系统
+### AI（启用聊天/向量记忆/推荐时需要）
 
-**这是项目的灵魂，从 AI 生成方案到用户执行再到数据反馈的完整闭环。** 详见 `AI_PLAN_CLOSED_LOOP_SYSTEM.md`。
+- `OPENAI_API_KEY`：OpenAI-compatible API Key（项目默认使用 `OPENAI_API_BASE` 指向的中转站）
+- `OPENAI_API_BASE`：可选，默认 `https://aicanapi.com/v1`
+- `OPENAI_EMBEDDING_MODEL` / `EMBEDDING_MODEL`：可选，默认 `text-embedding-3-small`
 
-### 核心流程
-1. AI 助理生成方案（基础 + 进阶）。  
-2. 用户交互：[修改] / [确认]。  
-3. 确认后同步到主页计划表（iOS 日程表风格）。  
-4. 每日记录执行情况。  
-5. AI 收集数据优化下一轮方案。
+### 服务端/定时任务（仅部署时需要）
 
-### 为什么重要
-- AI 生成个性化方案 → 记录真实执行数据 → AI 学习用户偏好 → 闭环优化，越用越准确。
+- `SUPABASE_SERVICE_ROLE_KEY`：仅服务端使用，切勿暴露到客户端
+- `CRON_SECRET`：保护 `/api/cron/*` 手动触发
+- `CONTENT_INGEST_API_KEY`：保护 `/api/ingest-content`
+- `SEMANTIC_SCHOLAR_API_KEY`：可选，提高学术检索额度
+- `RESEND_API_KEY`：可选，用于评估报告邮件发送
 
----
+## 数据库（Supabase）
 
-## 🧪 贝叶斯信念循环进展（2025-12-02）
-- 数据层：`bayesian_beliefs` 与 `evidence_cache` 迁移上线，RLS 开启，触发器 `trigger_bayesian_belief_insert/update` 自动调用 `calculate_bayesian_posterior`。  
-- 计算函数：`calculate_bayesian_posterior` 支持权重归一化、共识加权、异常钳制；`validate_evidence_stack` 保障 JSONB 结构。  
-- 属性测试：posterior 边界、权重归一化、证据栈序列化/反序列化、触发器幂等性等用 fast-check 覆盖。  
-- 下一步：实现 evidence 权重分层校验与序列化、Semantic Scholar 拉取与缓存、/api/bayesian 端点与 UI（FearInputSlider、EvidenceRain、AnxietyCurve）。
+SQL 脚本在 `supabase/migrations/`。最省事的路径：
 
-## 🎉 最新完成（2025-12-02）
-1. 贝叶斯信念循环 Phase 1 完成：核心表/函数/触发器 + RLS 部署，属性测试通过。  
-2. 登录重定向循环修复：禁用 middleware 冲突，统一跳转 landing。  
-3. 导航栏完善：恢复 5 个主要链接（核心洞察、模型方法、权威来源、分析报告、AI 计划表）。  
-4. 用户菜单恢复：UserProfileMenu（个人设置、升级订阅、退出登录）。  
-5. 项目大清理：删除 89 个文件（-34%），代码库 60 个减项、71 个文档合并。  
-6. 页面功能优化：新增 `/feed` 个性化推荐页面，明确页面功能分区。  
-7. AI 方案闭环系统：完整实现从生成到执行的闭环。
+1. 创建 Supabase 项目
+2. 在 Supabase Dashboard → SQL Editor 执行你需要的迁移（按功能选择）
 
-## 📌 当前重点 TODO
-1. 权重与证据系统：完成 `lib/bayesian-evidence.ts` 权重校验/归一化与序列化，补充属性测试。  
-2. 语义学术源：实现 `lib/services/bayesian-scholar.ts` 查询 + `evidence_cache` 缓存，API 失败时降级至 bio/action。  
-3. API：落地 `/api/bayesian/ritual|nudge|history`，串联触发器与 evidence_stack 存储。  
-4. UI 组件：完成 FearInputSlider、EvidenceRain、BayesianMoment、AnxietyCurve + PassiveNudge 动效与触觉。  
-5. 整合：BayesianDashboard/landing 流程接入 daily calibration 与 habit completion，pg_cron 预测提醒。
+参考：
+- `docs/SUPABASE_MIGRATION_GUIDE.md`
+- `docs/QUICK_START_DEPLOYMENT.md`
+
+## 常用命令
+
+```bash
+npm run dev              # 启动开发服务器（强制使用 webpack）
+npm run build            # 生产构建
+npm run start            # 启动生产服务器
+npm run lint             # ESLint
+npm run test             # Vitest（一次性）
+npm run test:watch       # Vitest（watch）
+npm run test:coverage    # 覆盖率
+npm run check-env        # 检查关键环境变量（读取 .env.local）
+```
+
+## 部署
+
+### Vercel（推荐）
+
+- `vercel.json` 配置了 Cron：
+  - `/api/cron/curate-content`：每天 `03:00 UTC`
+  - `/api/ingest-content`：每 `6` 小时（接口需要 `CONTENT_INGEST_API_KEY`）
+- 生产环境建议配置：`SUPABASE_SERVICE_ROLE_KEY`、`CRON_SECRET`、`CONTENT_INGEST_API_KEY`
+
+更多见：`DEPLOYMENT.md`
+
+### Cloudflare Pages
+
+```bash
+npm run pages:build
+```
+
+相关配置：`wrangler.toml`
+
+## 移动端（Capacitor）
+
+在线运行模式配置在 `capacitor.config.ts`：
+
+- 开发：`http://localhost:3000`（需要 `adb reverse`）
+- 生产：`NEXT_PUBLIC_VERCEL_URL` 或默认域名
+
+常用命令：
+
+```bash
+npm run build:cap
+npm run android
+```
+
+## 故障排查（Windows 常见）
+
+### 1) `npm`/`node` 不是内部或外部命令
+
+- 重开终端/VS Code，让 PATH 生效
+- 或在当前 PowerShell 临时刷新 PATH：
+
+```powershell
+$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+```
+
+### 2) 提示 `npm.ps1` 被禁止运行（ExecutionPolicy）
+
+- 直接用 `npm.cmd`：`npm.cmd run dev`
+- 或仅对当前用户放开脚本策略：
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+## 相关文档
+
+- `PROJECT_CONSTITUTION.md`：产品与交互原则
+- `TECH_STACK_AND_WORKFLOW.md`：技术栈与工作流
+- `docs/LOGIC_CHAIN_AND_WORKFLOW.md`：数据闭环与“去幻觉”约束
+- `DEPLOYMENT.md`：部署与环境变量
+
+## License
+
+MIT（见 `LICENSE`）

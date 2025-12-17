@@ -101,7 +101,7 @@ export const MicrophoneIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// No More Anxious Logo - 圆点标志
+// Antianxiety Logo - 圆点标志
 export const LogoDot = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -120,8 +120,8 @@ export const LogoDot = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// No More Anxious 完整Logo - 圆点+文字
-export const NoMoreAnxiousLogo = ({ className, dotClassName }: { className?: string; dotClassName?: string }) => (
+// Antianxiety 完整Logo - 圆点+文字
+export const AntianxietyLogo = ({ className, dotClassName }: { className?: string; dotClassName?: string }) => (
   <div className={`flex items-center gap-2 ${className || ''}`}>
     <svg
       className={dotClassName}
@@ -139,7 +139,7 @@ export const NoMoreAnxiousLogo = ({ className, dotClassName }: { className?: str
       />
     </svg>
     <span className="text-sm font-medium text-[#0B3D2E]">
-      No More anxious<sup className="text-xs">™</sup>
+      Antianxiety<sup className="text-xs">™</sup>
     </span>
   </div>
 );

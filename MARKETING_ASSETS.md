@@ -111,7 +111,7 @@
 - **区域**: other
 - **描述**: 完整的路演展示页面，包含价值主张、演示节奏、截图墙。
 - **状态**: ✅ DONE
-- **路径**: `public/roadshow/nomoreanxious_ui_matrix.png`
+- **路径**: `public/roadshow/antianxiety_ui_matrix.png`
 
 ### 2025-11-25 登录页面
 - **类型**: 📷 screenshot
