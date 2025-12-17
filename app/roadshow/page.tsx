@@ -3,7 +3,7 @@ import Image from 'next/image';
 import AnimatedSection from '@/components/AnimatedSection';
 
 export const metadata = {
-  title: 'Roadshow · No More anxious',
+  title: 'Roadshow · Antianxiety',
   description: '带外路演展示页，用于快速说明产品价值与演示路径。',
 };
 
@@ -135,7 +135,7 @@ export default function RoadshowPage() {
                 <div>3) AI 分析报告 + 升级 CTA</div>
               </div>
               <a
-                href="/roadshow/nomoreanxious_ui_matrix.png"
+                href="/roadshow/antianxiety_ui_matrix.png"
                 download
                 className="inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0B3D2E] transition hover:bg-[#F5B301] hover:text-[#0B3D2E]"
               >
@@ -205,7 +205,7 @@ export default function RoadshowPage() {
             </p>
             <h2 className="text-2xl font-semibold text-[#0B3D2E]">实际界面 & 升级漏斗</h2>
             <p className="text-sm text-[#405244]">
-              使用本地 Python 脚本合成 `nomoreanxious_ui_matrix.png`，或直接把以下文件放进 public/roadshow。
+              使用本地 Python 脚本合成 `antianxiety_ui_matrix.png`，或直接把以下文件放进 public/roadshow。
               没有截图时会显示有纹理的留白版面，不会阻塞演示。
             </p>
           </div>
@@ -341,7 +341,7 @@ export default function RoadshowPage() {
                 跳转实时演示
               </Link>
               <a
-                href="/roadshow/nomoreanxious_ui_matrix.png"
+                href="/roadshow/antianxiety_ui_matrix.png"
                 download
                 className="inline-flex flex-1 items-center justify-center rounded-lg border border-[#0B3D2E] px-4 py-2 text-sm font-semibold text-[#0B3D2E] transition hover:bg-[#0B3D2E] hover:text-white"
               >
