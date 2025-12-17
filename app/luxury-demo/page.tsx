@@ -5,7 +5,7 @@ import { Brain, Sparkles, Moon, Activity } from 'lucide-react';
 
 export default function LuxuryDemoPage() {
   return (
-    <div className="min-h-screen bg-[#F9F8F6] relative overflow-hidden">
+    <div className="min-h-screen bg-[#FAF6EF] relative overflow-hidden">
       {/* Grid Lines */}
       <div className="fixed inset-0 pointer-events-none z-0 flex justify-between px-8 md:px-16 max-w-[1600px] mx-auto">
         <div className="bg-grid-lines w-full h-full absolute inset-0 mix-blend-multiply opacity-[0.4]" />

@@ -183,7 +183,7 @@ export function DailyCheckin({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg border border-[#E7E1D6] bg-gradient-to-br from-[#FFFDF8] via-[#FAF6EF] to-[#F5F0E8] text-[#0B3D2E] rounded-3xl shadow-2xl">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto border border-[#E7E1D6] bg-[#FAF6EF] text-[#0B3D2E] rounded-3xl shadow-2xl">
         <DialogHeader className="text-left">
           <DialogTitle className="text-xl text-[#0B3D2E] flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#9CAF88]/20 ring-1 ring-[#9CAF88]/40">
@@ -199,56 +199,20 @@ export function DailyCheckin({
           </DialogDescription>
         </DialogHeader>
 
-        <div className={`relative overflow-hidden rounded-2xl border border-[#E7E1D6] p-4 ring-1 ${toneStyles[stressTone]} mt-3`}>
-          <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent" />
-          <div className="relative flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-[#0B3D2E]/50">今日状态</p>
-              <div className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-[#0B3D2E]">
-                身心校准
-                <ArrowUpRight className="w-4 h-4 text-[#9CAF88]" />
-              </div>
-              <p className="text-xs text-[#0B3D2E]/60 mt-1">
-                数据化地校正睡眠、压力与运动意图
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2 rounded-xl bg-white/60 px-3 py-2 ring-1 ring-[#E7E1D6] backdrop-blur">
-                <Sparkles className="w-4 h-4 text-[#C4A77D]" />
-                <div className="text-[11px] text-[#0B3D2E]/70">实时</div>
-              </div>
-              {/* Evolution Level Indicator (Requirement 3.3) */}
-              {consecutiveDays > 0 && (
-                <div className={`flex items-center gap-1.5 rounded-lg px-2 py-1 ${
-                  isEvolutionDay 
-                    ? 'bg-[#9CAF88]/20 ring-1 ring-[#9CAF88]/40' 
-                    : 'bg-white/60 ring-1 ring-[#E7E1D6]'
-                }`}>
-                  <TrendingUp className={`w-3 h-3 ${isEvolutionDay ? 'text-[#9CAF88]' : 'text-[#0B3D2E]/40'}`} />
-                  <span className={`text-[10px] font-medium ${isEvolutionDay ? 'text-[#9CAF88]' : 'text-[#0B3D2E]/50'}`}>
-                    Lv.{evolutionLevel}
-                  </span>
-                  {isEvolutionDay && <span className="text-[10px]">🎉</span>}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="relative mt-3 grid grid-cols-3 gap-2">
-            <StatPill label="睡眠" value={`${sleepHours}h`} hint="修复窗" />
-            <StatPill
-              label="压力"
-              value={stressOptions.find((o) => o.value === stressLevel)?.label ?? ''}
-              hint="交感张力"
-            />
-            <StatPill
-              label="运动"
-              value={intentionOptions.find((o) => o.value === exerciseIntention)?.label ?? ''}
-              hint="负载计划"
-            />
-          </div>
-        </div>
+        {/* 温暖的引导提示 */}
+        {step === 'input' && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#9CAF88]/10 to-[#C4A77D]/10 border border-[#9CAF88]/20"
+          >
+            <p className="text-xs text-[#0B3D2E]/70 leading-relaxed italic">
+              💭 「别着急，我们一点点来。每一次互动，都让 Max 更懂你。」
+            </p>
+          </motion.div>
+        )}
 
-        <div className="mt-4">
+        <div className="mt-3">
           <AnimatePresence mode="wait">
             {step === 'input' && (
               <motion.div
@@ -345,6 +309,55 @@ export function DailyCheckin({
                   </div>
                 </ControlCard>
 
+                {/* 今日状态卡片 - 移到底部 */}
+                <div className={`relative overflow-hidden rounded-2xl border border-[#E7E1D6] p-4 ring-1 ${toneStyles[stressTone]}`}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent" />
+                  <div className="relative flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-[#0B3D2E]/50">今日状态</p>
+                      <div className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-[#0B3D2E]">
+                        身心校准
+                        <ArrowUpRight className="w-4 h-4 text-[#9CAF88]" />
+                      </div>
+                      <p className="text-xs text-[#0B3D2E]/60 mt-1">
+                        数据化地校正睡眠、压力与运动意图
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex items-center gap-2 rounded-xl bg-white/60 px-3 py-2 ring-1 ring-[#E7E1D6] backdrop-blur">
+                        <Sparkles className="w-4 h-4 text-[#C4A77D]" />
+                        <div className="text-[11px] text-[#0B3D2E]/70">实时</div>
+                      </div>
+                      {consecutiveDays > 0 && (
+                        <div className={`flex items-center gap-1.5 rounded-lg px-2 py-1 ${
+                          isEvolutionDay 
+                            ? 'bg-[#9CAF88]/20 ring-1 ring-[#9CAF88]/40' 
+                            : 'bg-white/60 ring-1 ring-[#E7E1D6]'
+                        }`}>
+                          <TrendingUp className={`w-3 h-3 ${isEvolutionDay ? 'text-[#9CAF88]' : 'text-[#0B3D2E]/40'}`} />
+                          <span className={`text-[10px] font-medium ${isEvolutionDay ? 'text-[#9CAF88]' : 'text-[#0B3D2E]/50'}`}>
+                            Lv.{evolutionLevel}
+                          </span>
+                          {isEvolutionDay && <span className="text-[10px]">🎉</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="relative mt-3 grid grid-cols-3 gap-2">
+                    <StatPill label="睡眠" value={`${sleepHours}h`} hint="修复窗" />
+                    <StatPill
+                      label="压力"
+                      value={stressOptions.find((o) => o.value === stressLevel)?.label ?? ''}
+                      hint="交感张力"
+                    />
+                    <StatPill
+                      label="运动"
+                      value={intentionOptions.find((o) => o.value === exerciseIntention)?.label ?? ''}
+                      hint="负载计划"
+                    />
+                  </div>
+                </div>
+
                 <MotionButton
                   onClick={handleSubmitInput}
                   className="w-full py-3.5 rounded-2xl bg-[#0B3D2E] hover:bg-[#0a3629] text-white text-sm font-semibold shadow-lg transition-colors"
@@ -363,6 +376,13 @@ export function DailyCheckin({
                 exit={{ opacity: 0, y: -16 }}
                 className="space-y-4"
               >
+                {/* 宽慰提示 */}
+                <div className="px-3 py-2 rounded-lg bg-[#9CAF88]/10 border border-[#9CAF88]/20">
+                  <p className="text-xs text-[#0B3D2E]/60 italic">
+                    🌿 「多了解一点，才能给你更精准的建议。」
+                  </p>
+                </div>
+                
                 <div className="rounded-2xl border border-[#C4A77D]/30 bg-gradient-to-br from-[#C4A77D]/10 via-[#E8DFD0]/10 to-white p-4 text-[#0B3D2E] shadow-sm">
                   <p className="text-sm font-semibold leading-relaxed">
                     {inquiryQuestion.question}
@@ -449,6 +469,9 @@ export function DailyCheckin({
                 </motion.div>
                 <p className="text-base font-medium text-[#0B3D2E]">校准完成</p>
                 <p className="text-sm text-[#0B3D2E]/60 mt-1">今日状态已更新</p>
+                <p className="text-xs text-[#9CAF88] mt-3 italic">
+                  ✨ 「谢谢你的耐心，Max 又更懂你了一点。」
+                </p>
               </motion.div>
             )}
           </AnimatePresence>

@@ -27,9 +27,9 @@ export default async function InspirationPage() {
   const language = await getServerLanguage();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FAF6EF]">
       {/* 导航栏 */}
-      <nav className="border-b border-gray-200 bg-white">
+      <nav className="sticky top-0 z-30 border-b border-[#E7E1D6] bg-[#FAF6EF]/90 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">

@@ -23,7 +23,7 @@ export default async function EnergyBreakdownPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF6EF]">
-      <nav className="border-b border-[#E7E1D6] bg-white sticky top-0 z-10">
+      <nav className="border-b border-[#E7E1D6] bg-[#FAF6EF]/90 backdrop-blur sticky top-0 z-10">
         <div className="mx-auto max-w-3xl px-4">
           <div className="h-14 flex items-center justify-between">
             <Link 
