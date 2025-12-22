@@ -14,7 +14,7 @@
 ### 1.1 打开 Supabase Dashboard
 1. 浏览器打开 https://supabase.com/dashboard
 2. 登录你的账号
-3. 点击你的项目（nomoreanxious）
+3. 点击你的项目（antianxiety）
 
 ### 1.2 进入 SQL Editor
 1. 左侧菜单找到 **SQL Editor**（图标是一个数据库符号）

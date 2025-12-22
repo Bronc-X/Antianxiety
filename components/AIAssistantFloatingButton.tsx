@@ -114,20 +114,7 @@ export default function AIAssistantFloatingButton() {
           className="flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-5 py-4 sm:px-6 sm:py-4 text-white shadow-lg min-h-[56px] sm:min-h-0 pointer-events-auto"
           hapticFeedback={true}
         >
-          <span className="text-base sm:text-lg font-semibold">AI 助理</span>
-          <AnimatePresence>
-            {isHovered && !isDragging && (
-              <motion.span
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden whitespace-nowrap hidden sm:inline"
-              >
-                点击对话
-              </motion.span>
-            )}
-          </AnimatePresence>
+          <span className="text-base sm:text-lg font-semibold">唤醒MAX</span>
         </MotionButton>
       </motion.div>
 
@@ -142,4 +129,3 @@ export default function AIAssistantFloatingButton() {
     </>
   );
 }
-

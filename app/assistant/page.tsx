@@ -48,7 +48,7 @@ export default async function AssistantPage({
 
     return (
       <div className="min-h-screen bg-[#FAF6EF]">
-        <nav className="border-b border-[#E7E1D6] bg-white">
+        <nav className="border-b border-[#E7E1D6] bg-[#FAF6EF]/90 backdrop-blur sticky top-0 z-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="h-14 flex items-center justify-between">
               <Link href="/landing" className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80">{tr(language, { zh: '返回主页', en: 'Back to Home' })}</Link>

@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent, useCallback } from 'react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
 import { MotionButton } from '@/components/motion/MotionButton';
 import { BrainLoader } from '@/components/lottie/BrainLoader';
 import { AI_ROLES } from '@/lib/config/constants';
 import type { AIAssistantProfile, ConversationRow, RoleType } from '@/types/assistant';
+import type { ActionItem, ExecutionStatus, FollowUpSession } from '@/types/adaptive-plan';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, X, RefreshCw, Minus } from 'lucide-react';
 
 interface Message {
   role: RoleType;
@@ -25,8 +28,21 @@ interface UsageInfo {
   } | null;
 }
 
+// Follow-up mode types
+interface FollowUpModeState {
+  isActive: boolean;
+  sessionId?: string;
+  sessionType?: 'morning' | 'evening';
+  actionItems: ActionItem[];
+  executionStatuses: Map<string, ExecutionStatus>;
+  replacementRequests: Set<string>;
+}
+
 interface AIAssistantChatProps {
   initialProfile: AIAssistantProfile;
+  followUpSession?: FollowUpSession;
+  actionItems?: ActionItem[];
+  onFollowUpComplete?: (sessionId: string, responses: Record<string, ExecutionStatus>) => void;
 }
 
 /**
@@ -56,13 +72,114 @@ const extractHabitMemory = (profile?: AIAssistantProfile): string | string[] | n
   return null;
 };
 
-export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps) {
+export default function AIAssistantChat({ 
+  initialProfile, 
+  followUpSession,
+  actionItems: initialActionItems,
+  onFollowUpComplete,
+}: AIAssistantChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClientSupabaseClient();
+  
+  // Follow-up mode state
+  const [followUpMode, setFollowUpMode] = useState<FollowUpModeState>({
+    isActive: !!followUpSession,
+    sessionId: followUpSession?.id,
+    sessionType: followUpSession?.session_type,
+    actionItems: initialActionItems || [],
+    executionStatuses: new Map(),
+    replacementRequests: new Set(),
+  });
+
+  // Initialize follow-up mode when session is provided
+  useEffect(() => {
+    if (followUpSession && initialActionItems) {
+      setFollowUpMode({
+        isActive: true,
+        sessionId: followUpSession.id,
+        sessionType: followUpSession.session_type,
+        actionItems: initialActionItems,
+        executionStatuses: new Map(),
+        replacementRequests: new Set(),
+      });
+      
+      // Add follow-up welcome message
+      const welcomeMsg = generateFollowUpWelcome(followUpSession.session_type);
+      setMessages((prev: Message[]) => {
+        if (prev.length === 0 || prev[prev.length - 1].content !== welcomeMsg) {
+          return [...prev, {
+            role: 'assistant' as RoleType,
+            content: welcomeMsg,
+            timestamp: new Date(),
+          }];
+        }
+        return prev;
+      });
+    }
+  }, [followUpSession, initialActionItems]);
+
+  // Generate follow-up welcome message
+  const generateFollowUpWelcome = (sessionType?: 'morning' | 'evening'): string => {
+    if (sessionType === 'morning') {
+      return `早安，${resolveDisplayName(initialProfile)}。\n\n新的一天开始了，让我们一起回顾一下今天的计划。\n\n请告诉我你现在的状态，以及昨天的执行情况。`;
+    }
+    return `晚安，${resolveDisplayName(initialProfile)}。\n\n一天即将结束，让我们一起回顾今天的执行情况。\n\n请告诉我你今天的感受，以及各项行动的完成情况。`;
+  };
+
+  // Handle execution status change
+  const handleExecutionStatusChange = useCallback((itemId: string, status: ExecutionStatus) => {
+    setFollowUpMode((prev: FollowUpModeState) => {
+      const newStatuses = new Map(prev.executionStatuses);
+      newStatuses.set(itemId, status);
+      return { ...prev, executionStatuses: newStatuses };
+    });
+  }, []);
+
+  // Handle replacement request
+  const handleReplacementRequest = useCallback((itemId: string) => {
+    setFollowUpMode((prev: FollowUpModeState) => {
+      const newRequests = new Set(prev.replacementRequests);
+      if (newRequests.has(itemId)) {
+        newRequests.delete(itemId);
+      } else {
+        newRequests.add(itemId);
+      }
+      return { ...prev, replacementRequests: newRequests };
+    });
+  }, []);
+
+  // Complete follow-up session
+  const handleCompleteFollowUp = useCallback(async () => {
+    if (!followUpMode.sessionId) return;
+    
+    const responses: Record<string, ExecutionStatus> = {};
+    followUpMode.executionStatuses.forEach((status: ExecutionStatus, itemId: string) => {
+      responses[itemId] = status;
+    });
+    
+    // Mark items needing replacement
+    followUpMode.replacementRequests.forEach((itemId: string) => {
+      if (!responses[itemId]) {
+        responses[itemId] = 'replaced';
+      }
+    });
+    
+    onFollowUpComplete?.(followUpMode.sessionId, responses);
+    
+    // Add completion message
+    setMessages((prev: Message[]) => [...prev, {
+      role: 'assistant' as RoleType,
+      content: '感谢你的反馈！我已经记录了今天的执行情况。\n\n根据你的反馈，我会持续优化你的计划，让它更适合你的节奏。',
+      timestamp: new Date(),
+    }]);
+    
+    // Reset follow-up mode
+    setFollowUpMode((prev: FollowUpModeState) => ({ ...prev, isActive: false }));
+  }, [followUpMode, onFollowUpComplete]);
 
   // 加载对话历史
   const loadConversationHistory = async () => {
@@ -84,7 +201,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       }
 
       if (data && data.length > 0) {
-        const historyMessages: Message[] = data.map((msg) => ({
+        const historyMessages: Message[] = data.map((msg: ConversationRow) => ({
           role: msg.role,
           content: msg.content,
           timestamp: new Date(msg.created_at),
@@ -104,7 +221,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       
       // 如果有分析结果且没有历史消息，显示欢迎消息
       if (initialProfile?.ai_analysis_result && initialProfile?.ai_recommendation_plan) {
-        setMessages(prev => {
+        setMessages((prev: Message[]) => {
           // 如果已经有消息（从历史加载的），不添加欢迎消息
           if (prev.length > 0) return prev;
           
@@ -190,7 +307,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev: Message[]) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
@@ -206,7 +323,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, assistantMessage]);
+    setMessages((prev: Message[]) => [...prev, assistantMessage]);
     setIsLoading(false);
 
     // 保存 AI 回复
@@ -243,11 +360,26 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
     try {
       // 准备对话历史（只包含 user 和 assistant 消息）
       const conversationHistory = messages
-        .filter(msg => msg.role === AI_ROLES.USER || msg.role === AI_ROLES.ASSISTANT)
-        .map(msg => ({
+        .filter((msg: Message) => msg.role === AI_ROLES.USER || msg.role === AI_ROLES.ASSISTANT)
+        .map((msg: Message) => ({
           role: msg.role === AI_ROLES.USER ? AI_ROLES.USER : AI_ROLES.ASSISTANT,
           content: msg.content,
         }));
+
+      // Prepare follow-up context if in follow-up mode
+      const followUpContext = followUpMode.isActive ? {
+        sessionId: followUpMode.sessionId,
+        sessionType: followUpMode.sessionType,
+        actionItems: followUpMode.actionItems.map((item: ActionItem) => ({
+          id: item.id,
+          title: item.title,
+          timing: item.timing,
+          status: followUpMode.executionStatuses.get(item.id) || null,
+          needsReplacement: followUpMode.replacementRequests.has(item.id),
+        })),
+        completedCount: followUpMode.executionStatuses.size,
+        replacementCount: followUpMode.replacementRequests.size,
+      } : undefined;
 
       // 调用我们的 API 路由
       const response = await fetch('/api/chat', {
@@ -259,6 +391,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
           message: userInput,
           conversationHistory: conversationHistory,
           userProfile: initialProfile,
+          followUpContext,
         }),
       });
 
@@ -316,6 +449,128 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
         </div>
       </AnimatedSection>
 
+      {/* Follow-up Mode Action Items Panel */}
+      <AnimatePresence>
+        {followUpMode.isActive && followUpMode.actionItems.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-4 rounded-lg border border-[#C4A77D]/30 bg-[#FAF6EF] p-4"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-[#2C2C2C]">
+                {followUpMode.sessionType === 'morning' ? '今日计划' : '今日回顾'}
+              </h3>
+              <span className="text-xs text-[#2C2C2C]/60">
+                {followUpMode.executionStatuses.size}/{followUpMode.actionItems.length} 已记录
+              </span>
+            </div>
+            
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {followUpMode.actionItems.map((item: ActionItem) => {
+                const status = followUpMode.executionStatuses.get(item.id);
+                const needsReplacement = followUpMode.replacementRequests.has(item.id);
+                
+                return (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    className={`flex items-center gap-3 p-2 rounded-md transition-colors ${
+                      status ? 'bg-white/50' : 'bg-white'
+                    } border border-[#E8DFD0]`}
+                  >
+                    {/* Action Item Title */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm truncate ${status ? 'text-[#2C2C2C]/70' : 'text-[#2C2C2C]'}`}>
+                        {item.title}
+                      </p>
+                      {item.timing && (
+                        <p className="text-xs text-[#2C2C2C]/50">{item.timing}</p>
+                      )}
+                    </div>
+                    
+                    {/* Execution Status Buttons */}
+                    <div className="flex items-center gap-1">
+                      {/* Completed */}
+                      <button
+                        onClick={() => handleExecutionStatusChange(item.id, 'completed')}
+                        className={`p-1.5 rounded-full transition-colors ${
+                          status === 'completed'
+                            ? 'bg-[#9CAF88] text-white'
+                            : 'bg-[#E8DFD0]/50 text-[#2C2C2C]/40 hover:bg-[#9CAF88]/20'
+                        }`}
+                        title="已完成"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      
+                      {/* Partial */}
+                      <button
+                        onClick={() => handleExecutionStatusChange(item.id, 'partial')}
+                        className={`p-1.5 rounded-full transition-colors ${
+                          status === 'partial'
+                            ? 'bg-[#C4A77D] text-white'
+                            : 'bg-[#E8DFD0]/50 text-[#2C2C2C]/40 hover:bg-[#C4A77D]/20'
+                        }`}
+                        title="部分完成"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      
+                      {/* Skipped */}
+                      <button
+                        onClick={() => handleExecutionStatusChange(item.id, 'skipped')}
+                        className={`p-1.5 rounded-full transition-colors ${
+                          status === 'skipped'
+                            ? 'bg-[#2C2C2C]/60 text-white'
+                            : 'bg-[#E8DFD0]/50 text-[#2C2C2C]/40 hover:bg-[#2C2C2C]/10'
+                        }`}
+                        title="未执行"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      
+                      {/* Request Replacement */}
+                      <button
+                        onClick={() => handleReplacementRequest(item.id)}
+                        className={`p-1.5 rounded-full transition-colors ${
+                          needsReplacement
+                            ? 'bg-[#C4A77D] text-white'
+                            : 'bg-[#E8DFD0]/50 text-[#2C2C2C]/40 hover:bg-[#C4A77D]/20'
+                        }`}
+                        title="需要替换"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+            
+            {/* Complete Follow-up Button */}
+            {followUpMode.executionStatuses.size > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-3 pt-3 border-t border-[#E8DFD0]"
+              >
+                <MotionButton
+                  onClick={handleCompleteFollowUp}
+                  variant="primary"
+                  size="sm"
+                  className="w-full bg-gradient-to-r from-[#9CAF88] to-[#7A9A6A]"
+                  hapticFeedback={true}
+                >
+                  完成今日记录
+                </MotionButton>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 消息列表 */}
       <div className="flex-1 overflow-y-auto rounded-lg border border-[#E7E1D6] bg-white p-4 mb-4">
         {messages.length === 0 ? (
@@ -324,7 +579,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
           </div>
         ) : (
           <div className="space-y-4">
-            {messages.map((message, index) => (
+            {messages.map((message: Message, index: number) => (
               <div
                 key={index}
                 className={`flex ${message.role === AI_ROLES.USER ? 'justify-end' : 'justify-start'}`}
@@ -360,7 +615,7 @@ export default function AIAssistantChat({ initialProfile }: AIAssistantChatProps
         <input
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
           placeholder="输入你的问题..."
           className="flex-1 rounded-md border border-[#E7E1D6] bg-[#FFFDF8] px-4 py-2 text-sm text-[#0B3D2E] placeholder:text-[#0B3D2E]/40 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20"
           disabled={isLoading}

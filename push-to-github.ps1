@@ -43,7 +43,7 @@ if (-not $githubUsername) {
     exit 1
 }
 
-$repoName = "project-Nomoreanxious"
+$repoName = "antianxiety"
 Write-Host "`n正在添加远程仓库..." -ForegroundColor Yellow
 git remote add origin "https://github.com/$githubUsername/$repoName.git"
 

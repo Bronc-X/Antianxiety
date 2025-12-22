@@ -2,7 +2,7 @@
 
 ## 📚 数据库概述
 
-本数据库整合了最新的代谢衰老研究成果，专为No More Anxious™ APP的AI分析系统设计。基于2024年Nature Aging、Chinese Medicine等顶级期刊的前沿研究，提供科学严谨的健康分析依据。
+本数据库整合了最新的代谢衰老研究成果，专为Antianxiety™ APP的AI分析系统设计。基于2024年Nature Aging、Chinese Medicine等顶级期刊的前沿研究，提供科学严谨的健康分析依据。
 
 ## 🎯 核心功能
 

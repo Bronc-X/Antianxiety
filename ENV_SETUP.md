@@ -1,75 +1,58 @@
 # 环境变量配置指南
 
+项目环境变量以 `.env.example` 为准，本文件提供最常用配置说明。
+
 ## 必需的环境变量
 
-项目需要以下环境变量才能正常运行：
+### 1) Supabase（本地/生产都需要）
 
-### 1. Supabase 配置
+如何获取 Supabase URL 和 Anon Key：
 
-**如何获取 Supabase URL 和 Anon Key：**
+1. 登录 Supabase Dashboard
+2. 进入项目 → **Settings** → **API**
+3. 复制：
+   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+   - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-1. 登录 [Supabase Dashboard](https://app.supabase.com/)
-2. 选择你的项目（或创建新项目）
-3. 进入 **Settings** → **API**
-4. 找到以下信息：
-   - **Project URL** → 这就是 `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon public** key → 这就是 `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+## AI 相关环境变量（启用聊天/向量记忆/推荐时需要）
 
-### 2. DeepSeek API Key
+- `OPENAI_API_KEY`：OpenAI-compatible API Key（服务端使用）
+- `OPENAI_API_BASE`：可选，OpenAI-compatible Base URL（例如 `https://aicanapi.com/v1`）
+- `OPENAI_EMBEDDING_MODEL` / `EMBEDDING_MODEL`：可选，默认 `text-embedding-3-small`
 
-使用环境变量 `DEEPSEEK_API_KEY` 配置（请勿将真实 Key 写入仓库或文档）。
+## 部署相关（按需）
+
+- `SUPABASE_SERVICE_ROLE_KEY`：仅服务端使用，用于 Cron/后台写入（不要暴露到客户端）
+- `CRON_SECRET`：保护 `/api/cron/*` 手动触发
+- `CONTENT_INGEST_API_KEY`：保护 `/api/ingest-content`
+- `SEMANTIC_SCHOLAR_API_KEY`：可选，提高学术检索额度
+- `RESEND_API_KEY`：可选，用于发送评估报告邮件
 
 ## 配置步骤
 
-### 方法一：手动编辑 `.env.local` 文件
+### 方法一：创建 `.env.local`
 
-1. 打开项目根目录的 `.env.local` 文件
-2. 替换以下占位符：
-
-```env
-DEEPSEEK_API_KEY=你的_DEEPSEEK_API_KEY
-
-NEXT_PUBLIC_SUPABASE_URL=https://你的项目ID.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key_在这里
+```bash
+cp .env.example .env.local
 ```
 
-### 方法二：使用命令行（PowerShell）
+Windows PowerShell：
 
 ```powershell
-# 编辑 .env.local 文件，替换占位符值
-notepad .env.local
+Copy-Item .env.example .env.local
 ```
+
+然后编辑 `.env.local`，填入真实值。
 
 ## 验证配置
 
-配置完成后，重启开发服务器：
-
 ```bash
+npm run check-env
 npm run dev
 ```
 
-如果配置正确，应该不会再有环境变量错误。
-
-## 常见问题
-
-### 问题：找不到 Supabase 项目
-
-**解决**：
-1. 如果没有 Supabase 账号，先注册：https://app.supabase.com/
-2. 创建新项目
-3. 等待项目初始化完成（约 2 分钟）
-4. 在 Settings → API 中获取 URL 和 Key
-
-### 问题：仍然显示环境变量错误
-
-**解决**：
-1. 确认 `.env.local` 文件在项目根目录
-2. 确认没有多余的空格或引号
-3. 重启开发服务器（环境变量只在启动时加载）
-
 ## 安全提示
 
-- ⚠️ `.env.local` 文件已被 `.gitignore` 忽略，不会被提交到 Git
-- ⚠️ 不要将 API Key 分享给他人
-- ⚠️ 部署到 Vercel 时，需要在 Vercel Dashboard 中设置环境变量
+- 不要把真实密钥写进仓库/文档
+- `.env.local` 应保留在本地（已被 `.gitignore` 忽略）
 

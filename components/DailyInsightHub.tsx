@@ -49,6 +49,7 @@ interface DailyInsightHubProps {
   onQuestionnaireComplete?: () => void;
   stressLevel?: number;
   energyLevel?: number;
+  onHintHover?: (hovering: boolean) => void;
 }
 
 // 固定内容区高度
@@ -101,6 +102,7 @@ export function DailyInsightHub({
   onQuestionnaireComplete,
   stressLevel = 5,
   energyLevel = 5,
+  onHintHover,
 }: DailyInsightHubProps) {
   const { language } = useI18n();
   const [activeTab, setActiveTab] = useState<TabType>('today');
@@ -213,65 +215,124 @@ export function DailyInsightHub({
     onQuestionnaireComplete?.();
   };
 
+  const isLowEnergy = todayTask?.mode === 'low_energy';
+
+  // 标签配置 - 墨绿、绿、湖绿三色系
+  const tabConfig = [
+    { id: 'today' as TabType, labelEn: 'Today', labelZh: '今日', icon: <Brain className="w-4 h-4" />, color: 'from-[#0B3D2E] to-[#1A5D45]', bgActive: 'bg-[#0B3D2E]' }, // 墨绿
+    { id: 'questionnaire' as TabType, labelEn: 'Check-in', labelZh: '问诊', icon: <ClipboardList className="w-4 h-4" />, color: 'from-[#2E7D5A] to-[#4A9F7A]', bgActive: 'bg-[#2E7D5A]' }, // 绿
+    { id: 'plan' as TabType, labelEn: 'Plan', labelZh: '计划', icon: <Zap className="w-4 h-4" />, color: 'from-[#5AAFA8] to-[#7ECEC8]', bgActive: 'bg-[#5AAFA8]' }, // 湖绿
+  ];
+
+  const activeConfig = tabConfig.find(t => t.id === activeTab) || tabConfig[0];
+
   return (
-    <div className="w-full">
-      <div className="relative">
-        <div className="glass-panel relative border-l-2 border-l-[#D4AF37]">
-          {/* 标签栏 - Luxury Minimal Tab */}
-          <div className="relative z-20 px-6 pt-6 mb-6">
-            <div className="flex gap-8 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-1">
-              {TABS.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 pb-3 text-xs uppercase tracking-[0.2em] transition-all relative ${
-                      isActive 
-                        ? 'text-[#1A1A1A] dark:text-white font-medium' 
-                        : 'text-[#1A1A1A]/40 dark:text-white/40 hover:text-[#1A1A1A] dark:hover:text-white'
-                    }`}
-                  >
-                    {isActive && (
-                      <motion.div layoutId="activeTabLine" className="absolute bottom-[-5px] left-0 right-0 h-[2px] bg-[#D4AF37]" />
-                    )}
-                    {tab.icon}
-                    <span>{language === 'en' ? tab.labelEn.toUpperCase() : tab.labelZh}</span>
-                  </button>
-                );
-              })}
+    <div className="w-full h-full">
+      {/* 卡片式标签容器 - 固定高度匹配 FeatureCards */}
+      <div className="relative h-full flex flex-col">
+        {/* 顶部标签缺口 */}
+        <div className="flex gap-1 mb-[-1px] relative z-10">
+          {tabConfig.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all duration-300 ${
+                  isActive 
+                    ? `${tab.bgActive} text-white shadow-lg` 
+                    : 'bg-white/60 text-gray-500 hover:bg-white/80 hover:text-gray-700'
+                }`}
+                style={{
+                  boxShadow: isActive ? '0 -4px 12px -2px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                {tab.icon}
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  {language === 'en' ? tab.labelEn : tab.labelZh}
+                </span>
+                {tab.id === 'questionnaire' && questionnaireCompleted && (
+                  <Check className="w-3 h-3" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 主卡片 - flex-1 填充剩余高度 */}
+        <div className="relative flex-1 rounded-[24px] rounded-tl-none overflow-hidden shadow-[0_12px_32px_-8px_rgba(0,0,0,0.12)]">
+          {/* 全屏背景渐变 */}
+          <div className={`absolute inset-0 bg-gradient-to-b ${activeConfig.color}`}>
+            <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+            <div className="absolute bottom-4 -left-8 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+            
+            {/* 中央图标区 */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-60 h-60">
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <motion.div 
+                  key={activeTab}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="w-20 h-20 bg-white rounded-2xl shadow-xl flex items-center justify-center rotate-45"
+                >
+                  {activeTab === 'today' && (isLowEnergy ? <Moon className="w-10 h-10 text-[#0B3D2E] -rotate-45" /> : <Brain className="w-10 h-10 text-[#0B3D2E] -rotate-45" />)}
+                  {activeTab === 'questionnaire' && <ClipboardList className="w-10 h-10 text-[#2E7D5A] -rotate-45" />}
+                  {activeTab === 'plan' && <Zap className="w-10 h-10 text-[#5AAFA8] -rotate-45" />}
+                </motion.div>
+              </div>
+              <motion.div 
+                className="absolute top-4 right-10 w-4 h-4 bg-white/25 rounded-full"
+                animate={{ y: [-3, 3, -3] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+            </div>
+            
+            {/* Badge */}
+            <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/15 backdrop-blur-md rounded-full">
+              <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                {activeTab === 'today' && (language === 'en' ? 'AI Insight' : '今日洞察')}
+                {activeTab === 'questionnaire' && (language === 'en' ? 'Daily Check-in' : '每日问诊')}
+                {activeTab === 'plan' && (language === 'en' ? 'Daily Plan' : '今日计划')}
+              </span>
             </div>
           </div>
 
-          {/* 内容区 */}
-          <CardContent className="pt-4 relative z-20" style={{ minHeight: CONTENT_MIN_HEIGHT }}>
+          {/* 底部内容覆盖层 */}
+          <div className={`absolute bottom-0 left-0 w-full p-4 pb-20 pt-16 bg-gradient-to-t ${
+            activeTab === 'today' ? 'from-[#0B3D2E] via-[#0B3D2E]/90' : 
+            activeTab === 'questionnaire' ? 'from-[#2E7D5A] via-[#2E7D5A]/90' : 
+            'from-[#5AAFA8] via-[#5AAFA8]/90'
+          } to-transparent text-white`}>
             <AnimatePresence mode="wait">
               {activeTab === 'today' && (
                 <motion.div
                   key="today"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="h-full"
                 >
-                  <InsightPanel
+                  <InsightPanelContent
                     todayTask={todayTask}
                     insight={insight}
                     isLoading={isLoading}
                     questionnaireCompleted={questionnaireCompleted}
-                    onStartCalibration={onStartCalibration}
                     questionnaireSummary={questionnaireSummary}
                     onGoToQuestionnaire={handleGoToQuestionnaire}
+                    onHintHover={onHintHover}
+                    language={language}
                   />
                 </motion.div>
               )}
               {activeTab === 'questionnaire' && (
                 <motion.div
                   key="questionnaire"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="h-full"
                 >
                   <QuestionnairePanel userId={userId} onComplete={handleQuestionnaireComplete} />
                 </motion.div>
@@ -279,19 +340,131 @@ export function DailyInsightHub({
               {activeTab === 'plan' && (
                 <motion.div
                   key="plan"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="h-full"
                 >
                   <PlanPanel stressLevel={stressLevel} energyLevel={energyLevel} />
                 </motion.div>
               )}
             </AnimatePresence>
-          </CardContent>
-
-          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#1A1A1A]/5 dark:bg-white/5" />
+          </div>
+          
+          {/* 固定底部按钮 - 仅在 today tab 显示 */}
+          {activeTab === 'today' && !questionnaireCompleted && (
+            <button
+              onClick={handleGoToQuestionnaire}
+              className="absolute bottom-5 left-5 right-5 py-3 bg-white text-[#0B3D2E] rounded-2xl font-bold text-sm shadow-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 z-20"
+            >
+              <ClipboardList className="w-4 h-4" />
+              {language === 'en' ? 'Complete Check-in' : '完成问诊'}
+            </button>
+          )}
+          {activeTab === 'today' && questionnaireCompleted && (
+            <div className="absolute bottom-5 left-5 right-5 py-3 bg-white/20 text-white rounded-2xl font-medium text-sm flex items-center justify-center gap-2 z-20 backdrop-blur-sm">
+              <Check className="w-4 h-4" />
+              {language === 'en' ? 'All Set' : '状态已同步'}
+            </div>
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// 今日洞察内容（不含顶部视觉区）
+function InsightPanelContent({
+  todayTask,
+  insight,
+  isLoading,
+  questionnaireCompleted,
+  questionnaireSummary,
+  onGoToQuestionnaire,
+  onHintHover,
+  language
+}: {
+  todayTask?: { mode: 'low_energy' | 'balanced' | 'normal' | 'challenge'; description: string; descriptionEn?: string } | null;
+  insight?: string | null;
+  isLoading?: boolean;
+  questionnaireCompleted?: boolean;
+  questionnaireSummary?: QuestionnaireSummary;
+  onGoToQuestionnaire?: () => void;
+  onHintHover?: (hovering: boolean) => void;
+  language: string;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <BrainLoader />
+        <p className="text-sm text-gray-500 mt-3">
+          {language === 'en' ? 'AI analyzing...' : 'AI 分析中...'}
+        </p>
+      </div>
+    );
+  }
+
+  if (!todayTask) {
+    return (
+      <div 
+        className="text-center py-6"
+        onMouseEnter={() => onHintHover?.(true)}
+        onMouseLeave={() => onHintHover?.(false)}
+      >
+        <p className="text-base font-medium text-gray-900">
+          {language === 'en' ? 'Complete calibration' : '完成每日校准'}
+        </p>
+        <p className="text-sm text-gray-500 mt-1">
+          {language === 'en' ? 'Click "Start Calibration" above' : '点击上方「开始校准」'}
+        </p>
+        <motion.div 
+          className="mt-3 text-[#D4AF37] flex justify-center"
+          animate={{ y: [-2, 2, -2] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          <svg className="w-5 h-5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const summaryText = questionnaireSummary ? generateQuestionnaireSummaryText(questionnaireSummary, language) : '';
+  const isLowEnergy = todayTask.mode === 'low_energy';
+
+  return (
+    <div className="relative h-full space-y-3">
+      {/* 标题和模式 */}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-3xl font-bold leading-none mb-2">{language === 'en' ? 'Daily Plan' : '今日计划'}</h3>
+          <p className="text-white/80 text-xs font-medium max-w-[200px]">
+            {language === 'en' && todayTask.descriptionEn ? todayTask.descriptionEn : todayTask.description}
+          </p>
+        </div>
+      </div>
+
+      {/* 标签 */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+          <span className="text-[10px] font-bold">
+            {isLowEnergy ? '🌙' : '⚡'} {isLowEnergy 
+              ? (language === 'en' ? 'Recovery' : '恢复') 
+              : (language === 'en' ? 'Balanced' : '平衡')
+            }
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+          <span className="text-[10px] font-bold">{language === 'en' ? 'Calibrated' : '已校准'}</span>
+        </div>
+        {questionnaireCompleted && (
+          <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+            <Check className="w-3 h-3" />
+            <span className="text-[10px] font-bold">{language === 'en' ? 'Done' : '已问诊'}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -333,160 +506,7 @@ function generateQuestionnaireSummaryText(summary: QuestionnaireSummary, languag
   return prefix + parts.join(connector);
 }
 
-// 今日洞察面板
-function InsightPanel({
-  todayTask,
-  insight,
-  isLoading,
-  questionnaireCompleted,
-  onStartCalibration,
-  questionnaireSummary,
-  onGoToQuestionnaire
-}: {
-  todayTask?: { mode: 'low_energy' | 'balanced' | 'normal' | 'challenge'; description: string; descriptionEn?: string } | null;
-  insight?: string | null;
-  isLoading?: boolean;
-  questionnaireCompleted?: boolean;
-  onStartCalibration?: () => void;
-  questionnaireSummary?: QuestionnaireSummary;
-  onGoToQuestionnaire?: () => void;
-}) {
-  const { language } = useI18n();
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center" style={{ minHeight: CONTENT_MIN_HEIGHT - 40 }}>
-        <BrainLoader />
-        <p className="text-sm text-[#0B3D2E]/60 mt-3">
-          {language === 'en' ? 'AI is analyzing your data...' : 'AI 正在分析你的数据...'}
-        </p>
-      </div>
-    );
-  }
-
-  if (!todayTask) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: CONTENT_MIN_HEIGHT - 40 }}>
-        <motion.div
-          className="w-16 h-16 mb-4 rounded-full bg-gradient-to-br from-[#9CAF88]/30 to-[#C4A77D]/20 flex items-center justify-center"
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 3, repeat: Infinity }}
-        >
-          <Brain className="w-8 h-8 text-[#9CAF88]" />
-        </motion.div>
-        <p className="text-base font-medium text-[#0B3D2E]">
-          {language === 'en' ? 'Complete daily calibration' : '完成每日校准'}
-        </p>
-        <p className="text-sm text-[#0B3D2E]/60 mt-1">
-          {language === 'en' ? 'Get personalized insights based on your state' : '获取基于你状态的个性化洞察'}
-        </p>
-        {onStartCalibration && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onStartCalibration}
-            className="btn-luxury mt-6 px-8 py-3 w-full"
-          >
-            <span>{language === 'en' ? 'Start Calibration' : '开始校准'}</span>
-          </motion.button>
-        )}
-      </div>
-    );
-  }
-
-  // 生成问卷总结文案
-  const summaryText = questionnaireSummary ? generateQuestionnaireSummaryText(questionnaireSummary, language) : '';
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-start gap-4">
-        <motion.div
-          className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${todayTask.mode === 'low_energy'
-            ? 'bg-gradient-to-br from-indigo-100 to-purple-100'
-            : 'bg-gradient-to-br from-[#9CAF88]/30 to-[#C4A77D]/20'
-            }`}
-          animate={{ rotate: [0, 5, -5, 0] }}
-          transition={{ duration: 4, repeat: Infinity }}
-        >
-          {todayTask.mode === 'low_energy'
-            ? <Moon className="w-6 h-6 text-indigo-600" />
-            : <Brain className="w-6 h-6 text-[#9CAF88]" />
-          }
-        </motion.div>
-        <div className="flex-1 pt-1">
-          <p className="text-sm text-[#0B3D2E] leading-relaxed">{language === 'en' && todayTask.descriptionEn ? todayTask.descriptionEn : todayTask.description}</p>
-          {insight && (
-            <p className="text-sm text-[#0B3D2E]/70 mt-3 pt-3 border-t border-[#E7E1D6]/50">{insight}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 pt-3 border-t border-[#E7E1D6]/30">
-        <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${todayTask.mode === 'low_energy'
-          ? 'bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700'
-          : 'bg-gradient-to-r from-[#9CAF88]/20 to-[#C4A77D]/20 text-[#0B3D2E]'
-          }`}>
-          {todayTask.mode === 'low_energy'
-            ? (language === 'en' ? '🌙 Recovery Mode' : '🌙 恢复模式')
-            : (language === 'en' ? '⚡ Balanced Mode' : '⚡ 平衡模式')
-          }
-        </span>
-        <span className="text-xs text-[#0B3D2E]/40">•</span>
-        <span className="text-xs text-[#0B3D2E]/50">
-          {language === 'en' ? 'Based on calibration' : '基于今日校准'}
-        </span>
-      </div>
-
-      {/* 问卷已完成：显示总结 */}
-      {questionnaireCompleted && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="p-3 rounded-xl bg-gradient-to-r from-[#9CAF88]/10 to-[#C4A77D]/10 border border-[#9CAF88]/20"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-[#9CAF88]" />
-            <span className="text-xs text-[#0B3D2E] font-medium">
-              {language === 'en' ? '✓ Daily check-in completed' : '✓ 今日问诊已完成'}
-            </span>
-          </div>
-          {summaryText && (
-            <p className="text-xs text-[#0B3D2E]/70 leading-relaxed pl-6">
-              {summaryText}
-            </p>
-          )}
-        </motion.div>
-      )}
-
-      {/* 问卷未完成：提示去做问卷 */}
-      {!questionnaireCompleted && (
-        <motion.button
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onGoToQuestionnaire}
-          className="w-full p-3 rounded-xl bg-amber-50 border border-amber-100 hover:border-amber-200 transition-colors text-left group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-              <ClipboardList className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-[#0B3D2E]">
-                {language === 'en' ? 'Complete daily check-in' : '完成每日问诊'}
-              </p>
-              <p className="text-xs text-[#0B3D2E]/60">
-                {language === 'en' ? 'Get deeper AI insights' : '获取更精准的 AI 洞察'}
-              </p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-amber-400 group-hover:text-amber-500 transition-colors" />
-          </div>
-        </motion.button>
-      )}
-    </div>
-  );
-}
 
 // 健康工具面板
 function ToolsPanel() {
@@ -647,41 +667,50 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center" style={{ minHeight: CONTENT_MIN_HEIGHT - 60 }}>
-        <div className="w-10 h-10 rounded-full bg-[#F3F4F6] flex items-center justify-center animate-pulse">
-          <ClipboardList className="w-5 h-5 text-[#9CA3AF]" />
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center animate-pulse">
+          <ClipboardList className="w-5 h-5 text-white" />
         </div>
-        <p className="text-sm text-[#0B3D2E]/60 mt-3">{language === 'en' ? 'Loading...' : '加载中...'}</p>
+        <p className="text-sm text-white/60 mt-3">{language === 'en' ? 'Loading...' : '加载中...'}</p>
       </div>
     );
   }
 
   if (isCompleted) {
     return (
-      <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: CONTENT_MIN_HEIGHT - 60 }}>
-        <div className="w-16 h-16 rounded-full bg-[#9CAF88]/20 flex items-center justify-center mb-4">
-          <Check className="w-8 h-8 text-[#0B3D2E]" />
+      <div className="flex flex-col items-center justify-center text-center h-full">
+        <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-4">
+          <Check className="w-8 h-8 text-white" />
         </div>
-        <p className="text-base font-medium text-[#0B3D2E]">{language === 'en' ? 'Check-in Complete' : '今日问卷已完成'}</p>
-        <p className="text-sm text-[#0B3D2E]/60 mt-1">{language === 'en' ? 'AI is analyzing your data...' : 'AI 正在分析你的数据...'}</p>
+        <p className="text-base font-medium text-white">{language === 'en' ? 'Check-in Complete' : '今日问卷已完成'}</p>
+        <p className="text-sm text-white/60 mt-1">{language === 'en' ? 'AI is analyzing your data...' : 'AI 正在分析你的数据...'}</p>
       </div>
     );
   }
 
   return (
-    <div>
-      {/* 进度条 */}
-      <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mb-4">
-        <motion.div
-          className="h-full bg-gradient-to-r from-amber-400 to-orange-400"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.3 }}
-        />
+    <div className="h-full flex flex-col">
+      {/* 标题区 */}
+      <div className="mb-4">
+        <h3 className="text-3xl font-bold leading-none mb-2">{language === 'en' ? 'Check-in' : '每日问诊'}</h3>
+        <p className="text-white/80 text-xs font-medium">
+          {language === 'en' ? currentQuestion.questionEn : currentQuestion.question}
+        </p>
       </div>
-      <div className="flex justify-between text-xs text-[#6B7280] mb-4">
-        <span>{language === 'en' ? 'Daily Check-in' : '每日状态问卷'}</span>
-        <span>{currentIndex + 1} / {todayQuestions.length}</span>
+
+      {/* 进度标签 */}
+      <div className="flex items-center gap-4 mb-3">
+        <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+          <span className="text-[10px] font-bold">{currentIndex + 1} / {todayQuestions.length}</span>
+        </div>
+        <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-white"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -691,20 +720,18 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.2 }}
+          className="flex-1 flex flex-col"
         >
-          <p className="text-base font-medium text-[#1F2937] mb-4">
-            {language === 'en' ? currentQuestion.questionEn : currentQuestion.question}
-          </p>
-          <div className="space-y-2">
+          <div className="flex-1 flex flex-col gap-2">
             {(language === 'en' ? currentQuestion.optionsEn : currentQuestion.options).map((option, index) => {
               const isSelected = answers[currentQuestion.id] === index;
               return (
                 <button
                   key={index}
                   onClick={() => handleAnswer(index)}
-                  className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left ${isSelected
-                    ? 'bg-amber-500 text-white shadow-md'
-                    : 'bg-[#F9FAFB] text-[#374151] hover:bg-amber-50 border border-[#E5E7EB]'
+                  className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left flex items-center ${isSelected
+                    ? 'bg-white text-[#2E7D5A] shadow-lg'
+                    : 'bg-white/90 text-gray-700 hover:bg-white'
                     }`}
                 >
                   {option}
@@ -716,11 +743,11 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
       </AnimatePresence>
 
       {Object.keys(answers).length === todayQuestions.length && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="w-full py-3 bg-[#0B3D2E] hover:bg-[#0a3629] text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+            className="w-full py-3 bg-white hover:bg-gray-50 text-[#2E7D5A] rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
           >
             {isSubmitting ? (language === 'en' ? 'Submitting...' : '提交中...') : (
               <span className="flex items-center justify-center gap-2">
@@ -744,12 +771,55 @@ const ICON_MAP: Record<IconName, React.ReactNode> = {
   sparkles: <Sparkles className="w-4 h-4" />
 };
 
-const DEFAULT_TASKS: Omit<Task, 'completed'>[] = [
-  { id: 'nsdr', title: '午间 15 分钟 NSDR 休息', titleEn: '15-min NSDR Rest', duration: '15 分钟', durationSeconds: 15 * 60, iconName: 'clock', category: 'rest', description: '非睡眠深度休息，快速恢复精力', descriptionEn: 'Non-sleep deep rest for quick recovery' } as any,
-  { id: 'sleep', title: '今晚提前 30 分钟入睡', titleEn: 'Sleep 30 min earlier', duration: '30 分钟', durationSeconds: 5 * 60, iconName: 'moon', category: 'sleep', description: '优化睡眠周期，提升恢复质量', descriptionEn: 'Optimize sleep cycle' } as any,
-  { id: 'breath', title: '5 分钟盒式呼吸', titleEn: '5-min Box Breathing', duration: '5 分钟', durationSeconds: 5 * 60, iconName: 'wind', category: 'breath', description: '4-4-4-4 呼吸法，激活副交感神经', descriptionEn: '4-4-4-4 breathing technique' } as any,
-  { id: 'stretch', title: '轻度拉伸 10 分钟', titleEn: '10-min Light Stretch', duration: '10 分钟', durationSeconds: 10 * 60, iconName: 'dumbbell', category: 'movement', description: '释放肌肉紧张，促进血液循环', descriptionEn: 'Release muscle tension' } as any,
-];
+// 任务库 - 根据状态智能选择
+const TASK_LIBRARY: Record<string, Omit<Task, 'completed' | 'id'> & { id: string; titleEn?: string; descriptionEn?: string; priority: { lowEnergy: number; highStress: number; balanced: number } }> = {
+  // 休息类
+  nsdr: { id: 'nsdr', title: 'NSDR 深度休息 15 分钟', titleEn: '15-min NSDR Rest', duration: '15 分钟', durationSeconds: 15 * 60, iconName: 'clock', category: 'rest', description: '非睡眠深度休息，快速恢复精力', descriptionEn: 'Non-sleep deep rest', priority: { lowEnergy: 10, highStress: 6, balanced: 4 } },
+  nap: { id: 'nap', title: '午间小憩 20 分钟', titleEn: '20-min Power Nap', duration: '20 分钟', durationSeconds: 20 * 60, iconName: 'moon', category: 'rest', description: '短暂休息恢复认知功能', descriptionEn: 'Short rest for cognitive recovery', priority: { lowEnergy: 9, highStress: 3, balanced: 2 } },
+  // 睡眠类
+  sleepEarly: { id: 'sleepEarly', title: '今晚提前 30 分钟入睡', titleEn: 'Sleep 30 min earlier', duration: '30 分钟', durationSeconds: 5 * 60, iconName: 'moon', category: 'sleep', description: '优化睡眠周期', descriptionEn: 'Optimize sleep cycle', priority: { lowEnergy: 8, highStress: 5, balanced: 3 } },
+  sleepHygiene: { id: 'sleepHygiene', title: '睡前 1 小时远离屏幕', titleEn: '1hr screen-free before bed', duration: '60 分钟', durationSeconds: 60 * 60, iconName: 'moon', category: 'sleep', description: '减少蓝光干扰褪黑素', descriptionEn: 'Reduce blue light interference', priority: { lowEnergy: 7, highStress: 4, balanced: 5 } },
+  // 呼吸类
+  boxBreath: { id: 'boxBreath', title: '盒式呼吸 5 分钟', titleEn: '5-min Box Breathing', duration: '5 分钟', durationSeconds: 5 * 60, iconName: 'wind', category: 'breath', description: '4-4-4-4 激活副交感神经', descriptionEn: '4-4-4-4 parasympathetic activation', priority: { lowEnergy: 5, highStress: 10, balanced: 6 } },
+  calmBreath: { id: 'calmBreath', title: '478 呼吸法 3 分钟', titleEn: '3-min 4-7-8 Breathing', duration: '3 分钟', durationSeconds: 3 * 60, iconName: 'wind', category: 'breath', description: '快速平复焦虑情绪', descriptionEn: 'Quick anxiety relief', priority: { lowEnergy: 4, highStress: 9, balanced: 3 } },
+  // 运动类
+  stretch: { id: 'stretch', title: '轻度拉伸 10 分钟', titleEn: '10-min Light Stretch', duration: '10 分钟', durationSeconds: 10 * 60, iconName: 'dumbbell', category: 'movement', description: '释放肌肉紧张', descriptionEn: 'Release muscle tension', priority: { lowEnergy: 3, highStress: 7, balanced: 8 } },
+  walk: { id: 'walk', title: '户外散步 15 分钟', titleEn: '15-min Outdoor Walk', duration: '15 分钟', durationSeconds: 15 * 60, iconName: 'dumbbell', category: 'movement', description: '阳光与运动双重调节', descriptionEn: 'Sunlight + movement regulation', priority: { lowEnergy: 2, highStress: 8, balanced: 9 } },
+  exercise: { id: 'exercise', title: '中等强度运动 30 分钟', titleEn: '30-min Moderate Exercise', duration: '30 分钟', durationSeconds: 30 * 60, iconName: 'dumbbell', category: 'movement', description: '提升内啡肽水平', descriptionEn: 'Boost endorphin levels', priority: { lowEnergy: 1, highStress: 2, balanced: 10 } },
+};
+
+// 根据用户状态智能生成任务
+function generateSmartTasks(stressLevel: number, energyLevel: number): (Task & { titleEn?: string; descriptionEn?: string })[] {
+  const allTasks = Object.values(TASK_LIBRARY);
+  
+  // 根据状态计算每个任务的得分
+  const scoredTasks = allTasks.map(task => {
+    let score = 0;
+    
+    // 低能量状态（energyLevel < 4）：优先休息和睡眠
+    if (energyLevel < 4) {
+      score = task.priority.lowEnergy;
+    }
+    // 高压力状态（stressLevel > 6）：优先呼吸和轻度运动
+    else if (stressLevel > 6) {
+      score = task.priority.highStress;
+    }
+    // 平衡状态：优先运动和维持
+    else {
+      score = task.priority.balanced;
+    }
+    
+    return { ...task, score };
+  });
+  
+  // 按得分排序，取前 4 个
+  const topTasks = scoredTasks
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map(({ score, priority, ...task }) => ({ ...task, completed: false }));
+  
+  return topTasks as (Task & { titleEn?: string; descriptionEn?: string })[];
+}
 
 function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number; energyLevel?: number }) {
   const { language } = useI18n();
@@ -759,19 +829,23 @@ function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number;
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
-    const savedTasks = localStorage.getItem(`nma_daily_tasks_${today}`);
+    const cacheKey = `nma_daily_tasks_${today}_${stressLevel}_${energyLevel}`;
+    const savedTasks = localStorage.getItem(cacheKey);
+    
     if (savedTasks) {
       setTasks(JSON.parse(savedTasks));
     } else {
-      const initialTasks = DEFAULT_TASKS.map(t => ({ ...t, completed: false }));
-      setTasks(initialTasks as any);
-      localStorage.setItem(`nma_daily_tasks_${today}`, JSON.stringify(initialTasks));
+      // 根据用户状态智能生成任务
+      const smartTasks = generateSmartTasks(stressLevel, energyLevel);
+      setTasks(smartTasks);
+      localStorage.setItem(cacheKey, JSON.stringify(smartTasks));
     }
-  }, []);
+  }, [stressLevel, energyLevel]);
 
   const saveTasks = (newTasks: Task[]) => {
     const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem(`nma_daily_tasks_${today}`, JSON.stringify(newTasks));
+    const cacheKey = `nma_daily_tasks_${today}_${stressLevel}_${energyLevel}`;
+    localStorage.setItem(cacheKey, JSON.stringify(newTasks));
     setTasks(newTasks as any);
   };
 
@@ -803,63 +877,67 @@ function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number;
   };
 
   return (
-    <div>
-      {/* 进度条 */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-[#6B7280]">{language === 'en' ? 'Daily Plan' : '今日调节计划'}</span>
-        <span className="text-xs text-[#6B7280]">{completedCount}/{tasks.length} {language === 'en' ? 'done' : '已完成'}</span>
-      </div>
-      <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mb-4">
-        <motion.div
-          className="h-full bg-gradient-to-r from-emerald-400 to-teal-400"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.5 }}
-        />
+    <div className="h-full flex flex-col">
+      {/* 标题区 */}
+      <div className="mb-4">
+        <h3 className="text-3xl font-bold leading-none mb-2">{language === 'en' ? 'Daily Plan' : '今日计划'}</h3>
+        <p className="text-white/80 text-xs font-medium">
+          {completedCount === tasks.length
+            ? (language === 'en' ? '🎉 All tasks completed!' : '🎉 今日计划已完成！')
+            : energyLevel >= 7
+              ? (language === 'en' ? 'Good state, keep the rhythm' : '状态良好，保持节奏')
+              : energyLevel >= 4
+                ? (language === 'en' ? 'System stable, ready to go' : '系统稳定，准备生成计划')
+                : (language === 'en' ? 'Low energy, rest first' : '能量偏低，建议优先休息')}
+        </p>
       </div>
 
-      {/* 状态提示 */}
-      <p className="text-sm text-[#0B3D2E]/70 mb-4">
-        {completedCount === tasks.length
-          ? (language === 'en' ? '🎉 All tasks completed!' : '🎉 今日计划已完成！')
-          : energyLevel >= 7
-            ? (language === 'en' ? 'Good state, keep the rhythm' : '状态良好，保持节奏')
-            : energyLevel >= 4
-              ? (language === 'en' ? 'System stable, ready to go' : '系统稳定，准备生成计划')
-              : (language === 'en' ? 'Low energy, rest first' : '能量偏低，建议优先休息')}
-      </p>
+      {/* 进度标签 */}
+      <div className="flex items-center gap-4 mb-3">
+        <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+          <span className="text-[10px] font-bold">{completedCount}/{tasks.length} {language === 'en' ? 'done' : '已完成'}</span>
+        </div>
+        <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-white"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.5 }}
+          />
+        </div>
+      </div>
 
       {/* 任务列表 */}
-      <div className="space-y-2">
-        {tasks.slice(0, 3).map(task => (
+      <div className="flex-1 flex flex-col gap-2">
+        {tasks.map(task => (
           <motion.div
             key={task.id}
             layout
-            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${task.completed
-              ? 'bg-emerald-50/50 border-emerald-100'
-              : 'bg-white border-gray-100 hover:border-gray-200'
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all ${task.completed
+              ? 'bg-white/20 backdrop-blur-sm'
+              : 'bg-white/90 backdrop-blur-sm'
               }`}
           >
             <button
               onClick={() => handleComplete(task.id)}
-              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 hover:border-emerald-400'
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${task.completed ? 'bg-white border-white' : 'border-white/50 hover:border-white'
                 }`}
             >
-              {task.completed && <Check className="w-3.5 h-3.5 text-white" />}
+              {task.completed && <Check className="w-3 h-3 text-[#5AAFA8]" />}
             </button>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className={`p-1 rounded-md ${categoryColors[task.category]}`}>
+              <div className="flex items-center gap-1.5">
+                <span className={`p-0.5 rounded ${task.completed ? 'bg-white/20 text-white' : categoryColors[task.category]}`}>
                   {ICON_MAP[task.iconName]}
                 </span>
-                <span className={`text-sm font-medium ${task.completed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                <span className={`text-xs font-medium truncate ${task.completed ? 'text-white/60 line-through' : 'text-gray-800'}`}>
                   {language === 'en' ? (task as any).titleEn || task.title : task.title}
                 </span>
               </div>
             </div>
             {!task.completed && (
-              <button onClick={() => handleStart(task)} className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100">
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+              <button onClick={() => handleStart(task)} className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 flex-shrink-0">
+                <ChevronRight className="w-3 h-3 text-gray-500" />
               </button>
             )}
           </motion.div>
