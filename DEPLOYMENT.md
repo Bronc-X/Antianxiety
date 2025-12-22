@@ -1,67 +1,55 @@
 # 部署指南
 
-## 环境变量配置
+## 1) 环境变量
 
 ### 本地开发
 
-1. 复制 `.env.example` 为 `.env.local`
-2. 填入真实的环境变量值
-3. **永远不要提交 `.env.local` 到 Git**
+1. 复制 `.env.example` → `.env.local`
+2. 填入真实值（不要提交 `.env.local`）
 
-### Vercel/Netlify 部署
+### Vercel / Netlify / Cloudflare Pages
 
-在部署平台的环境变量设置中添加：
+在部署平台的环境变量设置中添加（按需）：
 
-```
+```env
+# Supabase（必需）
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-DEEPSEEK_API_KEY=your_deepseek_api_key
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
+
+# AI（启用 AI 功能时需要）
+OPENAI_API_KEY=your_openai_compatible_api_key
+OPENAI_API_BASE=https://aicanapi.com/v1
+
+# Server-only（按需，用于 cron/后台写入）
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+CRON_SECRET=your_random_secret
+CONTENT_INGEST_API_KEY=your_random_secret
+
+# Optional
+SEMANTIC_SCHOLAR_API_KEY=
+RESEND_API_KEY=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 ```
 
-### Supabase 配置
+## 2) Supabase SQL 脚本
 
-1. 登录 Supabase Dashboard
-2. 进入 Project Settings → API
-3. 复制 `URL` 和 `anon public` key
-4. 在部署平台设置环境变量
+SQL 脚本在 `supabase/migrations/`。按你启用的功能选择对应迁移执行。
 
-### SQL 脚本执行
+参考：
+- `docs/QUICK_START_DEPLOYMENT.md`
+- `docs/SUPABASE_MIGRATION_GUIDE.md`
 
-在 Supabase Dashboard → SQL Editor 依次执行：
+## 3) 故障排查
 
-1. `supabase_schema.sql` - 基础表结构
-2. `ADD_HEALTH_FIELDS.sql` - 健康参数字段
-3. `ADD_LIFESTYLE_FIELDS.sql` - 生活习惯字段
-4. `FIX_RLS_FINAL.sql` - RLS 策略修复
+### 环境变量缺失
 
-### OAuth 配置
+```bash
+npm run check-env
+```
 
-#### GitHub OAuth
-1. 访问 https://github.com/settings/developers
-2. 创建 OAuth App
-3. Authorization callback URL: `https://your-domain.com/auth/callback`
-4. 复制 Client ID 和 Client Secret
+### RLS / 权限错误
 
-## 安全检查清单
-
-- [ ] `.env.local` 在 `.gitignore` 中
-- [ ] 生产环境使用环境变量，不硬编码
-- [ ] API keys 不暴露在客户端代码
-- [ ] Supabase RLS 策略已启用
-- [ ] OAuth redirect URLs 配置正确
-
-## 故障排查
-
-### AI 对话不可用
-- 检查 `DEEPSEEK_API_KEY` 是否设置
-- 查看服务端日志
-
-### RLS 策略错误
-- 执行 `FIX_RLS_FINAL.sql`
 - 确认用户已登录
+- 确认对应表的 RLS 策略与函数已按迁移执行
 
-### OAuth 登录失败
-- 检查 callback URL 配置
-- 验证 Client ID/Secret

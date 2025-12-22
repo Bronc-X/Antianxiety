@@ -18,7 +18,7 @@ export default function DesignShowcasePage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#FDFBF7] p-8 md:p-12 font-sans text-[#0B3D2E] relative overflow-hidden">
+        <div className="min-h-screen bg-[#FAF6EF] p-8 md:p-12 font-sans text-[#0B3D2E] relative overflow-hidden">
             {/* Show scanline overlay only when selected */}
             {activeTab === 'scanline' && <ScanlineOverlay opacity={0.1} />}
 

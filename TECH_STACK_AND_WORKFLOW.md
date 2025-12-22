@@ -1,4 +1,4 @@
-# AntiAnxiety - 技术栈与工作流
+# Antianxiety - 技术栈与工作流
 
 ## 1. 技术栈明细
 
@@ -165,7 +165,7 @@
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 修改代码 | 在 `nomoreanxiousweb/` 目录修改任何文件 |
+| 1 | 修改代码 | 在 `antianxiety/` 目录修改任何文件 |
 | 2 | 本地测试 | `npm run dev` 在 localhost:3000 预览 |
 | 3 | 提交代码 | `git push` 到 GitHub |
 | 4 | 自动部署 | Vercel 检测到推送，自动构建部署 |
@@ -376,7 +376,7 @@
 ## 4. 目录结构
 
 ```
-nomoreanxiousweb/
+antianxiety/
 ├── app/                    # Next.js App Router 页面
 ├── components/             # React 组件
 │   ├── ui/                # Shadcn UI 组件
@@ -508,3 +508,110 @@ CREATE TABLE pre_insights (
 | Property 9 | 科学证据引用过滤 | `bayesian-scholar.property.test.ts` |
 | Property 10 | 数据库触发器幂等性 | `bayesian-belief.property.test.ts` |
 | Property 11 | API 失败优雅降级 | `bayesian-scholar.property.test.ts` |
+
+---
+
+### 动态计划适应系统 (Adaptive Plan Follow-up)
+
+| 功能模块 | 技术实现 | 关键文件 |
+|----------|----------|----------|
+| 问询会话管理 | TypeScript 服务 + Supabase | `lib/services/follow-up-service.ts` |
+| 执行追踪 | 执行率计算 + 连续失败检测 | `lib/services/execution-tracking-service.ts` |
+| 智能平替推荐 | AI 生成 + 用户偏好过滤 | `lib/services/alternative-generation-service.ts` |
+| 计划演化历史 | 版本追踪 + 用户总结生成 | `lib/services/plan-evolution-service.ts` |
+| 四维科学解释 | 生理/神经/心理/行为科学 | `lib/services/scientific-explanation-service.ts` |
+| 详细计划生成 | 最少5个行动项 + 完整字段 | `lib/services/detailed-plan-generator.ts` |
+| 理解度评分 | 4维加权 (各25%) + 95分阈值 | `lib/services/understanding-score-service.ts` |
+| 用户偏好档案 | 成功模式 + 避免活动 | `lib/services/preference-profile-service.ts` |
+| 问询会话 API | GET/POST/PATCH | `app/api/follow-up/route.ts` |
+| 执行追踪 API | GET/POST/PATCH | `app/api/execution-tracking/route.ts` |
+| 平替推荐 API | GET/POST/PATCH | `app/api/alternatives/route.ts` |
+| 理解度 API | GET | `app/api/understanding-score/route.ts` |
+| 定时调度 | Vercel Cron (9:00/20:00) | `app/api/cron/follow-up-scheduler/route.ts` |
+| 问询弹窗 | Framer Motion + California Calm | `components/FollowUpSessionModal.tsx` |
+| 通知横幅 | 贪睡选项 + 开始会话 | `components/FollowUpNotificationBanner.tsx` |
+| 理解度展示 | 进度条 + 分解 + 深度理解徽章 | `components/UnderstandingScoreWidget.tsx` |
+| 行动项详情 | 四维科学解释 + 执行历史 | `components/ActionItemDetail.tsx` |
+| 平替选择 | 相似度评分 + 科学依据 | `components/AlternativeSelectionModal.tsx` |
+| 聊天集成 | follow-up mode + 行动项追踪 | `components/AIAssistantChat.tsx` |
+
+### 动态计划数据库表
+
+```sql
+-- 问询会话表
+CREATE TABLE follow_up_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  plan_id uuid NOT NULL,
+  session_type text CHECK (session_type IN ('morning', 'evening')),
+  status text CHECK (status IN ('pending', 'in_progress', 'completed', 'missed')),
+  scheduled_at timestamptz NOT NULL,
+  started_at timestamptz,
+  completed_at timestamptz,
+  responses jsonb DEFAULT '[]',
+  sentiment_score float,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 行动项表
+CREATE TABLE plan_action_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  plan_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  timing text,
+  duration text,
+  steps text[] DEFAULT '{}',
+  expected_outcome text,
+  scientific_rationale jsonb,
+  item_order integer DEFAULT 0,
+  is_established boolean DEFAULT false,
+  replacement_count integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- 执行追踪表
+CREATE TABLE execution_tracking (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  action_item_id uuid REFERENCES plan_action_items(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  date date NOT NULL,
+  status text CHECK (status IN ('completed', 'partial', 'skipped', 'replaced')),
+  needs_replacement boolean DEFAULT false,
+  user_notes text,
+  replacement_reason text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 用户理解度评分表
+CREATE TABLE user_understanding_scores (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  current_score float DEFAULT 0,
+  score_breakdown jsonb DEFAULT '{}',
+  last_updated timestamptz DEFAULT now()
+);
+```
+
+### 动态计划属性测试
+
+| 属性 | 验证内容 | 测试文件 |
+|------|----------|----------|
+| Property 1 | 问询窗口检测正确性 | `adaptive-plan.property.test.ts` |
+| Property 2 | 响应记录完整性 | `adaptive-plan.property.test.ts` |
+| Property 3 | 错过会话影响调度 | `adaptive-plan.property.test.ts` |
+| Property 4 | 24小时后激活执行追踪 | `adaptive-plan.property.test.ts` |
+| Property 5 | 执行率计算公式 | `adaptive-plan.property.test.ts` |
+| Property 6 | 连续3次失败标记 | `adaptive-plan.property.test.ts` |
+| Property 7 | 平替生成完整性 | `adaptive-plan.property.test.ts` |
+| Property 8 | 平替尊重用户偏好 | `adaptive-plan.property.test.ts` |
+| Property 9 | 演化历史保留 | `adaptive-plan.property.test.ts` |
+| Property 10 | 科学解释四维完整 | `adaptive-plan.property.test.ts` |
+| Property 11 | 最少5个行动项 | `adaptive-plan.property.test.ts` |
+| Property 12 | 行动项字段完整 | `adaptive-plan.property.test.ts` |
+| Property 13 | 7天连续完成标记习惯 | `adaptive-plan.property.test.ts` |
+| Property 14 | 3次演化后生成总结 | `adaptive-plan.property.test.ts` |
+| Property 15 | 理解度加权计算 | `adaptive-plan.property.test.ts` |
+| Property 16 | 95分深度理解阈值 | `adaptive-plan.property.test.ts` |
+| Property 17 | 计划数据序列化往返 | `adaptive-plan.property.test.ts` |

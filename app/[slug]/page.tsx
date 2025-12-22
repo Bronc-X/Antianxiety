@@ -15,8 +15,8 @@ const staticPages = {
   about: {
     title: { zh: '关于我们', en: 'About Us' },
     description: {
-      zh: 'No More anxious™ 是一个认知健康平台，帮助你管理焦虑与压力。',
-      en: 'No More anxious™ is a cognitive health platform that helps you manage anxiety and stress.',
+      zh: 'Antianxiety™ 是一个认知健康平台，帮助你管理焦虑与压力。',
+      en: 'Antianxiety™ is a cognitive health platform that helps you manage anxiety and stress.',
     },
     content: {
       zh: '我们致力于通过科学方法帮助用户改善心理健康。',
@@ -34,8 +34,8 @@ const staticPages = {
   terms: {
     title: { zh: '服务条款', en: 'Terms of Service' },
     description: {
-      zh: '使用 No More anxious™ 服务的条款与条件。',
-      en: 'Terms and conditions for using No More anxious™.',
+      zh: '使用 Antianxiety™ 服务的条款与条件。',
+      en: 'Terms and conditions for using Antianxiety™.',
     },
     content: {
       zh: '使用本服务即表示你同意遵守以下条款。',
@@ -74,7 +74,7 @@ export async function generateMetadata({ params }: PageProps) {
   }
 
   return {
-    title: `${page.title.zh} | No More anxious™`,
+    title: `${page.title.zh} | Antianxiety™`,
     description: page.description.zh,
   };
 }

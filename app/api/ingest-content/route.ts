@@ -173,7 +173,7 @@ async function crawlReddit(limit: number) {
           `https://www.reddit.com/${subreddit}/hot.json?limit=5`,
           {
             headers: {
-              'User-Agent': 'NoMoreAnxious-Bot/1.0',
+              'User-Agent': 'Antianxiety-Bot/1.0',
             },
           }
         );
@@ -278,7 +278,7 @@ async function crawlX(limit: number) {
           {
             headers: {
               Authorization: `Bearer ${twitterBearerToken}`,
-              'User-Agent': 'NoMoreAnxious-Bot/1.0',
+              'User-Agent': 'Antianxiety-Bot/1.0',
             },
           }
         );
@@ -332,7 +332,7 @@ async function crawlJournals(limit: number) {
       `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${limit}&retmode=json`,
       {
         headers: {
-          'User-Agent': 'NoMoreAnxious-Bot/1.0',
+          'User-Agent': 'Antianxiety-Bot/1.0',
         },
       }
     );
