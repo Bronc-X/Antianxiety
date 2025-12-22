@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "restart": "node scripts/restart-dev.js",
+    "restart": "pkill -f 'next dev' || true; rm -f .next/dev/lock; sleep 1; npm run dev",
     "restart:windows": "powershell -ExecutionPolicy Bypass -File restart-dev.ps1",
     "restart:unix": "bash ./restart-dev.sh",
     "build": "next build --webpack",

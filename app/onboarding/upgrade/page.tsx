@@ -48,7 +48,7 @@ export default function UpgradePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B3D2E] via-[#0B3D2E] to-[#1a5c47] flex items-center justify-center p-6 relative overflow-hidden text-white-force">
+    <div className="upgrade-page min-h-screen bg-gradient-to-br from-[#0B3D2E] via-[#0B3D2E] to-[#1a5c47] flex items-center justify-center p-6 relative overflow-hidden text-white">
 
       {/* 背景装饰 */}
       <div className="absolute inset-0 opacity-10">
@@ -67,7 +67,7 @@ export default function UpgradePage() {
             <span className="text-sm font-medium text-amber-200">{t('upgrade.limitedOffer')}</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-serif font-medium leading-tight mb-4 text-white-force">
+          <h1 className="text-4xl md:text-5xl font-serif font-medium leading-tight mb-4 text-white">
             {t('upgrade.unlockFull')}<br />
             <span style={{ color: '#FFFFFF' }}>
               {t('upgrade.metabolicPotential')}
@@ -191,7 +191,7 @@ function FeatureCard({
       <div className="w-12 h-12 bg-gradient-to-br from-amber-400/20 to-orange-400/20 rounded-xl flex items-center justify-center text-amber-300 mb-4 group-hover:scale-110 transition-transform">
         {icon}
       </div>
-      <h3 className="font-semibold mb-2 text-white-force">{title}</h3>
+      <h3 className="font-semibold mb-2 text-white">{title}</h3>
       <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>{description}</p>
     </div>
   );
