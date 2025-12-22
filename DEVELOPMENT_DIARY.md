@@ -2,6 +2,48 @@
 
 ---
 
+## 2025-12-22 (夜间) - 智能穿戴设备全栈集成 🏃‍♂️
+
+### 🎯 核心更新
+
+#### 1. 穿戴设备数据层 ✅
+- ✅ 创建 `supabase/migrations/20251222_wearable_integration.sql`
+  - `wearable_tokens` - OAuth令牌存储
+  - `wearable_sync_log` - 同步日志
+  - `user_health_data` - 统一健康数据模型
+  - RLS策略 + 辅助函数 (get_latest_health_data, get_health_data_trend)
+- ✅ 创建 `types/wearable.ts` - 完整TypeScript类型定义
+
+#### 2. 连接器实现 ✅
+- ✅ `lib/services/wearables/fitbit-connector.ts` - Fitbit Web API
+- ✅ `lib/services/wearables/oura-connector.ts` - Oura Ring V2 API
+- ✅ `lib/services/wearables/healthkit-bridge.ts` - Apple Watch HealthKit (iOS客户端)
+- ✅ `lib/services/wearables/data-normalizer.ts` - 数据归一化
+
+#### 3. API路由 ✅
+- ✅ `/api/wearables/connect/[provider]` - OAuth连接发起
+- ✅ `/api/wearables/callback/[provider]` - OAuth回调处理
+- ✅ `/api/wearables/sync` - 数据同步 (GET/POST)
+
+#### 4. 前端UI ✅
+- ✅ `components/settings/WearableConnectionManager.tsx` - 设备连接管理
+
+#### 5. 配置更新 ✅
+- ✅ `.env.example` - 添加 FITBIT_CLIENT_ID/SECRET, OURA_CLIENT_ID/SECRET
+
+### 📊 代码统计
+- **新增文件**: 10 个
+- **修改文件**: 1 个 (`.env.example`)
+- **新增代码**: ~2000 行
+
+### 🚀 下一步
+- [ ] 在 Supabase 执行迁移脚本
+- [ ] 注册 Fitbit/Oura 开发者账户获取API密钥
+- [ ] 集成到设置页面
+- [ ] 贝叶斯引擎整合（穿戴数据作为证据源）
+
+---
+
 ## 2025-12-22 (Late Night) - UI Upgrade Complete (Phase 1-3) 💎
 
 ### 🎯 核心更新
