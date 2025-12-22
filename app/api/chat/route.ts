@@ -696,10 +696,22 @@ export async function POST(req: Request) {
         };
       }
 
+      const dailyLogForInquiry: DailyLog | null = todayBioData
+        ? {
+            sleep_hours: todayBioData.sleep_duration_minutes != null
+              ? todayBioData.sleep_duration_minutes / 60
+              : null,
+            hrv: null,
+            stress_level: todayBioData.stress_level ?? null,
+            exercise_duration_minutes: todayBioData.exercise_duration_minutes ?? null,
+            created_at: todayBioData.created_at,
+          }
+        : null;
+
       // 🆕 处理主动问询生成 (如果触发)
       if (trigger_checkin) {
         const inquiryContext = {
-          dailyLogs: todayBioData ? [todayBioData as unknown as DailyLog] : [],
+          dailyLogs: dailyLogForInquiry ? [dailyLogForInquiry] : [],
           profile: userProfile,
           activePlan: activePlan,
           currentTime: new Date()

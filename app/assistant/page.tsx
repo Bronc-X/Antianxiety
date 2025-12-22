@@ -3,10 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getServerLanguage } from '@/lib/i18n-server';
 import { tr } from '@/lib/i18n-core';
 import { redirect } from 'next/navigation';
-import HealthProfileForm from '@/components/HealthProfileForm';
-import AIAnalysisDisplay from '@/components/AIAnalysisDisplay';
-import DailyCheckInPanel from '@/components/DailyCheckInPanel';
-import EnhancedDailyCheckIn from '@/components/EnhancedDailyCheckIn';
+import UnifiedDailyCalibration from '@/components/UnifiedDailyCalibration';
 import Link from 'next/link';
 import AssistantPageClient from './AssistantPageClient';
 
@@ -32,19 +29,12 @@ export default async function AssistantPage({
 
   // 如果是 panel=daily，显示每日状态记录面板
   if (params?.panel === 'daily') {
-    // 获取用户资料和日志
+    // 获取用户资料
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('id, daily_checkin_time, sleep_hours, stress_level')
+      .select('full_name')
       .eq('id', user.id)
       .single();
-
-    const { data: logsData } = await supabase
-      .from('daily_wellness_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('log_date', { ascending: false })
-      .limit(30);
 
     return (
       <div className="min-h-screen bg-[#FAF6EF]">
@@ -57,9 +47,9 @@ export default async function AssistantPage({
             </div>
           </div>
         </nav>
-        <EnhancedDailyCheckIn 
-          initialProfile={profileData || { id: user.id }}
-          initialLogs={logsData || []}
+        <UnifiedDailyCalibration 
+          userId={user.id}
+          userName={profileData?.full_name}
         />
       </div>
     );
