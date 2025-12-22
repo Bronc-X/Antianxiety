@@ -11,7 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { 
   identifyDataGaps, 
-  generateInquiryQuestion 
+  generateInquiryQuestion,
+  getInquiryOptionsForGap
 } from '@/lib/inquiry-engine';
 import { getTopRecommendation } from '@/lib/feed-curation';
 import type { InquiryPendingResponse, CuratedContent } from '@/types/adaptive-interaction';
@@ -36,6 +37,10 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (recentInquiry) {
+      const gapField = Array.isArray(recentInquiry.data_gaps_addressed)
+        ? recentInquiry.data_gaps_addressed[0]
+        : undefined;
+      const derivedOptions = gapField ? getInquiryOptionsForGap(gapField) : null;
       // Return existing pending inquiry
       const response: InquiryPendingResponse = {
         hasInquiry: true,
@@ -45,7 +50,7 @@ export async function GET(request: NextRequest) {
           question_type: recentInquiry.question_type,
           priority: recentInquiry.priority,
           data_gaps_addressed: recentInquiry.data_gaps_addressed || [],
-          options: [
+          options: derivedOptions || [
             { label: '是', value: 'yes' },
             { label: '否', value: 'no' },
           ],

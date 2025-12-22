@@ -206,6 +206,14 @@ export function generateInquiryQuestion(
   return customizedQuestion;
 }
 
+export function getInquiryOptionsForGap(field: string) {
+  const template = INQUIRY_TEMPLATES[field];
+  if (!template?.options || template.options.length === 0) {
+    return null;
+  }
+  return template.options;
+}
+
 /**
  * Calculate optimal inquiry timing based on activity patterns
  */

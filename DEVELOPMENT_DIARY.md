@@ -2,6 +2,33 @@
 
 ---
 
+## 2025-12-23 - 精选内容与主动问询优化
+
+### 🎯 核心更新
+
+#### 1. 精选信息流升级 ✅
+- ✅ 新增 `/api/curated-feed` 聚合 PubMed / Semantic Scholar / YouTube / X / Reddit
+- ✅ 计算匹配度、按匹配度排序、每日 Top10 轮换、支持无限下滑分页
+- ✅ 生成「为什么推荐给你」的个性化总结
+
+#### 2. Feed UI 重新排版 ✅
+- ✅ `components/InfiniteNewsFeed.tsx`：改用新接口，四要素展示（标题/简介/来源/推荐理由）
+- ✅ 卡片化布局、匹配度徽章、推荐理由模块，提升信息密度与可读性
+
+#### 3. 主动问询选项修复 ✅
+- ✅ `app/api/inquiry/pending/route.ts` 根据 data_gaps 取模板选项，避免「睡眠时长 + 是/否」不匹配
+- ✅ `lib/inquiry-engine.ts` 暴露模板选项获取函数
+
+### 📊 代码统计
+- **新增文件**: `app/api/curated-feed/route.ts`
+- **修改文件**: `components/InfiniteNewsFeed.tsx`, `app/api/inquiry/pending/route.ts`, `lib/inquiry-engine.ts`
+
+### 🚀 下一步
+- [ ] 需要更严格语言匹配时，补充中文来源或翻译管线
+- [ ] 增加收藏/不感兴趣反馈闭环，进一步个性化
+
+---
+
 ## 2025-12-22 (夜间) - 智能穿戴设备全栈集成 🏃‍♂️
 
 ### 🎯 核心更新
