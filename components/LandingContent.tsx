@@ -61,8 +61,18 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
 
   const latestLog = dailyLogs?.[0];
   const previousLog = dailyLogs?.[1];
-  const biometrics = { sleep: latestLog?.sleep_hours, hrv: latestLog?.hrv, stress: latestLog?.stress_level };
-  const hasData = biometrics.sleep !== undefined || biometrics.hrv !== undefined;
+  const toNumber = (value: unknown) => {
+    if (value === null || value === undefined) return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  };
+  const sleepMinutes = toNumber(latestLog?.sleep_duration_minutes);
+  const sleepHours = toNumber(latestLog?.sleep_hours) ?? (sleepMinutes !== null ? sleepMinutes / 60 : null);
+  const hrvValue = toNumber(latestLog?.hrv);
+  const stressLevel = toNumber(latestLog?.stress_level);
+  const biometrics = { sleep: sleepHours, hrv: hrvValue, stress: stressLevel };
+  const canGenerateInsight = biometrics.sleep !== null && biometrics.hrv !== null && biometrics.stress !== null;
+  const canFallbackInsight = biometrics.sleep !== null || biometrics.stress !== null;
 
   useEffect(() => {
     if (latestLog?.hrv && previousLog?.hrv) {
@@ -110,25 +120,34 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
   }, []);
 
   useEffect(() => {
-    if (!hasData) { setIsLoading(false); return; }
+    if (!canGenerateInsight && !canFallbackInsight) { setIsLoading(false); return; }
     const generateInsight = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/insight/generate', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sleep_hours: biometrics.sleep, hrv: biometrics.hrv, stress_level: biometrics.stress })
-        });
-        if (response.ok) {
-          const reader = response.body?.getReader();
-          const decoder = new TextDecoder();
-          let text = '';
-          while (reader) { const { done, value } = await reader.read(); if (done) break; text += decoder.decode(value, { stream: true }); }
-          setInsight(text || null);
+        if (canGenerateInsight) {
+          const response = await fetch('/api/insight/generate', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sleep_hours: biometrics.sleep, hrv: biometrics.hrv, stress_level: biometrics.stress })
+          });
+          if (response.ok) {
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            let text = '';
+            while (reader) { const { done, value } = await reader.read(); if (done) break; text += decoder.decode(value, { stream: true }); }
+            setInsight(text || null);
+          }
+          return;
+        }
+
+        const fallbackResponse = await fetch('/api/insight', { method: 'POST' });
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
+          setInsight(data?.insight || null);
         }
       } catch (err) { console.error(err); } finally { setIsLoading(false); }
     };
     generateInsight();
-  }, [hasData, biometrics.sleep, biometrics.hrv, biometrics.stress]);
+  }, [canGenerateInsight, canFallbackInsight, biometrics.sleep, biometrics.hrv, biometrics.stress]);
 
   const handleAnomalyAnswer = (trigger: string) => { console.log('Anomaly:', trigger); setShowAnomalyCard(false); };
   const anomalyLabels = language === 'en' ? ['🍷 Alcohol', '🍜 Late Dinner', '😰 High Stress', 'None'] : ['🍷 饮酒', '🍜 晚餐过晚', '😰 压力大', '都没有'];

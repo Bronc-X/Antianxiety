@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
+import { isAdminToken } from '@/lib/admin-auth';
 
 /**
  * Debug API: 检查用户的 AI 调优设置
@@ -7,8 +8,14 @@ import { NextResponse } from 'next/server';
  * 
  * 用于调试 Brain Sync 是否正常工作
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const isProd = process.env.NODE_ENV === 'production';
+    const adminRequired = isProd || !!process.env.ADMIN_API_KEY;
+    if (adminRequired && !isAdminToken(request.headers)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     const supabase = await createServerSupabaseClient();
     
     // 获取当前用户

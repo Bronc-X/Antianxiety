@@ -68,7 +68,7 @@ export default async function LandingPage() {
         Promise.race<DailyWellnessLog[]>([
           supabase
             .from('daily_wellness_logs')
-            .select('id, user_id, log_date, sleep_hours, sleep_duration_minutes, stress_level, hrv, exercise_duration_minutes')
+            .select('id, user_id, log_date, sleep_duration_minutes, stress_level, exercise_duration_minutes')
             .eq('user_id', session.user.id)
             .order('log_date', { ascending: false })
             .limit(1)
@@ -82,6 +82,30 @@ export default async function LandingPage() {
       }
       if (dailyLogsResult.status === 'fulfilled') {
         dailyLogs = Array.isArray(dailyLogsResult.value) ? dailyLogsResult.value : [];
+      }
+
+      if (dailyLogs.length > 0) {
+        const hrvResult = await Promise.race<
+          { data: Array<{ value: number | null }> | null; error: unknown | null } | null
+        >([
+          supabase
+            .from('user_health_data')
+            .select('value')
+            .eq('user_id', session.user.id)
+            .eq('data_type', 'hrv')
+            .order('recorded_at', { ascending: false })
+            .limit(1)
+            .then(({ data, error }) => ({ data: data ?? null, error })),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 800)),
+        ]);
+
+        const hrvValueRaw = hrvResult?.data?.[0]?.value;
+        const hrvValue = hrvValueRaw === null || hrvValueRaw === undefined
+          ? null
+          : Number(hrvValueRaw);
+        if (hrvValue !== null && Number.isFinite(hrvValue)) {
+          (dailyLogs[0] as EnrichedDailyLog).hrv = hrvValue;
+        }
       }
     } catch (error) {
       console.error('数据获取失败:', error);
@@ -128,7 +152,7 @@ export default async function LandingPage() {
         user={session?.user || null} 
         profile={landingProfile} 
         habitLogs={[]} 
-        dailyLogs={[]} 
+        dailyLogs={dailyLogs} 
         userState={userState}
         recommendedTask={recommendedTask}
       />

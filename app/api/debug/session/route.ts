@@ -1,8 +1,15 @@
 import { getServerSession } from '@/lib/auth-utils';
 import { NextResponse } from 'next/server';
+import { isAdminToken } from '@/lib/admin-auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const isProd = process.env.NODE_ENV === 'production';
+    const adminRequired = isProd || !!process.env.ADMIN_API_KEY;
+    if (adminRequired && !isAdminToken(request.headers)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     const session = await getServerSession();
     
     return NextResponse.json({

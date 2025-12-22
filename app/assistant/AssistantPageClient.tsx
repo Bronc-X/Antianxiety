@@ -7,7 +7,7 @@ import { Sparkles, Calendar, Target, ArrowRight } from 'lucide-react';
 import HealthProfileForm from '@/components/HealthProfileForm';
 import AIAnalysisDisplay from '@/components/AIAnalysisDisplay';
 import DashboardPlans from '@/components/DashboardPlans';
-import DailyCheckInPanel from '@/components/DailyCheckInPanel';
+import UnifiedDailyCalibration from '@/components/UnifiedDailyCalibration';
 
 interface AssistantPageClientProps {
   userId: string;
@@ -164,9 +164,9 @@ export default function AssistantPageClient({
 
             {/* Daily Check In */}
             <section>
-              <DailyCheckInPanel
-                initialProfile={profile}
-                initialLogs={[]} // Fetched inside standard component or check for empty
+              <UnifiedDailyCalibration
+                userId={userId}
+                userName={profile?.full_name}
               />
             </section>
 
