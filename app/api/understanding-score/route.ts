@@ -11,6 +11,8 @@ import {
   getScoreHistory,
   isDeepUnderstandingAchieved,
 } from '@/lib/services/understanding-score-service';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { isAdminToken } from '@/lib/admin-auth';
 
 /**
  * GET /api/understanding-score
@@ -23,7 +25,32 @@ export async function GET(request: NextRequest) {
     const includeHistory = searchParams.get('includeHistory') === 'true';
     const days = parseInt(searchParams.get('days') || '30', 10);
     
+    const isAdmin = isAdminToken(request.headers);
+    const authSupabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (!isAdmin && (authError || !user)) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     if (!userId) {
+      return NextResponse.json(
+        { error: 'userId is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!isAdmin && userId !== user?.id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+    const targetUserId = isAdmin ? (userId || user?.id) : user?.id;
+    if (!targetUserId) {
       return NextResponse.json(
         { error: 'userId is required' },
         { status: 400 }
@@ -31,16 +58,16 @@ export async function GET(request: NextRequest) {
     }
     
     // Get current score
-    const score = await calculateScore(userId);
+    const score = await calculateScore(targetUserId);
     
     // Get history if requested
     let history: { date: string; score: number; factors_changed: string[] }[] = [];
     if (includeHistory) {
-      history = await getScoreHistory(userId, days);
+      history = await getScoreHistory(targetUserId, days);
     }
     
     // Check deep understanding status
-    const isDeepUnderstanding = await isDeepUnderstandingAchieved(userId);
+    const isDeepUnderstanding = await isDeepUnderstandingAchieved(targetUserId);
     
     return NextResponse.json({
       score: {

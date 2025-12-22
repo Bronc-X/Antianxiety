@@ -38,9 +38,16 @@
 环境: Production, Preview, Development (全选)
 ```
 
+### 变量 5: Admin API Key（管理员代查接口）
+
+```
+变量名: ADMIN_API_KEY
+值: <YOUR_ADMIN_API_KEY>
+环境: Production, Preview, Development (全选)
+```
+
 ## 配置后的验证
 
 1. 重新部署一次
 2. 检查构建日志是否仍有环境变量缺失
 3. 访问站点并测试 AI 功能（例如 `/assistant`）
-

@@ -15,6 +15,8 @@ import {
 import { getPreferenceProfile } from '@/lib/services/preference-profile-service';
 import { calculateScore } from '@/lib/services/understanding-score-service';
 import type { ActionItem, AlternativeAction } from '@/types/adaptive-plan';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { isAdminToken } from '@/lib/admin-auth';
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -31,14 +33,54 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { actionItemId, userId, replacementReason } = body;
     
-    if (!actionItemId || !userId || !replacementReason) {
+    const isAdmin = isAdminToken(request.headers);
+    const authSupabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (!isAdmin && (authError || !user)) {
       return NextResponse.json(
-        { error: 'actionItemId, userId, and replacementReason are required' },
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (!actionItemId || !replacementReason) {
+      return NextResponse.json(
+        { error: 'actionItemId and replacementReason are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!isAdmin && userId && user?.id !== userId) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    const targetUserId = isAdmin ? (userId || user?.id) : user?.id;
+    if (!targetUserId) {
+      return NextResponse.json(
+        { error: 'userId is required' },
         { status: 400 }
       );
     }
     
     const supabase = getSupabaseClient();
+
+    const ownerId = await getActionItemOwnerId(supabase, actionItemId);
+    if (!ownerId) {
+      return NextResponse.json(
+        { error: 'Action item not found' },
+        { status: 404 }
+      );
+    }
+    if (ownerId !== targetUserId) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
     
     // Get the action item
     const { data: actionItem, error: itemError } = await supabase
@@ -55,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Get user preference profile
-    const userProfile = await getPreferenceProfile(userId);
+    const userProfile = await getPreferenceProfile(targetUserId);
     
     // Generate alternatives
     const alternatives = await generateAlternatives(
@@ -83,21 +125,62 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { originalActionId, alternative, userId } = body;
     
-    if (!originalActionId || !alternative || !userId) {
+    const isAdmin = isAdminToken(request.headers);
+    const authSupabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (!isAdmin && (authError || !user)) {
       return NextResponse.json(
-        { error: 'originalActionId, alternative, and userId are required' },
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (!originalActionId || !alternative) {
+      return NextResponse.json(
+        { error: 'originalActionId and alternative are required' },
         { status: 400 }
+      );
+    }
+
+    if (!isAdmin && userId && user?.id !== userId) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    const targetUserId = isAdmin ? (userId || user?.id) : user?.id;
+    if (!targetUserId) {
+      return NextResponse.json(
+        { error: 'userId is required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getSupabaseClient();
+    const ownerId = await getActionItemOwnerId(supabase, originalActionId);
+    if (!ownerId) {
+      return NextResponse.json(
+        { error: 'Action item not found' },
+        { status: 404 }
+      );
+    }
+    if (ownerId !== targetUserId) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
       );
     }
     
     // Get current understanding score
-    const score = await calculateScore(userId);
+    const score = await calculateScore(targetUserId);
     
     // Select the alternative
     const newActionItem = await selectAlternative(
       originalActionId,
       alternative as AlternativeAction,
-      userId,
+      targetUserId,
       score.current_score
     );
     
@@ -121,11 +204,39 @@ export async function GET(request: NextRequest) {
     const actionItemId = searchParams.get('actionItemId');
     const days = parseInt(searchParams.get('days') || '3', 10);
     
+    const isAdmin = isAdminToken(request.headers);
+    const authSupabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (!isAdmin && (authError || !user)) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     if (!actionItemId) {
       return NextResponse.json(
         { error: 'actionItemId is required' },
         { status: 400 }
       );
+    }
+
+    if (!isAdmin) {
+      const supabase = getSupabaseClient();
+      const ownerId = await getActionItemOwnerId(supabase, actionItemId);
+      if (!ownerId) {
+        return NextResponse.json(
+          { error: 'Action item not found' },
+          { status: 404 }
+        );
+      }
+      if (ownerId !== user?.id) {
+        return NextResponse.json(
+          { error: 'Forbidden' },
+          { status: 403 }
+        );
+      }
     }
     
     const result = await trackAlternativeSuccess(actionItemId, days);
@@ -180,4 +291,25 @@ function mapDbToActionItem(db: DbActionItem): ActionItem {
     created_at: db.created_at,
     updated_at: db.updated_at,
   };
+}
+
+async function getActionItemOwnerId(
+  supabase: ReturnType<typeof createClient>,
+  actionItemId: string
+): Promise<string | null> {
+  const { data: actionItem } = await supabase
+    .from('plan_action_items')
+    .select('plan_id')
+    .eq('id', actionItemId)
+    .maybeSingle();
+
+  if (!actionItem?.plan_id) return null;
+
+  const { data: plan } = await supabase
+    .from('user_plans')
+    .select('user_id')
+    .eq('id', actionItem.plan_id)
+    .maybeSingle();
+
+  return plan?.user_id ?? null;
 }

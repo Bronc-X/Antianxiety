@@ -27,6 +27,7 @@
 - `CONTENT_INGEST_API_KEY`：保护 `/api/ingest-content`
 - `SEMANTIC_SCHOLAR_API_KEY`：可选，提高学术检索额度
 - `RESEND_API_KEY`：可选，用于发送评估报告邮件
+- `ADMIN_API_KEY`：保护管理员代查接口（`Authorization: Bearer <key>`）
 
 ## 配置步骤
 
@@ -55,4 +56,3 @@ npm run dev
 
 - 不要把真实密钥写进仓库/文档
 - `.env.local` 应保留在本地（已被 `.gitignore` 忽略）
-

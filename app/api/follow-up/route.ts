@@ -16,6 +16,8 @@ import {
   getSession,
 } from '@/lib/services/follow-up-service';
 import type { FollowUpResponse, SessionType } from '@/types/adaptive-plan';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { isAdminToken } from '@/lib/admin-auth';
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -33,7 +35,28 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const sessionId = searchParams.get('sessionId');
     
+    const isAdmin = isAdminToken(request.headers);
+    const authSupabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (!isAdmin && (authError || !user)) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     if (sessionId) {
+      if (!isAdmin) {
+        const supabase = getSupabaseClient();
+        const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
+        if (!ownerId) {
+          return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        }
+        if (ownerId !== user?.id) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      }
       // Get specific session
       const session = await getSession(sessionId);
       if (!session) {
@@ -45,8 +68,16 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
+
+    if (!isAdmin && userId !== user?.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const targetUserId = isAdmin ? (userId || user?.id) : user?.id;
+    if (!targetUserId) {
+      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    }
     
-    const sessions = await getPendingSessions(userId);
+    const sessions = await getPendingSessions(targetUserId);
     return NextResponse.json({ sessions });
   } catch (error) {
     console.error('Failed to get follow-up sessions:', error);
@@ -66,6 +97,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, userId, planId, sessionType, sessionId } = body;
     
+    const isAdmin = isAdminToken(request.headers);
+    const authSupabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (!isAdmin && (authError || !user)) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     if (action === 'schedule') {
       if (!userId || !planId || !sessionType) {
         return NextResponse.json(
@@ -74,8 +116,26 @@ export async function POST(request: NextRequest) {
         );
       }
       
+      if (!isAdmin && userId !== user?.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      const targetUserId = isAdmin ? (userId || user?.id) : user?.id;
+      if (!targetUserId) {
+        return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      }
+
+      const supabase = getSupabaseClient();
+      const planOwnerId = await getPlanOwnerId(supabase, planId);
+      if (!planOwnerId) {
+        return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+      }
+      if (planOwnerId !== targetUserId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
       const session = await scheduleSession({
-        userId,
+        userId: targetUserId,
         planId,
         type: sessionType as SessionType,
       });
@@ -86,6 +146,17 @@ export async function POST(request: NextRequest) {
     if (action === 'start') {
       if (!sessionId) {
         return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
+      }
+
+      if (!isAdmin) {
+        const supabase = getSupabaseClient();
+        const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
+        if (!ownerId) {
+          return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        }
+        if (ownerId !== user?.id) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
       }
       
       const session = await startSession(sessionId);
@@ -111,8 +182,30 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { action, sessionId, response, sentimentScore, summary } = body;
     
+    const isAdmin = isAdminToken(request.headers);
+    const authSupabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (!isAdmin && (authError || !user)) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     if (!sessionId) {
       return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
+    }
+
+    if (!isAdmin) {
+      const supabase = getSupabaseClient();
+      const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
+      if (!ownerId) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      }
+      if (ownerId !== user?.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
     
     if (action === 'record') {
@@ -141,4 +234,30 @@ export async function PATCH(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function getPlanOwnerId(
+  supabase: ReturnType<typeof createClient>,
+  planId: string
+): Promise<string | null> {
+  const { data: plan } = await supabase
+    .from('user_plans')
+    .select('user_id')
+    .eq('id', planId)
+    .maybeSingle();
+
+  return plan?.user_id ?? null;
+}
+
+async function getFollowUpSessionOwnerId(
+  supabase: ReturnType<typeof createClient>,
+  sessionId: string
+): Promise<string | null> {
+  const { data: session } = await supabase
+    .from('follow_up_sessions')
+    .select('user_id')
+    .eq('id', sessionId)
+    .maybeSingle();
+
+  return session?.user_id ?? null;
 }
