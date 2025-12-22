@@ -1,0 +1,441 @@
+'use client';
+
+/**
+ * MonthlyCalibration Component
+ * 
+ * Monthly assessment using GAD-7/PHQ-9 rotation + PSS-10.
+ * Split across weeks to avoid survey fatigue:
+ * - Week 1: PSS-10 (10 questions)
+ * - Week 3: GAD-7 or PHQ-9 alternating (7-9 questions)
+ * 
+ * Features:
+ * - Progress save/resume for interrupted sessions
+ * - Skip tracking with reason
+ * - PHQ-9 Q9 safety branch integration
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle2, Brain, ChevronRight, Pause, AlertTriangle } from 'lucide-react';
+import { createClient } from '@/lib/supabase-client';
+import {
+    GAD7,
+    PHQ9,
+    PSS10,
+    checkSafetyTrigger,
+    getSafetyMessage,
+    logSafetyEvent,
+} from '@/lib/clinical-scales';
+import type { ScaleDefinition } from '@/lib/clinical-scales';
+
+// ============ Types ============
+
+interface MonthlyCalibrationProps {
+    userId: string;
+    userName?: string;
+    scaleType: 'PSS10' | 'GAD7' | 'PHQ9';
+    onComplete?: (result: MonthlyCalibrationResult) => void;
+    onPause?: (progress: SavedProgress) => void;
+    onSkip?: (reason: string) => void;
+    savedProgress?: SavedProgress;
+}
+
+interface MonthlyCalibrationResult {
+    scaleId: string;
+    totalScore: number;
+    interpretation: string;
+    safetyTriggered: boolean;
+}
+
+interface SavedProgress {
+    scaleId: string;
+    answers: Record<string, number>;
+    currentIndex: number;
+    savedAt: string;
+}
+
+type CalibrationStep = 'welcome' | 'questions' | 'safety' | 'result';
+
+// ============ Animation Variants ============
+
+const containerVariants = {
+    hidden: { opacity: 0, scale: 0.96 },
+    visible: {
+        opacity: 1,
+        scale: 1,
+        transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }
+    },
+};
+
+const slideVariants = {
+    enter: { x: 100, opacity: 0 },
+    center: { x: 0, opacity: 1, transition: { duration: 0.4 } },
+    exit: { x: -100, opacity: 0, transition: { duration: 0.3 } },
+};
+
+// ============ Scale Mapping ============
+
+const SCALE_MAP: Record<string, ScaleDefinition> = {
+    PSS10,
+    GAD7,
+    PHQ9,
+};
+
+const SCALE_COLORS: Record<string, { from: string; to: string }> = {
+    PSS10: { from: 'from-purple-500', to: 'to-violet-500' },
+    GAD7: { from: 'from-blue-500', to: 'to-cyan-500' },
+    PHQ9: { from: 'from-rose-500', to: 'to-pink-500' },
+};
+
+// ============ Component ============
+
+export function MonthlyCalibration({
+    userId,
+    userName,
+    scaleType,
+    onComplete,
+    onPause,
+    onSkip,
+    savedProgress,
+}: MonthlyCalibrationProps) {
+    const supabase = createClient();
+
+    const scale = SCALE_MAP[scaleType];
+    const colors = SCALE_COLORS[scaleType] || SCALE_COLORS.PSS10;
+
+    const [step, setStep] = useState<CalibrationStep>('welcome');
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(
+        savedProgress?.currentIndex || 0
+    );
+    const [answers, setAnswers] = useState<Record<string, number>>(
+        savedProgress?.answers || {}
+    );
+    const [isLoading, setIsLoading] = useState(false);
+    const [safetyMessage, setSafetyMessage] = useState<string>('');
+    const [result, setResult] = useState<MonthlyCalibrationResult | null>(null);
+
+    const questions = scale.questions;
+    const estimatedMinutes = Math.ceil(questions.length / 2);
+
+    // Load saved progress
+    useEffect(() => {
+        if (savedProgress && savedProgress.scaleId === scaleType) {
+            setAnswers(savedProgress.answers);
+            setCurrentQuestionIndex(savedProgress.currentIndex);
+            setStep('questions');
+        }
+    }, [savedProgress, scaleType]);
+
+    // Start calibration
+    const startCalibration = useCallback(() => {
+        setStep('questions');
+    }, []);
+
+    // Handle answer
+    const handleAnswer = useCallback(async (questionId: string, value: number) => {
+        const newAnswers = { ...answers, [questionId]: value };
+        setAnswers(newAnswers);
+
+        // Check for safety trigger (PHQ-9 Q9)
+        if (checkSafetyTrigger(questionId, value)) {
+            await logSafetyEvent(userId, questionId, value);
+            setSafetyMessage(getSafetyMessage('zh'));
+            setStep('safety');
+            return;
+        }
+
+        setTimeout(() => {
+            if (currentQuestionIndex < questions.length - 1) {
+                setCurrentQuestionIndex(prev => prev + 1);
+            } else {
+                completeAssessment(newAnswers);
+            }
+        }, 400);
+    }, [answers, currentQuestionIndex, questions.length, userId]);
+
+    // Continue after safety message
+    const continueAfterSafety = useCallback(() => {
+        if (currentQuestionIndex < questions.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setStep('questions');
+        } else {
+            completeAssessment(answers);
+        }
+    }, [currentQuestionIndex, questions.length, answers]);
+
+    // Complete assessment
+    const completeAssessment = useCallback(async (finalAnswers: Record<string, number>) => {
+        setIsLoading(true);
+
+        try {
+            // Calculate total score
+            const totalScore = Object.values(finalAnswers).reduce((sum, v) => sum + v, 0);
+
+            // Get interpretation
+            const interpretation = scale.scoring.interpretation.find(
+                i => totalScore >= i.minScore && totalScore <= i.maxScore
+            )?.label || '未知';
+
+            // Check if safety was triggered
+            const safetyTriggered = Object.entries(finalAnswers).some(
+                ([qId, v]) => checkSafetyTrigger(qId, v)
+            );
+
+            // Save to database
+            const now = new Date();
+            const responseDate = now.toISOString().split('T')[0];
+            const records = Object.entries(finalAnswers).map(([questionId, answerValue]) => ({
+                user_id: userId,
+                scale_id: scaleType,
+                question_id: questionId,
+                answer_value: answerValue,
+                source: 'monthly',
+                response_date: responseDate,
+                created_at: now.toISOString(),
+            }));
+
+            await supabase.from('user_scale_responses').upsert(records, {
+                onConflict: 'user_id,scale_id,question_id,response_date',
+            });
+
+            // Update profile - MERGE scores instead of overwriting
+            await supabase.rpc('merge_inferred_scores', {
+                p_user_id: userId,
+                p_scale_id: scaleType,
+                p_score: totalScore,
+                p_interpretation: interpretation,
+            });
+
+            // Update last_monthly_calibration
+            await supabase
+                .from('profiles')
+                .update({ last_monthly_calibration: now.toISOString() })
+                .eq('id', userId);
+
+            // Trigger refresh
+            fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+
+            const resultData: MonthlyCalibrationResult = {
+                scaleId: scaleType,
+                totalScore,
+                interpretation,
+                safetyTriggered,
+            };
+
+            setResult(resultData);
+            setStep('result');
+            if (onComplete) onComplete(resultData);
+        } catch (error) {
+            console.error('Monthly calibration failed:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [scale, scaleType, userId, supabase, onComplete]);
+
+    // Pause and save progress
+    const handlePause = useCallback(() => {
+        const progress: SavedProgress = {
+            scaleId: scaleType,
+            answers,
+            currentIndex: currentQuestionIndex,
+            savedAt: new Date().toISOString(),
+        };
+
+        // Save to localStorage
+        localStorage.setItem(`monthly_progress_${userId}`, JSON.stringify(progress));
+
+        if (onPause) onPause(progress);
+    }, [scaleType, answers, currentQuestionIndex, userId, onPause]);
+
+    // Skip handler
+    const handleSkip = useCallback((reason: string) => {
+        if (onSkip) onSkip(reason);
+    }, [onSkip]);
+
+    const currentQuestion = questions[currentQuestionIndex];
+    const progressPercent = ((currentQuestionIndex + 1) / questions.length) * 100;
+
+    return (
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="relative overflow-hidden rounded-3xl bg-white/90 backdrop-blur-2xl border border-black/[0.04] shadow-[0_8px_60px_rgba(0,0,0,0.06)]"
+        >
+            <div className={`absolute inset-0 bg-gradient-to-br ${colors.from}/10 via-transparent ${colors.to}/5 pointer-events-none`} />
+
+            <AnimatePresence mode="wait">
+                {/* Welcome */}
+                {step === 'welcome' && (
+                    <motion.div
+                        key="welcome"
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        className="relative p-10 md:p-12"
+                    >
+                        <div className="flex justify-center mb-8">
+                            <div className={`w-20 h-20 rounded-[22px] bg-gradient-to-br ${colors.from} ${colors.to} flex items-center justify-center shadow-2xl`}>
+                                <Brain className="w-9 h-9 text-white" strokeWidth={1.5} />
+                            </div>
+                        </div>
+
+                        <div className="text-center">
+                            <h2 className="text-2xl md:text-3xl font-semibold text-neutral-900 tracking-tight mb-3">
+                                {userName ? `${userName}，` : ''}月度评估
+                            </h2>
+                            <p className="text-neutral-500 text-base md:text-lg max-w-sm mx-auto leading-relaxed">
+                                {scale.name} · {questions.length} 个问题 · 约 {estimatedMinutes} 分钟
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3 mt-10">
+                            <button
+                                onClick={() => handleSkip('busy')}
+                                className="flex-1 h-14 border border-neutral-200 text-neutral-600 rounded-2xl font-medium hover:bg-neutral-50"
+                            >
+                                稍后再做
+                            </button>
+                            <button
+                                onClick={startCalibration}
+                                className="flex-1 h-14 bg-neutral-900 text-white rounded-2xl font-medium flex items-center justify-center gap-2"
+                            >
+                                <span>开始评估</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Questions */}
+                {step === 'questions' && currentQuestion && (
+                    <motion.div
+                        key={`question-${currentQuestionIndex}`}
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        className="relative p-10 md:p-12"
+                    >
+                        {/* Header with pause */}
+                        <div className="flex justify-between items-center mb-6">
+                            <span className="text-sm font-medium text-neutral-400">
+                                {currentQuestionIndex + 1} / {questions.length}
+                            </span>
+                            <button
+                                onClick={handlePause}
+                                className="flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-700"
+                            >
+                                <Pause className="w-4 h-4" />
+                                <span>暂停保存</span>
+                            </button>
+                        </div>
+
+                        {/* Progress */}
+                        <div className="h-1 bg-neutral-100 rounded-full overflow-hidden mb-10">
+                            <motion.div
+                                className={`h-full bg-gradient-to-r ${colors.from} ${colors.to}`}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progressPercent}%` }}
+                            />
+                        </div>
+
+                        {/* Question */}
+                        <p className="text-sm text-neutral-400 mb-3">{scale.description}</p>
+                        <h3 className="text-xl md:text-2xl font-medium text-neutral-900 mb-8 leading-relaxed">
+                            {currentQuestion.text}
+                        </h3>
+
+                        {/* Options */}
+                        <div className="space-y-3">
+                            {currentQuestion.options.map((option, idx) => (
+                                <motion.button
+                                    key={idx}
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.99 }}
+                                    onClick={() => handleAnswer(currentQuestion.id, option.value)}
+                                    disabled={isLoading}
+                                    className={`w-full p-5 text-left rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 transition-all disabled:opacity-50`}
+                                >
+                                    <span className="text-base font-medium text-neutral-800">
+                                        {option.label}
+                                    </span>
+                                </motion.button>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Safety Message */}
+                {step === 'safety' && (
+                    <motion.div
+                        key="safety"
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        className="relative p-10 md:p-12"
+                    >
+                        <div className="flex justify-center mb-6">
+                            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+                                <AlertTriangle className="w-8 h-8 text-amber-600" />
+                            </div>
+                        </div>
+
+                        <div className="text-center mb-8">
+                            <h3 className="text-xl font-semibold text-neutral-900 mb-4">
+                                我们关心你的状态
+                            </h3>
+                        </div>
+
+                        <div className="bg-neutral-50 rounded-2xl p-6 mb-8 whitespace-pre-line text-neutral-700 text-sm leading-relaxed">
+                            {safetyMessage}
+                        </div>
+
+                        <button
+                            onClick={continueAfterSafety}
+                            className="w-full h-14 bg-neutral-900 text-white rounded-2xl font-medium"
+                        >
+                            我知道了，继续
+                        </button>
+                    </motion.div>
+                )}
+
+                {/* Result */}
+                {step === 'result' && result && (
+                    <motion.div
+                        key="result"
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        className="relative p-10 md:p-12 text-center"
+                    >
+                        <div className="flex justify-center mb-8">
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2} />
+                            </div>
+                        </div>
+
+                        <h2 className="text-2xl font-semibold text-neutral-900 mb-3">
+                            评估完成
+                        </h2>
+                        <p className="text-neutral-500 text-base mb-6">
+                            {scale.name}: {result.interpretation}
+                        </p>
+
+                        <div className="bg-neutral-50 rounded-2xl p-6">
+                            <div className="text-4xl font-bold text-neutral-900 mb-2">
+                                {result.totalScore}
+                            </div>
+                            <div className="text-sm text-neutral-500">
+                                总分 (满分 {scale.scoring.maxScore})
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
+    );
+}

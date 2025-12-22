@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:theme="@style/AppTheme">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:text="How are you feeling?"
+        android:textColor="#1A1A1A"
+        android:textSize="14sp"
+        android:letterSpacing="0.05"
+        android:layout_marginBottom="12dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <!-- Good / Calm -->
+        <ImageButton
+            android:id="@+id/btn_good"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Good"
+            android:src="@drawable/ic_mood_good"
+            android:tint="#9CAF88" />
+
+        <Space
+            android:layout_width="24dp"
+            android:layout_height="wrap_content" />
+
+        <!-- Neutral / Okay -->
+        <ImageButton
+            android:id="@+id/btn_neutral"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Neutral"
+            android:src="@drawable/ic_mood_neutral"
+            android:tint="#C4A77D" />
+
+        <Space
+            android:layout_width="24dp"
+            android:layout_height="wrap_content" />
+
+        <!-- Bad / Stressed -->
+        <ImageButton
+            android:id="@+id/btn_bad"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Bad"
+            android:src="@drawable/ic_mood_bad"
+            android:tint="#D4AF37" />
+    </LinearLayout>
+
+</LinearLayout>

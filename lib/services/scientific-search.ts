@@ -114,7 +114,7 @@ export async function searchScientificTruth(userQuery: string): Promise<Scientif
         searchHealthline(searchQuery, 5), // Healthline 限制 5 篇
       ]),
       // 超时保护
-      new Promise<[ScientificPaper[], ScientificPaper[], ScientificPaper[]]>((resolve) => 
+      new Promise<[ScientificPaper[], ScientificPaper[], ScientificPaper[]]>((resolve) =>
         setTimeout(() => resolve([[], [], []]), remainingTime)
       ),
     ]);
@@ -176,7 +176,7 @@ async function extractKeywords(query: string): Promise<string[]> {
   try {
     console.log(`🔑 Extracting keywords with Gemini: ${model}`);
     console.log(`📡 API Base: ${apiBase}`);
-    
+
     // 使用 OpenAI 兼容 API 提取关键词
     const response = await fetch(`${apiBase}/chat/completions`, {
       method: 'POST',
@@ -188,8 +188,8 @@ async function extractKeywords(query: string): Promise<string[]> {
         model: model,
         max_tokens: 64,
         messages: [
-          { 
-            role: 'system', 
+          {
+            role: 'system',
             content: `Extract 3-5 academic/medical English keywords from the user's health question for searching PubMed and Semantic Scholar.
 
 Rules:
@@ -234,9 +234,9 @@ function fallbackKeywords(query: string): string[] {
 /**
  * Search Semantic Scholar API with retry logic for rate limiting
  */
-async function searchSemanticScholar(query: string, limit: number, retries = 2): Promise<ScientificPaper[]> {
+export async function searchSemanticScholar(query: string, limit: number, retries = 2): Promise<ScientificPaper[]> {
   if (!query) return [];
-  
+
   const encodedQuery = encodeURIComponent(query);
   const url = `${SEMANTIC_SCHOLAR_API_BASE}/paper/search?query=${encodedQuery}&limit=${limit}&fields=${SEMANTIC_SCHOLAR_FIELDS}`;
 
@@ -248,7 +248,7 @@ async function searchSemanticScholar(query: string, limit: number, retries = 2):
       }
 
       const response = await fetch(url, { headers });
-      
+
       // Handle rate limiting (429)
       if (response.status === 429) {
         console.warn(`⚠️ Semantic Scholar rate limited (attempt ${attempt + 1}/${retries + 1})`);
@@ -260,7 +260,7 @@ async function searchSemanticScholar(query: string, limit: number, retries = 2):
         console.error('❌ Semantic Scholar rate limit exceeded, skipping');
         return [];
       }
-      
+
       if (!response.ok) {
         console.error('Semantic Scholar search failed:', response.status);
         return [];
@@ -299,44 +299,44 @@ async function searchHealthline(query: string, limit: number): Promise<Scientifi
   try {
     // 动态导入 Supabase 客户端（避免循环依赖）
     const { createClient } = await import('@supabase/supabase-js');
-    
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
+
     if (!supabaseUrl || !supabaseKey) {
       console.log('⚠️ Supabase not configured, skipping Healthline search');
       return [];
     }
-    
+
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
+
     // 搜索 knowledge_base 表中的 Healthline 文章
     // 使用全文搜索或关键词匹配
     const keywords = query.toLowerCase().split(' ').filter(w => w.length > 2).slice(0, 5);
-    
+
     const { data, error } = await supabase
       .from('knowledge_base')
       .select('id, paper_id, title, summary_zh, abstract, url, year, citation_count, keywords')
       .or(`url.ilike.%healthline.com%,source.eq.healthline`)
       .limit(limit);
-    
+
     if (error) {
       console.error('Healthline search error:', error.message);
       return [];
     }
-    
+
     if (!data || data.length === 0) {
       console.log('📚 Healthline: 知识库中暂无数据');
       return [];
     }
-    
+
     // 按关键词相关性过滤和排序
     const scored = data
       .map(article => {
         const titleLower = (article.title || '').toLowerCase();
         const summaryLower = (article.summary_zh || article.abstract || '').toLowerCase();
         const articleKeywords = (article.keywords || []).map((k: string) => k.toLowerCase());
-        
+
         // 计算关键词匹配分数
         let matchScore = 0;
         for (const kw of keywords) {
@@ -344,15 +344,15 @@ async function searchHealthline(query: string, limit: number): Promise<Scientifi
           if (summaryLower.includes(kw)) matchScore += 1;
           if (articleKeywords.some((ak: string) => ak.includes(kw))) matchScore += 2;
         }
-        
+
         return { article, matchScore };
       })
       .filter(item => item.matchScore > 0)
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, limit);
-    
+
     console.log(`✅ Healthline: 找到 ${scored.length} 篇相关文章`);
-    
+
     return scored.map(({ article }): ScientificPaper => ({
       id: `healthline_${article.paper_id || article.id}`,
       title: article.title || 'Untitled',
@@ -363,7 +363,7 @@ async function searchHealthline(query: string, limit: number): Promise<Scientifi
       doi: null,
       source: 'healthline',
     }));
-    
+
   } catch (error) {
     console.error('Healthline search error:', error);
     return [];
@@ -373,7 +373,7 @@ async function searchHealthline(query: string, limit: number): Promise<Scientifi
 /**
  * Search PubMed API (NCBI E-utilities) with retry logic
  */
-async function searchPubMed(query: string, limit: number, retries = 2): Promise<ScientificPaper[]> {
+export async function searchPubMed(query: string, limit: number, retries = 2): Promise<ScientificPaper[]> {
   if (!query) return [];
 
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -383,13 +383,13 @@ async function searchPubMed(query: string, limit: number, retries = 2): Promise<
       const pubmedQuery = query.split(' ').filter(w => w.length > 2).slice(0, 5).join(' OR ');
       const searchUrl = `${PUBMED_API_BASE}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(pubmedQuery)}&retmax=${limit}&retmode=json&sort=relevance`;
       console.log(`🔍 PubMed query: ${pubmedQuery}`);
-      
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超时
-      
+
       const searchResponse = await fetch(searchUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
-      
+
       // Handle rate limiting (429)
       if (searchResponse.status === 429) {
         console.warn(`⚠️ PubMed rate limited (attempt ${attempt + 1}/${retries + 1})`);
@@ -401,7 +401,7 @@ async function searchPubMed(query: string, limit: number, retries = 2): Promise<
         console.error('❌ PubMed rate limit exceeded, skipping');
         return [];
       }
-      
+
       if (!searchResponse.ok) {
         console.error('PubMed search failed:', searchResponse.status);
         if (attempt < retries) continue;
@@ -410,20 +410,20 @@ async function searchPubMed(query: string, limit: number, retries = 2): Promise<
 
       const searchData = await searchResponse.json();
       const pmids: string[] = searchData?.esearchresult?.idlist || [];
-      
+
       console.log(`📋 PubMed found ${pmids.length} PMIDs`);
-      
+
       if (pmids.length === 0) return [];
 
       // Step 2: Fetch paper details
       const fetchUrl = `${PUBMED_API_BASE}/esummary.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=json`;
-      
+
       const fetchController = new AbortController();
       const fetchTimeoutId = setTimeout(() => fetchController.abort(), 8000);
-      
+
       const fetchResponse = await fetch(fetchUrl, { signal: fetchController.signal });
       clearTimeout(fetchTimeoutId);
-      
+
       if (fetchResponse.status === 429) {
         console.warn(`⚠️ PubMed summary rate limited (attempt ${attempt + 1}/${retries + 1})`);
         if (attempt < retries) {
@@ -432,7 +432,7 @@ async function searchPubMed(query: string, limit: number, retries = 2): Promise<
         }
         return [];
       }
-      
+
       if (!fetchResponse.ok) {
         console.error('PubMed fetch failed:', fetchResponse.status);
         if (attempt < retries) continue;
@@ -448,7 +448,7 @@ async function searchPubMed(query: string, limit: number, retries = 2): Promise<
           const paper = results[pmid];
           const doi = paper.elocationid?.replace('doi: ', '') || null;
           const year = paper.pubdate ? parseInt(paper.pubdate.split(' ')[0], 10) : null;
-          
+
           return {
             id: `pubmed_${pmid}`,
             title: paper.title || 'Untitled',
@@ -460,10 +460,10 @@ async function searchPubMed(query: string, limit: number, retries = 2): Promise<
             source: 'pubmed',
           };
         });
-      
+
       console.log(`✅ PubMed returned ${papers.length} papers`);
       return papers;
-      
+
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.error(`⏱️ PubMed timeout (attempt ${attempt + 1}/${retries + 1})`);
@@ -505,19 +505,19 @@ function rerankPapersWeighted(papers: ScientificPaper[]): RankedScientificPaper[
   const scored = papers.map((paper) => {
     // Authority Score: Log-scaled citation count (0-1)
     const authority = Math.log10((paper.citationCount || 0) + 1) / Math.log10(maxCitations + 1);
-    
+
     // Recency Score: Decay over 20 years (0-1)
     const recency = typeof paper.year === 'number'
       ? Math.max(0, Math.min(1, 1 - (nowYear - paper.year) / 20))
       : 0.3; // neutral baseline when year missing
-    
+
     // Source Quality Score (0-1)
     const sourceQuality = SOURCE_QUALITY[paper.source] || 0.5;
-    
+
     // Weighted Composite Score
-    const composite = 
-      (authority * WEIGHT_AUTHORITY) + 
-      (recency * WEIGHT_RECENCY) + 
+    const composite =
+      (authority * WEIGHT_AUTHORITY) +
+      (recency * WEIGHT_RECENCY) +
       (sourceQuality * WEIGHT_SOURCE_QUALITY);
 
     return {
@@ -553,8 +553,8 @@ function computeConsensus(papers: ScientificPaper[], keywords: string[]): Consen
     .map((a) => a.toLowerCase());
 
   // If no abstracts (e.g., PubMed only), use title-based analysis
-  const textsToAnalyze = abstracts.length > 0 
-    ? abstracts 
+  const textsToAnalyze = abstracts.length > 0
+    ? abstracts
     : papers.map(p => p.title.toLowerCase());
 
   if (!textsToAnalyze.length) {
@@ -595,7 +595,7 @@ function computeConsensus(papers: ScientificPaper[], keywords: string[]): Consen
   const diversityBonus = sources.size > 1 ? 0.1 : 0;
 
   const score = Math.max(0, Math.min(1, coverage * 0.4 + lexicalConsensus * 0.4 + diversityBonus + 0.1));
-  
+
   const level: ConsensusResult['level'] =
     score >= 0.7 ? 'high' : score >= 0.5 ? 'emerging' : score >= 0.3 ? 'mixed' : 'low';
 

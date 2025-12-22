@@ -39,26 +39,30 @@ const config: CapacitorConfig = {
   plugins: {
     // 启动画面配置
     SplashScreen: {
-      // 启动画面显示时长 (毫秒)
       launchShowDuration: 2000,
-      // 背景色 - 使用应用主题的 warm cream 色
       backgroundColor: '#FAF6EF',
-      // 不显示加载指示器
       showSpinner: false,
-      // 淡出动画时长
       splashFadeOutDuration: 300
+    },
+    // 状态栏配置 - 沉浸式体验
+    StatusBar: {
+      style: 'DARK',
+      overlaysWebView: true, // 让 Web 内容延伸到状态栏下方
+      backgroundColor: '#00000000' // 透明背景
+    },
+    // 隐私屏幕 - 多任务界面模糊
+    PrivacyScreen: {
+      enable: true,
+      imageName: 'Splash' // iOS上也是用启动图作为隐私遮罩
     },
     // 网络状态检测
     Network: {
-      // 自动检测网络状态变化
     },
     // 触觉反馈
     Haptics: {
-      // 默认启用
     },
     // 本地存储
     Preferences: {
-      // 默认启用
     }
   }
 };

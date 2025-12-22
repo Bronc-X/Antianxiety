@@ -5,19 +5,20 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { SymptomAssessmentCard, BayesianCycleCard } from '@/components/FeatureCards';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { MotionButton } from '@/components/motion/MotionButton';
 import TypewriterText from '@/components/motion/TypewriterText';
 import { CalibrationInput, GeneratedTask } from '@/lib/calibration-service';
 import { useI18n } from '@/lib/i18n';
 
+
 // 懒加载重型组件 - 显著提升首屏渲染速度
 const WisdomCarousel = lazy(() => import('@/components/WisdomCarousel'));
-const DailyInsightHub = lazy(() => import('@/components/DailyInsightHub').then(m => ({ default: m.DailyInsightHub })));
-const DailyCheckin = lazy(() => import('@/components/DailyCheckin').then(m => ({ default: m.DailyCheckin })));
+const UnifiedDailyCalibration = lazy(() => import('@/components/UnifiedDailyCalibration'));
 const AnimatedSection = lazy(() => import('@/components/AnimatedSection'));
 const JournalShowcase = lazy(() => import('@/components/JournalShowcase'));
 const InfiniteNewsFeed = lazy(() => import('@/components/InfiniteNewsFeed'));
+
 
 // 轻量级加载占位符
 function LoadingPlaceholder({ height = 'h-32' }: { height?: string }) {
@@ -43,8 +44,20 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
   const [isLoading, setIsLoading] = useState(true);
   const [showAnomalyCard, setShowAnomalyCard] = useState(false);
   const [anomalyQuestion, setAnomalyQuestion] = useState('');
-  const [showCalibrationSheet, setShowCalibrationSheet] = useState(false);
   const [todayTask, setTodayTask] = useState<GeneratedTask | null>(null);
+  const [assessmentResult, setAssessmentResult] = useState<any | null>(null);
+
+  // --- Scroll-Driven Storytelling (Phase 2) ---
+  const { scrollY } = useScroll();
+
+  // Hero Text Fade Out & Scale Down
+  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+  const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
+  const heroY = useTransform(scrollY, [0, 300], [0, 50]);
+
+  // Background Parallax
+  const gridY = useTransform(scrollY, [0, 500], [0, 100]);
+  const noiseOpacity = useTransform(scrollY, [0, 300, 600], [0.6, 0.3, 0.6]);
 
   const latestLog = dailyLogs?.[0];
   const previousLog = dailyLogs?.[1];
@@ -63,19 +76,13 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
     }
   }, [latestLog, previousLog, language]);
 
-  useEffect(() => {
-    if (!user) return;
-    const today = new Date().toDateString();
-    const lastCalibration = localStorage.getItem('nma_daily_calibration');
-    if (lastCalibration !== today) {
-      const timer = setTimeout(() => setShowCalibrationSheet(true), 1500);
-      return () => clearTimeout(timer);
+  // 新的统一评估完成处理
+  const handleAssessmentComplete = (result: any) => {
+    setAssessmentResult(result);
+    console.log('[Assessment] Calibration complete:', result);
+    if (result.triggerFullScale) {
+      console.log('[Assessment] Triggered full scale:', result.triggerFullScale);
     }
-  }, [user]);
-
-  const handleCalibrationComplete = (result: { input: CalibrationInput; task: GeneratedTask }) => {
-    setTodayTask(result.task);
-    localStorage.setItem('nma_today_task', JSON.stringify(result.task));
   };
 
   useEffect(() => {
@@ -128,21 +135,24 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] dark:bg-neutral-950 p-0 transition-colors relative overflow-hidden">
-      {/* Fixed Grid Lines (Visible Grid System) */}
-      <div className="fixed inset-0 pointer-events-none z-0 flex justify-between px-8 md:px-16 max-w-[1600px] mx-auto">
+      {/* Fixed Grid Lines (Visible Grid System) - Parallax Effect */}
+      <motion.div style={{ y: gridY }} className="fixed inset-0 pointer-events-none z-0 flex justify-between px-8 md:px-16 max-w-[1600px] mx-auto">
         <div className="bg-grid-lines w-full h-full absolute inset-0 mix-blend-multiply opacity-[0.4]" />
         <div className="hidden md:block w-px h-full bg-[#1A1A1A] opacity-[0.03]" />
         <div className="hidden md:block w-px h-full bg-[#1A1A1A] opacity-[0.03]" />
         <div className="hidden md:block w-px h-full bg-[#1A1A1A] opacity-[0.03]" />
-      </div>
+      </motion.div>
 
-      {/* Noise Texture Overlay */}
-      <div className="bg-noise" />
+      {/* Noise Texture Overlay - Breathing Effect */}
+      <motion.div style={{ opacity: noiseOpacity }} className="bg-noise" />
 
       {/* Main Content */}
       <div className="relative z-10 max-w-[1600px] mx-auto px-8 md:px-16 pb-24 md:pb-32">
-        {/* Luxury Hero Section */}
-        <header className="py-20 md:py-32 grid grid-cols-1 md:grid-cols-12 gap-12 relative animate-fade-in">
+        {/* Luxury Hero Section - Scrollytelling */}
+        <motion.header
+          style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
+          className="py-20 md:py-32 grid grid-cols-1 md:grid-cols-12 gap-12 relative"
+        >
 
           <div className="md:col-start-2 md:col-span-10 lg:col-span-9">
             <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-normal leading-[0.95] tracking-tight mb-12 text-[#1A1A1A] dark:text-white">
@@ -168,7 +178,10 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowCalibrationSheet(true)}
+                    onClick={() => {
+                      // 滚动到统一校准组件
+                      document.getElementById('daily-calibration')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
                     className="btn-luxury h-14 px-12 min-w-[160px]"
                   >
                     <span className="text-lg whitespace-nowrap">{t('landing.startCalibration') || 'Start Calibration'}</span>
@@ -177,7 +190,7 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
               </div>
             </div>
           </div>
-        </header>
+        </motion.header>
 
         {/* Wisdom Carousel */}
         <div className="mb-24 relative z-10 max-w-5xl mx-auto">
@@ -207,16 +220,18 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
             )}
           </AnimatePresence>
 
-        {/* Daily Insight Hub */}
-        <div className="md:col-span-2">
-          <Suspense fallback={<LoadingPlaceholder height="h-64" />}>
-            <DailyInsightHub todayTask={todayTask} insight={insight} isLoading={isLoading} questionnaireCompleted={!!latestLog}
-              onStartCalibration={() => setShowCalibrationSheet(true)} userId={user?.id}
-              onQuestionnaireComplete={() => { setIsLoading(true); setTimeout(() => setIsLoading(false), 1000); }}
-              stressLevel={biometrics.stress ?? 5} energyLevel={biometrics.sleep && biometrics.sleep > 6 ? 6 : 4} />
-          </Suspense>
+          {/* 统一每日校准入口 */}
+          <div id="daily-calibration" className="md:col-span-2 scroll-mt-24">
+            <Suspense fallback={<LoadingPlaceholder height="h-64" />}>
+              <UnifiedDailyCalibration
+                userId={user?.id}
+                userName={profile?.first_name || profile?.username}
+                onComplete={handleAssessmentComplete}
+              />
+            </Suspense>
+
+          </div>
         </div>
-      </div>
 
         {/* Tool Cards (New Mango Style) */}
         <section className="max-w-6xl mx-auto mt-24 relative z-20 border-t border-[#1A1A1A]/10 pt-12">
@@ -244,11 +259,7 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
           </div>
         </div>
 
-      {/* 每日签到 - 懒加载 */}
-      <Suspense fallback={null}>
-        <DailyCheckin open={showCalibrationSheet} onOpenChange={setShowCalibrationSheet} onComplete={handleCalibrationComplete}
-          weeklyRecords={dailyLogs?.map(log => ({ sleep_hours: log.sleep_hours || 7, stress_level: log.stress_level > 6 ? 'high' : log.stress_level > 3 ? 'medium' : 'low', exercise_intention: 'moderate' as const, timestamp: log.created_at })) || []} />
-      </Suspense>
+        {/* 旧的 DailyCheckin 已被 UnifiedDailyCalibration 替代 */}
 
         {/* Footer Content Sections (Luxury Editorial Style) */}
         <Suspense fallback={<LoadingPlaceholder height="h-48" />}>

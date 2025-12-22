@@ -8,6 +8,8 @@
  * **Property 8: Anchor Question Presence**
  * **Property 9: Seven-Day Evolution Trigger**
  * **Property 10: Goal Change Adaptation**
+ * 
+ * Question Source Ratio: 30% Decision Tree + 30% Preset Scales + 40% AI Adaptive
  */
 
 import type {
@@ -18,8 +20,28 @@ import type {
   ProgressMetrics,
 } from '@/types/adaptive-interaction';
 
+// ============ Question Source Configuration ============
+
+/**
+ * Question source ratio configuration
+ * - decisionTree: 30% - Based on decision tree logic (user state, history)
+ * - presetScales: 30% - From standardized scales (GAD-7, SHSQ-25)
+ * - aiAdaptive: 40% - AI-generated based on user context and chat history
+ */
+export const QUESTION_SOURCE_RATIO = {
+  decisionTree: 0.3,
+  presetScales: 0.3,
+  aiAdaptive: 0.4,
+} as const;
+
+/**
+ * Maximum questions per daily calibration session
+ */
+export const MAX_DAILY_QUESTIONS = 5;
+
 // Constants
 export const EVOLUTION_TRIGGER_DAYS = 7;
+
 
 /**
  * Anchor questions - always included in daily calibration
@@ -254,10 +276,10 @@ export function generateDailyQuestions(
   previousQuestions: CalibrationQuestion[] = []
 ): CalibrationQuestion[] {
   const questions: CalibrationQuestion[] = [];
-  
+
   // Always include anchor questions
   questions.push(...ANCHOR_QUESTIONS);
-  
+
   // Add goal-specific adaptive questions
   for (const goal of phaseGoals) {
     const goalQuestions = GOAL_QUESTIONS[goal.goal_type] || [];
@@ -265,7 +287,7 @@ export function generateDailyQuestions(
     const selectedGoalQuestions = goalQuestions.slice(0, 2);
     questions.push(...selectedGoalQuestions);
   }
-  
+
   // Add evolution questions if triggered
   if (shouldEvolve(consecutiveDays)) {
     const evolutionLevel = calculateEvolutionLevel(consecutiveDays);
@@ -273,7 +295,7 @@ export function generateDailyQuestions(
     const evolutionCount = Math.min(evolutionLevel, EVOLUTION_QUESTIONS.length);
     questions.push(...EVOLUTION_QUESTIONS.slice(0, evolutionCount));
   }
-  
+
   return questions;
 }
 
@@ -285,14 +307,14 @@ export function detectGoalChange(
   previousGoals: PhaseGoal[]
 ): boolean {
   if (currentGoals.length !== previousGoals.length) return true;
-  
+
   const currentTypes = new Set(currentGoals.map(g => g.goal_type));
   const previousTypes = new Set(previousGoals.map(g => g.goal_type));
-  
+
   for (const type of currentTypes) {
     if (!previousTypes.has(type)) return true;
   }
-  
+
   return false;
 }
 

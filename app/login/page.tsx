@@ -134,7 +134,7 @@ function LoginFormContent() {
     setMessage(null);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/login`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
       });
       if (error) {
         setMessage({ type: 'error', text: error.message });
@@ -157,7 +157,7 @@ function LoginFormContent() {
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
-      
+
       <div className="w-full max-w-md space-y-8">
         <AnimatedSection variant="fadeUp" className="text-center">
           <div className="mb-6 flex items-center justify-center gap-3">
@@ -247,7 +247,14 @@ function LoginFormContent() {
 
         {showForgotPassword && (
           <AnimatedSection variant="fadeUp" className="mt-4">
-            <div className="rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+            <div
+              ref={(el) => {
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
+              className="rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm"
+            >
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">{t('login.resetPassword')}</h3>
                 <button type="button" onClick={() => { setShowForgotPassword(false); setForgotPasswordEmail(''); setMessage(null); }} className="text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white">✕</button>

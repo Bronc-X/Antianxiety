@@ -3,15 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Edit3, X } from 'lucide-react';
-import { 
-  getTemplateQuestions, 
+import {
+  getTemplateQuestions,
   getNextDecisionTreeQuestion,
   shouldProceedToGoals,
   TEMPLATE_QUESTION_COUNT,
   MAX_TOTAL_QUESTIONS,
 } from '@/lib/adaptive-onboarding';
-import type { 
-  OnboardingQuestion, 
+import type {
+  OnboardingQuestion,
   DecisionTreeQuestion,
   PhaseGoal,
   MetabolicProfile,
@@ -44,7 +44,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
   const [recommendedGoals, setRecommendedGoals] = useState<PhaseGoal[]>([]);
   const [metabolicProfile, setMetabolicProfile] = useState<MetabolicProfile | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(180); // 3 minutes
-  
+
   // Goal modification state (Requirement 2.3, 2.4)
   const [modificationState, setModificationState] = useState<GoalModificationState>({
     isOpen: false,
@@ -78,11 +78,11 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
   // Handle answer selection
   const handleAnswer = useCallback(async (questionId: string, value: string) => {
     const isTemplateQuestion = currentQuestionIndex < TEMPLATE_QUESTION_COUNT;
-    
+
     if (isTemplateQuestion) {
       const newTemplateAnswers = { ...templateAnswers, [questionId]: value };
       setTemplateAnswers(newTemplateAnswers);
-      
+
       // Check if we need to move to decision tree questions
       if (currentQuestionIndex < TEMPLATE_QUESTION_COUNT - 1) {
         // More template questions
@@ -93,7 +93,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
         setIsLoadingQuestion(true);
         const nextQuestion = getNextDecisionTreeQuestion(newTemplateAnswers, {});
         setIsLoadingQuestion(false);
-        
+
         if (nextQuestion) {
           setCurrentQuestionIndex(prev => prev + 1);
           setCurrentQuestion(nextQuestion);
@@ -105,7 +105,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
     } else {
       const newDecisionAnswers = { ...decisionTreeAnswers, [questionId]: value };
       setDecisionTreeAnswers(newDecisionAnswers);
-      
+
       // Check if we should proceed to goals
       if (shouldProceedToGoals(templateAnswers, newDecisionAnswers)) {
         await fetchGoals({ ...templateAnswers, ...newDecisionAnswers });
@@ -114,7 +114,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
         setIsLoadingQuestion(true);
         const nextQuestion = getNextDecisionTreeQuestion(templateAnswers, newDecisionAnswers);
         setIsLoadingQuestion(false);
-        
+
         if (nextQuestion) {
           setCurrentQuestionIndex(prev => prev + 1);
           setCurrentQuestion(nextQuestion);
@@ -128,19 +128,19 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
   // Fetch goals from API
   const fetchGoals = async (allAnswers: Record<string, string>) => {
     setStep('analyzing');
-    
+
     try {
       const response = await fetch('/api/onboarding/recommend-goals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: allAnswers }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setRecommendedGoals(data.goals);
         setMetabolicProfile(data.metabolicProfile);
-        
+
         // Short delay for animation
         setTimeout(() => {
           setStep('goals');
@@ -172,14 +172,18 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
 
     setModificationState(prev => ({ ...prev, isLoading: true }));
 
-    // Update local goals state with user's custom title
-    setRecommendedGoals(prev => 
-      prev.map(g => g.id === modificationState.goalId 
-        ? { ...g, title: modificationState.userInput.trim(), user_modified: true }
+    // Update local goals state by merging user's input into rationale
+    setRecommendedGoals(prev =>
+      prev.map(g => g.id === modificationState.goalId
+        ? {
+          ...g,
+          rationale: `${g.rationale} 您的个人调整：${modificationState.userInput.trim()}`,
+          user_modified: true
+        }
         : g
       )
     );
-    
+
     setModificationState({
       isOpen: false,
       goalId: null,
@@ -230,7 +234,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
             animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
-          <motion.p 
+          <motion.p
             className="text-2xl font-serif text-[#0B3D2E] dark:text-white"
             animate={{ opacity: [1, 0.5, 1] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -268,11 +272,13 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
                 className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-[#E7E1D6] dark:border-neutral-800"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    goal.priority === 1 
-                      ? 'bg-[#0B3D2E] text-white' 
-                      : 'bg-[#E7E1D6] text-[#0B3D2E]'
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${goal.priority === 1
+                      ? 'bg-[#0B3D2E]'
+                      : 'bg-[#E7E1D6]'
+                      }`}
+                    style={{ color: goal.priority === 1 ? '#FFFFFF' : '#0B3D2E' }}
+                  >
                     {goal.priority === 1 ? '首要目标' : '次要目标'}
                   </span>
                   <button
@@ -423,7 +429,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
                 <h2 className="text-3xl sm:text-4xl font-serif text-[#0B3D2E] dark:text-white leading-tight mb-3">
                   {currentQuestion.question}
                 </h2>
-                
+
                 {currentQuestion.description && (
                   <p className="text-lg text-[#0B3D2E]/70 dark:text-neutral-400 mb-8">
                     {currentQuestion.description}

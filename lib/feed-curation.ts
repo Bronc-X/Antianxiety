@@ -30,6 +30,69 @@ const GOAL_KEYWORDS: Record<GoalType, string[]> = {
   fitness: ['exercise', 'fitness', 'muscle', 'cardio', 'strength', '运动', '健身', '肌肉'],
 };
 
+// User tag to keyword mapping for precision filtering ("降噪")
+const TAG_KEYWORDS: Record<string, string[]> = {
+  '高皮质醇风险': ['cortisol', 'stress', 'anxiety', 'HPA', 'adrenal', '皮质醇', '压力', '焦虑'],
+  '重度焦虑': ['anxiety', 'panic', 'worry', 'GAD', 'CBT', '焦虑', '恐慌', '担忧'],
+  '中心性肥胖': ['visceral', 'belly fat', 'insulin', 'obesity', '内脏脂肪', '腹部', '胰岛素'],
+  '代谢低谷期': ['metabolism', 'metabolic', 'energy', 'mitochondria', '代谢', '线粒体'],
+  '亚健康状态': ['sub-health', 'fatigue', 'wellness', '亚健康', '疲劳', '调理'],
+  '慢性疲劳': ['chronic fatigue', 'CFS', 'tiredness', 'exhaustion', '慢性疲劳', '乏力'],
+  '免疫力差': ['immunity', 'immune', 'inflammation', '免疫', '炎症', '抵抗力'],
+  '压力型肥胖': ['stress belly', 'cortisol obesity', 'stress eating', '过劳肥', '压力肥'],
+  '激素衰退型': ['hormone', 'testosterone', 'estrogen', 'andropause', '激素', '睾酮', '更年期'],
+  '睡眠障碍': ['insomnia', 'sleep disorder', 'circadian', '失眠', '睡眠障碍', '昼夜节律'],
+  '情绪困扰': ['depression', 'mood', 'emotional', '抑郁', '情绪', '心理'],
+};
+
+/**
+ * Filter content by user tags ("降噪" - noise reduction)
+ * Returns only content that matches at least one user tag
+ */
+export function filterByUserTags(
+  contents: CuratedContent[],
+  userTags: string[]
+): CuratedContent[] {
+  if (userTags.length === 0) return contents;
+
+  // Collect all keywords from user's tags
+  const relevantKeywords: string[] = [];
+  for (const tag of userTags) {
+    const keywords = TAG_KEYWORDS[tag] || [];
+    relevantKeywords.push(...keywords);
+  }
+
+  if (relevantKeywords.length === 0) return contents;
+
+  // Filter content that matches any keyword
+  return contents.filter(content => {
+    const text = `${content.title} ${content.summary || ''}`.toLowerCase();
+    return relevantKeywords.some(kw => text.includes(kw.toLowerCase()));
+  });
+}
+
+/**
+ * Calculate tag-based relevance boost
+ */
+export function calculateTagRelevanceBoost(
+  content: { title: string; summary?: string },
+  userTags: string[]
+): number {
+  if (userTags.length === 0) return 0;
+
+  const text = `${content.title} ${content.summary || ''}`.toLowerCase();
+  let boost = 0;
+
+  for (const tag of userTags) {
+    const keywords = TAG_KEYWORDS[tag] || [];
+    const matchCount = keywords.filter(kw => text.includes(kw.toLowerCase())).length;
+    boost += matchCount * 0.1; // 0.1 boost per matched keyword
+  }
+
+  return Math.min(boost, 0.4); // Cap at 0.4 boost
+}
+
+
 /**
  * Calculate relevance score for content against user goals
  */
@@ -40,16 +103,16 @@ export function calculateRelevanceScore(
   if (phaseGoals.length === 0) {
     return { score: 0.3, matchedGoals: [], explanation: '没有设定目标' };
   }
-  
+
   const text = `${content.title} ${content.summary || ''}`.toLowerCase();
   const matchedGoals: GoalType[] = [];
   let totalScore = 0;
   const explanations: string[] = [];
-  
+
   for (const goal of phaseGoals) {
     const keywords = GOAL_KEYWORDS[goal.goal_type] || [];
     const matchedKeywords = keywords.filter(kw => text.includes(kw.toLowerCase()));
-    
+
     if (matchedKeywords.length > 0) {
       matchedGoals.push(goal.goal_type);
       // Higher score for primary goal (priority 1)
@@ -59,15 +122,15 @@ export function calculateRelevanceScore(
       explanations.push(`与「${goal.title}」目标相关`);
     }
   }
-  
+
   // Normalize score to 0-1 range
   const normalizedScore = Math.min(totalScore, 1);
-  
+
   return {
     score: normalizedScore,
     matchedGoals,
-    explanation: explanations.length > 0 
-      ? explanations.join('，') 
+    explanation: explanations.length > 0
+      ? explanations.join('，')
       : '与当前目标关联度较低',
   };
 }
@@ -95,15 +158,15 @@ export function filterRecommendableContent(contents: CuratedContent[]): CuratedC
  */
 export function isUserInactive(lastActivityDate: Date | string | null): boolean {
   if (!lastActivityDate) return true;
-  
-  const lastActivity = typeof lastActivityDate === 'string' 
-    ? new Date(lastActivityDate) 
+
+  const lastActivity = typeof lastActivityDate === 'string'
+    ? new Date(lastActivityDate)
     : lastActivityDate;
-  
+
   const now = new Date();
   const diffMs = now.getTime() - lastActivity.getTime();
   const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  
+
   return diffDays >= INACTIVE_THRESHOLD_DAYS;
 }
 
@@ -151,7 +214,7 @@ export function createCuratedContent(
   phaseGoals: PhaseGoal[]
 ): CuratedContent {
   const { score, matchedGoals, explanation } = calculateRelevanceScore(rawContent, phaseGoals);
-  
+
   return {
     id: crypto.randomUUID(),
     user_id: userId,
@@ -174,12 +237,12 @@ export function createCuratedContent(
  */
 export function getTopRecommendation(contents: CuratedContent[]): CuratedContent | null {
   const recommendable = filterRecommendableContent(contents);
-  
+
   if (recommendable.length === 0) return null;
-  
+
   // Sort by relevance score descending
   const sorted = [...recommendable].sort((a, b) => b.relevance_score - a.relevance_score);
-  
+
   // Return the highest scoring unpushed content
   return sorted.find(c => !c.is_pushed) || sorted[0];
 }
@@ -199,15 +262,15 @@ export function simulateCurationPipeline(
   }>
 ): ContentCurationResult {
   const startTime = Date.now();
-  
+
   // Create curated content
-  const curatedContents = rawContents.map(raw => 
+  const curatedContents = rawContents.map(raw =>
     createCuratedContent(raw, userId, phaseGoals)
   );
-  
+
   // Filter by relevance
   const filteredContents = curatedContents.filter(c => c.relevance_score > 0.3);
-  
+
   return {
     content: filteredContents,
     totalFetched: rawContents.length,

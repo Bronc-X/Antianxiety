@@ -10,8 +10,10 @@ import AIPlanCard from '@/components/AIPlanCard';
 import { containsPlans, parsePlans, type ParsedPlan } from '@/lib/plan-parser';
 import { PaperSources } from '@/components/chat/PaperSources';
 import { AIThinkingLoader } from '@/components/AIThinkingLoader';
+import { AIThinkingBlock } from '@/components/AIThinkingBlock';
 import { MotionButton } from '@/components/motion/MotionButton';
-import { generateActiveInquiry, type DailyLog } from '@/lib/active-inquiry';
+import { generateActiveInquiry, type DailyLog, type PlanItem } from '@/lib/active-inquiry';
+import { PlanReviewChecklist } from '@/components/PlanReviewChecklist';
 
 // --- Icons ---
 const PlusIcon = ({ className }: { className?: string }) => (
@@ -97,7 +99,10 @@ interface Message {
   content: string;
   timestamp: Date;
   papers?: PaperSource[];
+  thought?: string; // 🆕 Added thought process field
+  isThinking?: boolean; // 🆕 Track if currently thinking
   consensus?: { score: number; level: string; rationale?: string };
+  reviewItems?: PlanItem[]; // 🆕 Added reviewItems for checklist UI
 }
 interface PaperSource {
   rank?: number;
@@ -145,6 +150,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
 
   // MiniMax UI States
   const [showHistory, setShowHistory] = useState(true);
+  const [historyLoaded, setHistoryLoaded] = useState(false); // 🆕
   const isInitialState = messages.length === 0 && !isLoading;
 
   // Load History
@@ -173,6 +179,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
           setSessionId(sorted[sorted.length - 1].session_id);
         }
       }
+      setHistoryLoaded(true); // 🆕 Mark history as loaded
     };
     loadHistory();
   }, [supabase]);
@@ -210,6 +217,40 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
       }
     }
   }, []);
+
+  // 🆕 Active Inquiry Trigger
+  useEffect(() => {
+    const checkActiveInquiry = async () => {
+      // Wait for history load, and only trigger if no messages exist
+      if (!historyLoaded || messages.length > 0) return;
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger_checkin: true })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.content) {
+            const activeMsg: Message = {
+              role: 'assistant',
+              content: data.content,
+              timestamp: new Date(),
+              reviewItems: data.metadata?.reviewItems // 🆕 Capture review items
+            };
+            setMessages([activeMsg]);
+            await saveMessage(activeMsg);
+          }
+        }
+      } catch (e) {
+        console.error('Active inquiry failed:', e);
+      }
+    };
+
+    checkActiveInquiry();
+  }, [historyLoaded]); // Run when historyLoaded changes
 
   const handleVoiceInput = async () => {
     if (!recognition) return;
@@ -253,6 +294,16 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
     setIsGeneratingAnswer(true);
 
     try {
+      // 🆕 Initialize assistant message with thinking state
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isThinking: true,
+        thought: '正在调取用户画像...\n分析今日监测数据...\n搜索相关临床文献...'
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+
       // Parallel fetch papers & AI
       const papersPromise = fetch('/api/chat/papers', {
         method: 'POST', body: JSON.stringify({ query: currentInput })
@@ -278,6 +329,20 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
           const { done, value } = await reader.read();
           if (done) break;
           aiContent += decoder.decode(value, { stream: true });
+
+          // 🆕 Update message content as it streams
+          setMessages(prev => {
+            const last = [...prev];
+            const msg = last[last.length - 1];
+            if (msg && msg.role === 'assistant') {
+              msg.content = aiContent;
+              // Transition from thinking to completed thinking
+              if (aiContent.length > 10) {
+                msg.isThinking = false;
+              }
+            }
+            return last;
+          });
         }
         // Check headers for papers if API returns them there
         const papersHeader = aiResponse.headers.get('x-antianxiety-papers');
@@ -288,19 +353,29 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
 
       setUploadedImage(null);
 
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: aiContent,
-        timestamp: new Date(),
-        papers: papers,
-        consensus: papersData.consensus
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      // 🆕 Finalize assistant message
+      setMessages(prev => {
+        const last = [...prev];
+        const msg = last[last.length - 1];
+        if (msg && msg.role === 'assistant') {
+          msg.isThinking = false;
+          msg.papers = papers;
+          msg.consensus = papersData.consensus;
+          msg.content = aiContent;
+        }
+        return last;
+      });
 
       // Save to DB
+      const finalAssistantMsg = {
+        role: 'assistant' as RoleType,
+        content: aiContent,
+        timestamp: new Date(),
+        papers,
+        thought: assistantMessage.thought
+      };
       await saveMessage(userMessage);
-      await saveMessage(assistantMessage);
+      await saveMessage(finalAssistantMsg);
 
     } catch (e) {
       console.error(e);
@@ -407,6 +482,61 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
       console.error('保存失败:', error);
       setMessages(prev => prev.filter(msg => msg.content !== '⏳ 正在应用修改并保存...'));
       setMessages(prev => [...prev, { role: 'assistant', content: '❌ 保存失败，请重试', timestamp: new Date() }]);
+    }
+  };
+
+  // 🆕 Handle Plan Review Checklist Submission
+  const handlePlanReviewSubmit = async (selectedItems: PlanItem[]) => {
+    let content = '';
+    if (selectedItems.length === 0) {
+      content = "一切正常，我都能坚持。";
+    } else {
+      const itemTexts = selectedItems.map(i => i.text).join('\n- ');
+      content = `我在执行以下项目时遇到了困难，请帮我调整或提供平替方案：\n- ${itemTexts}`;
+    }
+
+    // Add user message
+    const userMessage: Message = { role: 'user', content, timestamp: new Date() };
+    setMessages(prev => [...prev, userMessage]);
+    await saveMessage(userMessage);
+
+    setIsLoading(true);
+
+    // Send to AI
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content }))
+        })
+      });
+
+      if (response.ok) {
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let aiContent = '';
+
+        // Simplified stream reading
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            aiContent += decoder.decode(value, { stream: true });
+          }
+        }
+
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: aiContent,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+        await saveMessage(assistantMessage);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -566,6 +696,13 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
                         : 'bg-white border border-[#E7E1D6] text-[#0B3D2E] rounded-tl-none'
                         }`}>
                         <div className="whitespace-pre-wrap leading-relaxed font-sans">
+                          {message.role === AI_ROLES.ASSISTANT && (
+                            <AIThinkingBlock
+                              thought={message.thought}
+                              isThinking={message.isThinking || false}
+                              defaultExpanded={index === messages.length - 1} // Only expand last one by default
+                            />
+                          )}
                           {message.role === AI_ROLES.ASSISTANT && containsPlans(message.content)
                             ? removePlansFromContent(message.content)
                             : message.content}
@@ -573,6 +710,14 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
                       </div>
 
                       {/* AI EXTRAS */}
+                      {message.role === AI_ROLES.ASSISTANT && message.reviewItems && message.reviewItems.length > 0 && (
+                        <div className="mt-2">
+                          <PlanReviewChecklist
+                            items={message.reviewItems}
+                            onSubmit={handlePlanReviewSubmit}
+                          />
+                        </div>
+                      )}
                       {message.role === AI_ROLES.ASSISTANT && containsPlans(message.content) && (
                         <div className="mt-2">
                           <AIPlanCard
@@ -600,14 +745,6 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
                     </div>
                   </motion.div>
                 ))}
-                {isLoading && (
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
-                    <div className="bg-white px-6 py-4 rounded-2xl border border-gray-100 shadow-sm">
-                      <AIThinkingLoader size="sm" showProgress={true} />
-                    </div>
-                  </div>
-                )}
                 <div ref={messagesEndRef} className="h-4" />
               </div>
             )}

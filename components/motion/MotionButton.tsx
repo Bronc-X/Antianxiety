@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useSpring, MotionProps } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { cn } from '@/lib/utils';
@@ -17,25 +17,32 @@ export interface MotionButtonProps extends React.ComponentProps<typeof Button> {
   hapticFeedback?: boolean;
   glowEffect?: boolean;
   magneticEffect?: boolean;
+  whileHover?: MotionProps['whileHover'];
+  whileTap?: MotionProps['whileTap'];
+  transition?: MotionProps['transition'];
+  initial?: MotionProps['initial'];
+  animate?: MotionProps['animate'];
+  exit?: MotionProps['exit'];
+  variants?: MotionProps['variants'];
 }
 
-export function MotionButton({ 
-  children, 
-  className, 
+export function MotionButton({
+  children,
+  className,
   hapticFeedback = true,
   glowEffect = false,
   magneticEffect = false,
   onClick,
-  ...props 
+  ...props
 }: MotionButtonProps) {
   const [isPressed, setIsPressed] = useState(false);
-  
+
   // 磁性效果的 motion values
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const springX = useSpring(x, { stiffness: 300, damping: 20 });
   const springY = useSpring(y, { stiffness: 300, damping: 20 });
-  
+
   // 3D 倾斜效果
   const rotateX = useTransform(springY, [-20, 20], [5, -5]);
   const rotateY = useTransform(springX, [-20, 20], [-5, 5]);
@@ -85,13 +92,13 @@ export function MotionButton({
           transition={{ duration: 0.2 }}
         />
       )}
-      
+
       {/* @ts-ignore - Framer Motion 类型兼容性处理 */}
       <MotionBtn
-        whileHover={{ 
+        whileHover={{
           scale: 1.02,
-          boxShadow: glowEffect 
-            ? '0 10px 40px -10px rgba(34, 197, 94, 0.5)' 
+          boxShadow: glowEffect
+            ? '0 10px 40px -10px rgba(34, 197, 94, 0.5)'
             : '0 4px 12px rgba(0, 0, 0, 0.1)'
         }}
         whileTap={{ scale: 0.95 }}
@@ -117,7 +124,7 @@ export function MotionButton({
           transition={{ duration: 0.5 }}
           style={{ borderRadius: '50%', transformOrigin: 'center' }}
         />
-        
+
         {/* 光泽扫过效果 */}
         <motion.span
           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
@@ -125,7 +132,7 @@ export function MotionButton({
           whileHover={{ x: '100%' }}
           transition={{ duration: 0.6, ease: 'easeInOut' }}
         />
-        
+
         <span className="relative z-10">{children}</span>
       </MotionBtn>
     </motion.div>

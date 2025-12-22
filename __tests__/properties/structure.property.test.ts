@@ -295,7 +295,7 @@ describe('Capacitor Configuration Validation', () => {
     const configContent = fs.readFileSync(capacitorConfigPath, 'utf-8');
 
     // 验证必要配置
-    expect(configContent).toContain("appId: 'com.nomoreanxious.app'");
+    expect(configContent).toContain("appId: 'com.antianxiety.app'");
     expect(configContent).toContain("webDir: 'out'");
     expect(configContent).toContain('SplashScreen');
   });
