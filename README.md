@@ -260,6 +260,12 @@ GITHUB_CLIENT_SECRET=你的GitHub OAuth Client Secret
 - 属性测试：posterior 边界、权重归一化、证据栈序列化/反序列化、触发器幂等性等用 fast-check 覆盖。  
 - 下一步：实现 evidence 权重分层校验与序列化、Semantic Scholar 拉取与缓存、/api/bayesian 端点与 UI（FearInputSlider、EvidenceRain、AnxietyCurve）。
 
+## 🎉 最新完成 (2025-12-22)
+1.  **评估系统迁移完成**: 统一了 Daily/Weekly/Monthly 校准引擎，修复了睡眠评分和数据写入冲突问题。
+2.  **UI 体验升级**: 每日校准结果页面采用了更温暖的文案；AI 助手新增了 "思考中" (Thinking) 状态展示。
+4.  **UI 2.0 (Calm Luxury) 💎**: 全面升级了应用的 "Feel" (活体纹理), "Motion" (叙事滚动/液态导航) 和 "Native" (桌面微件)。
+5.  **原生组件**: Android Widget 直接集成；iOS Widget 代码就绪。
+
 ## 🎉 最新完成（2025-12-02）
 1. 贝叶斯信念循环 Phase 1 完成：核心表/函数/触发器 + RLS 部署，属性测试通过。  
 2. 登录重定向循环修复：禁用 middleware 冲突，统一跳转 landing。  

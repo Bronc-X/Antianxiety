@@ -27,6 +27,13 @@ import {
 // 🆕 导入 API 工具函数（从合并的 /api/ai/chat）
 import { fetchWithRetry, parseApiError } from '@/lib/apiUtils';
 
+// 🆕 导入主动问询服务
+import {
+  generateActiveInquiry,
+  type ActivePlan,
+  type DailyLog
+} from '@/lib/active-inquiry';
+
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -247,7 +254,8 @@ function buildUserContext(
   profile: UserProfile | null,
   todayBioData?: DailyWellnessLog | null,
   recentBioData: DailyWellnessLog[] = [],
-  questionnaireData?: QuestionnaireData | null
+  questionnaireData?: QuestionnaireData | null,
+  activePlan?: ActivePlan | null // 🆕 Added activePlan
 ): string {
   if (!profile) return '';
 
@@ -471,6 +479,29 @@ function buildUserContext(
     parts.push(`\n⚠️ AI 指导：根据问卷数据调整回答，关注用户当前状态`);
   }
 
+  // ---------------------------------------------------------
+  // 🆕 当前执行的方案 (PLAN CONTEXT)
+  // ---------------------------------------------------------
+  if (activePlan) {
+    parts.push(`\n[ACTIVE PLAN - 当前执行方案]`);
+    parts.push(`方案名称: ${activePlan.title}`);
+    parts.push(`开始时间: ${new Date(activePlan.created_at).toLocaleDateString()}`);
+
+    if (activePlan.items && activePlan.items.length > 0) {
+      parts.push(`\n具体执行项:`);
+      activePlan.items.forEach((item, index) => {
+        parts.push(`${index + 1}. ${item.text} [Status: ${item.status || 'pending'}]`);
+      });
+    } else if (activePlan.content) {
+      // 兼容旧数据
+      parts.push(`\n方案内容: ${activePlan.content}`);
+    }
+
+    parts.push(`\n⚠️ DAILY CHECK-IN RULES (每日问询规则):`);
+    parts.push(`1. 必须根据上述[方案详情]进行具体的执行情况问询。`);
+    parts.push(`2. 如果用户反馈某项难以坚持，必须提供[平替方案] (Flat Replacement) —— 效果相似但更符合用户习惯的替代项。`);
+  }
+
   const context = parts.length > 1 ? parts.join('\n') : '';
 
   // 调试日志
@@ -489,7 +520,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { messages, stream = true, message, conversationHistory } = body;
+    const { messages, stream = true, message, conversationHistory, trigger_checkin } = body; // 🆕 Added trigger_checkin
 
     // 🆕 兼容旧版 /api/ai/chat 的请求格式（Android 客户端）
     // 旧格式: { message: string, conversationHistory: [] }
@@ -503,7 +534,9 @@ export async function POST(req: Request) {
       ];
     }
 
-    if (!chatMessages || chatMessages.length === 0) {
+    // 🆕 处理主动问询触发 (Trigger Check-in)
+    // 如果是 trigger_checkin，即使没有 messages 也可以 (会由 AI 生成第一句)
+    if (!trigger_checkin && (!chatMessages || chatMessages.length === 0)) {
       return new Response(JSON.stringify({ error: '消息内容不能为空' }), { status: 400 });
     }
 
@@ -535,6 +568,7 @@ export async function POST(req: Request) {
     let todayBioData: DailyWellnessLog | null = null;
     let recentBioData: DailyWellnessLog[] = [];
     let questionnaireData: QuestionnaireData | null = null;
+    let activePlan: ActivePlan | null = null; // 🆕 Active plan state
 
     if (userId !== 'anonymous') {
       const { data: profile, error: profileError } = await supabase
@@ -623,8 +657,67 @@ export async function POST(req: Request) {
       } else if (todayQuestionnaire) {
         questionnaireData = todayQuestionnaire;
       }
+
+      // ---------------------------------------------------------
+      // 🆕 读取当前活跃计划 (user_plans)
+      // ---------------------------------------------------------
+      const { data: planData, error: planError } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (planData) {
+        // Parse items from content if it's JSON, otherwise leave as is
+        let parsedItems = [];
+        let contentStr = '';
+
+        if (typeof planData.content === 'object' && planData.content !== null) {
+          // New format: content is JSONB
+          contentStr = planData.content.description || '';
+          // Ensure items are parsed correctly
+          if (Array.isArray(planData.content.items)) {
+            parsedItems = planData.content.items;
+          }
+        } else {
+          // Old format: content is string
+          contentStr = planData.content as string;
+        }
+
+        activePlan = {
+          id: planData.id,
+          title: planData.title,
+          created_at: planData.created_at,
+          content: contentStr,
+          items: parsedItems
+        };
+      }
+
+      // 🆕 处理主动问询生成 (如果触发)
+      if (trigger_checkin) {
+        const inquiryContext = {
+          dailyLogs: todayBioData ? [todayBioData as unknown as DailyLog] : [],
+          profile: userProfile,
+          activePlan: activePlan,
+          currentTime: new Date()
+        };
+        const activeInquiry = generateActiveInquiry(inquiryContext);
+        console.log('🗣️ 生成主动问询:', activeInquiry.question);
+        return new Response(JSON.stringify({
+          role: 'assistant',
+          content: activeInquiry.questionZh, // Return Chinese version
+          metadata: {
+            type: activeInquiry.type,
+            reviewItems: activeInquiry.reviewItems
+          }
+        }), { status: 200 });
+      }
+
       if (userProfile) {
-        userContext = buildUserContext(userProfile, todayBioData, recentBioData, questionnaireData);
+        userContext = buildUserContext(userProfile, todayBioData, recentBioData, questionnaireData, activePlan);
       }
     }
 
@@ -847,6 +940,23 @@ export async function POST(req: Request) {
 ${personalityConfig.style}
 
 注意：在保持专业医学知识的同时，用"${personalityConfig.name}"的风格与用户交流。`;
+
+    // [SYSTEM PROMPT UPDATE]
+    // Add instruction for Dynamic Plan Generation
+    // ---------------------------------------------------------
+    const PLAN_GENERATION_INSTRUCTION = `
+[DYNAMIC PLAN GENERATION RULES]
+1.  **Detailed & Comprehensive**: Plans MUST have at least 5 detailed actionable items.
+2.  **Scientific Context**: Each item MUST include a brief scientific/neurological/psychological explanation (e.g., "Why this works: Increases dopamine baseline...").
+3.  **Dynamic Adaptation**:
+    - If the user says "I can't do [X]", you MUST offer a "Flat Replacement" (平替方案).
+    - A Flat Replacement has the *same biological effect* but is behaviorally different.
+    - Example: "Can't run? Try 'Zone 2 Brisk Walking' - same cardiovascular benefits, lower impact."
+4.  **Format**: Use a numbered list for items.
+    - 1. [Title]
+       - Action: ...
+       - Science: ...
+`;
 
     // ---------------------------------------------------------
     // 生成 AI 回答 (Vercel AI SDK)

@@ -108,8 +108,10 @@ CREATE INDEX IF NOT EXISTS idx_curated_feed_unread ON curated_feed_queue(user_id
 CREATE INDEX IF NOT EXISTS idx_curated_feed_relevance ON curated_feed_queue(user_id, relevance_score DESC);
 
 -- ============================================
--- 6. Extend Daily Calibrations Table
+-- 6. Extend Daily Calibrations Table (SKIPPED - table doesn't exist yet)
 -- ============================================
+-- NOTE: Run this section separately after daily_calibrations table is created
+/*
 DO $$ 
 BEGIN
   -- Add question_evolution_level column if not exists
@@ -136,6 +138,7 @@ BEGIN
     ALTER TABLE daily_calibrations ADD COLUMN phase_goal_id UUID REFERENCES phase_goals(id);
   END IF;
 END $$;
+*/
 
 -- ============================================
 -- 7. Row Level Security Policies
@@ -214,9 +217,10 @@ CREATE TRIGGER update_activity_patterns_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
--- 9. Helper Functions
+-- 9. Helper Functions (SKIPPED - depends on daily_calibrations)
 -- ============================================
-
+-- NOTE: Run this section separately after daily_calibrations table is created
+/*
 -- Function to get user's consecutive calibration days
 CREATE OR REPLACE FUNCTION get_consecutive_calibration_days(p_user_id UUID)
 RETURNS INTEGER AS $$
@@ -252,3 +256,4 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql;
+*/

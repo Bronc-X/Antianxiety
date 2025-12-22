@@ -2,6 +2,227 @@
 
 ---
 
+## 2025-12-22 (Late Night) - UI Upgrade Complete (Phase 1-3) 💎
+
+### 🎯 核心更新
+
+#### 1. Phase 1: The Feel (质感) ✅
+- ✅ **活体纹理 (Alive Texture)**: 实现了全局 `bg-noise` 动画，叠加在 `layout.tsx` 中，消除纯色背景的死板感。
+- ✅ **流体排版 (Fluid Typography)**: 引入 `clamp()` CSS 变量，使字体在不同屏幕下无级缩放。
+- ✅ **高级触感 (Haptics)**: 扩展 `haptics.ts`，新增 `ripple` (涟漪) 和 `breathing` (呼吸) 震动模式。
+
+#### 2. Phase 2: The Motion (动态) ✅
+- ✅ **叙事性滚动 (Scrollytelling)**: Landing 页 Hero 区域实现视差滚动，标题随滚动上浮渐隐。
+- ✅ **液态导航 (Liquid Nav)**: `MarketingNav.tsx` 新增 Desktop 端的“游走胶囊” (Hover Pill) 效果，使用 Framer Motion 的 `layoutId` 实现。
+
+#### 3. Phase 3: The Native (原生) ✅
+- ✅ **Android Widget**: 实现了 "Daily Balance" 桌面微件。
+  - XML 布局: 圆角玻璃拟态。
+  - Kotlin 逻辑: `DailyCheckinWidget.kt` 处理点击事件 (Deep Link)。
+- ✅ **iOS Widget**: 生成了 SwiftUI 代码 (`DailyCheckinWidget.swift`)，支持 iOS 17 风格的交互式微件。
+
+### 📊 代码统计
+- **新增文件**: Android Widget XMLs, Kotlin Class, Swift Widget View.
+- **修改文件**: `layout.tsx`, `globals.css`, `MarketingNav.tsx`, `LandingContent.tsx`.
+
+### 🚀 下一步
+- [ ] iOS 真机手动挂载 Widget Extension。
+- [ ] 最终回归测试。
+
+---
+
+
+### 🎯 核心更新
+
+#### 1. 移动端构建环境修复 (Mobile Build Fixes) ✅
+- ✅ **NPM 环境路径修复**: 解决了 IDE 无法识别 `npm` 命令的问题，确保 Capacitor 同步流程正常。
+- ✅ **依赖冲突解决**: 修复了 `zod` 版本冲突（`@ai-sdk/openai` peer dependency），使用 `--legacy-peer-deps` 确保构建成功。
+- ✅ **Web 资源同步**: 成功执行 `npm run build` 和 `npx cap sync`，将最新的 Next.js 产物同步至 Android 和 iOS 原生目录。
+
+#### 2. 品牌重塑与配置更新 (Rebranding) ✅
+- ✅ **App ID 统一**: 将所有配置从旧 ID 更新为 `com.antianxiety.app`。
+  - `capacitor.config.ts`
+  - `android/app/build.gradle`
+  - `ios/App/App/Info.plist`
+- ✅ **测试用例修复**: 更新了 `__tests__/properties/structure.property.test.ts` 中的断言，匹配新的 App ID。
+
+#### 3. 代码修复 ✅
+- ✅ **编译错误修复**: 修复了 `app/plans/PlansPageClient.tsx` 中缺失 `<Link>` 组件引用的问题，确保页面正常渲染。
+
+#### 4. 高级 UI 验证 (Premium UI Verification) ✅
+- ✅ **设计系统确认**: 验证了 `globals.css` 中包含 "Luxury" 设计令牌（金色/深炭色调、毛玻璃效果）。
+- ✅ **原生体验**: 确认 `MobileBottomNav` 组件集成了触觉反馈 (Haptics) 和高级微动画。
+
+### 📊 代码统计
+- **修复文件**: 3 个 (`PlansPageClient.tsx`, `structure.property.test.ts`, `globals.css` 验证)
+- **同步状态**: Android & iOS 均已同步最新 Web 资产
+
+### 🚀 下一步
+- [ ] 用户进行真机/模拟器测试 (Evening Test)
+
+## 2025-12-22 (晚间) - 评估系统迁移完成 & UI 优化
+
+### 🎯 核心更新
+
+#### 1. 评估系统全量迁移 (Assessment System Migration) ✅
+- ✅ **统一架构**: Daily/Weekly/Monthly 校准完全迁移至 `lib/assessment` 和 `lib/clinical-scales` 新架构。
+- ✅ **数据完整性**: 修复了所有校准类型的写入逻辑，使用 `upsert` + `response_date` 复合主键，防止数据冲突。
+- ✅ **睡眠评分修复**: 修正了 `daily-questions.ts` 和 `stability-calculator.ts` 中的睡眠时长计算（从 0-5 分映射回分钟数），确保稳定性计算准确。
+- ✅ **Onboarding 解耦**: 移除了旧的 `metabolic_profile` 和 `phase_goals` 依赖，不再写入过时数据。
+
+#### 2. UI/UX 体验升级 ✅
+- ✅ **AI "思考中"状态**: 实现了类似 DeepSeek 的 `AIThinkingBlock` 组件，展示 AI 的思维链过程，提升透明度。
+- ✅ **每日校准结果**: 更新了结果页面的文案，采用更温暖、不打扰的语气，并清晰展示 "今日指数 (Daily Index)" 和 "建议频率"。
+- ✅ **冷却机制**: 验证并修复了 Active Inquiry 的 `cooldownMultiplier`，确保用户设置的频率偏好（如减少打扰）被正确应用。
+
+### 📊 代码统计
+- **修改文件**: 8 个核心文件 (Onboarding, Calibration, Stability, Clinical Scales)
+- **修复 Bug**: 3 个 (Sleep mapping, Upsert conflict, Cooldown logic)
+- **新增组件**: `AIThinkingBlock`
+
+### 🚀 下一步
+- [ ] 验证每日校准数据在 `daily_wellness_logs` 的落库情况
+- [ ] 观察 AI 思考组件在长文本回复下的表现
+
+---
+
+## 2025-12-22 - 统一评估引擎 + Android 原生应用
+
+### 🎯 核心目标
+实现「用真相打破焦虑」的核心功能：统一评估引擎 + 精准降噪推荐，并创建原生 Android 应用。
+
+---
+
+### 📱 Part 1: Web 端 - 统一评估引擎
+
+#### 1.1 问卷量表系统
+- ✅ 创建 `lib/questionnaire-scales.ts`
+  - GAD-7 焦虑量表 (7题，0-21分)
+  - SHSQ-25 亚健康量表 (25题，5个维度)
+  - 完整的评分逻辑和标签映射
+
+#### 1.2 健康评估引擎
+- ✅ 创建 `lib/health-assessment-engine.ts`
+  - 基础指标分析 (BMI, 腰围)
+  - 量表评分处理
+  - **交叉分析逻辑**:
+    - 压力型肥胖 (高皮质醇 + 中心性肥胖)
+    - 激素衰退型 (代谢下降 + 肌肉无力)
+  - 严重程度计算
+
+#### 1.3 校准引擎升级
+- ✅ 修改 `lib/calibration-engine.ts`
+  - 30/30/40 问题来源比例
+  - 决策树 / 标准量表 / AI 自适应
+
+#### 1.4 精准推荐系统
+- ✅ 创建 `lib/content-aggregator.ts` (三源聚合)
+  - PubMed 学术论文
+  - Semantic Scholar 语义搜索
+  - YouTube RSS 健康频道
+- ✅ 创建 `lib/services/youtube-rss.ts`
+  - Huberman Lab, Peter Attia 等频道
+  - 标签匹配和相关性评分
+- ✅ 修改 `lib/feed-curation.ts`
+  - TAG_KEYWORDS 映射
+  - filterByUserTags() 降噪过滤
+
+#### 1.5 前端统一入口
+- ✅ 创建 `components/UnifiedDailyCalibration.tsx`
+  - Apple 风格玻璃拟态设计
+  - 欢迎 → 问题 → 分析 → 结果 流程
+  - 微动画和过渡效果
+- ✅ 集成到 `components/LandingContent.tsx`
+  - 替换旧的 DailyInsightHub + DailyCheckin
+  - 添加滚动锚点
+
+#### 1.6 数据库迁移
+- ✅ 创建 `supabase/migrations/20251221_add_profile_tags.sql`
+  - profiles.tags JSONB 字段
+  - profiles.assessment_history JSONB 字段
+  - GIN 索引优化
+
+---
+
+### 📱 Part 2: Android 原生应用
+
+#### 2.1 项目初始化
+- ✅ 全新 Jetpack Compose 项目结构
+- ✅ Gradle KTS + Version Catalog
+- ✅ 依赖配置:
+  - Compose BOM 2024.11
+  - Hilt 2.52
+  - Supabase Kotlin SDK 3.0.2
+  - Room 2.6.1
+  - Ktor 3.0.1
+
+#### 2.2 域层 (Domain)
+- ✅ `domain/model/QuestionnaireModels.kt`
+- ✅ `domain/model/HealthAssessmentModels.kt`
+- ✅ `domain/engine/HealthAssessmentEngine.kt`
+- ✅ `domain/engine/CalibrationEngine.kt`
+
+#### 2.3 主题系统 (Apple/Whoop 风格)
+- ✅ `presentation/theme/Color.kt` - 高级色板
+- ✅ `presentation/theme/Type.kt` - SF Pro 风格字体
+- ✅ `presentation/theme/Theme.kt` - 暗色/亮色模式
+
+#### 2.4 UI 组件
+- ✅ `presentation/common/Components.kt`
+  - GlassCard (玻璃卡片)
+  - AppleButton (主按钮)
+  - PulsingRings (脉冲动画)
+  - ProgressRing (进度环)
+  - StatusPill (状态药丸)
+
+#### 2.5 校准界面
+- ✅ `presentation/calibration/CalibrationScreen.kt`
+  - WelcomeStep (欢迎)
+  - QuestionStep (问题)
+  - AnalyzingStep (分析动画)
+  - ResultStep (结果展示)
+- ✅ `presentation/calibration/CalibrationViewModel.kt`
+- ✅ `presentation/calibration/CalibrationState.kt`
+
+#### 2.6 架构支撑
+- ✅ `di/AppModule.kt` (Hilt DI)
+- ✅ `presentation/navigation/AppNavigation.kt`
+
+---
+
+### 📊 代码统计
+
+| 类别 | Web | Android |
+|-----|-----|---------|
+| 新增文件 | 8 | 15 |
+| 修改文件 | 3 | - |
+| 代码行数 | ~1500+ | ~1800+ |
+
+---
+
+### 🎨 设计亮点
+
+**Apple Fitness 参考:**
+- 活动环进度指示器
+- 大字体数字展示
+- 极简卡片布局
+
+**Whoop 参考:**
+- 脉冲环加载动画
+- 健康分数可视化
+- 暗色主题选项
+
+---
+
+### 🚀 下一步
+
+1. **Web**: 运行 `npm run dev` 验证
+2. **Android**: Android Studio 打开并构建
+3. **Supabase**: 执行 SQL 迁移
+4. **测试**: 端到端功能验证
+
+---
+
 ## 2025-12-16 (晚间) - 内容策展系统重构 & 部署准备
 
 ### 🎯 核心更新
