@@ -80,8 +80,7 @@ export default function RootLayout({
         className={`${inter.variable} ${playfair.variable} antialiased`}
         suppressHydrationWarning
       >
-        {/* Global Alive Texture (Noise) - Fixed Background */}
-        <div className="fixed inset-0 z-[-1] bg-noise pointer-events-none opacity-60 mix-blend-soft-light" />
+        {/* Global background - clean without noise texture */}
 
         <ThemeProvider>
           <I18nProvider>

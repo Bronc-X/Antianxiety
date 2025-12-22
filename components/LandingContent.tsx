@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, lazy } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { SymptomAssessmentCard, BayesianCycleCard } from '@/components/FeatureCards';
+import { SymptomAssessmentCard, BayesianCycleCard, DailyCalibrationCard } from '@/components/FeatureCards';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { MotionButton } from '@/components/motion/MotionButton';
 import TypewriterText from '@/components/motion/TypewriterText';
@@ -18,6 +18,7 @@ const UnifiedDailyCalibration = lazy(() => import('@/components/UnifiedDailyCali
 const AnimatedSection = lazy(() => import('@/components/AnimatedSection'));
 const JournalShowcase = lazy(() => import('@/components/JournalShowcase'));
 const InfiniteNewsFeed = lazy(() => import('@/components/InfiniteNewsFeed'));
+const ActiveInquiryBanner = lazy(() => import('@/components/ActiveInquiryBanner'));
 
 
 // 轻量级加载占位符
@@ -43,6 +44,7 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
   const [insight, setInsight] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAnomalyCard, setShowAnomalyCard] = useState(false);
+  const [showInquiry, setShowInquiry] = useState(true);
   const [anomalyQuestion, setAnomalyQuestion] = useState('');
   const [todayTask, setTodayTask] = useState<GeneratedTask | null>(null);
   const [assessmentResult, setAssessmentResult] = useState<any | null>(null);
@@ -162,9 +164,6 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
         <div className="hidden md:block w-px h-full bg-[#1A1A1A] opacity-[0.03]" />
       </motion.div>
 
-      {/* Noise Texture Overlay - Breathing Effect */}
-      <motion.div style={{ opacity: noiseOpacity }} className="bg-noise" />
-
       {/* Main Content */}
       <div className="relative z-10 max-w-[1600px] mx-auto px-8 md:px-16 pb-24 md:pb-32">
         {/* Luxury Hero Section - Scrollytelling */}
@@ -172,7 +171,6 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
           style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
           className="py-20 md:py-32 grid grid-cols-1 md:grid-cols-12 gap-12 relative"
         >
-
           <div className="md:col-start-2 md:col-span-10 lg:col-span-9">
             <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-normal leading-[0.95] tracking-tight mb-12 text-[#1A1A1A] dark:text-white">
               {language === 'en' ? (
@@ -239,31 +237,41 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
             )}
           </AnimatePresence>
 
-          {/* 统一每日校准入口 */}
-          <div id="daily-calibration" className="md:col-span-2 scroll-mt-24">
-            <Suspense fallback={<LoadingPlaceholder height="h-64" />}>
-              <UnifiedDailyCalibration
-                userId={user?.id}
-                userName={profile?.first_name || profile?.username}
-                onComplete={handleAssessmentComplete}
-              />
-            </Suspense>
-
-          </div>
+          {/* AI 主动问询 Banner - 显示待处理的问询 */}
+          {user?.id && showInquiry && (
+            <div className="md:col-span-2">
+              <Suspense fallback={<LoadingPlaceholder height="h-24" />}>
+                <ActiveInquiryBanner
+                  userId={user.id}
+                  onDismiss={() => setShowInquiry(false)}
+                  onRespond={(response) => {
+                    console.log('[AI Inquiry] User response:', response);
+                    setShowInquiry(false);
+                  }}
+                />
+              </Suspense>
+            </div>
+          )}
         </div>
 
-        {/* Tool Cards (New Mango Style) */}
+        {/* Tool Cards (New Mango Style) - 包含每日校准作为第三张卡片 */}
         <section className="max-w-6xl mx-auto mt-24 relative z-20 border-t border-[#1A1A1A]/10 pt-12">
           <div className="mb-12">
             <h3 className="font-heading text-3xl md:text-4xl text-[#1A1A1A] dark:text-white">
               {language === 'en' ? <>Health <span className="italic text-[#D4AF37]">Tools</span></> : <>健康<span className="italic text-[#D4AF37]">工具</span></>}
             </h3>
           </div>
-          <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
-            <Link href="/assessment" className="block">
+          <div className="flex flex-row gap-4 justify-center items-stretch">
+            {/* 每日校准卡片 */}
+            <Link href="/daily-calibration" className="block flex-1 min-w-0 h-[400px] max-w-[340px]">
+              <DailyCalibrationCard />
+            </Link>
+            {/* 症状评估卡片 */}
+            <Link href="/assessment" className="block flex-1 min-w-0 h-[400px] max-w-[340px]">
               <SymptomAssessmentCard />
             </Link>
-            <Link href="/bayesian" className="block">
+            {/* 认知天平卡片 */}
+            <Link href="/bayesian" className="block flex-1 min-w-0 h-[400px] max-w-[340px]">
               <BayesianCycleCard />
             </Link>
           </div>
@@ -273,7 +281,7 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
         <div className="max-w-6xl mx-auto mt-24 relative z-10 border-t border-[#1A1A1A]/10 pt-12">
           <div className="glass-panel p-0 overflow-hidden h-[500px] border-none shadow-none bg-transparent">
             <Suspense fallback={<LoadingPlaceholder height="h-[420px]" />}>
-              <InfiniteNewsFeed language={language} variant="calm" />
+              <InfiniteNewsFeed language={language} variant="calm" userId={user?.id} />
             </Suspense>
           </div>
         </div>

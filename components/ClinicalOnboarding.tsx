@@ -244,7 +244,8 @@ export function ClinicalOnboarding({
 
             await supabase.from('user_scale_responses').insert(records);
 
-            // Update profile with inferred scores
+            // Update profile with inferred scores AND metabolic_profile
+            // CRITICAL: metabolic_profile must be set for landing page redirect check
             await supabase
                 .from('profiles')
                 .update({
@@ -252,6 +253,14 @@ export function ClinicalOnboarding({
                         GAD7: { score: gad7Score, interpretation: interpretations.anxiety, updatedAt: now },
                         PHQ9: { score: phq9Score, interpretation: interpretations.depression, updatedAt: now },
                         ISI: { score: isiScore, interpretation: interpretations.insomnia, updatedAt: now },
+                    },
+                    metabolic_profile: {
+                        completed: true,
+                        completedAt: now,
+                        gad7Score,
+                        phq9Score,
+                        isiScore,
+                        interpretations,
                     },
                 })
                 .eq('id', userId);
@@ -427,8 +436,8 @@ export function ClinicalOnboarding({
                                                     key={option.value}
                                                     onClick={() => handleAnswer(question.id, option.value)}
                                                     className={`p-3 rounded-xl text-sm font-medium transition-all ${isSelected
-                                                            ? 'bg-neutral-900 text-white'
-                                                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                                                        ? 'bg-neutral-900 text-white'
+                                                        : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                                                         }`}
                                                 >
                                                     {option.label}

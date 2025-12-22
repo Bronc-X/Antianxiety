@@ -838,3 +838,51 @@ select {
     font-size: var(--font-size-base);
   }
 }
+
+/* ==========================================
+   UPGRADE PAGE - WHITE TEXT OVERRIDE
+   Force white text on dark green background
+   ========================================== */
+
+.upgrade-page,
+.upgrade-page * {
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+}
+
+.upgrade-page h1,
+.upgrade-page h2,
+.upgrade-page h3,
+.upgrade-page h4,
+.upgrade-page h5,
+.upgrade-page h6 {
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+}
+
+.upgrade-page .text-amber-200,
+.upgrade-page .text-amber-300,
+.upgrade-page .text-amber-400 {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+.upgrade-page .text-white\/90 {
+  color: rgba(255, 255, 255, 0.9) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.upgrade-page .text-white\/80 {
+  color: rgba(255, 255, 255, 0.8) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.upgrade-page .text-white\/70 {
+  color: rgba(255, 255, 255, 0.7) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.upgrade-page .text-white\/60 {
+  color: rgba(255, 255, 255, 0.6) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.6) !important;
+}
