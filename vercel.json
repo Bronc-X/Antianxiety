@@ -1,4 +1,7 @@
 {
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
   "crons": [
     {
       "path": "/api/ingest-content",
