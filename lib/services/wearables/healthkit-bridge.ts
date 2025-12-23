@@ -5,7 +5,7 @@
  * 注意：HealthKit没有云端API，需要通过iOS原生代码在设备端采集数据，
  * 然后通过API上传到后端。此文件提供客户端采集逻辑。
  * 
- * 依赖：@nicholasbraun/capacitor-healthkit 或类似插件
+ * 依赖：@followathletics/capacitor-healthkit
  */
 
 import type {
@@ -191,7 +191,8 @@ export class HealthKitBridge {
         }
 
         // 动态导入Capacitor HealthKit插件
-        const { HealthKit } = await import('@nicholasbraun/capacitor-healthkit');
+        const { CapacitorHealthkit } = await import('@followathletics/capacitor-healthkit');
+        const HealthKit = CapacitorHealthkit;
         this.plugin = HealthKit;
         return this.plugin;
     }
