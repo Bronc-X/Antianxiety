@@ -271,6 +271,45 @@ export async function GET(request: NextRequest) {
           energyLevel: typeof profile.energy_level === 'number' ? profile.energy_level : null,
         };
       }
+      
+      // 🆕 获取 Inquiry 上下文并调整推荐策略
+      try {
+        const { getInquiryContext } = await import('@/lib/inquiry-context');
+        const inquiryContext = await getInquiryContext(userId);
+        const { insights, suggestedTopics } = inquiryContext;
+        
+        // 根据 inquiry insights 调整标签和关键词
+        if (insights.recentSleepPattern === 'poor') {
+          userTags.push('睡眠问题');
+          focusTopics.push('sleep_optimization', 'circadian_rhythm');
+          console.log('📋 Inquiry: 检测到睡眠不足，优先推荐睡眠相关内容');
+        }
+        
+        if (insights.recentStressLevel === 'high') {
+          userTags.push('高皮质醇风险');
+          focusTopics.push('stress_management', 'cortisol_regulation');
+          console.log('📋 Inquiry: 检测到高压力，优先推荐压力管理内容');
+        }
+        
+        if (insights.recentExercise === 'none') {
+          focusTopics.push('exercise_benefits', 'zone2_cardio');
+          console.log('📋 Inquiry: 检测到缺乏运动，推荐运动相关内容');
+        }
+        
+        if (insights.recentMood === 'bad') {
+          userTags.push('情绪困扰');
+          focusTopics.push('mental_health', 'neurotransmitters');
+          console.log('📋 Inquiry: 检测到情绪不佳，推荐心理健康内容');
+        }
+        
+        // 添加 inquiry 建议的主题
+        if (suggestedTopics.length > 0) {
+          focusTopics.push(...suggestedTopics);
+          console.log('📋 Inquiry 建议主题:', suggestedTopics.join(', '));
+        }
+      } catch (error) {
+        console.warn('⚠️ 获取 Inquiry 上下文失败:', error);
+      }
     }
 
     if (userTags.length === 0) {

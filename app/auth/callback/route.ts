@@ -54,12 +54,58 @@ export async function GET(request: NextRequest) {
 
     // 处理 URL 中的 code 参数（用于 OAuth 和 Magic Link）
     const code = requestUrl.searchParams.get('code');
+    const tokenHash = requestUrl.searchParams.get('token_hash');
+    const type = requestUrl.searchParams.get('type');
     const errorParam = requestUrl.searchParams.get('error');
     
     // 如果 OAuth 提供商返回了错误
     if (errorParam) {
       console.error('OAuth 提供商返回错误:', errorParam);
       return NextResponse.redirect(new URL('/login?error=oauth_error', request.url));
+    }
+    
+    // 处理 PKCE 流程（token_hash + type）
+    if (tokenHash && type) {
+      console.log('检测到 PKCE 流程，token_hash:', tokenHash.substring(0, 20) + '...', 'type:', type);
+      
+      // 使用 verifyOtp 来处理 token_hash
+      const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: type as 'signup' | 'magiclink' | 'recovery' | 'invite' | 'email_change' | 'email',
+      });
+      
+      if (verifyError || !verifyData.session) {
+        console.error('PKCE 流程验证失败:', verifyError);
+        return NextResponse.redirect(new URL('/login?error=pkce_verify_failed', request.url));
+      }
+      
+      console.log('PKCE 验证成功，用户ID:', verifyData.session.user.id);
+      
+      // 设置 session
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token: verifyData.session.access_token,
+        refresh_token: verifyData.session.refresh_token,
+      });
+      
+      if (setSessionError) {
+        console.error('设置 session 失败:', setSessionError);
+        return NextResponse.redirect(new URL('/login?error=pkce_set_session_failed', request.url));
+      }
+      
+      // 检查用户是否需要完成问卷
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('metabolic_profile')
+        .eq('id', verifyData.session.user.id)
+        .single();
+      
+      if (!profile || !profile.metabolic_profile || Object.keys(profile.metabolic_profile).length === 0) {
+        console.log('用户未完成问卷，重定向到 /onboarding');
+        return NextResponse.redirect(new URL('/onboarding', request.url));
+      }
+      
+      console.log('用户已完成问卷，重定向到:', next);
+      return NextResponse.redirect(new URL(next, request.url));
     }
     
     if (code) {

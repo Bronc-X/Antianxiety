@@ -111,10 +111,10 @@ export default function AIAssistantFloatingButton() {
           onClick={() => !isDragging && setIsChatOpen(true)}
           variant="primary"
           size="lg"
-          className="flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-5 py-4 sm:px-6 sm:py-4 text-white shadow-lg min-h-[56px] sm:min-h-0 pointer-events-auto"
+          className="flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-8 py-6 sm:px-10 sm:py-7 text-white shadow-lg min-h-[90px] sm:min-h-0 pointer-events-auto"
           hapticFeedback={true}
         >
-          <span className="text-base sm:text-lg font-semibold">唤醒MAX</span>
+          <span className="text-2xl sm:text-3xl font-semibold">Max</span>
         </MotionButton>
       </motion.div>
 

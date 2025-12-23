@@ -53,80 +53,166 @@ const DATA_GAP_DEFINITIONS: DataGap[] = [
 ];
 
 // Inquiry question templates
-const INQUIRY_TEMPLATES: Record<string, InquiryQuestion> = {
+const INQUIRY_TEMPLATES: Record<string, Record<'zh' | 'en', InquiryQuestion>> = {
   sleep_hours: {
-    id: 'inquiry_sleep',
-    question_text: '昨晚睡得怎么样？大概睡了几个小时？',
-    question_type: 'diagnostic',
-    priority: 'high',
-    data_gaps_addressed: ['sleep_hours'],
-    options: [
-      { label: '不到6小时', value: 'under_6' },
-      { label: '6-7小时', value: '6_7' },
-      { label: '7-8小时', value: '7_8' },
-      { label: '8小时以上', value: 'over_8' },
-    ],
+    zh: {
+      id: 'inquiry_sleep',
+      question_text: '昨晚睡得怎么样？大概睡了几个小时？',
+      question_type: 'diagnostic',
+      priority: 'high',
+      data_gaps_addressed: ['sleep_hours'],
+      options: [
+        { label: '不到6小时', value: 'under_6' },
+        { label: '6-7小时', value: '6_7' },
+        { label: '7-8小时', value: '7_8' },
+        { label: '8小时以上', value: 'over_8' },
+      ],
+    },
+    en: {
+      id: 'inquiry_sleep',
+      question_text: 'How did you sleep last night? About how many hours?',
+      question_type: 'diagnostic',
+      priority: 'high',
+      data_gaps_addressed: ['sleep_hours'],
+      options: [
+        { label: 'Less than 6 hours', value: 'under_6' },
+        { label: '6-7 hours', value: '6_7' },
+        { label: '7-8 hours', value: '7_8' },
+        { label: 'More than 8 hours', value: 'over_8' },
+      ],
+    },
   },
   stress_level: {
-    id: 'inquiry_stress',
-    question_text: '今天感觉压力大吗？',
-    question_type: 'diagnostic',
-    priority: 'high',
-    data_gaps_addressed: ['stress_level'],
-    options: [
-      { label: '很轻松', value: 'low' },
-      { label: '有点紧张', value: 'medium' },
-      { label: '压力很大', value: 'high' },
-    ],
+    zh: {
+      id: 'inquiry_stress',
+      question_text: '今天感觉压力大吗？',
+      question_type: 'diagnostic',
+      priority: 'high',
+      data_gaps_addressed: ['stress_level'],
+      options: [
+        { label: '很轻松', value: 'low' },
+        { label: '有点紧张', value: 'medium' },
+        { label: '压力很大', value: 'high' },
+      ],
+    },
+    en: {
+      id: 'inquiry_stress',
+      question_text: 'Are you feeling stressed today?',
+      question_type: 'diagnostic',
+      priority: 'high',
+      data_gaps_addressed: ['stress_level'],
+      options: [
+        { label: 'Very relaxed', value: 'low' },
+        { label: 'A bit tense', value: 'medium' },
+        { label: 'Very stressed', value: 'high' },
+      ],
+    },
   },
   exercise_duration: {
-    id: 'inquiry_exercise',
-    question_text: '今天有运动吗？',
-    question_type: 'diagnostic',
-    priority: 'medium',
-    data_gaps_addressed: ['exercise_duration'],
-    options: [
-      { label: '没有', value: 'none' },
-      { label: '轻度活动', value: 'light' },
-      { label: '中等强度', value: 'moderate' },
-      { label: '高强度', value: 'intense' },
-    ],
+    zh: {
+      id: 'inquiry_exercise',
+      question_text: '今天有运动吗？',
+      question_type: 'diagnostic',
+      priority: 'medium',
+      data_gaps_addressed: ['exercise_duration'],
+      options: [
+        { label: '没有', value: 'none' },
+        { label: '轻度活动', value: 'light' },
+        { label: '中等强度', value: 'moderate' },
+        { label: '高强度', value: 'intense' },
+      ],
+    },
+    en: {
+      id: 'inquiry_exercise',
+      question_text: 'Did you exercise today?',
+      question_type: 'diagnostic',
+      priority: 'medium',
+      data_gaps_addressed: ['exercise_duration'],
+      options: [
+        { label: 'No', value: 'none' },
+        { label: 'Light activity', value: 'light' },
+        { label: 'Moderate intensity', value: 'moderate' },
+        { label: 'High intensity', value: 'intense' },
+      ],
+    },
   },
   meal_quality: {
-    id: 'inquiry_meal',
-    question_text: '今天吃得健康吗？',
-    question_type: 'diagnostic',
-    priority: 'medium',
-    data_gaps_addressed: ['meal_quality'],
-    options: [
-      { label: '很健康', value: 'healthy' },
-      { label: '一般', value: 'average' },
-      { label: '不太健康', value: 'unhealthy' },
-    ],
+    zh: {
+      id: 'inquiry_meal',
+      question_text: '今天吃得健康吗？',
+      question_type: 'diagnostic',
+      priority: 'medium',
+      data_gaps_addressed: ['meal_quality'],
+      options: [
+        { label: '很健康', value: 'healthy' },
+        { label: '一般', value: 'average' },
+        { label: '不太健康', value: 'unhealthy' },
+      ],
+    },
+    en: {
+      id: 'inquiry_meal',
+      question_text: 'Did you eat healthy today?',
+      question_type: 'diagnostic',
+      priority: 'medium',
+      data_gaps_addressed: ['meal_quality'],
+      options: [
+        { label: 'Very healthy', value: 'healthy' },
+        { label: 'Average', value: 'average' },
+        { label: 'Not very healthy', value: 'unhealthy' },
+      ],
+    },
   },
   mood: {
-    id: 'inquiry_mood',
-    question_text: '现在心情如何？',
-    question_type: 'diagnostic',
-    priority: 'low',
-    data_gaps_addressed: ['mood'],
-    options: [
-      { label: '很好', value: 'great' },
-      { label: '还行', value: 'okay' },
-      { label: '不太好', value: 'bad' },
-    ],
+    zh: {
+      id: 'inquiry_mood',
+      question_text: '现在心情如何？',
+      question_type: 'diagnostic',
+      priority: 'low',
+      data_gaps_addressed: ['mood'],
+      options: [
+        { label: '很好', value: 'great' },
+        { label: '还行', value: 'okay' },
+        { label: '不太好', value: 'bad' },
+      ],
+    },
+    en: {
+      id: 'inquiry_mood',
+      question_text: 'How are you feeling right now?',
+      question_type: 'diagnostic',
+      priority: 'low',
+      data_gaps_addressed: ['mood'],
+      options: [
+        { label: 'Great', value: 'great' },
+        { label: 'Okay', value: 'okay' },
+        { label: 'Not good', value: 'bad' },
+      ],
+    },
   },
   water_intake: {
-    id: 'inquiry_water',
-    question_text: '今天喝了多少水？',
-    question_type: 'diagnostic',
-    priority: 'low',
-    data_gaps_addressed: ['water_intake'],
-    options: [
-      { label: '不到4杯', value: 'low' },
-      { label: '4-8杯', value: 'moderate' },
-      { label: '8杯以上', value: 'high' },
-    ],
+    zh: {
+      id: 'inquiry_water',
+      question_text: '今天喝了多少水？',
+      question_type: 'diagnostic',
+      priority: 'low',
+      data_gaps_addressed: ['water_intake'],
+      options: [
+        { label: '不到4杯', value: 'low' },
+        { label: '4-8杯', value: 'moderate' },
+        { label: '8杯以上', value: 'high' },
+      ],
+    },
+    en: {
+      id: 'inquiry_water',
+      question_text: 'How much water did you drink today?',
+      question_type: 'diagnostic',
+      priority: 'low',
+      data_gaps_addressed: ['water_intake'],
+      options: [
+        { label: 'Less than 4 cups', value: 'low' },
+        { label: '4-8 cups', value: 'moderate' },
+        { label: 'More than 8 cups', value: 'high' },
+      ],
+    },
   },
 };
 
@@ -179,15 +265,19 @@ export function prioritizeDataGaps(gaps: DataGap[]): DataGap[] {
  */
 export function generateInquiryQuestion(
   gaps: DataGap[],
-  phaseGoals: PhaseGoal[] = []
+  phaseGoals: PhaseGoal[] = [],
+  language: 'zh' | 'en' = 'zh'
 ): InquiryQuestion | null {
   if (gaps.length === 0) return null;
   
   const prioritizedGaps = prioritizeDataGaps(gaps);
   const topGap = prioritizedGaps[0];
   
-  const template = INQUIRY_TEMPLATES[topGap.field];
-  if (!template) return null;
+  const templates = INQUIRY_TEMPLATES[topGap.field];
+  if (!templates) return null;
+  
+  const template = templates[language];
+  if (!template) return templates['zh']; // Fallback to Chinese
   
   // Customize question based on phase goals if relevant
   let customizedQuestion = { ...template };
@@ -196,9 +286,12 @@ export function generateInquiryQuestion(
     const primaryGoal = phaseGoals.find(g => g.priority === 1);
     if (primaryGoal) {
       // Add goal context to question
+      const prefix = language === 'en' 
+        ? `Regarding your "${primaryGoal.title}" goal, `
+        : `关于你的「${primaryGoal.title}」目标，`;
       customizedQuestion = {
         ...customizedQuestion,
-        question_text: `关于你的「${primaryGoal.title}」目标，${template.question_text}`,
+        question_text: `${prefix}${template.question_text}`,
       };
     }
   }
@@ -206,8 +299,11 @@ export function generateInquiryQuestion(
   return customizedQuestion;
 }
 
-export function getInquiryOptionsForGap(field: string) {
-  const template = INQUIRY_TEMPLATES[field];
+export function getInquiryOptionsForGap(field: string, language: 'zh' | 'en' = 'zh') {
+  const templates = INQUIRY_TEMPLATES[field];
+  if (!templates) return null;
+  
+  const template = templates[language] || templates['zh'];
   if (!template?.options || template.options.length === 0) {
     return null;
   }

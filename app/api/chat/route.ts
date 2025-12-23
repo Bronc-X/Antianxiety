@@ -24,6 +24,9 @@ import {
   buildContextWithMemories,
 } from '@/lib/aiMemory';
 
+// 🆕 导入 Inquiry 上下文系统
+import { getInquiryContext, generateInquirySummary } from '@/lib/inquiry-context';
+
 // 🆕 导入 API 工具函数（从合并的 /api/ai/chat）
 import { fetchWithRetry, parseApiError } from '@/lib/apiUtils';
 
@@ -255,7 +258,8 @@ function buildUserContext(
   todayBioData?: DailyWellnessLog | null,
   recentBioData: DailyWellnessLog[] = [],
   questionnaireData?: QuestionnaireData | null,
-  activePlan?: ActivePlan | null // 🆕 Added activePlan
+  activePlan?: ActivePlan | null, // 🆕 Added activePlan
+  inquirySummary?: string | null // 🆕 Added inquiry summary
 ): string {
   if (!profile) return '';
 
@@ -502,6 +506,15 @@ function buildUserContext(
     parts.push(`2. 如果用户反馈某项难以坚持，必须提供[平替方案] (Flat Replacement) —— 效果相似但更符合用户习惯的替代项。`);
   }
 
+  // ---------------------------------------------------------
+  // 🆕 主动询问上下文 (INQUIRY CONTEXT)
+  // ---------------------------------------------------------
+  if (inquirySummary) {
+    parts.push(`\n[ACTIVE INQUIRY INSIGHTS - 主动询问洞察]`);
+    parts.push(inquirySummary);
+    parts.push(`\n⚠️ AI 指导：根据用户最近的主动询问回答，调整对话策略和建议内容。`);
+  }
+
   const context = parts.length > 1 ? parts.join('\n') : '';
 
   // 调试日志
@@ -729,7 +742,17 @@ export async function POST(req: Request) {
       }
 
       if (userProfile) {
-        userContext = buildUserContext(userProfile, todayBioData, recentBioData, questionnaireData, activePlan);
+        // 🆕 获取 Inquiry 上下文
+        let inquirySummary: string | null = null;
+        try {
+          const inquiryContext = await getInquiryContext(userId);
+          inquirySummary = generateInquirySummary(inquiryContext, 'zh');
+          console.log('📋 Inquiry 上下文已加载:', inquirySummary);
+        } catch (error) {
+          console.warn('⚠️ 获取 Inquiry 上下文失败:', error);
+        }
+        
+        userContext = buildUserContext(userProfile, todayBioData, recentBioData, questionnaireData, activePlan, inquirySummary);
       }
     }
 

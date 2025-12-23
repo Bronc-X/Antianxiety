@@ -17,7 +17,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.plans': '我的计划',
     'nav.settings': '设置',
     'nav.early': '获取早期访问权限',
-    'nav.scienceInsight': '科学与洞察',
+    'nav.scienceInsight': '科学洞察',
+    'nav.assistant': '智能计划',
+    'nav.analysis': '推荐',
     'nav.upgrade': '升级',
 
     // ========== Welcome 页面 ==========
@@ -383,6 +385,14 @@ export const translations: Record<Language, Record<string, string>> = {
     'followUp.start': '开始',
     'followUp.minutesLater': '分钟后',
 
+    // ========== 主动询问横幅 ==========
+    'inquiry.maxAsks': 'Max 想问你',
+    'inquiry.activeCare': '主动关怀',
+    'inquiry.laterButton': '稍后再说',
+    'inquiry.submitButton': '提交',
+    'inquiry.submitting': '提交中...',
+    'inquiry.recommendedForYou': '为你推荐',
+
     // ========== 理解度评分 ==========
     'score.understandingScore': '理解度评分',
     'score.deepUnderstanding': '深度理解已达成！',
@@ -670,14 +680,14 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.pricing': '升級',
     'nav.login': '登入',
     'nav.signup': '註冊',
-    'nav.assistant': '動態身體報告',
-    'nav.analysis': '向你推薦',
+    'nav.assistant': '智能計劃',
+    'nav.analysis': '推薦',
     'nav.assessment': '症狀評估',
     'nav.bayesian': '認知天平',
     'nav.plans': '我的計劃',
     'nav.settings': '設定',
     'nav.early': '獲取早期訪問權限',
-    'nav.scienceInsight': '科學與洞察',
+    'nav.scienceInsight': '科學洞察',
     'nav.upgrade': '升級',
 
     // ========== 通用 ==========
@@ -880,6 +890,14 @@ export const translations: Record<Language, Record<string, string>> = {
 
     'ritual.distortion.detected': '檢測到認知扭曲',
     'ritual.distortion.analysis': '你的恐懼被放大了 {percent}%。邏輯分析顯示這種結果並不常見，但你的情緒預測（先驗信念）仍然居高不下。',
+
+    // ========== 主動詢問橫幅 ==========
+    'inquiry.maxAsks': 'Max 想問你',
+    'inquiry.activeCare': '主動關懷',
+    'inquiry.laterButton': '稍後再說',
+    'inquiry.submitButton': '提交',
+    'inquiry.submitting': '提交中...',
+    'inquiry.recommendedForYou': '為你推薦',
   },
   en: {
     // ========== Welcome Page ==========
@@ -973,7 +991,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.plans': 'My Plans',
     'nav.settings': 'Settings',
     'nav.early': 'Get Early Access',
-    'nav.scienceInsight': 'Science & Insights',
+    'nav.scienceInsight': 'Science Insights',
+    'nav.assistant': 'Smart Plan',
+    'nav.analysis': 'Recommendations',
     'nav.upgrade': 'Upgrade',
 
     // ========== Common ==========
@@ -1477,6 +1497,14 @@ export const translations: Record<Language, Record<string, string>> = {
     'settings.imageTooLarge': 'Image size cannot exceed 2MB',
     'settings.avatarUploadSuccess': 'Avatar uploaded! Remember to save settings.',
     'settings.avatarUploadFail': 'Avatar upload failed, please try again',
+
+    // ========== Active Inquiry Banner ==========
+    'inquiry.maxAsks': 'Max asks you',
+    'inquiry.activeCare': 'Active Care',
+    'inquiry.laterButton': 'Later',
+    'inquiry.submitButton': 'Submit',
+    'inquiry.submitting': 'Submitting...',
+    'inquiry.recommendedForYou': 'Recommended for you',
 
   },
 };

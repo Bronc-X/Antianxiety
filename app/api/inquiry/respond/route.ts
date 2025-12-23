@@ -45,8 +45,100 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (updateError) {
-      console.error('Error updating inquiry:', updateError);
+      console.error('❌ [Inquiry] Error updating inquiry:', updateError);
       return NextResponse.json({ error: 'Failed to record response' }, { status: 500 });
+    }
+    
+    console.log('✅ [Inquiry] Response recorded:', {
+      inquiryId,
+      response,
+      dataGaps: updatedInquiry.data_gaps_addressed,
+      respondedAt: updatedInquiry.responded_at
+    });
+
+    // Sync inquiry response to daily_calibrations
+    const dataGaps = updatedInquiry.data_gaps_addressed || [];
+    if (dataGaps.length > 0) {
+      const gapField = dataGaps[0];
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Map response values to calibration data
+      const calibrationUpdate: Record<string, any> = {};
+      
+      switch (gapField) {
+        case 'sleep_hours':
+          // Map sleep response to hours
+          const sleepMap: Record<string, number> = {
+            'under_6': 5,
+            '6_7': 6.5,
+            '7_8': 7.5,
+            'over_8': 8.5,
+          };
+          calibrationUpdate.sleep_hours = sleepMap[response] || null;
+          break;
+          
+        case 'stress_level':
+          // Map stress response to level (1-10 scale)
+          const stressMap: Record<string, number> = {
+            'low': 3,
+            'medium': 6,
+            'high': 9,
+          };
+          calibrationUpdate.stress_level = stressMap[response] || null;
+          break;
+          
+        case 'exercise_duration':
+          // Map exercise response to minutes
+          const exerciseMap: Record<string, number> = {
+            'none': 0,
+            'light': 15,
+            'moderate': 30,
+            'intense': 60,
+          };
+          calibrationUpdate.exercise_duration = exerciseMap[response] || null;
+          break;
+          
+        case 'mood':
+          // Map mood response to score (1-10 scale)
+          const moodMap: Record<string, number> = {
+            'bad': 3,
+            'okay': 6,
+            'great': 9,
+          };
+          calibrationUpdate.mood_score = moodMap[response] || null;
+          break;
+          
+        case 'meal_quality':
+          // Store as text for now
+          calibrationUpdate.meal_quality = response;
+          break;
+          
+        case 'water_intake':
+          // Store as text for now
+          calibrationUpdate.water_intake = response;
+          break;
+      }
+      
+      // Upsert to daily_calibrations
+      if (Object.keys(calibrationUpdate).length > 0) {
+        const { error: calibrationError } = await supabase
+          .from('daily_calibrations')
+          .upsert({
+            user_id: user.id,
+            date: today,
+            ...calibrationUpdate,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id,date',
+          });
+          
+        if (calibrationError) {
+          console.warn('Error syncing to daily_calibrations:', calibrationError);
+          // Don't fail the request for this
+        } else {
+          console.log(`✅ Synced ${gapField} to daily_calibrations:`, calibrationUpdate);
+        }
+      }
     }
 
     // Update user activity pattern (for optimal timing calculation)
