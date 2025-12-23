@@ -2,12 +2,15 @@
   "name": "antianxiety",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev",
     "restart": "pkill -f 'next dev' || true; rm -f .next/dev/lock; sleep 1; npm run dev",
     "restart:windows": "powershell -ExecutionPolicy Bypass -File restart-dev.ps1",
     "restart:unix": "bash ./restart-dev.sh",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
