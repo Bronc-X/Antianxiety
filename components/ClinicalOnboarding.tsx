@@ -62,12 +62,15 @@ interface OnboardingProgress {
     savedAt: string;
 }
 
-type OnboardingStep = 'welcome' | 'questions' | 'safety' | 'analyzing' | 'result';
+type OnboardingStep = 'welcome' | 'questions' | 'encouragement' | 'safety' | 'analyzing' | 'result';
 
 // ============ Scale Configuration ============
 
 const SCALES_ORDER: ScaleDefinition[] = [GAD7, PHQ9, ISI];
 const QUESTIONS_PER_PAGE = 4;
+
+// Encouragement pages - show after specific pages
+const ENCOURAGEMENT_PAGES = [2, 4]; // Show after page 2 and page 4 (0-indexed)
 
 // Flatten all questions with scale info
 interface FlatQuestion extends ScaleQuestion {
@@ -130,6 +133,7 @@ export function ClinicalOnboarding({
     const [safetyMessage, setSafetyMessage] = useState('');
     const [result, setResult] = useState<OnboardingResult | null>(null);
     const [pendingSafetyQuestion, setPendingSafetyQuestion] = useState<string | null>(null);
+    const [showEncouragement, setShowEncouragement] = useState(false);
 
     // Get questions for current page
     const pageStart = currentPage * QUESTIONS_PER_PAGE;
@@ -177,12 +181,26 @@ export function ClinicalOnboarding({
     const goToNextPage = useCallback(() => {
         if (currentPage < TOTAL_PAGES - 1) {
             setDirection(1);
-            setCurrentPage(prev => prev + 1);
+            
+            // Check if we should show encouragement after this page
+            if (ENCOURAGEMENT_PAGES.includes(currentPage)) {
+                setShowEncouragement(true);
+                setStep('encouragement');
+            } else {
+                setCurrentPage(prev => prev + 1);
+            }
         } else {
             // All pages complete
             completeOnboarding();
         }
     }, [currentPage]);
+
+    // Continue from encouragement
+    const continueFromEncouragement = useCallback(() => {
+        setShowEncouragement(false);
+        setStep('questions');
+        setCurrentPage(prev => prev + 1);
+    }, []);
 
     // Go to previous page
     const goToPreviousPage = useCallback(() => {
@@ -469,6 +487,77 @@ export function ClinicalOnboarding({
                                 <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
+                    </motion.div>
+                )}
+
+                {/* Encouragement */}
+                {step === 'encouragement' && (
+                    <motion.div
+                        key="encouragement"
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        custom={direction}
+                        className="relative p-10 md:p-12 text-center"
+                    >
+                        <div className="flex justify-center mb-8">
+                            <motion.div
+                                initial={{ scale: 0.8, rotate: -10 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                transition={{ type: 'spring', stiffness: 200 }}
+                                className="w-20 h-20 rounded-[22px] bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-2xl"
+                            >
+                                <Sparkles className="w-10 h-10 text-white" strokeWidth={2} />
+                            </motion.div>
+                        </div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            <h3 className="text-2xl font-semibold text-neutral-900 mb-4">
+                                {currentPage === 2 ? '做得很好！' : '快完成了！'}
+                            </h3>
+                            <p className="text-neutral-500 text-lg mb-6">
+                                {currentPage === 2 
+                                    ? '你已经完成了一半，继续保持！' 
+                                    : '只剩最后几个问题了，坚持住！'
+                                }
+                            </p>
+
+                            {/* Progress visualization */}
+                            <div className="flex justify-center gap-2 mb-8">
+                                {Array.from({ length: TOTAL_PAGES }).map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className={`h-2 rounded-full transition-all ${
+                                            i <= currentPage 
+                                                ? 'w-8 bg-gradient-to-r from-emerald-400 to-teal-500' 
+                                                : 'w-2 bg-neutral-200'
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 mb-8">
+                                <p className="text-sm text-neutral-700 leading-relaxed">
+                                    {currentPage === 2 
+                                        ? '你的每一个回答都在帮助 Max 更好地了解你，为你定制最适合的健康方案。' 
+                                        : 'Max 已经开始为你准备个性化建议了，马上就能看到你的健康画像！'
+                                    }
+                                </p>
+                            </div>
+                        </motion.div>
+
+                        <button
+                            onClick={continueFromEncouragement}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/20"
+                        >
+                            <span>继续</span>
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
                     </motion.div>
                 )}
 

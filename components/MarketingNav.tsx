@@ -60,45 +60,21 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
               </span>
             </Link>
           </div>
-          <nav className="hidden md:flex items-center gap-1 text-sm bg-black/5 dark:bg-white/5 p-1 rounded-full backdrop-blur-md">
-            <LanguageSwitcher />
-
-            {user ? (
-              <div className="flex items-center relative" onMouseLeave={() => setHoveredPath(null)}>
+          
+          {user && (
+            <nav className="hidden md:flex items-center gap-3 text-sm bg-black/5 dark:bg-white/5 p-1 rounded-full backdrop-blur-md">
+              <LanguageSwitcher />
+              <div className="flex items-center relative gap-3" onMouseLeave={() => setHoveredPath(null)}>
                 {[
-                  { href: '#model', label: t('nav.scienceInsight'), isAnchor: true },
+                  { href: '/welcome', label: t('nav.scienceInsight') },
                   { href: '/assistant', label: t('nav.assistant') },
                   { href: '/analysis', label: t('nav.analysis') },
-                  { href: '/assessment', label: t('nav.assessment') },
-                  { href: '/bayesian', label: t('nav.bayesian') },
                   { href: '/onboarding/upgrade?from=landing', label: t('nav.upgrade') },
                 ].map((item) => {
                   const isActive = item.href === hoveredPath;
 
-                  // Common class for links
-                  const linkClass = "relative px-4 py-2 rounded-full text-sm font-medium transition-colors z-10 duration-200 " +
+                  const linkClass = "relative px-6 py-2 rounded-full text-sm font-medium transition-colors z-10 duration-200 " +
                     (isActive ? "text-black dark:text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white");
-
-                  if (item.isAnchor) {
-                    return (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        onClick={(e) => handleAnchorClick(e, item.href)}
-                        onMouseEnter={() => setHoveredPath(item.href)}
-                        className={linkClass}
-                      >
-                        {isActive && (
-                          <motion.div
-                            layoutId="nav-pill"
-                            className="absolute inset-0 bg-white dark:bg-neutral-800 rounded-full shadow-sm z-[-1]"
-                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                          />
-                        )}
-                        {item.label}
-                      </a>
-                    );
-                  }
 
                   return (
                     <Link
@@ -122,22 +98,8 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
                   <UserProfileMenu user={user} profile={profile} />
                 </div>
               </div>
-            ) : (
-              // Login/Signup Section remains simple for contrast
-              <div className="flex items-center gap-3 pl-4">
-                <Link href="/login" className="text-[#0B3D2E]/80 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors">
-                  {t('nav.login')}
-                </Link>
-                <a
-                  href="#cta"
-                  onClick={(e) => handleAnchorClick(e, '#cta')}
-                  className="inline-flex items-center rounded-full bg-[#0B3D2E] dark:bg-white px-5 py-2 text-sm font-medium text-white dark:text-neutral-900 hover:bg-[#0a3629] dark:hover:bg-neutral-200 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-emerald-900/10"
-                >
-                  {t('nav.early')}
-                </a>
-              </div>
-            )}
-          </nav>
+            </nav>
+          )}
         </div>
       </div>
     </AnimatedSection>

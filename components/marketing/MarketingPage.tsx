@@ -29,7 +29,7 @@ export default function MarketingPage({ onStart }: { onStart?: () => void }) {
 
     return (
         <div className="bg-[#FAF6EF] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-[#F9F8F6] min-h-screen selection:bg-[#D4AF37]/20 relative">
-            <MarketingNav user={null} profile={null} />
+            {/* MarketingNav removed as requested */}
 
             <HeroSection onStart={onStart} />
 

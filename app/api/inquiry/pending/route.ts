@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if there's a recent unanswered inquiry
+    // Check if there's ANY unanswered inquiry (don't limit by time)
+    // This prevents creating duplicate inquiries for the same data gap
     const { data: recentInquiry } = await supabase
       .from('inquiry_history')
       .select('*')
@@ -40,13 +41,24 @@ export async function GET(request: NextRequest) {
       const gapField = Array.isArray(recentInquiry.data_gaps_addressed)
         ? recentInquiry.data_gaps_addressed[0]
         : undefined;
-      const derivedOptions = gapField ? getInquiryOptionsForGap(gapField) : null;
-      // Return existing pending inquiry
+      const userLanguage = (request.nextUrl.searchParams.get('language') || 'zh') as 'zh' | 'en';
+      
+      // Get the question template for the current language
+      let questionText = recentInquiry.question_text;
+      if (gapField) {
+        const template = generateInquiryQuestion([{ field: gapField, importance: 'high', description: '' }], [], userLanguage);
+        if (template) {
+          questionText = template.question_text;
+        }
+      }
+      
+      const derivedOptions = gapField ? getInquiryOptionsForGap(gapField, userLanguage) : null;
+      // Return existing pending inquiry with language-specific text
       const response: InquiryPendingResponse = {
         hasInquiry: true,
         inquiry: {
           id: recentInquiry.id,
-          question_text: recentInquiry.question_text,
+          question_text: questionText,
           question_type: recentInquiry.question_type,
           priority: recentInquiry.priority,
           data_gaps_addressed: recentInquiry.data_gaps_addressed || [],
@@ -60,6 +72,45 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate new inquiry based on data gaps
+    // Check if user answered recently (20 minute cooldown)
+    const twentyMinutesAgo = new Date();
+    twentyMinutesAgo.setMinutes(twentyMinutesAgo.getMinutes() - 20);
+    
+    const { data: recentResponse } = await supabase
+      .from('inquiry_history')
+      .select('responded_at')
+      .eq('user_id', user.id)
+      .not('user_response', 'is', null)
+      .gte('responded_at', twentyMinutesAgo.toISOString())
+      .order('responded_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (recentResponse) {
+      const minutesAgo = Math.floor((Date.now() - new Date(recentResponse.responded_at).getTime()) / 60000);
+      console.log(`📋 [Inquiry] Cooldown active (${minutesAgo}/20 minutes)`);
+      return NextResponse.json({ hasInquiry: false });
+    }
+    
+    // Check which data gaps were already answered today
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayResponses } = await supabase
+      .from('inquiry_history')
+      .select('data_gaps_addressed')
+      .eq('user_id', user.id)
+      .not('user_response', 'is', null)
+      .gte('responded_at', `${today}T00:00:00Z`);
+    
+    const answeredGapsToday = new Set<string>();
+    if (todayResponses) {
+      todayResponses.forEach(r => {
+        if (r.data_gaps_addressed) {
+          r.data_gaps_addressed.forEach((gap: string) => answeredGapsToday.add(gap));
+        }
+      });
+    }
+    console.log('📋 [Inquiry] Data gaps answered today:', Array.from(answeredGapsToday));
+    
     // Get user's recent data
     const { data: recentCalibrations } = await supabase
       .from('daily_calibrations')
@@ -93,14 +144,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Identify data gaps
-    const gaps = identifyDataGaps(recentData);
+    const allGaps = identifyDataGaps(recentData);
+    
+    // Filter out gaps that were already answered today
+    const gaps = allGaps.filter(gap => !answeredGapsToday.has(gap.field));
     
     if (gaps.length === 0) {
+      console.log('📋 [Inquiry] No new data gaps to ask about (all answered today)');
       return NextResponse.json({ hasInquiry: false });
     }
 
-    // Generate inquiry question
-    const inquiry = generateInquiryQuestion(gaps, phaseGoals || []);
+    // Generate inquiry question with user's language
+    const userLanguage = (request.nextUrl.searchParams.get('language') || 'zh') as 'zh' | 'en';
+    const inquiry = generateInquiryQuestion(gaps, phaseGoals || [], userLanguage);
     
     if (!inquiry) {
       return NextResponse.json({ hasInquiry: false });

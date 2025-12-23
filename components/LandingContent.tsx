@@ -156,6 +156,20 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] dark:bg-neutral-950 p-0 transition-colors relative overflow-hidden">
+      {/* AI 主动问询 Banner - 固定在最上层，独立于其他内容 */}
+      {user?.id && showInquiry && (
+        <Suspense fallback={null}>
+          <ActiveInquiryBanner
+            userId={user.id}
+            onDismiss={() => setShowInquiry(false)}
+            onRespond={(response) => {
+              console.log('[AI Inquiry] User response:', response);
+              setShowInquiry(false);
+            }}
+          />
+        </Suspense>
+      )}
+
       {/* Fixed Grid Lines (Visible Grid System) - Parallax Effect */}
       <motion.div style={{ y: gridY }} className="fixed inset-0 pointer-events-none z-0 flex justify-between px-8 md:px-16 max-w-[1600px] mx-auto">
         <div className="bg-grid-lines w-full h-full absolute inset-0 mix-blend-multiply opacity-[0.4]" />
@@ -236,22 +250,6 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* AI 主动问询 Banner - 显示待处理的问询 */}
-          {user?.id && showInquiry && (
-            <div className="md:col-span-2">
-              <Suspense fallback={<LoadingPlaceholder height="h-24" />}>
-                <ActiveInquiryBanner
-                  userId={user.id}
-                  onDismiss={() => setShowInquiry(false)}
-                  onRespond={(response) => {
-                    console.log('[AI Inquiry] User response:', response);
-                    setShowInquiry(false);
-                  }}
-                />
-              </Suspense>
-            </div>
-          )}
         </div>
 
         {/* Tool Cards (New Mango Style) - 包含每日校准作为第三张卡片 */}
