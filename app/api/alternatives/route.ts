@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     
     const supabase = getSupabaseClient();
 
-    const ownerId = await getActionItemOwnerId(supabase, actionItemId);
+    const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
     if (!ownerId) {
       return NextResponse.json(
         { error: 'Action item not found' },
