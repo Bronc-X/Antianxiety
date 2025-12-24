@@ -36,7 +36,7 @@ const fallbackNewsZh: CuratedItem[] = [
     thumbnail: null,
     language: "zh",
     matchedTags: [],
-    benefit: "完成更多记录后，我们会给出更精准的推荐理由与可执行要点。",
+    benefit: "基于你的健康数据分析，AI 正在筛选与你当前状态最相关的内容。",
   },
 ];
 
@@ -54,7 +54,7 @@ const fallbackNewsEn: CuratedItem[] = [
     thumbnail: null,
     language: "en",
     matchedTags: [],
-    benefit: "Once you log more data, we will explain why each item matters and how to use it.",
+    benefit: "Based on your health data analysis, AI is filtering content most relevant to your current state.",
   },
 ];
 
@@ -69,16 +69,23 @@ const getMatchScoreColor = (score: number): string => {
 const PlatformLogo = ({ source, className = "w-4 h-4" }: { source: string; className?: string }) => {
   switch (source) {
     case "pubmed":
+      // PubMed official blue logo - simplified version
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+        <svg className={className} viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="6" width="20" height="12" rx="6" fill="#326599" />
+          <text x="12" y="14" textAnchor="middle" fill="white" fontSize="6" fontFamily="Arial" fontWeight="bold">PM</text>
         </svg>
       );
     case "semantic_scholar":
+      // Semantic Scholar - orange/yellow AI-like mark
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z" />
-          <path d="M12 16.5l-7-3.82V17l7 4 7-4v-4.32l-7 3.82z" />
+        <svg className={className} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" fill="#F5A623" />
+          <path d="M7 12h10M12 7v10" stroke="white" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="7" cy="12" r="2" fill="white" />
+          <circle cx="17" cy="12" r="2" fill="white" />
+          <circle cx="12" cy="7" r="2" fill="white" />
+          <circle cx="12" cy="17" r="2" fill="white" />
         </svg>
       );
     case "youtube":
@@ -372,7 +379,8 @@ export default function InfiniteNewsFeed({
                     )}
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3">
+                      {/* 标题 + 匹配度 */}
+                      <div className="flex items-start justify-between gap-3 mb-2">
                         <h4 className="text-base font-semibold text-[#0B3D2E] dark:text-white leading-snug">
                           {item.title}
                         </h4>
@@ -384,39 +392,48 @@ export default function InfiniteNewsFeed({
                         </span>
                       </div>
 
-                      <p className="text-sm text-gray-600 dark:text-neutral-400 leading-relaxed mt-2 line-clamp-3">
+                      {/* 简介/核心摘要 */}
+                      <p className="text-sm text-gray-600 dark:text-neutral-400 leading-relaxed line-clamp-3 mb-3">
                         {item.summary}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500 mt-3">
-                        <span className="px-2 py-1 rounded border border-[#E7E1D6] flex items-center gap-1.5">
+                      {/* 出处信息 */}
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500 mb-4 pb-3 border-b border-[#E7E1D6]/50">
+                        <span className="px-2 py-1 rounded border border-[#E7E1D6] flex items-center gap-1.5 bg-white/50">
                           <PlatformLogo source={item.source} className="w-4 h-4" />
                           <span className="text-[#6B7B66] font-medium">{item.sourceLabel}</span>
                         </span>
-                        {item.author && <span>{item.author}</span>}
-                        <span>{formatDate(item.publishedAt, isZh)}</span>
+                        {item.author && <span className="text-[#6B7B66]">• {item.author}</span>}
+                        <span className="text-[#9CAF88]">{formatDate(item.publishedAt, isZh)}</span>
                         {showLanguageHint && (
-                          <span className="px-2 py-0.5 rounded border border-[#E7E1D6] text-[#9CAF88] font-mono">
-                            {isZh ? "英文内容" : "Non-English"}
+                          <span className="px-2 py-0.5 rounded border border-amber-200 text-amber-600 bg-amber-50">
+                            {isZh ? "英文原文" : "Non-English"}
                           </span>
                         )}
                       </div>
 
-                      <div className="mt-4 rounded-xl border border-[#E7E1D6]/80 bg-[#FAF6EF]/80 dark:bg-neutral-800/80 px-4 py-3">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#9CAF88] mb-2">
-                          {isZh ? "为什么推荐给你" : "Why This Matters for You"}
+                      {/* AI 推荐原因 - 展示思考逻辑 */}
+                      <div className="rounded-xl border border-[#9CAF88]/30 bg-gradient-to-r from-[#9CAF88]/5 to-[#D4AF37]/5 px-4 py-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#9CAF88] to-[#7a9268] flex items-center justify-center">
+                            <span className="text-[10px] text-white font-bold">AI</span>
+                          </div>
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#0B3D2E]/70">
+                            {isZh ? "Max 推荐理由" : "Why Max Recommends This"}
+                          </span>
                         </div>
-                        <p className="text-sm text-[#0B3D2E]/80 dark:text-neutral-200 leading-relaxed">
-                          {item.benefit}
+                        <p className="text-sm text-[#0B3D2E]/80 dark:text-neutral-200 leading-relaxed italic">
+                          "{item.benefit}"
                         </p>
                       </div>
 
-                      <div className="mt-4">
+                      {/* 查看原文链接 */}
+                      <div className="mt-4 flex items-center justify-between">
                         <a
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs text-[#9CAF88] hover:text-[#7A9A6A] transition-colors"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0B3D2E] hover:text-[#D4AF37] transition-colors"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -426,8 +443,17 @@ export default function InfiniteNewsFeed({
                               d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                             />
                           </svg>
-                          {isZh ? "查看原文" : "View Source"}
+                          {isZh ? "阅读全文 →" : "Read Full Article →"}
                         </a>
+                        {item.matchedTags.length > 0 && (
+                          <div className="flex gap-1">
+                            {item.matchedTags.slice(0, 2).map(tag => (
+                              <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-[#9CAF88]/10 text-[#6B7B66]">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

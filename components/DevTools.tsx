@@ -23,7 +23,7 @@ export function DevTools() {
 
   const toggleGrab = useCallback(() => {
     if (isDragging) return; // Don't toggle if dragging
-    
+
     const grab = (window as any).__REACT_GRAB__;
     if (grab) {
       if (grab.isActive?.()) {
@@ -50,7 +50,7 @@ export function DevTools() {
 
     // Check state periodically
     const interval = setInterval(checkState, 500);
-    
+
     // Keyboard shortcut: Ctrl+Shift+C
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'C') {
@@ -58,7 +58,7 @@ export function DevTools() {
         toggleGrab();
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
@@ -74,7 +74,7 @@ export function DevTools() {
     const handleMouseMove = (e: MouseEvent) => {
       const deltaX = e.clientX - dragStartRef.current.startX;
       const deltaY = e.clientY - dragStartRef.current.startY;
-      
+
       setPosition({
         x: dragStartRef.current.x + deltaX,
         y: dragStartRef.current.y + deltaY,
@@ -85,7 +85,7 @@ export function DevTools() {
       const touch = e.touches[0];
       const deltaX = touch.clientX - dragStartRef.current.startX;
       const deltaY = touch.clientY - dragStartRef.current.startY;
-      
+
       setPosition({
         x: dragStartRef.current.x + deltaX,
         y: dragStartRef.current.y + deltaY,
@@ -117,18 +117,21 @@ export function DevTools() {
   }, [position.y]);
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    
+    // Only prevent default for touch events to avoid interfering with text selection
+    if ('touches' in e) {
+      e.preventDefault();
+    }
+
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
+
     dragStartRef.current = {
       x: position.x,
       y: position.y,
       startX: clientX,
       startY: clientY,
     };
-    
+
     setIsDragging(true);
   };
 
@@ -149,11 +152,10 @@ export function DevTools() {
         bottom: position.y === -1 ? 16 : 'auto',
         touchAction: 'none',
       }}
-      className={`fixed z-[9999] px-3 py-1.5 text-white text-xs rounded-full transition-colors cursor-grab active:cursor-grabbing select-none ${
-        isActive 
-          ? 'bg-emerald-600 opacity-100 shadow-lg' 
+      className={`fixed z-[9999] px-3 py-1.5 text-white text-xs rounded-full transition-colors cursor-grab active:cursor-grabbing select-none ${isActive
+          ? 'bg-emerald-600 opacity-100 shadow-lg'
           : 'bg-[#0B3D2E] opacity-80 hover:opacity-100'
-      } ${isDragging ? 'scale-110 shadow-xl' : ''}`}
+        } ${isDragging ? 'scale-110 shadow-xl' : ''}`}
       title="拖动移动 | Ctrl+Shift+C 切换 | Alt+Click 检查"
     >
       🔍 {isActive ? 'Grab Active' : 'Dev Mode'}
