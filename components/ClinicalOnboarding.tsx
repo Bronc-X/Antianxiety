@@ -36,7 +36,7 @@ const SCALE_INFO: Record<string, {
     validation: string;
     usage: string;
 }> = {
-    'GAD-7': {
+    'GAD7': {
         fullName: '广泛性焦虑障碍量表-7',
         abbreviation: 'GAD-7',
         authors: 'Spitzer RL, Kroenke K, Williams JBW, Löwe B',
@@ -46,7 +46,7 @@ const SCALE_INFO: Record<string, {
         validation: '经过全球 50+ 国家验证，灵敏度 89%，特异度 82%',
         usage: '全球最广泛使用的焦虑筛查量表，被 WHO 推荐',
     },
-    'PHQ-9': {
+    'PHQ9': {
         fullName: '患者健康问卷-9',
         abbreviation: 'PHQ-9',
         authors: 'Kroenke K, Spitzer RL, Williams JBW',
@@ -463,7 +463,7 @@ export function ClinicalOnboarding({
                                 </span>
                                 {/* Source citation - comprehensive card */}
                                 {(() => {
-                                    const scaleKey = currentScaleName.match(/[A-Z]+-\d+|ISI/)?.[0] || '';
+                                    const scaleKey = currentQuestions[0]?.scaleId || '';
                                     const info = SCALE_INFO[scaleKey];
                                     if (!info) return null;
                                     return (
