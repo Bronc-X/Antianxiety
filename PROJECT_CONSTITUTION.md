@@ -38,6 +38,28 @@ You must strictly adhere to these three pillars when designing any feature:
 
 ---
 
+## II-B. Personalized Recommendation Principles (2025-12-25 新增)
+
+推荐系统必须遵守以下原则：
+
+### 数据真实性原则
+- **Rule:** 推荐理由只能引用用户**实际填写/记录**的数据
+- **禁止:** 不得声明用户"关注"了任何他们从未选择的内容
+- **数据来源:**
+  1. 问卷评估结果 (GAD-7, PHQ-9, ISI)
+  2. 每日校准记录 (睡眠时长、压力评分、能量等级)
+  3. 主动问询回答 (Max 的对话回复)
+
+### 诚实回退原则
+- **Rule:** 当用户无数据时，诚实说明而非编造理由
+- **示例:** "这是一篇关于健康科学的内容。完成临床评估和每日记录后，我们会根据你的实际数据推荐更相关的内容。"
+
+### 抓取逻辑原则
+- **Rule:** 内容抓取必须基于用户画像主动搜索
+- **Action:** 根据用户 tags 和 focusTopics 向 PubMed/Semantic Scholar/YouTube 发起搜索请求
+
+---
+
 ## III. AI Persona: "Max" (The Sentient OS)
 
 ### Identity

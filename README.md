@@ -260,6 +260,11 @@ GITHUB_CLIENT_SECRET=你的GitHub OAuth Client Secret
 - 属性测试：posterior 边界、权重归一化、证据栈序列化/反序列化、触发器幂等性等用 fast-check 覆盖。  
 - 下一步：实现 evidence 权重分层校验与序列化、Semantic Scholar 拉取与缓存、/api/bayesian 端点与 UI（FearInputSlider、EvidenceRain、AnxietyCurve）。
 
+## 🎉 最新完成 (2025-12-25)
+1.  **个性化推荐系统重构**: 推荐理由完全基于用户实际数据生成（问卷评分、每日记录、问询回答），移除所有模板化语句和虚假关注声明。
+2.  **News Feed UI 升级**: 添加平台官方 Logo (PubMed, Semantic Scholar, YouTube, X, Reddit)，高度增加 40%。
+3.  **宪法更新**: 新增"个性化推荐原则"章节，定义数据真实性、诚实回退、抓取逻辑原则。
+
 ## 🎉 最新完成 (2025-12-22)
 1.  **评估系统迁移完成**: 统一了 Daily/Weekly/Monthly 校准引擎，修复了睡眠评分和数据写入冲突问题。
 2.  **UI 体验升级**: 每日校准结果页面采用了更温暖的文案；AI 助手新增了 "思考中" (Thinking) 状态展示。
