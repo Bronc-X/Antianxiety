@@ -122,7 +122,7 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
       </div>
 
       {/* 问题内容 */}
-      <div className="flex-1 px-4 py-6 max-w-lg mx-auto w-full">
+      <div className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={question.id}
