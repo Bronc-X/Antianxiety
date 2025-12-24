@@ -23,9 +23,9 @@ export const GAD7: ScaleDefinition = {
             textEn: 'Feeling nervous, anxious, or on edge',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -34,9 +34,9 @@ export const GAD7: ScaleDefinition = {
             textEn: 'Not being able to stop or control worrying',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -45,9 +45,9 @@ export const GAD7: ScaleDefinition = {
             textEn: 'Worrying too much about different things',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -56,9 +56,9 @@ export const GAD7: ScaleDefinition = {
             textEn: 'Trouble relaxing',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -67,9 +67,9 @@ export const GAD7: ScaleDefinition = {
             textEn: 'Being so restless that it is hard to sit still',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -78,9 +78,9 @@ export const GAD7: ScaleDefinition = {
             textEn: 'Becoming easily annoyed or irritable',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -89,9 +89,9 @@ export const GAD7: ScaleDefinition = {
             textEn: 'Feeling afraid, as if something awful might happen',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
     ],

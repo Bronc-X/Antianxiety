@@ -26,9 +26,9 @@ export const PHQ9: ScaleDefinition = {
             textEn: 'Little interest or pleasure in doing things',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -37,9 +37,9 @@ export const PHQ9: ScaleDefinition = {
             textEn: 'Feeling down, depressed, or hopeless',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -48,9 +48,9 @@ export const PHQ9: ScaleDefinition = {
             textEn: 'Trouble falling or staying asleep, or sleeping too much',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -59,9 +59,9 @@ export const PHQ9: ScaleDefinition = {
             textEn: 'Feeling tired or having little energy',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -70,9 +70,9 @@ export const PHQ9: ScaleDefinition = {
             textEn: 'Poor appetite or overeating',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -81,9 +81,9 @@ export const PHQ9: ScaleDefinition = {
             textEn: 'Feeling bad about yourself - or that you are a failure or have let yourself or your family down',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -92,9 +92,9 @@ export const PHQ9: ScaleDefinition = {
             textEn: 'Trouble concentrating on things, such as reading the newspaper or watching television',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
@@ -103,9 +103,9 @@ export const PHQ9: ScaleDefinition = {
             textEn: 'Moving or speaking so slowly that other people could have noticed? Or the opposite - being so fidgety or restless',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
-                { value: 1, label: '好几天', labelEn: 'Several days' },
-                { value: 2, label: '一半以上的天数', labelEn: 'More than half the days' },
-                { value: 3, label: '几乎每天', labelEn: 'Nearly every day' },
+                { value: 1, label: '偶尔', labelEn: 'Several days' },
+                { value: 2, label: '经常', labelEn: 'More than half the days' },
+                { value: 3, label: '完全符合', labelEn: 'Nearly every day' },
             ],
         },
         {
