@@ -19,6 +19,7 @@ const AnimatedSection = lazy(() => import('@/components/AnimatedSection'));
 const JournalShowcase = lazy(() => import('@/components/JournalShowcase'));
 const InfiniteNewsFeed = lazy(() => import('@/components/InfiniteNewsFeed'));
 const ActiveInquiryBanner = lazy(() => import('@/components/ActiveInquiryBanner'));
+const NewUserGuide = lazy(() => import('@/components/NewUserGuide'));
 
 
 // 轻量级加载占位符
@@ -170,6 +171,11 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
         </Suspense>
       )}
 
+      {/* New User Onboarding Guide - Shows once for first-time users */}
+      <Suspense fallback={null}>
+        <NewUserGuide userId={user?.id} />
+      </Suspense>
+
       {/* Fixed Grid Lines (Visible Grid System) - Parallax Effect */}
       <motion.div style={{ y: gridY }} className="fixed inset-0 pointer-events-none z-0 flex justify-between px-8 md:px-16 max-w-[1600px] mx-auto">
         <div className="bg-grid-lines w-full h-full absolute inset-0 mix-blend-multiply opacity-[0.4]" />
@@ -224,12 +230,56 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
         </motion.header>
 
         {/* Wisdom Carousel */}
-        <div className="mb-24 relative z-10 max-w-5xl mx-auto">
+        <div className="mb-16 relative z-10 max-w-5xl mx-auto">
           <Suspense fallback={<LoadingPlaceholder height="h-24" />}>
             <div className="glass-panel p-1 border-[#1A1A1A]/10 dark:border-white/10">
               <WisdomCarousel autoPlay={true} interval={8000} />
             </div>
           </Suspense>
+        </div>
+
+        {/* Max AI Introduction Card */}
+        <div className="mb-24 relative z-10 max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="glass-panel p-8 border-[#1A1A1A]/10 dark:border-white/10 bg-gradient-to-r from-[#9CAF88]/5 to-[#D4AF37]/5"
+          >
+            <div className="flex items-center gap-6">
+              {/* Max Avatar */}
+              <div className="flex-shrink-0">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#9CAF88] to-[#7a9268] flex items-center justify-center shadow-lg">
+                  <span className="text-3xl font-bold text-white">M</span>
+                </div>
+              </div>
+
+              {/* Max Description */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xl font-semibold text-[#1A1A1A] dark:text-white mb-2">
+                  {language === 'en' ? 'Meet Max, Your AI Health Companion' : '认识 Max，你的 AI 健康助手'}
+                </h3>
+                <p className="text-sm text-[#1A1A1A]/70 dark:text-white/70 leading-relaxed">
+                  {language === 'en'
+                    ? 'Max is your personal AI assistant that monitors your health data 24/7. It proactively reaches out when it detects anomalies, providing evidence-based insights and actionable recommendations tailored just for you.'
+                    : 'Max 是你的私人 AI 健康助手，全天候监测你的健康数据。当检测到异常时，它会主动与你联系，提供基于循证医学的洞察和量身定制的建议。'}
+                </p>
+              </div>
+
+              {/* Chat Button */}
+              <div className="flex-shrink-0">
+                <Link href="/assistant">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-6 py-3 bg-[#0B3D2E] dark:bg-[#9CAF88] text-white dark:text-[#1A1A1A] rounded-xl font-medium shadow-lg hover:shadow-xl transition-all"
+                  >
+                    {language === 'en' ? 'Chat with Max' : '开始对话'}
+                  </motion.button>
+                </Link>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10 max-w-6xl mx-auto">

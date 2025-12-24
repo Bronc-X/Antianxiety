@@ -21,10 +21,10 @@ interface ActiveInquiryBannerProps {
   onRespond?: (questionId: string, response: string) => void;
 }
 
-export default function ActiveInquiryBanner({ 
-  userId, 
-  onDismiss, 
-  onRespond 
+export default function ActiveInquiryBanner({
+  userId,
+  onDismiss,
+  onRespond
 }: ActiveInquiryBannerProps) {
   const { t, language } = useI18n();
   const [inquiries, setInquiries] = useState<InquiryQuestion[]>([]);
@@ -50,35 +50,29 @@ export default function ActiveInquiryBanner({
     try {
       // Map language to API format (zh-TW → zh, en → en)
       const apiLang = language === 'zh-TW' ? 'zh' : language;
-      
-      // Fetch up to 2 pending inquiries
-      const fetchedInquiries: InquiryQuestion[] = [];
-      
-      for (let i = 0; i < 2; i++) {
-        const response = await fetch(`/api/inquiry/pending?language=${apiLang}`, {
-          credentials: 'include',
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.hasInquiry && data.inquiry) {
-            fetchedInquiries.push(data.inquiry);
-            console.log(`📋 [Inquiry] Loaded question ${i + 1}:`, data.inquiry.question_text);
+
+      // Fetch single pending inquiry (API handles deduplication via cooldown)
+      const response = await fetch(`/api/inquiry/pending?language=${apiLang}`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasInquiry && data.inquiry) {
+          // Only add if we haven't already displayed this inquiry
+          const seenIds = JSON.parse(sessionStorage.getItem('seen_inquiry_ids') || '[]') as string[];
+          if (!seenIds.includes(data.inquiry.id)) {
+            setInquiries([data.inquiry]);
+            setCurrentIndex(0);
+            console.log('📋 [Inquiry] Loaded question:', data.inquiry.question_text);
           } else {
-            console.log(`📋 [Inquiry] No more pending questions (got ${fetchedInquiries.length})`);
-            break;
+            console.log('📋 [Inquiry] Already seen this inquiry, skipping');
           }
         } else {
-          console.error('📋 [Inquiry] API error:', response.status);
-          break;
+          console.log('📋 [Inquiry] No pending questions');
         }
-      }
-      
-      if (fetchedInquiries.length > 0) {
-        setInquiries(fetchedInquiries);
-        setCurrentIndex(0);
       } else {
-        console.log('📋 [Inquiry] No pending questions');
+        console.error('📋 [Inquiry] API error:', response.status);
       }
     } catch (error) {
       console.error('📋 [Inquiry] Fetch error:', error);
@@ -100,7 +94,7 @@ export default function ActiveInquiryBanner({
 
   const handleSubmitResponse = async () => {
     if (!currentInquiry || !selectedOption) return;
-    
+
     setIsResponding(true);
     try {
       const response = await fetch('/api/inquiry/respond', {
@@ -112,14 +106,21 @@ export default function ActiveInquiryBanner({
           response: selectedOption,
         }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('✅ [Inquiry] Response submitted:', data.message);
-        
+
+        // Mark this inquiry as seen to prevent duplicate display
+        const seenIds = JSON.parse(sessionStorage.getItem('seen_inquiry_ids') || '[]') as string[];
+        if (!seenIds.includes(currentInquiry.id)) {
+          seenIds.push(currentInquiry.id);
+          sessionStorage.setItem('seen_inquiry_ids', JSON.stringify(seenIds));
+        }
+
         // Store response
         setResponses([...responses, { inquiryId: currentInquiry.id, response: selectedOption }]);
-        
+
         // Check if there are more questions
         if (!isLastQuestion) {
           // Move to next question
@@ -129,7 +130,7 @@ export default function ActiveInquiryBanner({
         } else {
           // All questions answered, show success
           setShowSuccess(true);
-          
+
           // Dismiss after showing success
           setTimeout(() => {
             responses.forEach(r => onRespond?.(r.inquiryId, r.response));
@@ -201,8 +202,8 @@ export default function ActiveInquiryBanner({
                       {language === 'en' ? 'Thank you!' : '感谢你的回答！'}
                     </p>
                     <p className="text-sm text-[#0B3D2E]/60 dark:text-white/60 text-center">
-                      {language === 'en' 
-                        ? 'This helps me understand you better.' 
+                      {language === 'en'
+                        ? 'This helps me understand you better.'
                         : '这将帮助我更好地了解你的状态。'}
                     </p>
                   </div>
@@ -224,11 +225,10 @@ export default function ActiveInquiryBanner({
                             key={option.value}
                             onClick={() => handleOptionSelect(option.value)}
                             disabled={isResponding}
-                            className={`w-full text-left px-4 py-3 rounded-2xl border-2 transition-all ${
-                              selectedOption === option.value
-                                ? 'border-[#9CAF88] bg-[#9CAF88]/10 shadow-sm'
-                                : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-[#9CAF88]/50 hover:bg-[#9CAF88]/5'
-                            } ${isResponding ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`w-full text-left px-4 py-3 rounded-2xl border-2 transition-all ${selectedOption === option.value
+                              ? 'border-[#9CAF88] bg-[#9CAF88]/10 shadow-sm'
+                              : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-[#9CAF88]/50 hover:bg-[#9CAF88]/5'
+                              } ${isResponding ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             <span className="text-sm text-[#0B3D2E] dark:text-white font-medium">{option.label}</span>
                           </button>

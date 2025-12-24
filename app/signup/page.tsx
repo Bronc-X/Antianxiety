@@ -50,14 +50,25 @@ export default function SignupPage() {
       return;
     }
     try {
+      // [TEST MODE] Skip email verification - directly sign up and sign in
       const { data, error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          // Skip email confirmation for testing
+          data: { skip_confirmation: true }
+        },
       });
       if (error) { setMessage({ type: 'error', text: error.message }); setIsLoading(false); return; }
       if (data.user) {
-        setMessage({ type: 'success', text: t('signup.success') });
-        if (data.session) { setTimeout(() => { router.push('/onboarding'); router.refresh(); }, 2000); }
+        // [TEST MODE] Auto sign-in after registration
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          setMessage({ type: 'success', text: t('signup.success') });
+        } else {
+          setMessage({ type: 'success', text: '注册成功，正在跳转...' });
+          setTimeout(() => { router.push('/landing'); router.refresh(); }, 1500);
+        }
       }
     } catch (error) {
       setMessage({ type: 'error', text: t('error.unknown') });

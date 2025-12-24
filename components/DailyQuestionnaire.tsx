@@ -4,40 +4,40 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MotionButton } from '@/components/motion/MotionButton';
-import { ClipboardList, ChevronRight, Check, Sparkles } from 'lucide-react';
+import { ClipboardList, ChevronRight, Check, Sparkles, Info } from 'lucide-react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 
-// 问题池 - 每天随机选择 5-7 个问题
+// 问题池 - 每天随机选择 5-7 个问题，每个问题包含来源信息
 const QUESTION_POOL = [
   // 睡眠相关
-  { id: 'sleep_quality', category: 'sleep', question: '昨晚睡眠质量如何？', type: 'scale', options: ['很差', '较差', '一般', '较好', '很好'] },
-  { id: 'wake_feeling', category: 'sleep', question: '今早醒来时感觉如何？', type: 'scale', options: ['疲惫', '昏沉', '一般', '清醒', '精力充沛'] },
-  { id: 'dream_recall', category: 'sleep', question: '昨晚做梦了吗？', type: 'choice', options: ['没有', '有但记不清', '记得一些', '记得很清楚'] },
-  
+  { id: 'sleep_quality', category: 'sleep', question: '昨晚睡眠质量如何？', type: 'scale', options: ['很差', '较差', '一般', '较好', '很好'], source: 'PSQI 匹兹堡睡眠质量指数', sourceEn: 'PSQI Sleep Quality Index' },
+  { id: 'wake_feeling', category: 'sleep', question: '今早醒来时感觉如何？', type: 'scale', options: ['疲惫', '昏沉', '一般', '清醒', '精力充沛'], source: '临床睡眠评估标准', sourceEn: 'Clinical Sleep Assessment' },
+  { id: 'dream_recall', category: 'sleep', question: '昨晚做梦了吗？', type: 'choice', options: ['没有', '有但记不清', '记得一些', '记得很清楚'], source: 'REM 睡眠研究', sourceEn: 'REM Sleep Research' },
+
   // 能量相关
-  { id: 'morning_energy', category: 'energy', question: '现在的精力水平？', type: 'scale', options: ['很低', '较低', '一般', '较高', '很高'] },
-  { id: 'afternoon_dip', category: 'energy', question: '昨天下午有感到困倦吗？', type: 'choice', options: ['没有', '轻微', '明显', '非常困'] },
-  { id: 'caffeine_need', category: 'energy', question: '今天需要咖啡因提神吗？', type: 'choice', options: ['不需要', '可能需要', '肯定需要', '已经喝了'] },
-  
+  { id: 'morning_energy', category: 'energy', question: '现在的精力水平？', type: 'scale', options: ['很低', '较低', '一般', '较高', '很高'], source: 'VAS 视觉模拟评分', sourceEn: 'VAS Visual Analog Scale' },
+  { id: 'afternoon_dip', category: 'energy', question: '昨天下午有感到困倦吗？', type: 'choice', options: ['没有', '轻微', '明显', '非常困'], source: '昼夜节律研究', sourceEn: 'Circadian Rhythm Research' },
+  { id: 'caffeine_need', category: 'energy', question: '今天需要咖啡因提神吗？', type: 'choice', options: ['不需要', '可能需要', '肯定需要', '已经喝了'], source: '咖啡因依赖性研究', sourceEn: 'Caffeine Dependency Studies' },
+
   // 压力/情绪相关
-  { id: 'stress_level', category: 'stress', question: '当前压力感受？', type: 'scale', options: ['很轻松', '较轻松', '一般', '有压力', '压力很大'] },
-  { id: 'anxiety_feeling', category: 'stress', question: '有焦虑或担忧的感觉吗？', type: 'choice', options: ['完全没有', '偶尔有', '经常有', '持续存在'] },
-  { id: 'mood_state', category: 'stress', question: '今天的心情如何？', type: 'scale', options: ['很低落', '有点低', '平静', '愉快', '非常好'] },
-  
+  { id: 'stress_level', category: 'stress', question: '当前压力感受？', type: 'scale', options: ['很轻松', '较轻松', '一般', '有压力', '压力很大'], source: 'PSS 压力知觉量表', sourceEn: 'PSS Perceived Stress Scale' },
+  { id: 'anxiety_feeling', category: 'stress', question: '有焦虑或担忧的感觉吗？', type: 'choice', options: ['完全没有', '偶尔有', '经常有', '持续存在'], source: 'GAD-7 广泛性焦虑量表', sourceEn: 'GAD-7 Anxiety Scale' },
+  { id: 'mood_state', category: 'stress', question: '今天的心情如何？', type: 'scale', options: ['很低落', '有点低', '平静', '愉快', '非常好'], source: 'POMS 情绪状态量表', sourceEn: 'POMS Mood Scale' },
+
   // 身体感受
-  { id: 'body_tension', category: 'body', question: '身体有紧绷或酸痛感吗？', type: 'choice', options: ['没有', '轻微', '明显', '严重'] },
-  { id: 'digestion', category: 'body', question: '消化系统感觉如何？', type: 'choice', options: ['不舒服', '一般', '正常', '很好'] },
-  { id: 'headache', category: 'body', question: '有头痛或头晕吗？', type: 'choice', options: ['没有', '轻微', '中等', '严重'] },
-  
+  { id: 'body_tension', category: 'body', question: '身体有紧绷或酸痛感吗？', type: 'choice', options: ['没有', '轻微', '明显', '严重'], source: '躯体症状自评', sourceEn: 'Somatic Symptom Assessment' },
+  { id: 'digestion', category: 'body', question: '消化系统感觉如何？', type: 'choice', options: ['不舒服', '一般', '正常', '很好'], source: '消化健康问卷', sourceEn: 'Digestive Health Questionnaire' },
+  { id: 'headache', category: 'body', question: '有头痛或头晕吗？', type: 'choice', options: ['没有', '轻微', '中等', '严重'], source: '头痛影响测试', sourceEn: 'HIT Headache Impact Test' },
+
   // 行为/习惯
-  { id: 'exercise_yesterday', category: 'behavior', question: '昨天有运动吗？', type: 'choice', options: ['没有', '轻度活动', '中等运动', '高强度'] },
-  { id: 'screen_time', category: 'behavior', question: '昨晚睡前看屏幕了吗？', type: 'choice', options: ['没有', '少于30分钟', '30-60分钟', '超过1小时'] },
-  { id: 'water_intake', category: 'behavior', question: '昨天喝水量如何？', type: 'choice', options: ['很少', '不够', '适中', '充足'] },
-  
+  { id: 'exercise_yesterday', category: 'behavior', question: '昨天有运动吗？', type: 'choice', options: ['没有', '轻度活动', '中等运动', '高强度'], source: 'IPAQ 体力活动问卷', sourceEn: 'IPAQ Physical Activity Questionnaire' },
+  { id: 'screen_time', category: 'behavior', question: '昨晚睡前看屏幕了吗？', type: 'choice', options: ['没有', '少于30分钟', '30-60分钟', '超过1小时'], source: '睡眠卫生研究', sourceEn: 'Sleep Hygiene Research' },
+  { id: 'water_intake', category: 'behavior', question: '昨天喝水量如何？', type: 'choice', options: ['很少', '不够', '适中', '充足'], source: '水合状态评估', sourceEn: 'Hydration Status Assessment' },
+
   // 认知/专注
-  { id: 'focus_ability', category: 'cognitive', question: '现在能集中注意力吗？', type: 'scale', options: ['很难', '较难', '一般', '较好', '很好'] },
-  { id: 'brain_fog', category: 'cognitive', question: '有脑雾感吗？', type: 'choice', options: ['没有', '轻微', '明显', '严重'] },
-  { id: 'motivation', category: 'cognitive', question: '今天的动力如何？', type: 'scale', options: ['很低', '较低', '一般', '较高', '很高'] },
+  { id: 'focus_ability', category: 'cognitive', question: '现在能集中注意力吗？', type: 'scale', options: ['很难', '较难', '一般', '较好', '很好'], source: '注意力评估量表', sourceEn: 'Attention Assessment Scale' },
+  { id: 'brain_fog', category: 'cognitive', question: '有脑雾感吗？', type: 'choice', options: ['没有', '轻微', '明显', '严重'], source: '认知症状评估', sourceEn: 'Cognitive Symptom Assessment' },
+  { id: 'motivation', category: 'cognitive', question: '今天的动力如何？', type: 'scale', options: ['很低', '较低', '一般', '较高', '很高'], source: '动机评估量表', sourceEn: 'Motivation Assessment Scale' },
 ];
 
 interface DailyQuestionnaireProps {
@@ -49,31 +49,31 @@ interface DailyQuestionnaireProps {
 function getTodayQuestions(date: Date = new Date()): typeof QUESTION_POOL {
   const dateStr = date.toISOString().split('T')[0];
   const seed = dateStr.split('-').reduce((acc, num) => acc + parseInt(num), 0);
-  
+
   // 使用种子打乱问题顺序
   const shuffled = [...QUESTION_POOL].sort((a, b) => {
     const hashA = (seed * a.id.length) % 100;
     const hashB = (seed * b.id.length) % 100;
     return hashA - hashB;
   });
-  
+
   // 确保每个类别至少有一个问题
   const categories = ['sleep', 'energy', 'stress', 'body', 'behavior', 'cognitive'];
   const selected: typeof QUESTION_POOL = [];
-  
+
   categories.forEach(cat => {
     const catQuestions = shuffled.filter(q => q.category === cat);
     if (catQuestions.length > 0) {
       selected.push(catQuestions[0]);
     }
   });
-  
+
   // 补充到 7 个问题
   const remaining = shuffled.filter(q => !selected.includes(q));
   while (selected.length < 7 && remaining.length > 0) {
     selected.push(remaining.shift()!);
   }
-  
+
   return selected;
 }
 
@@ -84,7 +84,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   const [isCompleted, setIsCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const todayQuestions = getTodayQuestions();
   const currentQuestion = todayQuestions[currentIndex];
   const progress = (Object.keys(answers).length / todayQuestions.length) * 100;
@@ -93,7 +93,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   useEffect(() => {
     const checkTodayCompletion = async () => {
       const today = new Date().toISOString().split('T')[0];
-      
+
       // 先检查 localStorage（快速响应）
       const completedDate = localStorage.getItem('nma_questionnaire_date');
       if (completedDate === today) {
@@ -101,7 +101,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
         setIsLoading(false);
         return;
       }
-      
+
       // 如果有 userId，从数据库检查（确保跨设备同步）
       if (userId) {
         try {
@@ -113,7 +113,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
             .gte('created_at', `${today}T00:00:00`)
             .lt('created_at', `${today}T23:59:59`)
             .limit(1);
-          
+
           if (!error && data && data.length > 0) {
             // 数据库有今日记录，同步到 localStorage
             localStorage.setItem('nma_questionnaire_date', today);
@@ -123,17 +123,17 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
           console.error('检查问卷状态失败:', err);
         }
       }
-      
+
       setIsLoading(false);
     };
-    
+
     checkTodayCompletion();
   }, [userId]);
 
   const handleAnswer = (value: number) => {
     const newAnswers = { ...answers, [currentQuestion.id]: value };
     setAnswers(newAnswers);
-    
+
     if (currentIndex < todayQuestions.length - 1) {
       setTimeout(() => setCurrentIndex(currentIndex + 1), 300);
     }
@@ -141,9 +141,9 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
 
   const handleSubmit = async () => {
     if (Object.keys(answers).length < todayQuestions.length) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // 保存到数据库
       if (userId) {
@@ -155,15 +155,15 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
           created_at: new Date().toISOString(),
         });
       }
-      
+
       // 标记今天已完成
       localStorage.setItem('nma_questionnaire_date', new Date().toISOString().split('T')[0]);
       setIsCompleted(true);
       onComplete?.(answers);
 
       // 后台刷新：让 AI 方案与内容推荐跟随问卷状态更新
-      fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
-      
+      fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+
     } catch (error) {
       console.error('保存问卷失败:', error);
     } finally {
@@ -212,7 +212,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   // 收起状态
   if (!isExpanded) {
     return (
-      <Card 
+      <Card
         className="shadow-sm bg-[#FFFDF8] cursor-pointer hover:shadow-md transition-all border-amber-100"
         onClick={() => setIsExpanded(true)}
       >
@@ -257,7 +257,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
           />
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-4">
         <AnimatePresence mode="wait">
           <motion.div
@@ -267,10 +267,22 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <p className="text-base font-medium text-[#1F2937] mb-4">
+            <p className="text-base font-medium text-[#1F2937] mb-2">
               {currentQuestion.question}
             </p>
-            
+
+            {/* Source Info */}
+            <div className="flex items-center gap-1.5 mb-4 group/source relative">
+              <Info className="w-3.5 h-3.5 text-[#9CA3AF] cursor-help" />
+              <span className="text-xs text-[#9CA3AF]">
+                {currentQuestion.source}
+              </span>
+              {/* Tooltip */}
+              <div className="absolute left-0 bottom-full mb-1.5 px-3 py-2 bg-[#1F2937] text-white text-xs rounded-lg opacity-0 group-hover/source:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg">
+                量表来源 / Source: {currentQuestion.sourceEn || currentQuestion.source}
+              </div>
+            </div>
+
             <div className="space-y-2">
               {currentQuestion.options.map((option, index) => {
                 const isSelected = answers[currentQuestion.id] === index;
@@ -278,11 +290,10 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
                   <button
                     key={index}
                     onClick={() => handleAnswer(index)}
-                    className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left ${
-                      isSelected
-                        ? 'bg-amber-500 text-white shadow-md'
-                        : 'bg-[#F9FAFB] text-[#374151] hover:bg-amber-50 border border-[#E5E7EB]'
-                    }`}
+                    className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left ${isSelected
+                      ? 'bg-amber-500 text-white shadow-md'
+                      : 'bg-[#F9FAFB] text-[#374151] hover:bg-amber-50 border border-[#E5E7EB]'
+                      }`}
                   >
                     {option}
                   </button>

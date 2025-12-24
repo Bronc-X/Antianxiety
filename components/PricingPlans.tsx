@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { X, Check, Sparkles } from 'lucide-react';
 import { tr, useI18n } from '@/lib/i18n';
 
 type LocalizedText = { zh: string; en: string; 'zh-TW'?: string };
@@ -74,6 +76,18 @@ const pricingPlans: PricingPlan[] = [
 
 export default function PricingPlans() {
   const { language } = useI18n();
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (!selectedPlan) return;
+    setIsProcessing(true);
+    // TODO: Integrate with payment processor (Stripe, etc.)
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    alert(language === 'en' ? 'Payment integration coming soon!' : '支付功能即将上线！');
+    setIsProcessing(false);
+    setSelectedPlan(null);
+  };
 
   return (
     <div className="bg-[#FAF6EF] py-16 px-4">
@@ -94,9 +108,8 @@ export default function PricingPlans() {
           {pricingPlans.map((plan, index) => (
             <div
               key={index}
-              className={`relative rounded-2xl border-2 bg-white p-8 shadow-lg transition-all hover:shadow-xl ${
-                plan.highlighted ? 'border-[#0B3D2E] scale-105' : 'border-[#E7E1D6]'
-              }`}
+              className={`relative rounded-2xl border-2 bg-white p-8 shadow-lg transition-all hover:shadow-xl ${plan.highlighted ? 'border-[#0B3D2E] scale-105' : 'border-[#E7E1D6]'
+                }`}
             >
               {plan.badge && (
                 <div className="absolute -top-4 right-6">
@@ -128,29 +141,34 @@ export default function PricingPlans() {
               <ul className="space-y-4 mb-8 min-h-[400px]">
                 {plan.features.map((feature, featureIndex) => (
                   <li key={featureIndex} className="flex items-start gap-3">
-                    <svg
-                      className="w-5 h-5 text-[#0B3D2E] mt-0.5 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                    <Check className="w-5 h-5 text-[#0B3D2E] mt-0.5 flex-shrink-0" />
                     <span className="text-sm text-[#0B3D2E]/80">{tr(language, feature)}</span>
                   </li>
                 ))}
               </ul>
 
-              <Link
-                href={plan.ctaLink}
-                className={`block w-full text-center py-3 px-6 rounded-lg font-semibold transition-all ${
-                  plan.highlighted
+              {/* CTA Button - Free version links to signup, paid versions open modal */}
+              {plan.ctaLink === '/signup' ? (
+                <Link
+                  href={plan.ctaLink}
+                  className={`block w-full text-center py-3 px-6 rounded-lg font-semibold transition-all ${plan.highlighted
                     ? 'bg-[#0B3D2E] text-white hover:bg-[#0a3427] shadow-md'
                     : 'bg-[#FAF6EF] text-[#0B3D2E] border-2 border-[#0B3D2E] hover:bg-[#0B3D2E] hover:text-white'
-                }`}
-              >
-                {tr(language, plan.ctaText)}
-              </Link>
+                    }`}
+                >
+                  {tr(language, plan.ctaText)}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setSelectedPlan(plan)}
+                  className={`block w-full text-center py-3 px-6 rounded-lg font-semibold transition-all ${plan.highlighted
+                    ? 'bg-[#0B3D2E] text-white hover:bg-[#0a3427] shadow-md'
+                    : 'bg-[#FAF6EF] text-[#0B3D2E] border-2 border-[#0B3D2E] hover:bg-[#0B3D2E] hover:text-white'
+                    }`}
+                >
+                  {tr(language, plan.ctaText)}
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -171,6 +189,103 @@ export default function PricingPlans() {
           </p>
         </div>
       </div>
+
+      {/* Subscription Modal */}
+      {selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-[#E7E1D6]">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-[#D4AF37]" />
+                <h3 className="text-xl font-bold text-[#0B3D2E]">
+                  {tr(language, { zh: '开通会员', en: 'Subscribe Now' })}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedPlan(null)}
+                className="p-2 hover:bg-[#FAF6EF] rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-[#0B3D2E]/60" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {/* Selected Plan Summary */}
+              <div className="bg-[#FAF6EF] rounded-xl p-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="font-semibold text-[#0B3D2E]">{tr(language, selectedPlan.name)}</h4>
+                    <p className="text-sm text-[#0B3D2E]/60">{tr(language, selectedPlan.description)}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-[#0B3D2E]">{tr(language, selectedPlan.price)}</span>
+                    {selectedPlan.priceNote && (
+                      <p className="text-xs text-[#0B3D2E]/60">{tr(language, selectedPlan.priceNote)}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Membership Features */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-[#0B3D2E] mb-3">
+                  {tr(language, { zh: '会员权益', en: 'Membership Benefits' })}
+                </h4>
+                <ul className="space-y-2">
+                  {selectedPlan.features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-[#0B3D2E]/80">
+                      <Check className="w-4 h-4 text-[#9CAF88]" />
+                      {tr(language, feature)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Payment Methods Placeholder */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-[#0B3D2E] mb-3">
+                  {tr(language, { zh: '支付方式', en: 'Payment Method' })}
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <button className="p-4 border-2 border-[#E7E1D6] rounded-xl text-center hover:border-[#0B3D2E] transition-colors">
+                    <span className="text-2xl">💳</span>
+                    <p className="text-sm text-[#0B3D2E] mt-1">
+                      {tr(language, { zh: '信用卡', en: 'Credit Card' })}
+                    </p>
+                  </button>
+                  <button className="p-4 border-2 border-[#E7E1D6] rounded-xl text-center hover:border-[#0B3D2E] transition-colors">
+                    <span className="text-2xl">📱</span>
+                    <p className="text-sm text-[#0B3D2E] mt-1">
+                      {tr(language, { zh: '支付宝/微信', en: 'Alipay/WeChat' })}
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Subscribe Button */}
+              <button
+                onClick={handleSubscribe}
+                disabled={isProcessing}
+                className="w-full py-4 bg-[#0B3D2E] text-white rounded-xl font-semibold hover:bg-[#0a3427] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing
+                  ? tr(language, { zh: '处理中...', en: 'Processing...' })
+                  : tr(language, { zh: '确认订阅', en: 'Confirm Subscription' })}
+              </button>
+
+              {/* Terms */}
+              <p className="text-xs text-[#0B3D2E]/50 mt-4 text-center">
+                {tr(language, {
+                  zh: '点击确认即表示同意我们的服务条款和隐私政策',
+                  en: 'By subscribing, you agree to our Terms of Service and Privacy Policy',
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
