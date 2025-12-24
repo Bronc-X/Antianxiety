@@ -34,6 +34,32 @@ export interface ScaleDefinition {
         maxScore: number;
         interpretation: ScoreInterpretation[];
     };
+    sourceAttribution?: SourceAttribution;
+}
+
+export interface SourceAttribution {
+    originalCitation: {
+        authors: string;
+        year: number;
+        title: string;
+        journal: string;
+        doi?: string;
+        pmid?: string;
+    };
+    developingInstitution: string;
+    developingInstitutionEn?: string;
+    validationStatus: 'validated' | 'widely_used' | 'experimental';
+    chineseValidation?: {
+        authors: string;
+        year: number;
+        title?: string;
+        journal: string;
+    };
+    briefDescription?: string;
+    primaryUseCase?: string;
+    copyrightStatus?: 'public_domain' | 'licensed' | 'restricted';
+    usagePermission?: string;
+    officialUrl?: string;
 }
 
 export interface ScoreInterpretation {

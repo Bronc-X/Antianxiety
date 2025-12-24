@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const planId = searchParams.get('planId');
     const userId = searchParams.get('userId');
     const days = parseInt(searchParams.get('days') || '30', 10);
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     if (actionItemId) {
       if (!isAdmin) {
         const supabase = getSupabaseClient();
-        const ownerId = await getActionItemOwnerId(supabase, actionItemId);
+        const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
         if (!ownerId) {
           return NextResponse.json(
             { error: 'Action item not found' },
@@ -68,11 +68,11 @@ export async function GET(request: NextRequest) {
       const history = await getExecutionHistory(actionItemId, days);
       return NextResponse.json({ history });
     }
-    
+
     if (planId) {
       if (!isAdmin) {
         const supabase = getSupabaseClient();
-        const ownerId = await getPlanOwnerId(supabase, planId);
+        const ownerId = await getPlanOwnerId(supabase as any, planId);
         if (!ownerId) {
           return NextResponse.json(
             { error: 'Plan not found' },
@@ -90,13 +90,13 @@ export async function GET(request: NextRequest) {
         calculateExecutionRate(planId),
         getItemsNeedingReplacement(planId),
       ]);
-      
+
       return NextResponse.json({
         executionRate,
         itemsNeedingReplacement,
       });
     }
-    
+
     if (userId) {
       if (!isAdmin && userId !== user?.id) {
         return NextResponse.json(
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
       const summary = await getExecutionSummary(targetUserId, days);
       return NextResponse.json({ summary });
     }
-    
+
     return NextResponse.json(
       { error: 'actionItemId, planId, or userId is required' },
       { status: 400 }
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       userNotes,
       replacementReason,
     } = body;
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
-    const ownerId = await getActionItemOwnerId(supabase, actionItemId);
+    const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
     if (!ownerId) {
       return NextResponse.json(
         { error: 'Action item not found' },
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    
+
     const validStatuses: ExecutionStatus[] = ['completed', 'partial', 'skipped', 'replaced'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     const record = await recordExecution({
       action_item_id: actionItemId,
       user_id: targetUserId,
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
       user_notes: userNotes,
       replacement_reason: replacementReason,
     });
-    
+
     return NextResponse.json({ record }, { status: 201 });
   } catch (error) {
     console.error('Failed to record execution:', error);
@@ -228,7 +228,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
     const { actionItemId, reason } = body;
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -249,7 +249,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!isAdmin) {
       const supabase = getSupabaseClient();
-      const ownerId = await getActionItemOwnerId(supabase, actionItemId);
+      const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
       if (!ownerId) {
         return NextResponse.json(
           { error: 'Action item not found' },
@@ -263,7 +263,7 @@ export async function PATCH(request: NextRequest) {
         );
       }
     }
-    
+
     await flagForReplacement(actionItemId, reason);
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -275,8 +275,9 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getActionItemOwnerId(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   actionItemId: string
 ): Promise<string | null> {
   const { data: actionItem } = await supabase
@@ -296,8 +297,9 @@ async function getActionItemOwnerId(
   return plan?.user_id ?? null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getPlanOwnerId(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   planId: string
 ): Promise<string | null> {
   const { data: plan } = await supabase

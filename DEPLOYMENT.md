@@ -1,5 +1,7 @@
 # 部署指南
 
+> 📖 **详细部署指南**: 请参阅 [docs/VERCEL_DEPLOYMENT_GUIDE.md](./docs/VERCEL_DEPLOYMENT_GUIDE.md)
+
 ## 1) 环境变量
 
 ### 本地开发

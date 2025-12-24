@@ -10,10 +10,10 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 import type { ScaleDefinition } from '@/lib/clinical-scales/types';
-import { 
-    formatFullCitation, 
-    getDOIUrl, 
-    getPubMedUrl 
+import {
+    formatFullCitation,
+    getDOIUrl,
+    getPubMedUrl
 } from '@/lib/clinical-scales/source-utils';
 
 interface SourceAttributionModalProps {
@@ -26,10 +26,10 @@ interface SourceAttributionModalProps {
  * 显示量表详细出处信息的模态框
  * 包含: 完整引用、开发机构、中文验证研究、使用许可等
  */
-export function SourceAttributionModal({ 
-    scale, 
-    isOpen, 
-    onClose 
+export function SourceAttributionModal({
+    scale,
+    isOpen,
+    onClose
 }: SourceAttributionModalProps) {
     if (!scale.sourceAttribution) {
         return null;
@@ -41,11 +41,11 @@ export function SourceAttributionModal({
     const doiUrl = originalCitation.doi ? getDOIUrl(originalCitation.doi) : null;
     const pmidUrl = originalCitation.pmid ? getPubMedUrl(originalCitation.pmid) : null;
 
-    const copyrightStatusLabel = {
+    const copyrightStatusLabel = sourceAttribution.copyrightStatus ? {
         'public_domain': '公共领域',
         'licensed': '需授权',
         'restricted': '受限使用'
-    }[sourceAttribution.copyrightStatus];
+    }[sourceAttribution.copyrightStatus] : undefined;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -80,7 +80,7 @@ export function SourceAttributionModal({
                             <p className="text-sm leading-relaxed">
                                 {formatFullCitation(originalCitation)}
                             </p>
-                            
+
                             {/* DOI 和 PubMed 链接 */}
                             <div className="flex flex-wrap gap-2">
                                 {doiUrl && (
@@ -155,11 +155,10 @@ export function SourceAttributionModal({
                             使用许可
                         </h3>
                         <div className="space-y-2">
-                            <span className={`inline-block px-2 py-1 text-xs font-medium rounded-md ${
-                                sourceAttribution.copyrightStatus === 'public_domain' 
-                                    ? 'bg-green-100 text-green-800' 
+                            <span className={`inline-block px-2 py-1 text-xs font-medium rounded-md ${sourceAttribution.copyrightStatus === 'public_domain'
+                                    ? 'bg-green-100 text-green-800'
                                     : 'bg-gray-100 text-gray-800'
-                            }`}>
+                                }`}>
                                 {copyrightStatusLabel}
                             </span>
                             <p className="text-sm text-muted-foreground">

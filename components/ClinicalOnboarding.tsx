@@ -104,7 +104,7 @@ const containerVariants = {
     visible: {
         opacity: 1,
         scale: 1,
-        transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }
+        transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const }
     },
 };
 
@@ -181,7 +181,7 @@ export function ClinicalOnboarding({
     const goToNextPage = useCallback(() => {
         if (currentPage < TOTAL_PAGES - 1) {
             setDirection(1);
-            
+
             // Check if we should show encouragement after this page
             if (ENCOURAGEMENT_PAGES.includes(currentPage)) {
                 setShowEncouragement(true);
@@ -521,8 +521,8 @@ export function ClinicalOnboarding({
                                 {currentPage === 2 ? '做得很好！' : '快完成了！'}
                             </h3>
                             <p className="text-neutral-500 text-lg mb-6">
-                                {currentPage === 2 
-                                    ? '你已经完成了一半，继续保持！' 
+                                {currentPage === 2
+                                    ? '你已经完成了一半，继续保持！'
                                     : '只剩最后几个问题了，坚持住！'
                                 }
                             </p>
@@ -532,19 +532,18 @@ export function ClinicalOnboarding({
                                 {Array.from({ length: TOTAL_PAGES }).map((_, i) => (
                                     <div
                                         key={i}
-                                        className={`h-2 rounded-full transition-all ${
-                                            i <= currentPage 
-                                                ? 'w-8 bg-gradient-to-r from-emerald-400 to-teal-500' 
+                                        className={`h-2 rounded-full transition-all ${i <= currentPage
+                                                ? 'w-8 bg-gradient-to-r from-emerald-400 to-teal-500'
                                                 : 'w-2 bg-neutral-200'
-                                        }`}
+                                            }`}
                                     />
                                 ))}
                             </div>
 
                             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 mb-8">
                                 <p className="text-sm text-neutral-700 leading-relaxed">
-                                    {currentPage === 2 
-                                        ? '你的每一个回答都在帮助 Max 更好地了解你，为你定制最适合的健康方案。' 
+                                    {currentPage === 2
+                                        ? '你的每一个回答都在帮助 Max 更好地了解你，为你定制最适合的健康方案。'
                                         : 'Max 已经开始为你准备个性化建议了，马上就能看到你的健康画像！'
                                     }
                                 </p>
