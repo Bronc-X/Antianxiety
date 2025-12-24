@@ -327,8 +327,8 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
 
         {/* Infinite News Feed (Luxury Style) */}
         <div className="max-w-6xl mx-auto mt-24 relative z-10 border-t border-[#1A1A1A]/10 pt-12">
-          <div className="glass-panel p-0 overflow-hidden h-[500px] border-none shadow-none bg-transparent">
-            <Suspense fallback={<LoadingPlaceholder height="h-[420px]" />}>
+          <div className="glass-panel p-0 overflow-hidden h-[500px] md:h-[700px] border-none shadow-none bg-transparent">
+            <Suspense fallback={<LoadingPlaceholder height="h-[500px] md:h-[600px]" />}>
               <InfiniteNewsFeed language={language} variant="calm" userId={user?.id} />
             </Suspense>
           </div>
