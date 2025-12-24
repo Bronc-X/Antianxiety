@@ -374,7 +374,7 @@ export function ClinicalOnboarding({
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="relative overflow-hidden rounded-3xl bg-white/90 backdrop-blur-2xl border border-black/[0.04] shadow-[0_8px_60px_rgba(0,0,0,0.06)] max-w-2xl mx-auto"
+            className="relative overflow-hidden rounded-3xl bg-white/90 backdrop-blur-2xl border border-black/[0.04] shadow-[0_8px_60px_rgba(0,0,0,0.06)] w-full max-w-2xl mx-auto"
         >
             <div className="absolute inset-0 bg-gradient-to-br from-neutral-50/50 via-transparent to-neutral-100/30 pointer-events-none" />
 
@@ -475,7 +475,7 @@ export function ClinicalOnboarding({
                                                 <span>临床验证</span>
                                             </button>
                                             {/* Rich source card */}
-                                            <div className="absolute left-0 top-full mt-2 w-80 p-4 bg-white rounded-xl shadow-2xl border border-neutral-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                            <div className="absolute right-0 md:right-auto md:left-0 top-full mt-2 w-72 md:w-80 p-4 bg-white rounded-xl shadow-2xl border border-neutral-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                                 <div className="flex items-start gap-3 mb-3">
                                                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0">
                                                         <CheckCircle2 className="w-5 h-5 text-white" />
@@ -534,7 +534,7 @@ export function ClinicalOnboarding({
                         <div className="space-y-10">
                             {currentQuestions.map((question, idx) => (
                                 <div key={question.id} className="space-y-6">
-                                    <p className="text-xl md:text-2xl font-semibold text-neutral-900 leading-tight">
+                                    <p className="text-lg md:text-xl font-semibold text-neutral-900 leading-snug">
                                         {pageStart + idx + 1}. {question.text}
                                     </p>
 
@@ -545,14 +545,14 @@ export function ClinicalOnboarding({
                                                 <button
                                                     key={option.value}
                                                     onClick={() => handleAnswer(question.id, option.value)}
-                                                    className={`p-4 rounded-2xl text-base md:text-lg font-medium text-left transition-all duration-300 border-2 ${isSelected
+                                                    className={`p-4 rounded-2xl text-sm md:text-base font-medium text-left transition-all duration-300 border-2 ${isSelected
                                                         ? 'bg-neutral-900 text-white border-neutral-900 shadow-lg scale-[1.02]'
                                                         : 'bg-white text-neutral-700 border-neutral-100 hover:border-neutral-200 hover:bg-neutral-50'
                                                         }`}
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <span>{option.label}</span>
-                                                        {isSelected && <CheckCircle2 className="w-5 h-5 text-white" />}
+                                                        {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
                                                     </div>
                                                 </button>
                                             );
