@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-utils';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import MaxPageClient from './MaxPageClient';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**

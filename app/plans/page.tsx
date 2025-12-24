@@ -6,7 +6,7 @@ import UserProfileMenu from '@/components/UserProfileMenu';
 import PlanListWithActions from '@/components/PlanListWithActions';
 import PlansPageClient from './PlansPageClient';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
