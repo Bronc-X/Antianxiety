@@ -290,8 +290,8 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
                   <button
                     key={index}
                     onClick={() => handleAnswer(index)}
-                    className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all text-left ${isSelected
-                      ? 'bg-amber-500 text-white shadow-md'
+                    className={`w-full py-2.5 px-4 rounded-xl text-sm transition-all text-left ${isSelected
+                      ? 'bg-amber-500 text-white shadow-md font-medium'
                       : 'bg-[#F9FAFB] text-[#374151] hover:bg-amber-50 border border-[#E5E7EB]'
                       }`}
                   >
