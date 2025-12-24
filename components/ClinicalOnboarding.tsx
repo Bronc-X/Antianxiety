@@ -21,9 +21,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CheckCircle2, Brain, ChevronRight, ChevronLeft,
-    Pause, AlertTriangle, Sparkles, Clock
+    Pause, AlertTriangle, Sparkles, Clock, Info
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
+
+// 量表来源信息
+const SCALE_CITATIONS: Record<string, string> = {
+    'GAD-7': 'Spitzer et al., 2006',
+    'PHQ-9': 'Kroenke et al., 2001',
+    'ISI': 'Bastien et al., 2001',
+};
 import {
     GAD7,
     PHQ9,
@@ -410,14 +417,21 @@ export function ClinicalOnboarding({
                     >
                         {/* Header */}
                         <div className="flex justify-between items-center mb-6">
-                            <div>
+                            <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-neutral-400">
                                     第 {currentPage + 1} / {TOTAL_PAGES} 页
                                 </span>
-                                <span className="mx-2 text-neutral-300">•</span>
+                                <span className="text-neutral-300">•</span>
                                 <span className="text-sm font-medium text-neutral-500">
                                     {currentScaleName}
                                 </span>
+                                {/* Source citation */}
+                                <div className="group relative">
+                                    <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
+                                    <div className="absolute left-0 bottom-full mb-2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                        来源：{SCALE_CITATIONS[currentScaleName.split('-')[0].trim() + '-' + currentScaleName.split('-')[1]?.trim()] || SCALE_CITATIONS[currentScaleName.match(/[A-Z]+-\d+/)?.[0] || ''] || '临床标准量表'}
+                                    </div>
+                                </div>
                             </div>
                             <button
                                 onClick={handlePause}
@@ -533,8 +547,8 @@ export function ClinicalOnboarding({
                                     <div
                                         key={i}
                                         className={`h-2 rounded-full transition-all ${i <= currentPage
-                                                ? 'w-8 bg-gradient-to-r from-emerald-400 to-teal-500'
-                                                : 'w-2 bg-neutral-200'
+                                            ? 'w-8 bg-gradient-to-r from-emerald-400 to-teal-500'
+                                            : 'w-2 bg-neutral-200'
                                             }`}
                                     />
                                 ))}
