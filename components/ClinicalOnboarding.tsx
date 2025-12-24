@@ -529,26 +529,29 @@ export function ClinicalOnboarding({
                         </div>
 
                         {/* Questions */}
-                        <div className="space-y-8">
+                        <div className="space-y-10">
                             {currentQuestions.map((question, idx) => (
-                                <div key={question.id} className="space-y-4">
-                                    <p className="text-lg font-medium text-neutral-900">
+                                <div key={question.id} className="space-y-6">
+                                    <p className="text-xl md:text-2xl font-semibold text-neutral-900 leading-tight">
                                         {pageStart + idx + 1}. {question.text}
                                     </p>
 
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {question.options.map((option) => {
                                             const isSelected = answers[question.id] === option.value;
                                             return (
                                                 <button
                                                     key={option.value}
                                                     onClick={() => handleAnswer(question.id, option.value)}
-                                                    className={`p-3 rounded-xl text-sm font-medium transition-all ${isSelected
-                                                        ? 'bg-neutral-900 text-white'
-                                                        : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                                                    className={`p-4 rounded-2xl text-base md:text-lg font-medium text-left transition-all duration-300 border-2 ${isSelected
+                                                        ? 'bg-neutral-900 text-white border-neutral-900 shadow-lg scale-[1.02]'
+                                                        : 'bg-white text-neutral-700 border-neutral-100 hover:border-neutral-200 hover:bg-neutral-50'
                                                         }`}
                                                 >
-                                                    {option.label}
+                                                    <div className="flex items-center justify-between">
+                                                        <span>{option.label}</span>
+                                                        {isSelected && <CheckCircle2 className="w-5 h-5 text-white" />}
+                                                    </div>
                                                 </button>
                                             );
                                         })}
