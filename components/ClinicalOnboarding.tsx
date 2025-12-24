@@ -25,11 +25,47 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 
-// 量表来源信息
-const SCALE_CITATIONS: Record<string, string> = {
-    'GAD-7': 'Spitzer et al., 2006',
-    'PHQ-9': 'Kroenke et al., 2001',
-    'ISI': 'Bastien et al., 2001',
+// 量表详细来源信息
+const SCALE_INFO: Record<string, {
+    fullName: string;
+    abbreviation: string;
+    authors: string;
+    year: number;
+    journal: string;
+    description: string;
+    validation: string;
+    usage: string;
+}> = {
+    'GAD-7': {
+        fullName: '广泛性焦虑障碍量表-7',
+        abbreviation: 'GAD-7',
+        authors: 'Spitzer RL, Kroenke K, Williams JBW, Löwe B',
+        year: 2006,
+        journal: 'Archives of Internal Medicine',
+        description: '用于筛查和评估广泛性焦虑障碍严重程度的标准化工具',
+        validation: '经过全球 50+ 国家验证，灵敏度 89%，特异度 82%',
+        usage: '全球最广泛使用的焦虑筛查量表，被 WHO 推荐',
+    },
+    'PHQ-9': {
+        fullName: '患者健康问卷-9',
+        abbreviation: 'PHQ-9',
+        authors: 'Kroenke K, Spitzer RL, Williams JBW',
+        year: 2001,
+        journal: 'Journal of General Internal Medicine',
+        description: '用于筛查、诊断和监测抑郁症严重程度的标准化工具',
+        validation: '经过全球 100+ 国家验证，灵敏度 88%，特异度 88%',
+        usage: '全球最广泛使用的抑郁筛查量表，已被翻译成 70+ 种语言',
+    },
+    'ISI': {
+        fullName: '失眠严重程度指数',
+        abbreviation: 'ISI',
+        authors: 'Bastien CH, Vallières A, Morin CM',
+        year: 2001,
+        journal: 'Sleep Medicine',
+        description: '用于评估失眠严重程度和治疗效果的标准化工具',
+        validation: '经过多国临床验证，信效度优良',
+        usage: '国际睡眠医学领域最常用的失眠评估量表',
+    },
 };
 import {
     GAD7,
@@ -425,13 +461,53 @@ export function ClinicalOnboarding({
                                 <span className="text-sm font-medium text-neutral-500">
                                     {currentScaleName}
                                 </span>
-                                {/* Source citation */}
-                                <div className="group relative">
-                                    <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
-                                    <div className="absolute left-0 bottom-full mb-2 px-3 py-1.5 bg-neutral-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                                        来源：{SCALE_CITATIONS[currentScaleName.split('-')[0].trim() + '-' + currentScaleName.split('-')[1]?.trim()] || SCALE_CITATIONS[currentScaleName.match(/[A-Z]+-\d+/)?.[0] || ''] || '临床标准量表'}
-                                    </div>
-                                </div>
+                                {/* Source citation - comprehensive card */}
+                                {(() => {
+                                    const scaleKey = currentScaleName.match(/[A-Z]+-\d+|ISI/)?.[0] || '';
+                                    const info = SCALE_INFO[scaleKey];
+                                    if (!info) return null;
+                                    return (
+                                        <div className="group relative">
+                                            <button className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium hover:bg-emerald-100 transition-colors">
+                                                <Info className="w-3 h-3" />
+                                                <span>临床验证</span>
+                                            </button>
+                                            {/* Rich source card */}
+                                            <div className="absolute left-0 top-full mt-2 w-80 p-4 bg-white rounded-xl shadow-2xl border border-neutral-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                                <div className="flex items-start gap-3 mb-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0">
+                                                        <CheckCircle2 className="w-5 h-5 text-white" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-neutral-900 text-sm">{info.fullName}</h4>
+                                                        <p className="text-xs text-neutral-500">{info.abbreviation} · {info.year}</p>
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-neutral-600 mb-3 leading-relaxed">{info.description}</p>
+                                                <div className="space-y-2 text-xs">
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-emerald-600 font-medium w-12 flex-shrink-0">作者</span>
+                                                        <span className="text-neutral-600">{info.authors}</span>
+                                                    </div>
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-emerald-600 font-medium w-12 flex-shrink-0">期刊</span>
+                                                        <span className="text-neutral-600 italic">{info.journal}</span>
+                                                    </div>
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-emerald-600 font-medium w-12 flex-shrink-0">验证</span>
+                                                        <span className="text-neutral-600">{info.validation}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3 pt-3 border-t border-neutral-100">
+                                                    <p className="text-xs text-emerald-700 font-medium flex items-center gap-1">
+                                                        <Sparkles className="w-3 h-3" />
+                                                        {info.usage}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                             <button
                                 onClick={handlePause}
