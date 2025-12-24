@@ -414,10 +414,7 @@ export default function InfiniteNewsFeed({
 
                       {/* AI 推荐原因 - 展示思考逻辑 */}
                       <div className="rounded-xl border border-[#9CAF88]/30 bg-gradient-to-r from-[#9CAF88]/5 to-[#D4AF37]/5 px-4 py-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#9CAF88] to-[#7a9268] flex items-center justify-center">
-                            <span className="text-[10px] text-white font-bold">AI</span>
-                          </div>
+                        <div className="mb-2">
                           <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#0B3D2E]/70">
                             {isZh ? "Max 推荐理由" : "Why Max Recommends This"}
                           </span>
