@@ -404,8 +404,8 @@ export function ClinicalOnboarding({
                             <h2 className="text-2xl md:text-3xl font-semibold text-neutral-900 tracking-tight mb-3">
                                 {userName ? `${userName}，` : ''}欢迎来到 AntiAnxiety
                             </h2>
-                            <p className="text-neutral-500 text-base md:text-lg max-w-sm mx-auto leading-relaxed mb-6">
-                                让我们通过 {TOTAL_QUESTIONS} 个问题，更好地了解你的状态
+                            <p className="text-neutral-500 text-base md:text-lg max-w-md mx-auto leading-relaxed mb-6">
+                                让我们应用全球最前沿的临床评估标准，通过 {TOTAL_QUESTIONS} 项专业维度的深度扫描，来全面了解您的状态
                             </p>
 
                             <div className="flex items-center justify-center gap-4 text-sm text-neutral-400 mb-10">
