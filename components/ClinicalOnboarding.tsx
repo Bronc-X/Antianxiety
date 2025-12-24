@@ -390,13 +390,34 @@ export function ClinicalOnboarding({
                         custom={direction}
                         className="relative p-10 md:p-12"
                     >
-                        <div className="flex justify-center mb-8">
+                        <div className="flex flex-col items-center mb-8">
                             <motion.div
-                                initial={{ scale: 0.8 }}
-                                animate={{ scale: 1 }}
-                                className="w-20 h-20 rounded-[22px] bg-gradient-to-br from-neutral-900 to-neutral-800 flex items-center justify-center shadow-2xl"
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ duration: 0.5, ease: "easeOut" }}
+                                className="relative mb-6"
                             >
-                                <Brain className="w-9 h-9 text-white" strokeWidth={1.5} />
+                                <div className="w-20 h-20 rounded-full bg-white shadow-2xl border-4 border-white overflow-hidden relative z-10">
+                                    <img src="/max-avatar.png" alt="Max" className="w-full h-full object-cover" />
+                                </div>
+                                <motion.div
+                                    animate={{ scale: [1, 1.1, 1] }}
+                                    transition={{ duration: 4, repeat: Infinity }}
+                                    className="absolute -inset-2 bg-neutral-900/5 rounded-full blur-xl -z-10"
+                                />
+                            </motion.div>
+
+                            {/* Max Intro Bubble */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ delay: 0.3, duration: 0.6 }}
+                                className="relative bg-neutral-900 text-white p-5 rounded-2xl rounded-tl-none max-w-sm shadow-xl"
+                            >
+                                <div className="absolute -left-2 top-0 w-4 h-4 bg-neutral-900 [clip-path:polygon(100%_0,0_0,100%_100%)]" />
+                                <p className="text-sm md:text-[15px] leading-relaxed font-medium">
+                                    “你好，我是 Max。我将实时监测你的临床状态，并为你全球检索最新的干预手段，动态优化你的方案。”
+                                </p>
                             </motion.div>
                         </div>
 
