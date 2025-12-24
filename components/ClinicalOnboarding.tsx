@@ -110,7 +110,7 @@ type OnboardingStep = 'welcome' | 'questions' | 'encouragement' | 'safety' | 'an
 // ============ Scale Configuration ============
 
 const SCALES_ORDER: ScaleDefinition[] = [GAD7, PHQ9, ISI];
-const QUESTIONS_PER_PAGE = 4;
+const QUESTIONS_PER_PAGE = 3;
 
 // Encouragement pages - show after specific pages
 const ENCOURAGEMENT_PAGES = [2, 4]; // Show after page 2 and page 4 (0-indexed)
@@ -451,7 +451,7 @@ export function ClinicalOnboarding({
                         animate="center"
                         exit="exit"
                         custom={direction}
-                        className="relative p-8 md:p-10"
+                        className="relative p-6 md:p-8"
                     >
                         {/* Header */}
                         <div className="flex justify-between items-center mb-6">
@@ -521,7 +521,7 @@ export function ClinicalOnboarding({
                         </div>
 
                         {/* Progress bar */}
-                        <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden mb-8">
+                        <div className="h-1 bg-neutral-100 rounded-full overflow-hidden mb-6">
                             <motion.div
                                 className="h-full bg-gradient-to-r from-neutral-800 to-neutral-600"
                                 initial={{ width: 0 }}
@@ -531,28 +531,28 @@ export function ClinicalOnboarding({
                         </div>
 
                         {/* Questions */}
-                        <div className="space-y-10">
+                        <div className="space-y-6">
                             {currentQuestions.map((question, idx) => (
-                                <div key={question.id} className="space-y-6">
-                                    <p className="text-lg md:text-xl font-semibold text-neutral-900 leading-snug">
+                                <div key={question.id} className="space-y-4">
+                                    <p className="text-base md:text-lg font-semibold text-neutral-900 leading-snug">
                                         {pageStart + idx + 1}. {question.text}
                                     </p>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {question.options.map((option) => {
                                             const isSelected = answers[question.id] === option.value;
                                             return (
                                                 <button
                                                     key={option.value}
                                                     onClick={() => handleAnswer(question.id, option.value)}
-                                                    className={`p-4 rounded-2xl text-sm md:text-base font-medium text-left transition-all duration-300 border-2 ${isSelected
-                                                        ? 'bg-neutral-900 text-white border-neutral-900 shadow-lg scale-[1.02]'
+                                                    className={`p-3 rounded-xl text-xs md:text-sm font-medium text-left transition-all duration-300 border ${isSelected
+                                                        ? 'bg-neutral-900 text-white border-neutral-900 shadow-md scale-[1.01]'
                                                         : 'bg-white text-neutral-700 border-neutral-100 hover:border-neutral-200 hover:bg-neutral-50'
                                                         }`}
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <span>{option.label}</span>
-                                                        {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                                                     </div>
                                                 </button>
                                             );
@@ -567,7 +567,7 @@ export function ClinicalOnboarding({
                             {currentPage > 0 && (
                                 <button
                                     onClick={goToPreviousPage}
-                                    className="flex-1 h-12 border border-neutral-200 text-neutral-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-neutral-50"
+                                    className="flex-1 h-11 border border-neutral-200 text-neutral-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-neutral-50"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                     <span>上一页</span>
@@ -576,7 +576,7 @@ export function ClinicalOnboarding({
                             <button
                                 onClick={goToNextPage}
                                 disabled={!isPageComplete}
-                                className="flex-1 h-12 bg-neutral-900 text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 h-11 bg-neutral-900 text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <span>{currentPage < TOTAL_PAGES - 1 ? '下一页' : '完成'}</span>
                                 <ChevronRight className="w-4 h-4" />

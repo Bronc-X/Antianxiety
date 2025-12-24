@@ -122,7 +122,7 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
       </div>
 
       {/* 问题内容 */}
-      <div className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full">
+      <div className="flex-1 px-4 py-2 max-w-2xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={question.id}
@@ -132,12 +132,12 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
             transition={{ duration: 0.3 }}
           >
             {/* 问题文本 */}
-            <h2 className="text-2xl font-bold text-foreground mb-3">
+            <h2 className="text-xl font-bold text-foreground mb-2">
               {maybeCnToTw(language, question.text)}
             </h2>
 
             {question.description && (
-              <p className="text-muted-foreground mb-8">
+              <p className="text-sm text-muted-foreground mb-4">
                 {maybeCnToTw(language, question.description)}
               </p>
             )}
