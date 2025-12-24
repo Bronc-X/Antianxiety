@@ -82,9 +82,9 @@ const SCALE_MAP: Record<string, ScaleDefinition> = {
 };
 
 const SCALE_COLORS: Record<string, { from: string; to: string }> = {
-    PSS10: { from: 'from-purple-500', to: 'to-violet-500' },
-    GAD7: { from: 'from-blue-500', to: 'to-cyan-500' },
-    PHQ9: { from: 'from-rose-500', to: 'to-pink-500' },
+    PSS10: { from: 'from-[#0B3D2E]', to: 'to-emerald-800' },
+    GAD7: { from: 'from-emerald-600', to: 'to-teal-700' },
+    PHQ9: { from: 'from-emerald-700', to: 'to-[#0B3D2E]' },
 };
 
 // ============ Component ============
@@ -282,10 +282,10 @@ export function MonthlyCalibration({
                         </div>
 
                         <div className="text-center">
-                            <h2 className="text-2xl md:text-3xl font-semibold text-neutral-900 tracking-tight mb-3">
+                            <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-3">
                                 {userName ? `${userName}，` : ''}月度评估
                             </h2>
-                            <p className="text-neutral-500 text-base md:text-lg max-w-sm mx-auto leading-relaxed">
+                            <p className="text-emerald-800/60 text-base md:text-lg max-w-sm mx-auto leading-relaxed">
                                 {scale.name} · {questions.length} 个问题 · 约 {estimatedMinutes} 分钟
                             </p>
                         </div>
@@ -293,13 +293,13 @@ export function MonthlyCalibration({
                         <div className="flex gap-3 mt-10">
                             <button
                                 onClick={() => handleSkip('busy')}
-                                className="flex-1 h-14 border border-neutral-200 text-neutral-600 rounded-2xl font-medium hover:bg-neutral-50"
+                                className="flex-1 h-14 border border-emerald-100 text-emerald-700 rounded-2xl font-medium hover:bg-emerald-50"
                             >
                                 稍后再做
                             </button>
                             <button
                                 onClick={startCalibration}
-                                className="flex-1 h-14 bg-neutral-900 text-white rounded-2xl font-medium flex items-center justify-center gap-2"
+                                className="flex-1 h-14 bg-[#0B3D2E] text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-[#06261c] transition-colors shadow-lg shadow-emerald-900/10"
                             >
                                 <span>开始评估</span>
                                 <ChevronRight className="w-5 h-5" />
@@ -320,12 +320,12 @@ export function MonthlyCalibration({
                     >
                         {/* Header with pause */}
                         <div className="flex justify-between items-center mb-6">
-                            <span className="text-sm font-medium text-neutral-400">
+                            <span className="text-sm font-medium text-emerald-800/40">
                                 {currentQuestionIndex + 1} / {questions.length}
                             </span>
                             <button
                                 onClick={handlePause}
-                                className="flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-700"
+                                className="flex items-center gap-2 text-sm text-emerald-700 hover:text-[#0B3D2E]"
                             >
                                 <Pause className="w-4 h-4" />
                                 <span>暂停保存</span>
@@ -342,8 +342,8 @@ export function MonthlyCalibration({
                         </div>
 
                         {/* Question */}
-                        <p className="text-sm text-neutral-400 mb-3">{scale.description}</p>
-                        <h3 className="text-xl md:text-2xl font-medium text-neutral-900 mb-8 leading-relaxed">
+                        <p className="text-sm text-emerald-800/40 mb-3">{scale.description}</p>
+                        <h3 className="text-xl md:text-2xl font-medium text-[#0B3D2E] mb-8 leading-relaxed">
                             {currentQuestion.text}
                         </h3>
 
@@ -356,9 +356,9 @@ export function MonthlyCalibration({
                                     whileTap={{ scale: 0.99 }}
                                     onClick={() => handleAnswer(currentQuestion.id, option.value)}
                                     disabled={isLoading}
-                                    className={`w-full p-5 text-left rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 transition-all disabled:opacity-50`}
+                                    className={`w-full p-5 text-left rounded-2xl border border-emerald-100/60 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all disabled:opacity-50`}
                                 >
-                                    <span className="text-base font-medium text-neutral-800">
+                                    <span className="text-base font-medium text-[#0B3D2E]">
                                         {option.label}
                                     </span>
                                 </motion.button>
@@ -426,7 +426,7 @@ export function MonthlyCalibration({
                         </p>
 
                         <div className="bg-neutral-50 rounded-2xl p-6">
-                            <div className="text-4xl font-bold text-neutral-900 mb-2">
+                            <div className="text-4xl font-bold text-[#0B3D2E] mb-2">
                                 {result.totalScore}
                             </div>
                             <div className="text-sm text-neutral-500">
