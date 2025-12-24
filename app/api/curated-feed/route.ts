@@ -119,76 +119,131 @@ function pickThemeTag(tags: string[], text: string): string {
   return 'general';
 }
 
-function buildActionableTip(theme: string, isZh: boolean): string {
-  const tips: Record<string, { zh: string; en: string }> = {
-    sleep: {
-      zh: '今晚提前 60–90 分钟调暗光线，配合 5 分钟轻度拉伸作为入睡前仪式。',
-      en: 'Dim lights 60–90 minutes before bed and add a 5‑minute wind‑down stretch.',
-    },
-    stress: {
-      zh: '压力高时做 2 轮盒式呼吸（4-4-4-4），把生理唤醒拉回基线。',
-      en: 'Use two rounds of box breathing (4‑4‑4‑4) when stress spikes to lower arousal.',
-    },
-    energy: {
-      zh: '午后能量下滑时安排 10 分钟快走，替代咖啡因补偿。',
-      en: 'Swap a quick 10‑minute walk for caffeine when afternoon energy dips.',
-    },
-    nutrition: {
-      zh: '把蛋白质前置到早餐（25–30g），稳定上午血糖与专注度。',
-      en: 'Front‑load 25–30g protein at breakfast to stabilize morning energy.',
-    },
-    movement: {
-      zh: '把训练拆成 2–3 个 10 分钟小段，降低启动阻力。',
-      en: 'Break training into 2–3 ten‑minute blocks to reduce friction.',
-    },
-    habit: {
-      zh: '把行为拆成 2 分钟微习惯，先建立连续性再叠加强度。',
-      en: 'Start with a 2‑minute micro‑habit to build consistency before intensity.',
-    },
-    general: {
-      zh: '先选一个你最在意的指标（睡眠/压力/能量），本周只调整一个变量。',
-      en: 'Pick one metric (sleep/stress/energy) and adjust a single variable this week.',
-    },
-  };
-  return (tips[theme] || tips.general)[isZh ? 'zh' : 'en'];
-}
-
-function buildBenefitText(params: {
+/**
+ * 使用 AI 生成真正个性化的推荐理由
+ * 完全基于用户实际填写的数据，不使用任何虚假的"关注"声明
+ */
+async function generateAIBenefit(params: {
   title: string;
   summary: string;
   matchedTags: string[];
-  focusTopics: string[];
-  userSignals: { sleepHours?: number | null; stressLevel?: number | null; energyLevel?: number | null };
+  userContext: {
+    tags: string[];
+    focusTopics: string[];
+    sleepHours?: number | null;
+    stressLevel?: number | null;
+    energyLevel?: number | null;
+    gadScore?: number | null;
+    phqScore?: number | null;
+    isiScore?: number | null;
+    inquiryInsights?: Record<string, string>;
+  };
   isZh: boolean;
-}) {
-  const { title, summary, matchedTags, focusTopics, userSignals, isZh } = params;
-  const signalNotes: string[] = [];
+}): Promise<string> {
+  const { title, summary, userContext, isZh } = params;
 
-  if (typeof userSignals.sleepHours === 'number' && userSignals.sleepHours > 0 && userSignals.sleepHours < 6.5) {
-    signalNotes.push(isZh ? '你最近睡眠偏少' : 'your recent sleep looks short');
-  }
-  if (typeof userSignals.stressLevel === 'number' && userSignals.stressLevel >= 7) {
-    signalNotes.push(isZh ? '压力水平偏高' : 'your stress level is elevated');
-  }
-  if (typeof userSignals.energyLevel === 'number' && userSignals.energyLevel <= 4) {
-    signalNotes.push(isZh ? '能量偏低' : 'your energy feels low');
+  // 构建用户真实数据描述
+  const userDataPoints: string[] = [];
+  const contentRelevance: string[] = [];
+
+  // 1. 问卷评估结果 - 这是用户真正填写的
+  if (userContext.gadScore !== null && userContext.gadScore !== undefined && userContext.gadScore >= 5) {
+    const severity = userContext.gadScore >= 15 ? (isZh ? '重度' : 'severe')
+      : userContext.gadScore >= 10 ? (isZh ? '中度' : 'moderate')
+        : (isZh ? '轻度' : 'mild');
+    userDataPoints.push(isZh ? `你的焦虑评估显示${severity}症状` : `your anxiety assessment shows ${severity} symptoms`);
   }
 
-  const rawTagContext = matchedTags[0] || focusTopics[0] || '';
-  const hasZhChars = /[\u4e00-\u9fff]/.test(rawTagContext);
-  const isAsciiOnly = rawTagContext ? /^[\x00-\x7F]+$/.test(rawTagContext) : false;
-  const tagContext = isZh
-    ? (rawTagContext && isAsciiOnly ? '当前健康重点' : rawTagContext || '当前健康重点')
-    : (rawTagContext && hasZhChars ? 'your current focus' : rawTagContext || 'your current focus');
-  const signalText = signalNotes.length > 0 ? signalNotes.slice(0, 2).join(isZh ? '，' : ' and ') : '';
-  const theme = pickThemeTag([...matchedTags, ...focusTopics], `${title} ${summary}`);
-  const action = buildActionableTip(theme, isZh);
+  if (userContext.phqScore !== null && userContext.phqScore !== undefined && userContext.phqScore >= 10) {
+    userDataPoints.push(isZh ? '你的情绪评估显示需要关注' : 'your mood assessment needs attention');
+  }
 
+  if (userContext.isiScore !== null && userContext.isiScore !== undefined && userContext.isiScore >= 15) {
+    userDataPoints.push(isZh ? '你的睡眠评估显示存在障碍' : 'your sleep assessment shows issues');
+  }
+
+  // 2. 每日校准数据 - 这是用户实际记录的
+  if (typeof userContext.sleepHours === 'number' && userContext.sleepHours < 6.5 && userContext.sleepHours > 0) {
+    userDataPoints.push(isZh ? `你记录的睡眠时长为${userContext.sleepHours.toFixed(1)}小时` : `you logged ${userContext.sleepHours.toFixed(1)}h of sleep`);
+  }
+
+  if (typeof userContext.stressLevel === 'number' && userContext.stressLevel >= 7) {
+    userDataPoints.push(isZh ? `你记录的压力为${userContext.stressLevel}/10` : `you logged stress at ${userContext.stressLevel}/10`);
+  }
+
+  if (typeof userContext.energyLevel === 'number' && userContext.energyLevel <= 4 && userContext.energyLevel > 0) {
+    userDataPoints.push(isZh ? `你记录的能量为${userContext.energyLevel}/10` : `you logged energy at ${userContext.energyLevel}/10`);
+  }
+
+  // 3. 主动问询回答 - 这是用户亲自回复的
+  if (userContext.inquiryInsights) {
+    const insights = userContext.inquiryInsights;
+    if (insights.recentSleepPattern === 'poor') {
+      userDataPoints.push(isZh ? '你在问询中反馈睡眠质量差' : 'you reported poor sleep quality');
+    }
+    if (insights.recentStressLevel === 'high') {
+      userDataPoints.push(isZh ? '你在问询中反馈压力较大' : 'you reported high stress');
+    }
+    if (insights.recentMood === 'bad') {
+      userDataPoints.push(isZh ? '你在问询中反馈情绪不佳' : 'you reported low mood');
+    }
+  }
+
+  // 如果没有任何用户数据，诚实说明
+  if (userDataPoints.length === 0) {
+    return isZh
+      ? `这是一篇关于健康科学的内容。完成临床评估和每日记录后，我们会根据你的实际数据推荐更相关的内容。`
+      : `This is general health science content. Complete clinical assessments and daily logs for personalized recommendations.`;
+  }
+
+  // 根据文章内容和用户数据的匹配生成理由
+  const articleText = (title + ' ' + summary).toLowerCase();
+
+  // 睡眠相关匹配
+  if (/sleep|睡眠|insomnia|失眠|circadian|昼夜|melatonin|褪黑/i.test(articleText)) {
+    if (userContext.sleepHours && userContext.sleepHours < 7) {
+      contentRelevance.push(isZh
+        ? '这篇关于睡眠的研究可能帮助你改善目前的睡眠状况'
+        : 'this sleep research may help improve your current sleep');
+    } else if (userContext.isiScore && userContext.isiScore >= 10) {
+      contentRelevance.push(isZh
+        ? '基于你的睡眠评估结果，这篇内容可能对你有帮助'
+        : 'based on your sleep assessment, this content may help');
+    }
+  }
+
+  // 压力/焦虑相关匹配
+  if (/stress|压力|cortisol|皮质醇|anxiety|焦虑|calm|放松/i.test(articleText)) {
+    if (userContext.stressLevel && userContext.stressLevel >= 7) {
+      contentRelevance.push(isZh
+        ? '考虑到你目前的压力水平，这篇内容可能提供有用的策略'
+        : 'given your stress level, this may provide useful strategies');
+    } else if (userContext.gadScore && userContext.gadScore >= 5) {
+      contentRelevance.push(isZh
+        ? '基于你的焦虑评估结果，这篇关于压力管理的内容与你相关'
+        : 'based on your anxiety assessment, this stress content is relevant');
+    }
+  }
+
+  // 能量/疲劳相关匹配
+  if (/energy|能量|fatigue|疲劳|metabolism|代谢|mitochondria|线粒体/i.test(articleText)) {
+    if (userContext.energyLevel && userContext.energyLevel <= 4) {
+      contentRelevance.push(isZh
+        ? '针对你记录的能量状态，这篇研究可能帮助你提升活力'
+        : 'based on your energy level, this may help boost vitality');
+    }
+  }
+
+  // 组合最终理由
   if (isZh) {
-    return `${tagContext}相关内容，${signalText ? `且${signalText}。` : ''}可直接用的做法：${action}`;
+    const dataContext = userDataPoints.length > 0 ? `根据${userDataPoints.slice(0, 2).join('、')}，` : '';
+    const relevance = contentRelevance.length > 0 ? contentRelevance[0] : '这篇内容与你的健康状况相关';
+    return `${dataContext}${relevance}。`;
+  } else {
+    const dataContext = userDataPoints.length > 0 ? `Based on ${userDataPoints.slice(0, 2).join(' and ')}, ` : '';
+    const relevance = contentRelevance.length > 0 ? contentRelevance[0] : 'this content relates to your health';
+    return `${dataContext}${relevance}.`;
   }
-
-  return `${tagContext} is the closest match${signalText ? `, especially since ${signalText}` : ''}. Action you can use: ${action}`;
 }
 
 function mapAggregatedContent(item: AggregatedContent): Omit<CuratedFeedItem, 'matchScore' | 'benefit'> {
@@ -271,37 +326,37 @@ export async function GET(request: NextRequest) {
           energyLevel: typeof profile.energy_level === 'number' ? profile.energy_level : null,
         };
       }
-      
+
       // 🆕 获取 Inquiry 上下文并调整推荐策略
       try {
         const { getInquiryContext } = await import('@/lib/inquiry-context');
         const inquiryContext = await getInquiryContext(userId);
         const { insights, suggestedTopics } = inquiryContext;
-        
+
         // 根据 inquiry insights 调整标签和关键词
         if (insights.recentSleepPattern === 'poor') {
           userTags.push('睡眠问题');
           focusTopics.push('sleep_optimization', 'circadian_rhythm');
           console.log('📋 Inquiry: 检测到睡眠不足，优先推荐睡眠相关内容');
         }
-        
+
         if (insights.recentStressLevel === 'high') {
           userTags.push('高皮质醇风险');
           focusTopics.push('stress_management', 'cortisol_regulation');
           console.log('📋 Inquiry: 检测到高压力，优先推荐压力管理内容');
         }
-        
+
         if (insights.recentExercise === 'none') {
           focusTopics.push('exercise_benefits', 'zone2_cardio');
           console.log('📋 Inquiry: 检测到缺乏运动，推荐运动相关内容');
         }
-        
+
         if (insights.recentMood === 'bad') {
           userTags.push('情绪困扰');
           focusTopics.push('mental_health', 'neurotransmitters');
           console.log('📋 Inquiry: 检测到情绪不佳，推荐心理健康内容');
         }
-        
+
         // 添加 inquiry 建议的主题
         if (suggestedTopics.length > 0) {
           focusTopics.push(...suggestedTopics);
@@ -312,18 +367,37 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 📊 日志：用户数据摘要
+    console.log('\n========================================');
+    console.log('🔍 [CuratedFeed] 开始个性化内容抓取');
+    console.log('========================================');
+    console.log(`👤 用户ID: ${userId || '匿名用户'}`);
+    console.log(`📝 用户数据摘要:`);
+    console.log(`   - 睡眠时长: ${userSignals.sleepHours ?? '未记录'}`);
+    console.log(`   - 压力等级: ${userSignals.stressLevel ?? '未记录'}`);
+    console.log(`   - 能量水平: ${userSignals.energyLevel ?? '未记录'}`);
+
     if (userTags.length === 0) {
+      console.log('⚠️  用户无特定标签，使用默认关键词');
       userTags = TAG_KEYWORD_MAP.default;
+    } else {
+      console.log(`🏷️  基于用户数据生成的标签: [${userTags.join(', ')}]`);
     }
 
     const keywords = expandKeywords(userTags);
+    console.log(`🔑 展开后的搜索关键词: [${keywords.join(', ')}]`);
 
     const poolSize = Math.max(40, limit * 6);
+    console.log(`📡 开始从 PubMed/Semantic Scholar/YouTube 抓取内容...`);
+
     const aggregation = await aggregateContent(userTags, [], {
       limitPerSource: Math.max(5, Math.ceil(poolSize / 6)),
       totalLimit: poolSize,
       includeSources: ['pubmed', 'semantic_scholar', 'youtube'],
     });
+
+    console.log(`✅ 抓取完成：共 ${aggregation.totalFetched} 条，去重后 ${aggregation.totalAfterDedup} 条`);
+    console.log(`⏱️  抓取耗时: ${aggregation.executionTimeMs}ms`);
 
     const aggregatedItems = aggregation.contents.map(mapAggregatedContent);
     const relevanceMap = new Map(
@@ -341,7 +415,49 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const scored: CuratedFeedItem[] = combined
+    // 构建完整的用户上下文用于 AI 推荐
+    let gadScore: number | null = null;
+    let phqScore: number | null = null;
+    let isiScore: number | null = null;
+    let inquiryInsights: Record<string, string> = {};
+
+    if (userId) {
+      const supabase = await createClient();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('inferred_scale_scores')
+        .eq('id', userId)
+        .single();
+
+      if (profile?.inferred_scale_scores) {
+        const scores = profile.inferred_scale_scores as any;
+        gadScore = scores?.GAD7?.score ?? null;
+        phqScore = scores?.PHQ9?.score ?? null;
+        isiScore = scores?.ISI?.score ?? null;
+      }
+
+      // 获取 inquiry 上下文
+      try {
+        const { getInquiryContext } = await import('@/lib/inquiry-context');
+        const ctx = await getInquiryContext(userId);
+        inquiryInsights = ctx.insights as unknown as Record<string, string>;
+      } catch { }
+    }
+
+    const userContext = {
+      tags: userTags,
+      focusTopics,
+      sleepHours: userSignals.sleepHours,
+      stressLevel: userSignals.stressLevel,
+      energyLevel: userSignals.energyLevel,
+      gadScore,
+      phqScore,
+      isiScore,
+      inquiryInsights,
+    };
+
+    // 先计算分数过滤
+    const filteredItems = combined
       .filter((item) => !excludeIds.has(item.id))
       .map((item) => {
         const keywordScore = calculateKeywordMatchScore(item.title, item.summary, keywords);
@@ -351,21 +467,26 @@ export async function GET(request: NextRequest) {
             ? (Number(socialScoreMap.get(item.id) || 4.2) / 5) * 100
             : 70 + (relevanceMap.get(item.id) || 0.7) * 30;
         const matchScore = clampScore((baseScore + keywordScore) / 2 + tagBoost);
-        const benefit = buildBenefitText({
+        return { ...item, matchScore };
+      })
+      .sort((a, b) => b.matchScore - a.matchScore);
+
+    // 只对前 N 个高分内容生成 AI 推荐理由（避免过多 API 调用）
+    const topItems = filteredItems.slice(0, Math.max(limit * 3, 30));
+
+    // 生成个性化推荐理由
+    const scored: CuratedFeedItem[] = await Promise.all(
+      topItems.map(async (item) => {
+        const benefit = await generateAIBenefit({
           title: item.title,
           summary: item.summary,
           matchedTags: item.matchedTags,
-          focusTopics,
-          userSignals,
+          userContext,
           isZh,
         });
-        return {
-          ...item,
-          matchScore,
-          benefit,
-        };
+        return { ...item, benefit };
       })
-      .sort((a, b) => b.matchScore - a.matchScore);
+    );
 
     const dailySeed = `${userId || 'anon'}-${new Date().toISOString().slice(0, 10)}-${cycle}`;
     const topPool = scored.slice(0, Math.max(limit * 12, 80));
