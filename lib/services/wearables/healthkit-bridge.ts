@@ -191,10 +191,17 @@ export class HealthKitBridge {
         }
 
         // 动态导入Capacitor HealthKit插件
-        const { CapacitorHealthkit } = await import('@followathletics/capacitor-healthkit');
-        const HealthKit = CapacitorHealthkit;
-        this.plugin = HealthKit;
-        return this.plugin;
+        // 使用 try-catch 处理模块不存在的情况（服务端构建时）
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const mod = require('@followathletics/capacitor-healthkit');
+            const HealthKit = mod.CapacitorHealthkit;
+            this.plugin = HealthKit;
+            return this.plugin;
+        } catch {
+            // 在服务端或模块不存在时返回一个空的mock
+            throw new Error('HealthKit plugin is only available on iOS devices');
+        }
     }
 
     private getSleepQuality(minutes: number): DataQuality {

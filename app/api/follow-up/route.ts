@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const sessionId = searchParams.get('sessionId');
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     if (sessionId) {
       if (!isAdmin) {
         const supabase = getSupabaseClient();
-        const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
+        const ownerId = await getFollowUpSessionOwnerId(supabase as any, sessionId);
         if (!ownerId) {
           return NextResponse.json({ error: 'Session not found' }, { status: 404 });
         }
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.json({ session });
     }
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     if (!targetUserId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
-    
+
     const sessions = await getPendingSessions(targetUserId);
     return NextResponse.json({ sessions });
   } catch (error) {
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, userId, planId, sessionType, sessionId } = body;
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      
+
       if (!isAdmin && userId !== user?.id) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       }
 
       const supabase = getSupabaseClient();
-      const planOwnerId = await getPlanOwnerId(supabase, planId);
+      const planOwnerId = await getPlanOwnerId(supabase as any, planId);
       if (!planOwnerId) {
         return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
       }
@@ -139,10 +139,10 @@ export async function POST(request: NextRequest) {
         planId,
         type: sessionType as SessionType,
       });
-      
+
       return NextResponse.json({ session }, { status: 201 });
     }
-    
+
     if (action === 'start') {
       if (!sessionId) {
         return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
       if (!isAdmin) {
         const supabase = getSupabaseClient();
-        const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
+        const ownerId = await getFollowUpSessionOwnerId(supabase as any, sessionId);
         if (!ownerId) {
           return NextResponse.json({ error: 'Session not found' }, { status: 404 });
         }
@@ -158,11 +158,11 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       }
-      
+
       const session = await startSession(sessionId);
       return NextResponse.json({ session });
     }
-    
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Failed to process follow-up request:', error);
@@ -181,7 +181,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, sessionId, response, sentimentScore, summary } = body;
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -199,7 +199,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!isAdmin) {
       const supabase = getSupabaseClient();
-      const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
+      const ownerId = await getFollowUpSessionOwnerId(supabase as any, sessionId);
       if (!ownerId) {
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });
       }
@@ -207,25 +207,25 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
-    
+
     if (action === 'record') {
       if (!response) {
         return NextResponse.json({ error: 'response is required' }, { status: 400 });
       }
-      
+
       await recordResponse(sessionId, response as FollowUpResponse);
       return NextResponse.json({ success: true });
     }
-    
+
     if (action === 'complete') {
       if (sentimentScore === undefined) {
         return NextResponse.json({ error: 'sentimentScore is required' }, { status: 400 });
       }
-      
+
       const session = await completeSession(sessionId, sentimentScore, summary);
       return NextResponse.json({ session });
     }
-    
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Failed to update follow-up session:', error);
@@ -236,8 +236,9 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getPlanOwnerId(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   planId: string
 ): Promise<string | null> {
   const { data: plan } = await supabase
@@ -249,8 +250,9 @@ async function getPlanOwnerId(
   return plan?.user_id ?? null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getFollowUpSessionOwnerId(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   sessionId: string
 ): Promise<string | null> {
   const { data: session } = await supabase

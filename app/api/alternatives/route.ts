@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { actionItemId, userId, replacementReason } = body;
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     const supabase = getSupabaseClient();
 
     const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
@@ -81,31 +81,31 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    
+
     // Get the action item
     const { data: actionItem, error: itemError } = await supabase
       .from('plan_action_items')
       .select('*')
       .eq('id', actionItemId)
       .single();
-    
+
     if (itemError || !actionItem) {
       return NextResponse.json(
         { error: 'Action item not found' },
         { status: 404 }
       );
     }
-    
+
     // Get user preference profile
     const userProfile = await getPreferenceProfile(targetUserId);
-    
+
     // Generate alternatives
     const alternatives = await generateAlternatives(
       mapDbToActionItem(actionItem),
       userProfile,
       replacementReason
     );
-    
+
     return NextResponse.json({ alternatives });
   } catch (error) {
     console.error('Failed to generate alternatives:', error);
@@ -124,7 +124,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
     const { originalActionId, alternative, userId } = body;
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -159,7 +159,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
-    const ownerId = await getActionItemOwnerId(supabase, originalActionId);
+    const ownerId = await getActionItemOwnerId(supabase as any, originalActionId);
     if (!ownerId) {
       return NextResponse.json(
         { error: 'Action item not found' },
@@ -172,10 +172,10 @@ export async function PATCH(request: NextRequest) {
         { status: 403 }
       );
     }
-    
+
     // Get current understanding score
     const score = await calculateScore(targetUserId);
-    
+
     // Select the alternative
     const newActionItem = await selectAlternative(
       originalActionId,
@@ -183,7 +183,7 @@ export async function PATCH(request: NextRequest) {
       targetUserId,
       score.current_score
     );
-    
+
     return NextResponse.json({ actionItem: newActionItem });
   } catch (error) {
     console.error('Failed to select alternative:', error);
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const actionItemId = searchParams.get('actionItemId');
     const days = parseInt(searchParams.get('days') || '3', 10);
-    
+
     const isAdmin = isAdminToken(request.headers);
     const authSupabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
@@ -224,7 +224,7 @@ export async function GET(request: NextRequest) {
 
     if (!isAdmin) {
       const supabase = getSupabaseClient();
-      const ownerId = await getActionItemOwnerId(supabase, actionItemId);
+      const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
       if (!ownerId) {
         return NextResponse.json(
           { error: 'Action item not found' },
@@ -238,7 +238,7 @@ export async function GET(request: NextRequest) {
         );
       }
     }
-    
+
     const result = await trackAlternativeSuccess(actionItemId, days);
     return NextResponse.json(result);
   } catch (error) {
@@ -278,7 +278,7 @@ function mapDbToActionItem(db: DbActionItem): ActionItem {
     duration: db.duration || '',
     steps: db.steps || [],
     expected_outcome: db.expected_outcome || '',
-    scientific_rationale: (db.scientific_rationale || {
+    scientific_rationale: (db.scientific_rationale as unknown || {
       physiology: '',
       neurology: '',
       psychology: '',
@@ -293,8 +293,9 @@ function mapDbToActionItem(db: DbActionItem): ActionItem {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getActionItemOwnerId(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   actionItemId: string
 ): Promise<string | null> {
   const { data: actionItem } = await supabase
