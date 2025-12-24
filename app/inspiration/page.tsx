@@ -13,7 +13,7 @@ const TWEET_IDS = [
   '1987741929027813696', // xYsfknBXPT6M0jo
 ];
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 // 标记为动态路由，因为使用了 cookies
 export const dynamic = 'force-dynamic';
 

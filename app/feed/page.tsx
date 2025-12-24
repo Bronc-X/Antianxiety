@@ -4,7 +4,7 @@ import PersonalizedFeed from '@/components/PersonalizedFeed';
 import Link from 'next/link';
 import UserProfileMenu from '@/components/UserProfileMenu';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**

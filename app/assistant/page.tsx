@@ -7,7 +7,7 @@ import UnifiedDailyCalibration from '@/components/UnifiedDailyCalibration';
 import Link from 'next/link';
 import AssistantPageClient from './AssistantPageClient';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 interface ProfileRecord {

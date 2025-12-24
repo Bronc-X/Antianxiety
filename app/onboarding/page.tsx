@@ -3,7 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import OnboardingFlowClient from './OnboardingFlowClient';
 
-export const runtime = 'edge';
+// 使用 Node.js runtime 避免 Edge Function 大小限制
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
