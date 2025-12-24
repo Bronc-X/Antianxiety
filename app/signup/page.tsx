@@ -156,7 +156,7 @@ export default function SignupPage() {
             <button type="button" onClick={() => { setSignupMode('phone'); setMessage(null); }}
               disabled={true}
               className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-not-allowed opacity-50 text-[#0B3D2E]/70 dark:text-neutral-400`}>
-              {t('signup.phoneSignup')} (Beta测试中)
+              {t('signup.phoneSignup')} {t('signup.betaTesting')}
             </button>
           </div>
 

@@ -18,7 +18,7 @@ export default function ProfileSetupPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  
+
   // 表单字段
   const [nickname, setNickname] = useState('');
   const [height, setHeight] = useState('');
@@ -35,16 +35,16 @@ export default function ProfileSetupPage() {
         router.push('/login');
         return;
       }
-      
+
       setUserId(user.id);
-      
+
       // 检查用户是否已完成个人资料设置
       const { data: profile } = await supabase
         .from('profiles')
         .select('height, weight, age')
         .eq('id', user.id)
         .single();
-      
+
       // 如果用户已完成设置，直接跳转到主页
       if (profile && profile.height && profile.weight && profile.age) {
         console.log('用户已完成个人资料设置，跳转到主页');
@@ -132,7 +132,7 @@ export default function ProfileSetupPage() {
   return (
     <div className="min-h-screen bg-[#FAF6EF] flex items-center justify-center p-6">
       <div className="w-full max-w-lg">
-        
+
         {/* 头部 */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#0B3D2E]/10 rounded-full mb-4">
@@ -141,11 +141,11 @@ export default function ProfileSetupPage() {
               {tr(language, { zh: '最后一步', en: 'Final Step' })}
             </span>
           </div>
-          
+
           <h1 className="text-3xl font-serif font-medium text-[#0B3D2E] mb-3">
             {tr(language, { zh: '完善你的健康档案', en: 'Complete Your Health Profile' })}
           </h1>
-          
+
           <p className="text-[#0B3D2E]/60">
             {tr(language, {
               zh: '这些基础数据将帮助 AI 计算你的 BMI、基础代谢率等关键指标',
@@ -156,7 +156,7 @@ export default function ProfileSetupPage() {
 
         {/* 表单 */}
         <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-8 border border-[#E7E1D6] shadow-sm">
-          
+
           {/* 昵称输入 */}
           <div className="mb-6">
             <label htmlFor="nickname" className="block text-sm font-medium text-[#0B3D2E] mb-3">
@@ -191,17 +191,16 @@ export default function ProfileSetupPage() {
               {[
                 { value: 'male', label: tr(language, { zh: '男', en: 'Male' }) },
                 { value: 'female', label: tr(language, { zh: '女', en: 'Female' }) },
-                { value: 'other', label: tr(language, { zh: '其他', en: 'Other' }) },
+                { value: 'other', label: tr(language, { zh: '暂不透露', en: 'Prefer not to say' }) },
               ].map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => setGender(option.value as 'male' | 'female' | 'other')}
-                  className={`py-3 rounded-xl border-2 font-medium transition-all ${
-                    gender === option.value
-                      ? 'bg-[#0B3D2E] text-[#FAF6EF] border-[#0B3D2E]'
-                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]/30'
-                  }`}
+                  className={`py-3 rounded-xl border-2 font-medium transition-all ${gender === option.value
+                    ? 'bg-[#0B3D2E] text-[#FAF6EF] border-[#0B3D2E]'
+                    : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]/30'
+                    }`}
                 >
                   {option.label}
                 </button>
@@ -233,9 +232,6 @@ export default function ProfileSetupPage() {
                 岁
               </span>
             </div>
-            <p className="mt-2 text-xs text-[#0B3D2E]/50">
-              {tr(language, { zh: '范围：10-120 岁', en: 'Range: 10–120' })}
-            </p>
           </div>
 
           {/* 身高 */}
@@ -263,9 +259,6 @@ export default function ProfileSetupPage() {
                 cm
               </span>
             </div>
-            <p className="mt-2 text-xs text-[#0B3D2E]/50">
-              {tr(language, { zh: '范围：100-250 cm', en: 'Range: 100–250 cm' })}
-            </p>
           </div>
 
           {/* 体重 */}
@@ -293,9 +286,6 @@ export default function ProfileSetupPage() {
                 kg
               </span>
             </div>
-            <p className="mt-2 text-xs text-[#0B3D2E]/50">
-              {tr(language, { zh: '范围：30-300 kg', en: 'Range: 30–300 kg' })}
-            </p>
           </div>
 
           {/* 提交按钮 */}

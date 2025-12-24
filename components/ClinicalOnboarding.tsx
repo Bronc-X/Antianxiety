@@ -17,13 +17,16 @@
  * - Premium Apple-inspired design
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import {
     CheckCircle2, Brain, ChevronRight, ChevronLeft,
     Pause, AlertTriangle, Sparkles, Clock, Info
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
+import { MotionButton } from '@/components/motion/MotionButton';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useI18n } from '@/lib/i18n';
 
 // 量表详细来源信息
 const SCALE_INFO: Record<string, {
@@ -67,6 +70,7 @@ const SCALE_INFO: Record<string, {
         usage: '国际睡眠医学领域最常用的失眠评估量表',
     },
 };
+
 import {
     GAD7,
     PHQ9,
@@ -167,6 +171,7 @@ export function ClinicalOnboarding({
     savedProgress,
 }: ClinicalOnboardingProps) {
     const supabase = createClient();
+    const { t, language } = useI18n();
 
     const [step, setStep] = useState<OnboardingStep>('welcome');
     const [currentPage, setCurrentPage] = useState(savedProgress?.currentPage || 0);
@@ -177,6 +182,7 @@ export function ClinicalOnboarding({
     const [result, setResult] = useState<OnboardingResult | null>(null);
     const [pendingSafetyQuestion, setPendingSafetyQuestion] = useState<string | null>(null);
     const [showEncouragement, setShowEncouragement] = useState(false);
+    const [showIntroInfo, setShowIntroInfo] = useState(false);
 
     // Get questions for current page
     const pageStart = currentPage * QUESTIONS_PER_PAGE;
@@ -208,7 +214,7 @@ export function ClinicalOnboarding({
         // Check for safety trigger (PHQ-9 Q9)
         if (checkSafetyTrigger(questionId, value)) {
             await logSafetyEvent(userId, questionId, value);
-            setSafetyMessage(getSafetyMessage('zh'));
+            setSafetyMessage(getSafetyMessage(language));
             setPendingSafetyQuestion(questionId);
             setStep('safety');
         }
@@ -224,14 +230,7 @@ export function ClinicalOnboarding({
     const goToNextPage = useCallback(() => {
         if (currentPage < TOTAL_PAGES - 1) {
             setDirection(1);
-
-            // Check if we should show encouragement after this page
-            if (ENCOURAGEMENT_PAGES.includes(currentPage)) {
-                setShowEncouragement(true);
-                setStep('encouragement');
-            } else {
-                setCurrentPage(prev => prev + 1);
-            }
+            setCurrentPage(prev => prev + 1);
         } else {
             // All pages complete
             completeOnboarding();
@@ -388,58 +387,88 @@ export function ClinicalOnboarding({
                         animate="center"
                         exit="exit"
                         custom={direction}
-                        className="relative p-10 md:p-12"
+                        className="relative p-10 md:p-12 items-center"
                     >
-                        <div className="flex flex-col items-center mb-8">
-                            <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ duration: 0.5, ease: "easeOut" }}
-                                className="relative mb-6"
-                            >
-                                <div className="w-20 h-20 rounded-full bg-white shadow-2xl border-4 border-white overflow-hidden relative z-10">
-                                    <img src="/max-avatar.png" alt="Max" className="w-full h-full object-cover" />
-                                </div>
-                                <motion.div
-                                    animate={{ scale: [1, 1.1, 1] }}
-                                    transition={{ duration: 4, repeat: Infinity }}
-                                    className="absolute -inset-2 bg-neutral-900/5 rounded-full blur-xl -z-10"
-                                />
-                            </motion.div>
+                        <div className="absolute top-6 right-6 z-50">
+                            <LanguageSwitcher />
+                        </div>
 
-                            {/* Max Intro Bubble */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                transition={{ delay: 0.3, duration: 0.6 }}
-                                className="relative bg-neutral-900 text-white p-5 rounded-2xl rounded-tl-none max-w-sm shadow-xl"
-                            >
-                                <div className="absolute -left-2 top-0 w-4 h-4 bg-neutral-900 [clip-path:polygon(100%_0,0_0,100%_100%)]" />
-                                <p className="text-sm md:text-[15px] leading-relaxed font-medium">
-                                    “你好，我是 Max。我将实时监测你的临床状态，并为你全球检索最新的干预手段，动态优化你的方案。”
-                                </p>
-                            </motion.div>
+                        <div className="flex flex-col items-center mb-8">
+
                         </div>
 
                         <div className="text-center">
-                            <h2 className="text-2xl md:text-3xl font-semibold text-neutral-900 tracking-tight mb-3">
-                                {userName ? `${userName}，` : ''}欢迎来到 AntiAnxiety
+                            <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-3">
+                                {userName ? `${userName}, ` : ''}{t('welcome.welcomeTo')}
                             </h2>
-                            <p className="text-neutral-500 text-base md:text-lg max-w-lg mx-auto leading-relaxed mb-6 px-4">
-                                让我们应用全球最前沿的临床评估标准
-                                <br className="hidden md:block" />
-                                通过 {TOTAL_QUESTIONS} 项专业维度的深度扫描，来全面了解您的状态
-                            </p>
 
-                            <div className="flex items-center justify-center gap-4 text-sm text-neutral-400 mb-10">
+                            <div className="relative inline-block text-center max-w-lg mx-auto mb-8 z-20">
+                                <p className="text-emerald-800/60 text-base md:text-lg leading-relaxed px-4">
+                                    {t('welcome.clinicalIntro')}
+                                    <br />
+                                    <span className="inline-flex items-center gap-1.5 align-middle">
+                                        {t('welcome.clinicalDesc')}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setShowIntroInfo(!showIntroInfo); }}
+                                            className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100/80 text-emerald-600 hover:bg-emerald-200 hover:text-emerald-800 transition-colors mt-0.5 shadow-sm"
+                                        >
+                                            <Info className="w-3 h-3" strokeWidth={2.5} />
+                                        </button>
+                                    </span>
+                                </p>
+
+                                <AnimatePresence>
+                                    {showIntroInfo && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                                            className="absolute left-0 right-0 top-full mt-3 mx-4 pointer-events-none"
+                                        >
+                                            <div className="bg-white/95 backdrop-blur-xl p-5 rounded-2xl border border-emerald-100 shadow-[0_8px_40px_rgba(11,61,46,0.15)] text-left pointer-events-auto relative z-50">
+                                                <button
+                                                    onClick={() => setShowIntroInfo(false)}
+                                                    className="absolute top-3 right-3 p-1 text-emerald-300 hover:text-emerald-600 transition-colors"
+                                                >
+                                                    <div className="w-4 h-4 rounded-full border border-current flex items-center justify-center text-[10px]">✕</div>
+                                                </button>
+
+                                                <h4 className="font-bold text-[#0B3D2E] text-sm mb-3 flex items-center gap-2">
+                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                                    {t('welcome.infoTitle')}
+                                                </h4>
+                                                <p className="text-xs text-emerald-800/70 leading-relaxed mb-3">
+                                                    {t('welcome.infoDesc')}
+                                                </p>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/50">
+                                                        <span className="text-xs font-bold text-[#0B3D2E]">GAD-7</span>
+                                                        <span className="text-[10px] text-emerald-600 font-medium">{t('welcome.gad7')}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/50">
+                                                        <span className="text-xs font-bold text-[#0B3D2E]">PHQ-9</span>
+                                                        <span className="text-[10px] text-emerald-600 font-medium">{t('welcome.phq9')}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/50">
+                                                        <span className="text-xs font-bold text-[#0B3D2E]">ISI</span>
+                                                        <span className="text-[10px] text-emerald-600 font-medium">{t('welcome.isi')}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            <div className="flex items-center justify-center gap-4 text-sm text-emerald-800/40 mb-10">
                                 <span className="flex items-center gap-1.5">
                                     <Clock className="w-4 h-4" />
-                                    约 {ESTIMATED_MINUTES} 分钟
+                                    {t('welcome.estimatedTime', { minutes: ESTIMATED_MINUTES })}
                                 </span>
-                                <span className="text-neutral-300">•</span>
+                                <span className="text-emerald-800/20">•</span>
                                 <span className="flex items-center gap-1.5">
                                     <Sparkles className="w-4 h-4" />
-                                    科学量表
+                                    {t('welcome.scientificScale')}
                                 </span>
                             </div>
                         </div>
@@ -447,24 +476,24 @@ export function ClinicalOnboarding({
                         {/* Scales preview */}
                         <div className="flex justify-center gap-3 mb-10">
                             {SCALES_ORDER.map((scale, i) => (
-                                <span key={i} className="px-3 py-1.5 rounded-full bg-neutral-100 text-xs font-medium text-neutral-600">
-                                    {scale.name.split('-')[0].trim()}
+                                <span key={i} className="px-3 py-1.5 rounded-full bg-emerald-50 text-xs font-medium text-emerald-700">
+                                    {language === 'en' ? scale.id.replace(/([A-Z]+)(\d+)/, '$1-$2') : scale.name.split('-')[0].trim()}
                                 </span>
                             ))}
                         </div>
 
                         <button
                             onClick={startOnboarding}
-                            className="w-full h-14 bg-neutral-900 text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-neutral-800 transition-colors"
+                            className="w-full h-14 bg-[#0B3D2E] text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-[#06261c] transition-colors shadow-lg shadow-emerald-900/10"
                         >
-                            <span>开始评估</span>
+                            <span>{t('welcome.startAssessment')}</span>
                             <ChevronRight className="w-5 h-5" />
                         </button>
                     </motion.div>
                 )}
 
                 {/* Questions */}
-                {step === 'questions' && (
+                {step === 'questions' && currentQuestions.length > 0 && (
                     <motion.div
                         key={`page-${currentPage}`}
                         variants={slideVariants}
@@ -476,75 +505,58 @@ export function ClinicalOnboarding({
                     >
                         {/* Header */}
                         <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-neutral-400">
-                                    第 {currentPage + 1} / {TOTAL_PAGES} 页
-                                </span>
-                                <span className="text-neutral-300">•</span>
-                                <span className="text-sm font-medium text-neutral-500">
-                                    {currentScaleName}
-                                </span>
-                                {/* Source citation - comprehensive card */}
+                            <div>
+                                <h3 className="text-sm font-bold text-[#0B3D2E] uppercase tracking-wider mb-1">
+                                    {(() => {
+                                        if (!currentQuestions || currentQuestions.length === 0) return '';
+                                        const scale = SCALES_ORDER.find(s => s.id === currentQuestions[0]?.scaleId);
+                                        if (!scale) return '';
+                                        return language === 'en' ? scale.id.replace(/([A-Z]+)(\d+)/, '$1-$2') : scale.name.split('-')[0];
+                                    })()}
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-2xl font-bold text-[#0B3D2E]">{t('assessment.page', { page: currentPage + 1 })}</span>
+                                    <span className="text-emerald-800/40 font-medium">{t('assessment.of')} {TOTAL_PAGES}</span>
+                                </div>
+                            </div>
+                            <div className="text-right">
                                 {(() => {
                                     const scaleKey = currentQuestions[0]?.scaleId || '';
                                     const info = SCALE_INFO[scaleKey];
                                     if (!info) return null;
                                     return (
                                         <div className="group relative">
-                                            <button className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium hover:bg-emerald-100 transition-colors">
-                                                <Info className="w-3 h-3" />
-                                                <span>临床验证</span>
+                                            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-bold hover:bg-emerald-100 transition-colors">
+                                                <CheckCircle2 className="w-4 h-4" />
+                                                <span>{t('assessment.clinicalVerified')}</span>
                                             </button>
-                                            {/* Rich source card */}
-                                            <div className="absolute right-0 md:right-auto md:left-0 top-full mt-2 w-72 md:w-80 p-4 bg-white rounded-xl shadow-2xl border border-neutral-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                            {/* Rich source card - positioned to avoid cutoff */}
+                                            <div className="absolute right-0 top-full mt-2 w-72 md:w-80 p-4 bg-white rounded-xl shadow-2xl border border-emerald-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 transform -translate-x-1/4 md:translate-x-0">
                                                 <div className="flex items-start gap-3 mb-3">
                                                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0">
                                                         <CheckCircle2 className="w-5 h-5 text-white" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-semibold text-neutral-900 text-sm">{info.fullName}</h4>
-                                                        <p className="text-xs text-neutral-500">{info.abbreviation} · {info.year}</p>
+                                                        <h4 className="font-bold text-[#0B3D2E] text-sm">{t('assessment.proScales')}</h4>
+                                                        <p className="text-xs text-emerald-800/60 leading-relaxed">
+                                                            {t('assessment.standardDesc', { name: SCALES_ORDER.find(s => s.id === currentQuestions[0]?.scaleId)?.name || '' })}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                                <p className="text-xs text-neutral-600 mb-3 leading-relaxed">{info.description}</p>
-                                                <div className="space-y-2 text-xs">
-                                                    <div className="flex items-start gap-2">
-                                                        <span className="text-emerald-600 font-medium w-12 flex-shrink-0">作者</span>
-                                                        <span className="text-neutral-600">{info.authors}</span>
-                                                    </div>
-                                                    <div className="flex items-start gap-2">
-                                                        <span className="text-emerald-600 font-medium w-12 flex-shrink-0">期刊</span>
-                                                        <span className="text-neutral-600 italic">{info.journal}</span>
-                                                    </div>
-                                                    <div className="flex items-start gap-2">
-                                                        <span className="text-emerald-600 font-medium w-12 flex-shrink-0">验证</span>
-                                                        <span className="text-neutral-600">{info.validation}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 pt-3 border-t border-neutral-100">
-                                                    <p className="text-xs text-emerald-700 font-medium flex items-center gap-1">
-                                                        <Sparkles className="w-3 h-3" />
-                                                        {info.usage}
-                                                    </p>
+                                                <div className="pt-3 border-t border-emerald-50 flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-emerald-800/30 uppercase tracking-widest">{t('assessment.globalStandard')}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     );
                                 })()}
                             </div>
-                            <button
-                                onClick={handlePause}
-                                className="flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-700"
-                            >
-                                <Pause className="w-4 h-4" />
-                                <span>暂停</span>
-                            </button>
                         </div>
 
                         {/* Progress bar */}
-                        <div className="h-1 bg-neutral-100 rounded-full overflow-hidden mb-6">
+                        <div className="h-1 bg-emerald-50 rounded-full overflow-hidden mb-6">
                             <motion.div
-                                className="h-full bg-gradient-to-r from-neutral-800 to-neutral-600"
+                                className="h-full bg-gradient-to-r from-emerald-600 to-[#0B3D2E]"
                                 initial={{ width: 0 }}
                                 animate={{ width: `${progressPercent}%` }}
                                 transition={{ duration: 0.3 }}
@@ -554,13 +566,13 @@ export function ClinicalOnboarding({
                         {/* Questions - Matrix Layout */}
                         <div className="space-y-4">
                             {/* Option Legend - Desktop only */}
-                            {currentQuestions.length > 0 && currentQuestions[0].options && (
+                            {currentQuestions.length > 0 && currentQuestions[0]?.options && (
                                 <div className="hidden md:grid grid-cols-[1fr_350px] gap-8 px-4 mb-2">
                                     <div />
                                     <div className="flex justify-between w-full px-2 text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-center">
                                         {currentQuestions[0].options.map((opt, i) => (
-                                            <div key={i} className="flex-1 px-1 leading-tight" title={opt.label}>
-                                                {opt.label}
+                                            <div key={i} className="flex-1 px-1 leading-tight" title={language === 'en' ? (opt.labelEn || opt.label) : opt.label}>
+                                                {language === 'en' ? (opt.labelEn || opt.label) : opt.label}
                                             </div>
                                         ))}
                                     </div>
@@ -572,14 +584,14 @@ export function ClinicalOnboarding({
                                     return (
                                         <div
                                             key={question.id}
-                                            className="group relative grid grid-cols-1 md:grid-cols-[1fr_350px] items-center p-3 md:p-4 rounded-xl md:rounded-2xl bg-neutral-50/50 hover:bg-neutral-50 transition-colors gap-3 md:gap-8 border border-transparent hover:border-neutral-100"
+                                            className="group relative grid grid-cols-1 md:grid-cols-[1fr_350px] items-center p-3 md:p-4 rounded-xl md:rounded-2xl bg-emerald-50/20 hover:bg-emerald-50 transition-colors gap-3 md:gap-8 border border-transparent hover:border-emerald-100"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <span className="text-[10px] md:text-xs text-neutral-300 tabular-nums mt-1 font-mono">
+                                                <span className="text-[10px] md:text-xs text-emerald-800/30 tabular-nums mt-1 font-mono">
                                                     {(pageStart + idx + 1).toString().padStart(2, '0')}
                                                 </span>
-                                                <p className="text-sm md:text-[15px] font-medium text-neutral-800 leading-snug">
-                                                    {question.text}
+                                                <p className="text-sm md:text-[15px] font-medium text-[#0B3D2E] leading-snug">
+                                                    {language === 'en' ? question.textEn : question.text}
                                                 </p>
                                             </div>
 
@@ -596,22 +608,22 @@ export function ClinicalOnboarding({
                                                                 rounded-xl transition-all duration-300 
                                                                 border md:border-0
                                                                 ${isSelected
-                                                                    ? 'bg-neutral-900 border-neutral-900 shadow-sm md:bg-transparent md:shadow-none'
-                                                                    : 'bg-white border-neutral-100 md:bg-transparent md:border-transparent hover:md:bg-white/50'
+                                                                    ? 'bg-[#0B3D2E] border-[#0B3D2E] shadow-sm md:bg-transparent md:shadow-none'
+                                                                    : 'bg-white border-emerald-100 md:bg-transparent md:border-transparent hover:md:bg-emerald-50/50'
                                                                 }
                                                             `}
                                                         >
                                                             <div className={`
                                                                 w-3.5 h-3.5 md:w-3 md:h-3 rounded-full mb-1.5 md:mb-0 border-2 transition-all
                                                                 ${isSelected
-                                                                    ? 'bg-neutral-900 border-neutral-900 md:scale-[1.3] shadow-[0_0_12px_rgba(0,0,0,0.15)] ring-4 ring-neutral-900/5'
-                                                                    : 'bg-white border-neutral-200 md:group-hover:border-neutral-300'}
+                                                                    ? 'bg-[#0B3D2E] border-[#0B3D2E] md:scale-[1.3] shadow-[0_0_12px_rgba(11,61,46,0.2)] ring-4 ring-emerald-900/5'
+                                                                    : 'bg-white border-emerald-200 md:group-hover:border-emerald-300'}
                                                             `} />
                                                             <span className={`
                                                                 md:hidden text-[9px] font-medium 
-                                                                ${isSelected ? 'text-white' : 'text-neutral-500'}
+                                                                ${isSelected ? 'text-white' : 'text-emerald-700'}
                                                             `}>
-                                                                {option.label}
+                                                                {language === 'en' ? (option.labelEn || option.label) : option.label}
                                                             </span>
                                                         </button>
                                                     );
@@ -628,218 +640,21 @@ export function ClinicalOnboarding({
                             {currentPage > 0 && (
                                 <button
                                     onClick={goToPreviousPage}
-                                    className="flex-1 h-11 border border-neutral-200 text-neutral-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-neutral-50"
+                                    className="flex-1 h-11 border border-emerald-100 text-emerald-700 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-emerald-50"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
-                                    <span>上一页</span>
+                                    <span>{t('assessment.prevPage')}</span>
                                 </button>
                             )}
                             <button
                                 onClick={goToNextPage}
                                 disabled={!isPageComplete}
-                                className="flex-1 h-11 bg-neutral-900 text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 h-11 bg-[#0B3D2E] text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#06261c] transition-colors"
                             >
-                                <span>{currentPage < TOTAL_PAGES - 1 ? '下一页' : '完成'}</span>
+                                <span>{currentPage < TOTAL_PAGES - 1 ? t('assessment.nextPage') : t('assessment.complete')}</span>
                                 <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
-                    </motion.div>
-                )}
-
-                {/* Encouragement */}
-                {step === 'encouragement' && (
-                    <motion.div
-                        key="encouragement"
-                        variants={slideVariants}
-                        initial="enter"
-                        animate="center"
-                        exit="exit"
-                        custom={direction}
-                        className="relative p-10 md:p-12 text-center"
-                    >
-                        <div className="flex justify-center mb-8">
-                            <motion.div
-                                initial={{ scale: 0.8, rotate: -10 }}
-                                animate={{ scale: 1, rotate: 0 }}
-                                transition={{ type: 'spring', stiffness: 200 }}
-                                className="w-20 h-20 rounded-[22px] bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-2xl"
-                            >
-                                <Sparkles className="w-10 h-10 text-white" strokeWidth={2} />
-                            </motion.div>
-                        </div>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                        >
-                            <h3 className="text-2xl font-semibold text-neutral-900 mb-4">
-                                {currentPage === 2 ? '做得很好！' : '快完成了！'}
-                            </h3>
-                            <p className="text-neutral-500 text-lg mb-6">
-                                {currentPage === 2
-                                    ? '你已经完成了一半，继续保持！'
-                                    : '只剩最后几个问题了，坚持住！'
-                                }
-                            </p>
-
-                            {/* Progress visualization */}
-                            <div className="flex justify-center gap-2 mb-8">
-                                {Array.from({ length: TOTAL_PAGES }).map((_, i) => (
-                                    <div
-                                        key={i}
-                                        className={`h-2 rounded-full transition-all ${i <= currentPage
-                                            ? 'w-8 bg-gradient-to-r from-emerald-400 to-teal-500'
-                                            : 'w-2 bg-neutral-200'
-                                            }`}
-                                    />
-                                ))}
-                            </div>
-
-                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 mb-8">
-                                <p className="text-sm text-neutral-700 leading-relaxed">
-                                    {currentPage === 2
-                                        ? '你的每一个回答都在帮助 Max 更好地了解你，为你定制最适合的健康方案。'
-                                        : 'Max 已经开始为你准备个性化建议了，马上就能看到你的健康画像！'
-                                    }
-                                </p>
-                            </div>
-                        </motion.div>
-
-                        <button
-                            onClick={continueFromEncouragement}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/20"
-                        >
-                            <span>继续</span>
-                            <ChevronRight className="w-5 h-5" />
-                        </button>
-                    </motion.div>
-                )}
-
-                {/* Safety Message */}
-                {step === 'safety' && (
-                    <motion.div
-                        key="safety"
-                        variants={slideVariants}
-                        initial="enter"
-                        animate="center"
-                        exit="exit"
-                        custom={direction}
-                        className="relative p-10 md:p-12"
-                    >
-                        <div className="flex justify-center mb-6">
-                            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
-                                <AlertTriangle className="w-8 h-8 text-amber-600" />
-                            </div>
-                        </div>
-
-                        <div className="text-center mb-8">
-                            <h3 className="text-xl font-semibold text-neutral-900 mb-4">
-                                我们关心你的状态
-                            </h3>
-                        </div>
-
-                        <div className="bg-neutral-50 rounded-2xl p-6 mb-8 whitespace-pre-line text-neutral-700 text-sm leading-relaxed">
-                            {safetyMessage}
-                        </div>
-
-                        <button
-                            onClick={continueAfterSafety}
-                            className="w-full h-14 bg-neutral-900 text-white rounded-2xl font-medium"
-                        >
-                            我知道了，继续
-                        </button>
-                    </motion.div>
-                )}
-
-                {/* Analyzing */}
-                {step === 'analyzing' && (
-                    <motion.div
-                        key="analyzing"
-                        variants={slideVariants}
-                        initial="enter"
-                        animate="center"
-                        exit="exit"
-                        custom={direction}
-                        className="relative p-10 md:p-12 text-center"
-                    >
-                        <div className="flex justify-center mb-8">
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                                className="w-16 h-16 rounded-full border-4 border-neutral-200 border-t-neutral-800"
-                            />
-                        </div>
-
-                        <h3 className="text-xl font-semibold text-neutral-900 mb-3">
-                            正在分析你的回答...
-                        </h3>
-                        <p className="text-neutral-500">
-                            Max 正在为你生成个性化建议
-                        </p>
-                    </motion.div>
-                )}
-
-                {/* Result */}
-                {step === 'result' && result && (
-                    <motion.div
-                        key="result"
-                        variants={slideVariants}
-                        initial="enter"
-                        animate="center"
-                        exit="exit"
-                        custom={direction}
-                        className="relative p-10 md:p-12"
-                    >
-                        <div className="flex justify-center mb-8">
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2} />
-                            </div>
-                        </div>
-
-                        <div className="text-center mb-8">
-                            <h2 className="text-2xl font-semibold text-neutral-900 mb-3">
-                                评估完成
-                            </h2>
-                            <p className="text-neutral-500">
-                                以下是你的初始健康画像
-                            </p>
-                        </div>
-
-                        {/* Scores */}
-                        <div className="grid grid-cols-3 gap-4 mb-8">
-                            <div className="bg-neutral-50 rounded-2xl p-4 text-center">
-                                <div className="text-2xl font-bold text-neutral-900 mb-1">
-                                    {result.gad7Score}
-                                </div>
-                                <div className="text-xs text-neutral-500 mb-2">焦虑</div>
-                                <div className="text-sm font-medium text-neutral-700">
-                                    {result.interpretations.anxiety}
-                                </div>
-                            </div>
-                            <div className="bg-neutral-50 rounded-2xl p-4 text-center">
-                                <div className="text-2xl font-bold text-neutral-900 mb-1">
-                                    {result.phq9Score}
-                                </div>
-                                <div className="text-xs text-neutral-500 mb-2">情绪</div>
-                                <div className="text-sm font-medium text-neutral-700">
-                                    {result.interpretations.depression}
-                                </div>
-                            </div>
-                            <div className="bg-neutral-50 rounded-2xl p-4 text-center">
-                                <div className="text-2xl font-bold text-neutral-900 mb-1">
-                                    {result.isiScore}
-                                </div>
-                                <div className="text-xs text-neutral-500 mb-2">睡眠</div>
-                                <div className="text-sm font-medium text-neutral-700">
-                                    {result.interpretations.insomnia}
-                                </div>
-                            </div>
-                        </div>
-
-                        <p className="text-sm text-neutral-400 text-center">
-                            Max 会根据这些数据为你定制专属计划
-                        </p>
                     </motion.div>
                 )}
             </AnimatePresence>

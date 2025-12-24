@@ -213,21 +213,21 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   if (!isExpanded) {
     return (
       <Card
-        className="shadow-sm bg-[#FFFDF8] cursor-pointer hover:shadow-md transition-all border-amber-100"
+        className="shadow-sm bg-[#FFFDF8] cursor-pointer hover:shadow-md transition-all border-emerald-100"
         onClick={() => setIsExpanded(true)}
       >
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-                <ClipboardList className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                <ClipboardList className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-[#1F2937]">每日状态问卷</p>
-                <p className="text-xs text-[#6B7280]">7 个问题 · 约 1 分钟</p>
+                <p className="text-sm font-medium text-[#0B3D2E]">每日状态问卷</p>
+                <p className="text-xs text-emerald-800/40">7 个问题 · 约 1 分钟</p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+            <ChevronRight className="w-5 h-5 text-emerald-200" />
           </div>
         </CardContent>
       </Card>
@@ -236,21 +236,21 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
 
   // 展开状态 - 问卷进行中
   return (
-    <Card className="shadow-md bg-[#FFFDF8] border-amber-100">
+    <Card className="shadow-md bg-[#FFFDF8] border-emerald-100">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-amber-600 flex items-center justify-between">
+        <CardTitle className="text-sm font-bold text-emerald-700 flex items-center justify-between uppercase tracking-wider">
           <span className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4" />
             每日状态问卷
           </span>
-          <span className="text-xs text-[#6B7280]">
+          <span className="text-xs text-emerald-800/40">
             {currentIndex + 1} / {todayQuestions.length}
           </span>
         </CardTitle>
         {/* 进度条 */}
-        <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mt-2">
+        <div className="h-1 bg-emerald-50 rounded-full overflow-hidden mt-2">
           <motion.div
-            className="h-full bg-gradient-to-r from-amber-400 to-orange-400"
+            className="h-full bg-gradient-to-r from-emerald-500 to-[#0B3D2E]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
@@ -267,32 +267,33 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <p className="text-base font-medium text-[#1F2937] mb-2">
+            <p className="text-base font-semibold text-[#0B3D2E] mb-2 leading-relaxed">
               {currentQuestion.question}
             </p>
 
             {/* Source Info */}
-            <div className="flex items-center gap-1.5 mb-4 group/source relative">
-              <Info className="w-3.5 h-3.5 text-[#9CA3AF] cursor-help" />
-              <span className="text-xs text-[#9CA3AF]">
+            <div className="flex items-center gap-1.5 mb-5 group/source relative">
+              <Info className="w-3.5 h-3.5 text-emerald-800/30 cursor-help" />
+              <span className="text-[10px] font-bold text-emerald-800/30 uppercase tracking-widest">
                 {currentQuestion.source}
               </span>
               {/* Tooltip */}
-              <div className="absolute left-0 bottom-full mb-1.5 px-3 py-2 bg-[#1F2937] text-white text-xs rounded-lg opacity-0 group-hover/source:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg">
-                量表来源 / Source: {currentQuestion.sourceEn || currentQuestion.source}
+              <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-white border border-emerald-100 text-emerald-900 text-xs rounded-xl opacity-0 group-hover/source:opacity-100 transition-all pointer-events-none z-10 shadow-xl">
+                <p className="text-[10px] font-bold text-emerald-800/30 uppercase tracking-widest mb-1">Scale Reference</p>
+                {currentQuestion.sourceEn || currentQuestion.source}
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {currentQuestion.options.map((option, index) => {
                 const isSelected = answers[currentQuestion.id] === index;
                 return (
                   <button
                     key={index}
                     onClick={() => handleAnswer(index)}
-                    className={`w-full py-2.5 px-4 rounded-xl text-sm transition-all text-left ${isSelected
-                      ? 'bg-amber-500 text-white shadow-md font-medium'
-                      : 'bg-[#F9FAFB] text-[#374151] hover:bg-amber-50 border border-[#E5E7EB]'
+                    className={`w-full py-3 px-4 rounded-xl text-sm transition-all text-left font-medium border ${isSelected
+                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E] shadow-sm'
+                      : 'bg-emerald-50/20 text-[#0B3D2E] hover:bg-emerald-50 border-emerald-50/50'
                       }`}
                   >
                     {option}
@@ -330,7 +331,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
         {/* 收起按钮 */}
         <button
           onClick={() => setIsExpanded(false)}
-          className="w-full mt-3 text-xs text-[#9CA3AF] hover:text-[#6B7280]"
+          className="w-full mt-4 text-[10px] font-bold text-emerald-800/30 uppercase tracking-widest hover:text-emerald-800/50 transition-colors"
         >
           稍后再填
         </button>

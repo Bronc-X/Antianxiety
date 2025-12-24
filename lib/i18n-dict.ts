@@ -18,8 +18,6 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.settings': '设置',
     'nav.early': '获取早期访问权限',
     'nav.scienceInsight': '科学洞察',
-    'nav.assistant': '智能计划',
-    'nav.analysis': '推荐',
     'nav.upgrade': '升级',
 
     // ========== Welcome 页面 ==========
@@ -28,6 +26,43 @@ export const translations: Record<Language, Record<string, string>> = {
     'welcome.energyRestored': '能量已恢复',
     'welcome.dashboardReady': '仪表盘已就绪',
     'welcome.slideToActivate': '滑动激活',
+    'welcome.clinicalIntro': '我们应用了全球最前沿的临床评估标准',
+    'welcome.clinicalDesc': '来全面了解你的状态',
+    'welcome.infoTitle': '权威临床标准',
+    'welcome.infoDesc': '本评估综合了三个国际公认的黄金标准量表，被 WHO (世界卫生组织) 及全球顶级医疗机构广泛采用：',
+    'welcome.gad7': '广泛性焦虑量表',
+    'welcome.phq9': '患者健康问卷',
+    'welcome.isi': '失眠严重程度指数',
+    'welcome.welcomeTo': '欢迎来到 AntiAnxiety',
+    'welcome.estimatedTime': '约 {minutes} 分钟',
+    'welcome.scientificScale': '科学量表',
+    'welcome.startAssessment': '开始评估',
+    'assessment.page': '第 {page} 页',
+    'assessment.of': '/',
+    'assessment.clinicalVerified': '临床验证',
+    'assessment.proScales': '专业临床量表',
+    'assessment.standardDesc': '应用 {name} 标准，是目前全球医疗机构通用的黄金准则。',
+    'assessment.globalStandard': 'Global Clinical Standard',
+    'assessment.prevPage': '上一页',
+    'assessment.nextPage': '下一页',
+    'assessment.complete': '完成',
+    'assessment.analyzing': '正在分析你的回答...',
+
+    // ========== 量表详细信息 ==========
+    'scale.gad7.fullName': '广泛性焦虑障碍量表-7',
+    'scale.gad7.description': '用于筛查和评估广泛性焦虑障碍严重程度的标准化工具',
+    'scale.gad7.validation': '经过全球 50+ 国家验证，灵敏度 89%，特异度 82%',
+    'scale.gad7.usage': '全球最广泛使用的焦虑筛查量表，被 WHO 推荐',
+
+    'scale.phq9.fullName': '患者健康问卷-9',
+    'scale.phq9.description': '用于筛查、诊断和监测抑郁症严重程度的标准化工具',
+    'scale.phq9.validation': '经过全球 100+ 国家验证，灵敏度 88%，特异度 88%',
+    'scale.phq9.usage': '全球最广泛使用的抑郁筛查量表，已被翻译成 70+ 种语言',
+
+    'scale.isi.fullName': '失眠严重程度指数',
+    'scale.isi.description': '用于评估失眠严重程度和治疗效果的标准化工具',
+    'scale.isi.validation': '经过多国临床验证，信效度优良',
+    'scale.isi.usage': '国际睡眠医学领域最常用的失眠评估量表',
 
     // ========== 通用 ==========
     'common.save': '保存',
@@ -112,6 +147,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'signup.wechatStep3': '3. 按指引完成注册，账号自动登录',
     'signup.wechatDone': '我已完成扫码',
     'signup.openWechat': '打开微信',
+    'signup.betaTesting': '(Beta测试中)',
 
     // ========== Landing 页面 ==========
     'landing.hello': '你好，',
@@ -672,6 +708,40 @@ export const translations: Record<Language, Record<string, string>> = {
     'welcome.energyRestored': '能量已恢復',
     'welcome.dashboardReady': '儀表盤已就緒',
     'welcome.slideToActivate': '滑動激活',
+    'welcome.clinicalIntro': '我們應用了全球最前沿的臨床評估標準',
+    'welcome.clinicalDesc': '來全面瞭解你的狀態',
+    'welcome.infoTitle': '權威臨床標準',
+    'welcome.infoDesc': '本評估綜合了三個國際公認的黃金標準量表，被 WHO (世界衛生組織) 及全球頂級醫療機構廣泛採用：',
+    'welcome.gad7': '廣泛性焦慮量表',
+    'welcome.phq9': '患者健康問卷',
+    'welcome.isi': '失眠嚴重程度指數',
+    'welcome.welcomeTo': '歡迎來到 AntiAnxiety',
+    'welcome.estimatedTime': '約 {minutes} 分鐘',
+    'welcome.scientificScale': '科學量表',
+    'welcome.startAssessment': '開始評估',
+    'assessment.page': '第 {page} 頁',
+    'assessment.clinicalVerified': '臨床驗證',
+    'assessment.proScales': '專業臨床量表',
+    'assessment.standardDesc': '應用 {name} 標準，是目前全球醫療機構通用的黃金準則。',
+    'assessment.prevPage': '上一頁',
+    'assessment.nextPage': '下一頁',
+    'assessment.complete': '完成',
+
+    // ========== 量表詳細信息 ==========
+    'scale.gad7.fullName': '廣泛性焦慮障礙量表-7',
+    'scale.gad7.description': '用於篩查和評估廣泛性焦慮障礙嚴重程度的標準化工具',
+    'scale.gad7.validation': '經過全球 50+ 國家驗證，靈敏度 89%，特異度 82%',
+    'scale.gad7.usage': '全球最廣泛使用的焦慮篩查量表，被 WHO 推薦',
+
+    'scale.phq9.fullName': '患者健康問卷-9',
+    'scale.phq9.description': '用於篩查、診斷和監測抑鬱症嚴重程度的標準化工具',
+    'scale.phq9.validation': '經過全球 100+ 國家驗證，靈敏度 88%，特異度 88%',
+    'scale.phq9.usage': '全球最廣泛使用的抑鬱篩查量表，已被翻譯成 70+ 種語言',
+
+    'scale.isi.fullName': '失眠嚴重程度指數',
+    'scale.isi.description': '用於評估失眠嚴重程度和治療效果的標準化工具',
+    'scale.isi.validation': '經過多國臨床驗證，信效度優良',
+    'scale.isi.usage': '國際睡眠醫學領域最常用的失眠評估量表',
 
     // ========== 導航 ==========
     'nav.core': '核心功能',
@@ -906,6 +976,43 @@ export const translations: Record<Language, Record<string, string>> = {
     'welcome.energyRestored': 'Energy Restored',
     'welcome.dashboardReady': 'Dashboard Ready',
     'welcome.slideToActivate': 'Slide to Activate',
+    'welcome.clinicalIntro': 'We apply the world\'s most advanced clinical assessment standards',
+    'welcome.clinicalDesc': 'to fully understand your status',
+    'welcome.infoTitle': 'Authoritative Clinical Standards',
+    'welcome.infoDesc': 'This assessment integrates three internationally recognized gold standard scales, widely adopted by the WHO and top medical institutions worldwide:',
+    'welcome.gad7': 'Generalized Anxiety Disorder Scale',
+    'welcome.phq9': 'Patient Health Questionnaire',
+    'welcome.isi': 'Insomnia Severity Index',
+    'welcome.welcomeTo': 'Welcome to AntiAnxiety',
+    'welcome.estimatedTime': 'Approx {minutes} min',
+    'welcome.scientificScale': 'Scientific Scale',
+    'welcome.startAssessment': 'Start Assessment',
+    'assessment.page': 'Page {page}',
+    'assessment.of': '/',
+    'assessment.clinicalVerified': 'Clinically Verified',
+    'assessment.proScales': 'Professional Clinical Scales',
+    'assessment.standardDesc': 'Using {name} standards, recognized globally as the gold standard.',
+    'assessment.globalStandard': 'Global Clinical Standard',
+    'assessment.prevPage': 'Previous',
+    'assessment.nextPage': 'Next',
+    'assessment.complete': 'Complete',
+    'assessment.analyzing': 'Analyzing your responses...',
+
+    // ========== Scale Details ==========
+    'scale.gad7.fullName': 'Generalized Anxiety Disorder-7',
+    'scale.gad7.description': 'Standardized tool for screening and assessing the severity of generalized anxiety disorder',
+    'scale.gad7.validation': 'Validated in 50+ countries, Sensitivity 89%, Specificity 82%',
+    'scale.gad7.usage': 'Most widely used anxiety screening scale globally, recommended by WHO',
+
+    'scale.phq9.fullName': 'Patient Health Questionnaire-9',
+    'scale.phq9.description': 'Standardized tool for screening, diagnosing, and monitoring depression severity',
+    'scale.phq9.validation': 'Validated in 100+ countries, Sensitivity 88%, Specificity 88%',
+    'scale.phq9.usage': 'Most widely used depression screening scale globally, translated into 70+ languages',
+
+    'scale.isi.fullName': 'Insomnia Severity Index',
+    'scale.isi.description': 'Standardized tool for assessing insomnia severity and treatment outcomes',
+    'scale.isi.validation': 'Clinically validated in multiple countries with excellent reliability and validity',
+    'scale.isi.usage': 'Most commonly used insomnia assessment scale in international sleep medicine',
 
     // ========== Navigation ==========
     'nav.core': 'Core Features',
@@ -918,6 +1025,10 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.analysis': 'For You',
     'nav.assessment': 'Assessment',
     'nav.bayesian': 'Cognitive Scale',
+    'nav.plans': 'My Plans',
+    'nav.settings': 'Settings',
+    'nav.early': 'Get Early Access',
+    'nav.scienceInsight': 'Scientific Insights',
 
     // Ritual Keys
     'ritual.loading': 'Preparing...',
@@ -987,14 +1098,6 @@ export const translations: Record<Language, Record<string, string>> = {
     'ritual.result.objective': 'Objective',
     'ritual.button.recalibrate': 'Recalibrate',
     'ritual.button.accept': 'Accept & Record',
-    'ritual.result.drop': 'Drop',
-    'nav.plans': 'My Plans',
-    'nav.settings': 'Settings',
-    'nav.early': 'Get Early Access',
-    'nav.scienceInsight': 'Science Insights',
-    'nav.assistant': 'Smart Plan',
-    'nav.analysis': 'Recommendations',
-    'nav.upgrade': 'Upgrade',
 
     // ========== Common ==========
     'common.save': 'Save',
@@ -1079,6 +1182,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'signup.wechatStep3': '3. Complete registration as guided',
     'signup.wechatDone': 'I have completed scanning',
     'signup.openWechat': 'Open WeChat',
+    'signup.betaTesting': '(Beta Testing)',
 
     // ========== Landing Page ==========
     'landing.hello': 'Hello, ',

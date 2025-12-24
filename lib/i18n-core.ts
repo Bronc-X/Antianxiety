@@ -24,26 +24,35 @@ export function toHtmlLang(language: Language): string {
   return 'zh-Hans';
 }
 
-export function translateKey(language: Language, key: string): string {
+export function translateKey(language: Language, key: string, params?: Record<string, string | number>): string {
+  let text = key;
+
   if (language === 'en') {
-    return translations.en?.[key] ?? translations.zh?.[key] ?? key;
+    text = translations.en?.[key] ?? translations.zh?.[key] ?? key;
+  } else if (language === 'zh') {
+    text = translations.zh?.[key] ?? key;
+  } else {
+    // zh-TW
+    const direct = translations['zh-TW']?.[key];
+    if (direct) {
+      text = direct;
+    } else {
+      const zh = translations.zh?.[key];
+      text = zh ? cnToTw(zh) : key;
+    }
   }
 
-  if (language === 'zh') {
-    return translations.zh?.[key] ?? key;
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      text = text.replace(new RegExp(`{${k}}`, 'g'), String(v));
+    });
   }
 
-  const direct = translations['zh-TW']?.[key];
-  if (direct) return direct;
-
-  const zh = translations.zh?.[key];
-  if (zh) return cnToTw(zh);
-
-  return key;
+  return text;
 }
 
 export function createTranslator(language: Language) {
-  return (key: string) => translateKey(language, key);
+  return (key: string, params?: Record<string, string | number>) => translateKey(language, key, params);
 }
 
 type InlineTranslations = {
