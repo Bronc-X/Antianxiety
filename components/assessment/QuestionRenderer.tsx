@@ -3,9 +3,20 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuestionStep } from '@/types/assessment';
-import { Check, Edit3 } from 'lucide-react';
+import { Check, Edit3, Info } from 'lucide-react';
 import { tr, type Language } from '@/lib/i18n';
 import { maybeCnToTw } from '@/lib/i18n-core';
+
+// 量表来源映射
+const SCALE_SOURCES: Record<string, { zh: string; en: string; citation: string }> = {
+  'gad': { zh: 'GAD-7 广泛性焦虑障碍量表', en: 'GAD-7 Anxiety Scale', citation: 'Spitzer et al., 2006' },
+  'phq': { zh: 'PHQ-9 患者健康问卷', en: 'PHQ-9 Depression Scale', citation: 'Kroenke et al., 2001' },
+  'psqi': { zh: 'PSQI 睡眠质量指数', en: 'PSQI Sleep Index', citation: 'Buysse et al., 1989' },
+  'pss': { zh: 'PSS 压力知觉量表', en: 'PSS Stress Scale', citation: 'Cohen et al., 1983' },
+  'baseline': { zh: '基础评估', en: 'Baseline Assessment', citation: 'Clinical Standard' },
+  'differential': { zh: '鉴别诊断', en: 'Differential Diagnosis', citation: 'Clinical Protocol' },
+  'chief_complaint': { zh: '主诉评估', en: 'Chief Complaint', citation: 'Medical Standard' },
+};
 
 interface QuestionRendererProps {
   step: QuestionStep;
@@ -20,6 +31,19 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
   const [scaleValue, setScaleValue] = useState(5);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customValue, setCustomValue] = useState('');
+  const [showSourceTooltip, setShowSourceTooltip] = useState(false);
+
+  // 获取当前量表来源
+  const getScaleSource = () => {
+    const phase = step.phase;
+    const qid = question.id.toLowerCase();
+    if (qid.includes('gad') || qid.includes('anxiety')) return SCALE_SOURCES['gad'];
+    if (qid.includes('phq') || qid.includes('depression')) return SCALE_SOURCES['phq'];
+    if (qid.includes('sleep') || qid.includes('psqi')) return SCALE_SOURCES['psqi'];
+    if (qid.includes('stress') || qid.includes('pss')) return SCALE_SOURCES['pss'];
+    return SCALE_SOURCES[phase] || SCALE_SOURCES['baseline'];
+  };
+  const scaleSource = getScaleSource();
 
   const handleSingleChoice = (value: string) => {
     // 如果选择"以上都不是"，显示自定义输入框
@@ -77,7 +101,24 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
             transition={{ duration: 0.3 }}
           />
         </div>
-        <p className="text-xs text-muted-foreground mt-1 text-right">{question.progress}%</p>
+        <div className="flex justify-between items-center mt-1">
+          <p className="text-xs text-muted-foreground">{question.progress}%</p>
+          <div
+            className="relative flex items-center gap-1 cursor-help"
+            onMouseEnter={() => setShowSourceTooltip(true)}
+            onMouseLeave={() => setShowSourceTooltip(false)}
+          >
+            <Info className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {language === 'en' ? scaleSource.en : scaleSource.zh}
+            </span>
+            {showSourceTooltip && (
+              <div className="absolute right-0 top-full mt-1.5 px-3 py-2 bg-foreground text-background text-xs rounded-lg whitespace-nowrap z-20 shadow-lg">
+                {tr(language, { zh: '来源：', en: 'Source: ' })}{scaleSource.citation}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 问题内容 */}
@@ -156,8 +197,8 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
                           key={option.value}
                           onClick={() => handleSingleChoice(option.value)}
                           className={`w-full p-4 bg-card border-2 rounded-xl text-left transition-all flex items-center gap-4 ${option.value === 'none_of_above'
-                              ? 'border-dashed border-muted-foreground/50 hover:border-primary'
-                              : 'border-border hover:border-primary hover:bg-primary/5'
+                            ? 'border-dashed border-muted-foreground/50 hover:border-primary'
+                            : 'border-border hover:border-primary hover:bg-primary/5'
                             }`}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -193,16 +234,16 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
                     key={option.value}
                     onClick={() => handleMultipleChoice(option.value)}
                     className={`w-full p-4 border-2 rounded-xl text-left transition-all flex items-center gap-4 ${selectedValues.includes(option.value)
-                        ? 'bg-primary/10 border-primary'
-                        : 'bg-card border-border hover:border-primary/50'
+                      ? 'bg-primary/10 border-primary'
+                      : 'bg-card border-border hover:border-primary/50'
                       }`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
                     <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${selectedValues.includes(option.value)
-                        ? 'bg-primary border-primary'
-                        : 'border-muted-foreground'
+                      ? 'bg-primary border-primary'
+                      : 'border-muted-foreground'
                       }`}>
                       {selectedValues.includes(option.value) && (
                         <Check className="w-4 h-4 text-primary-foreground" />
