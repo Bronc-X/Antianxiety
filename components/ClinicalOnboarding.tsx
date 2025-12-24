@@ -451,7 +451,7 @@ export function ClinicalOnboarding({
                         animate="center"
                         exit="exit"
                         custom={direction}
-                        className="relative p-6 md:p-8"
+                        className="relative p-6 pt-8 md:p-8 md:pt-10 overflow-visible"
                     >
                         {/* Header */}
                         <div className="flex justify-between items-center mb-6">
@@ -531,14 +531,14 @@ export function ClinicalOnboarding({
                         </div>
 
                         {/* Questions - Matrix Layout */}
-                        <div className="space-y-6">
-                            {/* Option Legend */}
+                        <div className="space-y-4">
+                            {/* Option Legend - Desktop only */}
                             {currentQuestions.length > 0 && currentQuestions[0].options && (
-                                <div className="hidden md:grid grid-cols-[1fr_auto] gap-4 mb-2 px-2">
+                                <div className="hidden md:grid grid-cols-[1fr_350px] gap-8 px-4 mb-2">
                                     <div />
-                                    <div className="flex gap-2 w-full max-w-[320px] justify-between text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+                                    <div className="flex justify-between w-full px-2 text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-center">
                                         {currentQuestions[0].options.map((opt, i) => (
-                                            <div key={i} className="flex-1 text-center truncate px-1" title={opt.label}>
+                                            <div key={i} className="flex-1 px-1 leading-tight" title={opt.label}>
                                                 {opt.label}
                                             </div>
                                         ))}
@@ -546,20 +546,23 @@ export function ClinicalOnboarding({
                                 </div>
                             )}
 
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 {currentQuestions.map((question, idx) => {
-                                    const optionsLength = question.options.length;
                                     return (
                                         <div
                                             key={question.id}
-                                            className="group relative flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl bg-neutral-50/50 hover:bg-neutral-50 transition-colors gap-4"
+                                            className="group relative grid grid-cols-1 md:grid-cols-[1fr_350px] items-center p-3 md:p-4 rounded-xl md:rounded-2xl bg-neutral-50/50 hover:bg-neutral-50 transition-colors gap-3 md:gap-8 border border-transparent hover:border-neutral-100"
                                         >
-                                            <p className="text-base font-medium text-neutral-800 leading-snug flex-1">
-                                                <span className="text-neutral-400 mr-2 tabular-nums">{(pageStart + idx + 1).toString().padStart(2, '0')}</span>
-                                                {question.text}
-                                            </p>
+                                            <div className="flex items-start gap-3">
+                                                <span className="text-[10px] md:text-xs text-neutral-300 tabular-nums mt-1 font-mono">
+                                                    {(pageStart + idx + 1).toString().padStart(2, '0')}
+                                                </span>
+                                                <p className="text-sm md:text-[15px] font-medium text-neutral-800 leading-snug">
+                                                    {question.text}
+                                                </p>
+                                            </div>
 
-                                            <div className="flex items-center justify-between md:justify-end gap-1 md:gap-2 w-full md:w-auto md:min-w-[320px]">
+                                            <div className="flex items-center justify-between md:justify-between gap-1 w-full px-0 md:px-2">
                                                 {question.options.map((option, i) => {
                                                     const isSelected = answers[question.id] === option.value;
                                                     return (
@@ -567,21 +570,24 @@ export function ClinicalOnboarding({
                                                             key={option.value}
                                                             onClick={() => handleAnswer(question.id, option.value)}
                                                             className={`
-                                                                flex-1 md:flex-none flex flex-col md:flex-row items-center justify-center 
-                                                                min-h-[44px] md:min-h-0 md:w-full md:max-w-[70px]
-                                                                rounded-xl transition-all duration-300 border
+                                                                flex-1 flex flex-col items-center justify-center 
+                                                                min-h-[44px] md:min-h-0 md:h-10
+                                                                rounded-xl transition-all duration-300 
+                                                                border md:border-0
                                                                 ${isSelected
-                                                                    ? 'bg-neutral-900 border-neutral-900 shadow-sm'
-                                                                    : 'bg-white border-neutral-100 md:bg-transparent md:border-transparent hover:md:bg-white/80 hover:md:border-neutral-200'
+                                                                    ? 'bg-neutral-900 border-neutral-900 shadow-sm md:bg-transparent md:shadow-none'
+                                                                    : 'bg-white border-neutral-100 md:bg-transparent md:border-transparent hover:md:bg-white/50'
                                                                 }
                                                             `}
                                                         >
                                                             <div className={`
-                                                                w-3 h-3 md:w-2.5 md:h-2.5 rounded-full mb-1 md:mb-0
-                                                                ${isSelected ? 'bg-white scale-110 shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'bg-neutral-200'}
+                                                                w-3.5 h-3.5 md:w-3 md:h-3 rounded-full mb-1.5 md:mb-0 border-2 transition-all
+                                                                ${isSelected
+                                                                    ? 'bg-neutral-900 border-neutral-900 md:scale-[1.3] shadow-[0_0_12px_rgba(0,0,0,0.15)] ring-4 ring-neutral-900/5'
+                                                                    : 'bg-white border-neutral-200 md:group-hover:border-neutral-300'}
                                                             `} />
                                                             <span className={`
-                                                                md:hidden text-[10px] font-medium 
+                                                                md:hidden text-[9px] font-medium 
                                                                 ${isSelected ? 'text-white' : 'text-neutral-500'}
                                                             `}>
                                                                 {option.label}
