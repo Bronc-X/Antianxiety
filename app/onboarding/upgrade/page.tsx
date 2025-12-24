@@ -272,7 +272,7 @@ export default function UpgradePage() {
           transition={{ delay: 0.5 }}
           className="text-center mb-8"
         >
-          <div className="flex items-center justify-center gap-6 text-sm text-[#1A1A1A]/50 dark:text-white/50">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6 text-sm text-[#1A1A1A]/50 dark:text-white/50">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               <span>{language === 'en' ? 'SSL Encrypted' : 'SSL 加密'}</span>
