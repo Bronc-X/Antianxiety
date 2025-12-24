@@ -26,16 +26,27 @@ export default function TraditionalChineseAutoConvert() {
   useEffect(() => {
     if (language !== 'zh-TW') return;
 
+    // Fast cache to skip redundant work
+    const nodeValueCache = new WeakMap<Node, string>();
+
     const convertTextNode = (node: Text) => {
       if (shouldSkipNode(node)) return;
+
       const value = node.nodeValue;
       if (!value || !containsChinese(value)) return;
 
+      // Skip if we already converted this exact string for this node
+      if (nodeValueCache.get(node) === value) return;
+
       const converted = cnToTw(value);
       if (converted !== value) {
-        // Mark as processed BEFORE setting value to prevent observer trigger re-processing the same change
+        // Mark as processed BEFORE setting value to prevent observer trigger re-processing
         processed.add(node);
+        nodeValueCache.set(node, converted);
         node.nodeValue = converted;
+      } else {
+        // Even if no change needed, cache it to skip next time
+        nodeValueCache.set(node, value);
       }
     };
 
@@ -51,8 +62,6 @@ export default function TraditionalChineseAutoConvert() {
         {
           acceptNode: (node) => {
             if (shouldSkipNode(node)) return NodeFilter.FILTER_REJECT;
-            // If it's already converted and matches the text, we could skip, 
-            // but for simplicity we rely on cnToTw check
             return NodeFilter.FILTER_ACCEPT;
           }
         }
@@ -67,30 +76,41 @@ export default function TraditionalChineseAutoConvert() {
     // Initial pass
     walkAndConvert(document.body);
 
-    let timeoutId: any;
-    const observer = new MutationObserver((mutations) => {
-      // Collect mutations and process in a batch to avoid layout thrashing
-      if (timeoutId) clearTimeout(timeoutId);
+    let idleHandle: number | null = null;
+    let pendingMutations: MutationRecord[] = [];
 
-      timeoutId = setTimeout(() => {
-        for (const mutation of mutations) {
-          if (mutation.type === 'characterData' && mutation.target.nodeType === Node.TEXT_NODE) {
-            const node = mutation.target as Text;
-            // Only convert if NOT our own change
-            if (!processed.has(node)) {
-              convertTextNode(node);
-            } else {
-              // Clear the flag so next external change WILL be processed
-              processed.delete(node);
-            }
-          }
-          if (mutation.type === 'childList') {
-            mutation.addedNodes.forEach((node) => {
-              walkAndConvert(node);
-            });
+    const processMutations = () => {
+      const mutations = pendingMutations;
+      pendingMutations = [];
+      idleHandle = null;
+
+      for (const mutation of mutations) {
+        if (mutation.type === 'characterData' && mutation.target.nodeType === Node.TEXT_NODE) {
+          const node = mutation.target as Text;
+          if (!processed.has(node)) {
+            convertTextNode(node);
+          } else {
+            processed.delete(node);
           }
         }
-      }, 50); // Small delay to batch mutations
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            walkAndConvert(node);
+          });
+        }
+      }
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      pendingMutations.push(...mutations);
+
+      if (idleHandle === null) {
+        if (typeof window.requestIdleCallback === 'function') {
+          idleHandle = window.requestIdleCallback(processMutations, { timeout: 150 }) as any;
+        } else {
+          idleHandle = setTimeout(processMutations, 100) as any;
+        }
+      }
     });
 
     observer.observe(document.body, {
@@ -99,9 +119,17 @@ export default function TraditionalChineseAutoConvert() {
       characterData: true,
     });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (idleHandle !== null) {
+        if (typeof window.requestIdleCallback === 'function') {
+          window.cancelIdleCallback(idleHandle);
+        } else {
+          clearTimeout(idleHandle);
+        }
+      }
+    };
   }, [language]);
 
   return null;
 }
-
