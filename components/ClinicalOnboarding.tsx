@@ -138,7 +138,7 @@ function flattenQuestions(): FlatQuestion[] {
 const ALL_QUESTIONS = flattenQuestions();
 const TOTAL_QUESTIONS = ALL_QUESTIONS.length;
 const TOTAL_PAGES = Math.ceil(TOTAL_QUESTIONS / QUESTIONS_PER_PAGE);
-const ESTIMATED_MINUTES = Math.ceil(TOTAL_QUESTIONS / 3);
+const ESTIMATED_MINUTES = 4; // 23 questions at approx 10s per question, upcasted for authoritative feel
 
 // ============ Animation Variants ============
 
@@ -404,8 +404,10 @@ export function ClinicalOnboarding({
                             <h2 className="text-2xl md:text-3xl font-semibold text-neutral-900 tracking-tight mb-3">
                                 {userName ? `${userName}，` : ''}欢迎来到 AntiAnxiety
                             </h2>
-                            <p className="text-neutral-500 text-base md:text-lg max-w-md mx-auto leading-relaxed mb-6">
-                                让我们应用全球最前沿的临床评估标准，通过 {TOTAL_QUESTIONS} 项专业维度的深度扫描，来全面了解您的状态
+                            <p className="text-neutral-500 text-base md:text-lg max-w-lg mx-auto leading-relaxed mb-6 px-4">
+                                让我们应用全球最前沿的临床评估标准
+                                <br className="hidden md:block" />
+                                通过 {TOTAL_QUESTIONS} 项专业维度的深度扫描，来全面了解您的状态
                             </p>
 
                             <div className="flex items-center justify-center gap-4 text-sm text-neutral-400 mb-10">
