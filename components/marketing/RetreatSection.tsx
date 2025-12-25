@@ -36,7 +36,7 @@ export default function RetreatSection() {
                     </h2>
 
                     <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-8 rounded-[2px] mb-8">
-                        <p className="text-xl font-light leading-relaxed mb-6 font-serif italic text-white/90">
+                        <p className="text-xl font-light leading-relaxed mb-6 font-serif italic text-white">
                             {language === 'en'
                                 ? '"Hey, the data sees your deep fatigue. Forcing a workout today will hurt your immunity. Your best task: Go home, take a hot bath, sleep 20 mins early."'
                                 : '“嘿，数据看到了你深层的疲惫。今天强行运动会伤害免疫系统。今天的最佳任务是：回家，洗个热水澡，早睡20分钟。”'}
@@ -78,8 +78,23 @@ export default function RetreatSection() {
                         </svg>
 
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-6xl font-heading text-white">32</span>
-                            <span className="text-xs tracking-[0.2em] text-[#D4AF37] mt-2">HRV LOW</span>
+                            <span className="text-6xl font-heading text-white">58</span>
+                            <span className="text-xs tracking-[0.2em] text-emerald-400 mt-2">HRV GOOD</span>
+                            {/* Status Legend */}
+                            <div className="flex items-center gap-3 mt-4">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                    <span className="text-[10px] text-white/50">&lt;40</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                    <span className="text-[10px] text-white/50">40-55</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    <span className="text-[10px] text-white/50">&gt;55</span>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 </div>

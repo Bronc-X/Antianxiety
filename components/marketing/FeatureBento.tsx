@@ -3,11 +3,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { Activity, Brain, Zap, Watch, Sun, ArrowRight, X, Sparkles, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function FeatureBento() {
     const { t, language } = useI18n();
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    // Ensure Portal only renders on client
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const features = [
         {
@@ -158,68 +165,71 @@ export default function FeatureBento() {
                 ))}
             </div>
 
-            {/* Detailed Modal */}
-            <AnimatePresence>
-                {activeFeature && (
-                    <motion.div
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setSelectedId(null)}
-                    >
+            {/* Detailed Modal - Rendered via Portal to escape ScrollSection fade */}
+            {mounted && createPortal(
+                <AnimatePresence>
+                    {activeFeature && (
                         <motion.div
-                            className="bg-[#FAF6EF] dark:bg-[#161618] rounded-[2px] max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#1A1A1A]/10 dark:border-white/10 relative shadow-2xl"
-                            initial={{ scale: 0.95, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.95, y: 20 }}
-                            onClick={(e) => e.stopPropagation()}
+                            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedId(null)}
                         >
-                            {/* Decorative background */}
-                            <div className={`absolute top-0 right-0 w-96 h-96 bg-gradient-to-br ${activeFeature.color} opacity-10 blur-[80px] pointer-events-none`} />
+                            <motion.div
+                                className="bg-[#FAF6EF] dark:bg-[#161618] rounded-[2px] max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#1A1A1A]/10 dark:border-white/10 relative shadow-2xl"
+                                initial={{ scale: 0.95, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.95, y: 20 }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Decorative background */}
+                                <div className={`absolute top-0 right-0 w-96 h-96 bg-gradient-to-br ${activeFeature.color} opacity-10 blur-[80px] pointer-events-none`} />
 
-                            <div className="p-8 md:p-12 relative z-10">
-                                <div className="flex justify-between items-start mb-8">
-                                    <div className={`w-16 h-16 bg-gradient-to-br ${activeFeature.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
-                                        <activeFeature.icon className="w-8 h-8" />
-                                    </div>
-                                    <button
-                                        onClick={() => setSelectedId(null)}
-                                        className="p-2 rounded-full bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 transition-colors text-[#1A1A1A]/40 dark:text-white/40 hover:text-[#1A1A1A] dark:hover:text-white"
-                                    >
-                                        <X className="w-6 h-6" />
-                                    </button>
-                                </div>
-
-                                <h3 className="text-3xl font-heading font-medium text-[#1A1A1A] dark:text-white mb-2">
-                                    {activeFeature.title}
-                                </h3>
-                                <div className="h-1 w-20 bg-gradient-to-r from-transparent to-transparent via-[#1A1A1A]/10 dark:via-white/20 rounded-full mb-8 relative overflow-hidden">
-                                    <div className={`absolute inset-0 bg-gradient-to-r ${activeFeature.color} opacity-50`} />
-                                </div>
-
-                                <div className="space-y-8">
-                                    <div>
-                                        <h4 className="text-[#D4AF37] font-serif italic text-xl mb-4">
-                                            {activeFeature.detail.title}
-                                        </h4>
-                                        <p className="text-[#1A1A1A]/80 dark:text-white/80 text-lg leading-relaxed font-light">
-                                            {activeFeature.detail.content}
-                                        </p>
+                                <div className="p-8 md:p-12 relative z-10">
+                                    <div className="flex justify-between items-start mb-8">
+                                        <div className={`w-16 h-16 bg-gradient-to-br ${activeFeature.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
+                                            <activeFeature.icon className="w-8 h-8" />
+                                        </div>
+                                        <button
+                                            onClick={() => setSelectedId(null)}
+                                            className="p-2 rounded-full bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 transition-colors text-[#1A1A1A]/40 dark:text-white/40 hover:text-[#1A1A1A] dark:hover:text-white"
+                                        >
+                                            <X className="w-6 h-6" />
+                                        </button>
                                     </div>
 
-                                    <div className="p-6 rounded-sm bg-[#1A1A1A]/5 dark:bg-white/5 border border-[#1A1A1A]/5 dark:border-white/5">
-                                        <p className="text-[#1A1A1A] dark:text-white/90 font-medium flex items-center gap-3">
-                                            <Sparkles className="w-5 h-5 text-[#D4AF37]" />
-                                            {activeFeature.detail.highlight}
-                                        </p>
+                                    <h3 className="text-3xl font-heading font-medium text-[#1A1A1A] dark:text-white mb-2">
+                                        {activeFeature.title}
+                                    </h3>
+                                    <div className="h-1 w-20 bg-gradient-to-r from-transparent to-transparent via-[#1A1A1A]/10 dark:via-white/20 rounded-full mb-8 relative overflow-hidden">
+                                        <div className={`absolute inset-0 bg-gradient-to-r ${activeFeature.color} opacity-50`} />
+                                    </div>
+
+                                    <div className="space-y-8">
+                                        <div>
+                                            <h4 className="text-[#D4AF37] font-serif italic text-xl mb-4">
+                                                {activeFeature.detail.title}
+                                            </h4>
+                                            <p className="text-[#1A1A1A]/80 dark:text-white/80 text-lg leading-relaxed font-light">
+                                                {activeFeature.detail.content}
+                                            </p>
+                                        </div>
+
+                                        <div className="p-6 rounded-sm bg-[#1A1A1A]/5 dark:bg-white/5 border border-[#1A1A1A]/5 dark:border-white/5">
+                                            <p className="text-[#1A1A1A] dark:text-white/90 font-medium flex items-center gap-3">
+                                                <Sparkles className="w-5 h-5 text-[#D4AF37]" />
+                                                {activeFeature.detail.highlight}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </section>
     );
 }
