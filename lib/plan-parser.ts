@@ -84,7 +84,7 @@ export function parsePlans(message: string): ParsedPlan[] {
     const itemRegex = /(?:^|\n)\s*(?:[1-9]\.|[-•])\s+([^\n]+)/g;
     let itemMatch;
     while ((itemMatch = itemRegex.exec(content)) !== null) {
-      let itemText = itemMatch[1].trim();
+      const itemText = itemMatch[1].trim();
       // 如果item text太短或者是元数据，跳过
       if (itemText.startsWith('难度') || itemText.startsWith('时长') || itemText.length < 2) continue;
       items.push({ text: itemText, status: 'pending' });
@@ -119,7 +119,7 @@ export function parsePlans(message: string): ParsedPlan[] {
       const itemRegex = /(?:^|\n)\s*(?:-|•)\s+([^\n]+)/g;
       let itemMatch;
       while ((itemMatch = itemRegex.exec(content)) !== null) {
-        let itemText = itemMatch[1].trim();
+        const itemText = itemMatch[1].trim();
         items.push({ text: itemText, status: 'pending' });
       }
 
@@ -151,7 +151,7 @@ export function parsePlans(message: string): ParsedPlan[] {
         const itemRegex = /(?:^|\n)\s*(?:[1-9]\.|-|•)\s+([^\n]+)/g;
         let itemMatch;
         while ((itemMatch = itemRegex.exec(content)) !== null) {
-          let itemText = itemMatch[1].trim();
+          const itemText = itemMatch[1].trim();
           items.push({ text: itemText, status: 'pending' });
         }
 

@@ -29,9 +29,9 @@ export default function AssistantPageClient({
   // Helper for generating dynamic greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return language === 'en' ? 'Good Morning' : '早安';
-    if (hour < 18) return language === 'en' ? 'Good Afternoon' : '下午好';
-    return language === 'en' ? 'Good Evening' : '晚上好';
+    if (hour < 12) return t('assistant.greeting.morning');
+    if (hour < 18) return t('assistant.greeting.afternoon');
+    return t('assistant.greeting.evening');
   };
 
   const todayStr = new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'zh-CN', {
@@ -102,10 +102,10 @@ export default function AssistantPageClient({
               <Target className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-bold tracking-widest text-[#0B3D2E] dark:text-white leading-none">COMMAND CENTER</span>
+              <span className="text-xs font-bold tracking-widest text-[#0B3D2E] dark:text-white leading-none">{t('assistant.commandCenter')}</span>
               <div className="flex items-center gap-1.5 text-[10px] text-[#0B3D2E]/60 dark:text-neutral-400 font-mono uppercase mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                <span>PROTOCOL ACTIVE</span>
+                <span>{t('assistant.protocolActive')}</span>
               </div>
             </div>
           </Link>
@@ -147,9 +147,9 @@ export default function AssistantPageClient({
                 <Target className="w-6 h-6 text-[#9CAF88]" />
               </div>
               <div className="relative z-10">
-                <div className="text-[10px] uppercase tracking-widest text-[#0B3D2E]/50 dark:text-neutral-400 font-bold mb-0.5">Focus of the Day</div>
+                <div className="text-[10px] uppercase tracking-widest text-[#0B3D2E]/50 dark:text-neutral-400 font-bold mb-0.5">{t('assistant.focusDay')}</div>
                 <div className="text-sm font-bold text-[#0B3D2E] dark:text-white">
-                  {language === 'en' ? 'Consistency over intensity.' : '坚持大于强度。'}
+                  {t('assistant.consistency')}
                 </div>
               </div>
             </div>
@@ -191,19 +191,19 @@ export default function AssistantPageClient({
 
             {/* Quick Settings Access */}
             <section className="bg-white border border-[#E7E1D6] rounded-2xl p-6 shadow-sm">
-              <h3 className="text-sm font-bold text-[#0B3D2E] mb-4 uppercase tracking-wide opacity-60">System</h3>
+              <h3 className="text-sm font-bold text-[#0B3D2E] mb-4 uppercase tracking-wide opacity-60">{t('assistant.system')}</h3>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => window.location.href = '/assistant?edit=true'}
                   className="p-3 bg-[#FAF6EF] rounded-xl text-sm font-medium text-[#0B3D2E] hover:bg-[#E7E1D6]/50 transition-colors text-left"
                 >
-                  Edit Profile
+                  {t('assistant.editProfile')}
                 </button>
                 <button
                   onClick={() => window.location.href = '/settings'}
                   className="p-3 bg-[#FAF6EF] rounded-xl text-sm font-medium text-[#0B3D2E] hover:bg-[#E7E1D6]/50 transition-colors text-left"
                 >
-                  Settings
+                  {t('assistant.settings')}
                 </button>
               </div>
             </section>

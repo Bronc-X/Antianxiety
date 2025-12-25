@@ -20,6 +20,7 @@ const JournalShowcase = lazy(() => import('@/components/JournalShowcase'));
 const InfiniteNewsFeed = lazy(() => import('@/components/InfiniteNewsFeed'));
 const ActiveInquiryBanner = lazy(() => import('@/components/ActiveInquiryBanner'));
 const NewUserGuide = lazy(() => import('@/components/NewUserGuide'));
+const DigitalTwinCards = lazy(() => import('@/components/DigitalTwinCards'));
 
 
 // 轻量级加载占位符
@@ -156,7 +157,7 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
   const anomalyLabels = language === 'en' ? ['🍷 Alcohol', '🍜 Late Dinner', '😰 High Stress', 'None'] : ['🍷 饮酒', '🍜 晚餐过晚', '😰 压力大', '都没有'];
 
   return (
-    <div className="min-h-screen bg-[#F9F8F6] dark:bg-neutral-950 p-0 transition-colors relative overflow-hidden">
+    <div className="min-h-screen bg-[#F9F8F6] dark:bg-neutral-950 p-0 transition-colors relative overflow-x-hidden">
       {/* AI 主动问询 Banner - 固定在最上层，独立于其他内容 */}
       {user?.id && showInquiry && (
         <Suspense fallback={null}>
@@ -177,7 +178,7 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
       </Suspense>
 
       {/* Fixed Grid Lines (Visible Grid System) - Parallax Effect */}
-      <motion.div style={{ y: gridY }} className="fixed inset-0 pointer-events-none z-0 flex justify-between px-8 md:px-16 max-w-[1600px] mx-auto">
+      <motion.div style={{ y: gridY }} className="hidden md:flex fixed inset-0 pointer-events-none z-0 justify-between px-8 md:px-16 max-w-[1600px] mx-auto">
         <div className="bg-grid-lines w-full h-full absolute inset-0 mix-blend-multiply opacity-[0.4]" />
         <div className="hidden md:block w-px h-full bg-[#1A1A1A] opacity-[0.03]" />
         <div className="hidden md:block w-px h-full bg-[#1A1A1A] opacity-[0.03]" />
@@ -185,14 +186,14 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
       </motion.div>
 
       {/* Main Content */}
-      <div className="relative z-10 max-w-[1600px] mx-auto px-8 md:px-16 pb-24 md:pb-32">
+      <div className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 md:px-16 pb-24 md:pb-32">
         {/* Luxury Hero Section - Scrollytelling */}
         <motion.header
           style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
           className="py-20 md:py-32 grid grid-cols-1 md:grid-cols-12 gap-12 relative"
         >
           <div className="md:col-start-2 md:col-span-10 lg:col-span-9">
-            <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-normal leading-[0.95] tracking-tight mb-12 text-[#1A1A1A] dark:text-white">
+            <h1 className="font-heading text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-normal leading-[1.1] sm:leading-[0.95] tracking-tight mb-8 sm:mb-12 text-[#1A1A1A] dark:text-white">
               {language === 'en' ? (
                 <>Silence the <br /><span className="italic font-light text-[#1A1A1A] dark:text-white/80">Noise.</span> <br />Find the <span className="italic font-light text-[#D4AF37]">Truth.</span></>
               ) : (
@@ -237,6 +238,15 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
             </div>
           </Suspense>
         </div>
+
+        {/* Digital Twin Entry Cards */}
+        {user && (
+          <div className="mb-16 relative z-10 max-w-5xl mx-auto">
+            <Suspense fallback={<LoadingPlaceholder height="h-32" />}>
+              <DigitalTwinCards />
+            </Suspense>
+          </div>
+        )}
 
         {/* Max AI Introduction Card */}
         <div className="mb-24 relative z-10 max-w-5xl mx-auto">

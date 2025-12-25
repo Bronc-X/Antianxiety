@@ -13,91 +13,91 @@ export default function FeatureBento() {
         {
             id: 'active_ai',
             icon: Zap,
-            title: language === 'en' ? 'Active AI Care' : '主动式 AI 诊疗',
+            title: language === 'en' ? 'Proactive Care' : '主动关怀',
             desc: language === 'en'
-                ? 'The world\'s most attentive health assistant. It doesn\'t wait for you to ask.'
-                : '世界上最了解你的医疗助理。它不会等你开口，而是通过数据异常主动发起关怀，像私人医生一样敏锐。',
+                ? "Doesn't wait for you to break down. Notices when your deep sleep drops before you feel the crash."
+                : '不等你崩溃才行动。在你感受到疲惫之前，就能察觉到你深睡眠的异常。',
             colSpan: 'md:col-span-8',
             bgClass: 'bg-[#E8DFD0]/30 dark:bg-[#2C2C2C]/30',
             color: "from-purple-500 to-indigo-600",
             detail: {
-                title: language === 'en' ? "How does it work?" : "它是如何工作的？",
+                title: language === 'en' ? "Better than waiting for symptoms" : "比等症状出现更好",
                 content: language === 'en'
-                    ? "Traditional health apps are passive—you input symptoms, they give advice. Antianxiety is active. It monitors your HRV, sleep, and surface temp 24/7. When your stress spikes, Max messages you: 'I noticed your deep sleep dropped to 40m. Feeling okay?'"
-                    : "传统的医疗应用是「被动」的——你输入症状，它给出建议。Antianxiety 是「主动」的。它全天候监测你的 HRV、睡眠和体表温度。当你处于高压或异常状态时，Max 会主动发来询问：「我注意到你昨晚深睡只有 40 分钟，感觉还好吗？」这种主动关怀能让你在崩溃前得到支持。",
-                highlight: language === 'en' ? "Detects anxiety before you do." : "比你自己更早发现你的焦虑。"
+                    ? "When your HRV drops and sleep quality tanks, Max doesn't wait for you to complain. It reaches out first: 'Noticed rough sleep. Want to talk about it?' That's not surveillance—it's having someone who actually pays attention."
+                    : '当你的 HRV 下降、睡眠质量变差时，Max 不会等你来抱怨。它会先问：「睡得不太好，想聊聊吗？」这不是监控——这是真正有人在意你。',
+                highlight: language === 'en' ? "Catches problems before they become crises." : "在问题变成危机之前就发现它。"
             }
         },
         {
             id: 'science',
             icon: Brain,
-            title: language === 'en' ? 'Precision Science' : '精准科研情报',
+            title: language === 'en' ? 'Real Research, Not Ads' : '真正的研究，不是广告',
             desc: language === 'en'
-                ? 'Filters 99% of noise. Push only clinical research relevant to your symptoms.'
-                : '为你过滤 99% 的噪音。基于你的健康画像，只推送与你当前症状高度相关的科研论文与临床指南。',
+                ? 'Filters out marketing fluff. Only shows clinical studies that actually match your situation.'
+                : '过滤掉营销软文。只推送真正与你情况相关的临床研究。',
             colSpan: 'md:col-span-4',
             bgClass: 'bg-[#9CAF88]/10 dark:bg-[#9CAF88]/10',
             color: "from-blue-500 to-cyan-600",
             detail: {
-                title: language === 'en' ? "Reject Pseudoscience" : "拒绝伪科学",
+                title: language === 'en' ? "No more Dr. Google rabbit holes" : "不再掉进百度医疗的坑",
                 content: language === 'en'
-                    ? "The web is full of marketing fluff. We connect to PubMed and Semantic Scholar, pulling clinical studies relevant to YOUR specific profile (e.g. 'High Cortisol', 'Fragmented Sleep'). Every piece of advice is backed by solid evidence."
-                    : "互联网上充斥着伪科学和营销软文。我们连接了 PubMed 和 Semantic Scholar 数据库，根据你的特定健康画像（如「高皮质醇」、「睡眠碎片化」），实时抓取最新的临床研究和荟萃分析。每一条建议背后，都有坚实的循证医学证据支持。",
-                highlight: language === 'en' ? "Evidence only. No ads." : "只看证据，不看广告。"
+                    ? "We pull from PubMed and Semantic Scholar—actual medical databases. If you have sleep issues, you see sleep research. Not sponsored supplements. Not wellness influencer opinions."
+                    : '我们从 PubMed 和 Semantic Scholar 抓取数据——真正的医学数据库。如果你有睡眠问题，你看到的就是睡眠研究。不是赞助的保健品广告，不是网红的养生意见。',
+                highlight: language === 'en' ? "Evidence, not opinions." : "证据，而非观点。"
             }
         },
         {
             id: 'bayesian',
             icon: Activity,
-            title: language === 'en' ? 'Bayesian Engine' : '贝叶斯推理引擎',
+            title: language === 'en' ? 'Honest Uncertainty' : '诚实面对不确定性',
             desc: language === 'en'
-                ? 'Not a vague search. Transforms fuzzy feelings into precise medical hypotheses.'
-                : '不再是百度的模糊搜索。基于贝叶斯概率模型，将模糊的身体感受转化为精准的医疗假设。',
+                ? "Doesn't pretend to know everything. Shows you probabilities, not false certainties."
+                : '不假装什么都知道。给你的是概率，而不是虚假的确定性。',
             colSpan: 'md:col-span-4',
             bgClass: 'bg-[#D4AF37]/10 dark:bg-[#D4AF37]/10',
             color: "from-emerald-500 to-teal-600",
             detail: {
-                title: language === 'en' ? "Probability, not Absolutes" : "概率而非绝对",
+                title: language === 'en' ? "Probability beats false certainty" : "概率比虚假的确定性更好",
                 content: language === 'en'
-                    ? "Bodies aren't machines. We use Bayesian probability. When HRV drops, we don't jump to conclusions. We weigh your baseline, yesterday's stress, and subjective reports to calculate the probability of 'Overtraining' vs 'Illness', updating as new data comes in."
-                    : "人体不是机器，不存在绝对的因果。我们使用贝叶斯概率模型来处理健康数据。当你的 HRV 下降时，它不会草率下结论，而是结合你的历史基线、昨日活动和主观感受，计算出「过度训练」或「潜在疾病」的概率分布，并随着新数据的输入不断自我修正。",
-                highlight: language === 'en' ? "Think like a top doctor." : "像顶尖医生一样思考。"
+                    ? "Your body isn't a machine with error codes. When HRV drops, we don't instantly diagnose 'burnout'. We show: 60% likely overtraining, 25% sleep debt, 15% something else. Honest about what we know and don't."
+                    : '你的身体不是一台会显示错误代码的机器。当 HRV 下降时，我们不会直接诊断「过度疲劳」。我们会说：60% 可能是训练过度，25% 可能是睡眠不足，15% 可能是其他原因。对已知和未知都保持诚实。',
+                highlight: language === 'en' ? "We admit when we're not sure." : "我们承认自己不确定的时候。"
             }
         },
         {
             id: 'calibration',
             icon: Sun,
-            title: language === 'en' ? 'Daily Calibration' : '身心每日校准',
+            title: language === 'en' ? 'Daily Check-In' : '每日身心校准',
             desc: language === 'en'
-                ? '1-minute rapid scan. Logs not just data, but faint signals.'
-                : '1分钟快速扫描追踪。记录的不只是数据，更是你身体的微弱信号，建立你的个人生物模型。',
+                ? '60 seconds. That\'s it. Just enough to know whether today is a push day or a rest day.'
+                : '60秒。就这么多。足够让你知道今天该冲还是该歇。',
             colSpan: 'md:col-span-4',
             bgClass: 'bg-[#FAF6EF] border border-[#1A1A1A]/10 dark:bg-[#1A1A1A] dark:border-white/10',
             color: "from-amber-500 to-orange-600",
             detail: {
-                title: language === 'en' ? "Clarity in Chaos" : "各种状态，一目了然",
+                title: language === 'en' ? "Know your capacity today" : "知道今天的容量",
                 content: language === 'en'
-                    ? "Like tuning an orchestra, your body needs daily calibration. Spend 1 minute each morning. We read your bio-data and subjective check-in to generate a 'Status Report'. It's not just a score—it's an energy budget for your day."
-                    : "就像交响乐团演出前需要调音一样，你的身心也需要每日校准。每天早晨 1 分钟，通过简单的交互和生理数据读取，系统为你生成当天的「状态报告」。这不是单纯的打分，而是为你当天的活动设定合理的「能量预算」。",
-                highlight: language === 'en' ? "Find order in chaos." : "在混乱中找到秩序。"
+                    ? "Most apps want you to track everything forever. We just want 60 seconds each morning. Quick subjective check + overnight bio-data = your energy budget for the day. Some days you have 100%. Some days you have 40%. Both are fine."
+                    : '大多数应用想让你永远记录一切。我们只要每天早上60秒。快速主观检查 + 昨晚生理数据 = 你今天的能量预算。有些天你有100%，有些天只有40%。都可以。',
+                highlight: language === 'en' ? "Permission to rest when needed." : "需要休息时，允许自己休息。"
             }
         },
         {
             id: 'ecosystem',
             icon: Watch,
-            title: language === 'en' ? 'Full Ecosystem' : '全生态设备支持',
+            title: language === 'en' ? 'Use What You Have' : '用你现有的设备',
             desc: language === 'en'
-                ? 'Compatible with Apple Watch, Oura, Fitbit and more.'
-                : '不需要为了使用软件买新手表。支持 Apple Watch、华为、小米、Fitbit 等主流设备。',
+                ? 'Apple Watch, Oura, Fitbit, Mi Band—whatever is already on your wrist works.'
+                : 'Apple Watch、Oura、华为、小米手环——你手腕上戴着的就能用。',
             colSpan: 'md:col-span-4',
             bgClass: 'bg-[#E8DFD0]/20 dark:bg-[#2C2C2C]/20',
             color: "from-pink-500 to-rose-600",
             detail: {
-                title: language === 'en' ? "Zero Friction" : "零成本启动",
+                title: language === 'en' ? "No new purchases required" : "不需要买新设备",
                 content: language === 'en'
-                    ? "Buying expensive gear is stress itself. We support 95% of wearables. Apple Watch, Mi Band, Oura... or even just your phone's sleep tracking sensors. Use what you have."
-                    : "我们深知，为了健康而购买昂贵的设备本身就是一种压力。因此，我们兼容市面上 95% 的穿戴设备。无论你戴的是 Apple Watch 还是小米手环，亦或是 Oura Ring，我们都能无缝接入。甚至，仅凭手机的睡眠监测功能，也能获得不错的基础体验。",
-                highlight: language === 'en' ? "Use what you have." : "用你现有的，就是最好的。"
+                    ? "Buying expensive gadgets is its own stress. We work with 95% of wearables out there. Even just your phone's built-in sleep tracking can get you started. Use what you already own."
+                    : '买昂贵的设备本身就是一种压力。我们兼容市面上95%的穿戴设备。甚至只用手机自带的睡眠追踪也能开始使用。用你已经有的就好。',
+                highlight: language === 'en' ? "Start today, not after shopping." : "今天就开始，不用先去购物。"
             }
         }
     ];

@@ -327,6 +327,7 @@ export function ClinicalOnboarding({
 
             // Trigger refresh
             fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+            fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
 
             const resultData: OnboardingResult = {
                 gad7Score,
@@ -539,7 +540,11 @@ export function ClinicalOnboarding({
                                                     <div>
                                                         <h4 className="font-bold text-[#0B3D2E] text-sm">{t('assessment.proScales')}</h4>
                                                         <p className="text-xs text-emerald-800/60 leading-relaxed">
-                                                            {t('assessment.standardDesc', { name: SCALES_ORDER.find(s => s.id === currentQuestions[0]?.scaleId)?.name || '' })}
+                                                            {t('assessment.standardDesc', {
+                                                                name: currentQuestions[0]?.scaleId
+                                                                    ? t(`scale.${currentQuestions[0].scaleId.toLowerCase()}.fullName`)
+                                                                    : ''
+                                                            })}
                                                         </p>
                                                     </div>
                                                 </div>

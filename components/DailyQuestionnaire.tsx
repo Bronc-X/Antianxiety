@@ -163,6 +163,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
 
       // 后台刷新：让 AI 方案与内容推荐跟随问卷状态更新
       fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+      fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
 
     } catch (error) {
       console.error('保存问卷失败:', error);

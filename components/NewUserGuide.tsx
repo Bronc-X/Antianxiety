@@ -19,34 +19,34 @@ export default function NewUserGuide({ userId, onComplete }: NewUserGuideProps) 
     const steps = [
         {
             icon: Sparkles,
-            title: language === 'en' ? 'Welcome to Antianxiety!' : '欢迎使用 Antianxiety！',
+            title: language === 'en' ? 'Your Digital Health Twin' : '你的数字健康孪生体',
             description: language === 'en'
-                ? 'Your personal AI-powered health companion. Let us show you around.'
-                : '你的私人 AI 健康助手。让我们带你了解一下。',
+                ? 'We\'re building an intelligent model based on YOUR real data - not generic advice.'
+                : '我们正在根据你的真实数据构建一个专属于你的健康智能体，而非通用建议。',
             color: 'from-[#D4AF37] to-[#C4A77D]',
         },
         {
             icon: MessageCircle,
-            title: language === 'en' ? 'Meet Max' : '认识 Max',
+            title: language === 'en' ? 'Max: The More You Chat, The Smarter' : 'Max：越聊越懂你',
             description: language === 'en'
-                ? 'Max is your AI health assistant. It monitors your data and proactively reaches out with personalized insights.'
-                : 'Max 是你的 AI 健康助手。它会监测你的数据，并主动提供个性化建议。',
+                ? 'Max learns from every conversation. Share your concerns, symptoms, habits - the more you chat, the more personalized your health insights become.'
+                : 'Max 会从每次对话中学习。分享你的困惑、症状、习惯——聊得越多，健康洞察就越精准。',
             color: 'from-[#9CAF88] to-[#7a9268]',
         },
         {
             icon: Activity,
             title: language === 'en' ? 'Daily Calibration' : '每日校准',
             description: language === 'en'
-                ? 'Spend 1 minute each morning to log your status. This helps Max understand you better.'
-                : '每天早晨花 1 分钟记录你的状态。这能帮助 Max 更好地了解你。',
+                ? 'Spend 1 minute each morning to log your status. This feeds your health model with fresh data.'
+                : '每天早晨花 1 分钟记录状态。这会为你的健康智能体注入最新数据。',
             color: 'from-[#0B3D2E] to-[#1a5c47]',
         },
         {
             icon: BookOpen,
-            title: language === 'en' ? 'Personalized Feed' : '个性化推荐',
+            title: language === 'en' ? 'Connect Your Wearables' : '连接智能硬件',
             description: language === 'en'
-                ? 'We curate scientific articles and insights based on your health profile. No noise, only signal.'
-                : '我们根据你的健康画像推送科研文章和洞察。只有精准信号，没有噪音。',
+                ? 'Link Fitbit, Oura, Apple Health or other devices in Settings → Devices. HRV, sleep, and activity data will enrich your health model.'
+                : '在「设置 → 设备」中连接 Fitbit、Oura、Apple Health 等设备。HRV、睡眠、运动数据都会纳入你的健康智能体。',
             color: 'from-purple-500 to-indigo-600',
         },
     ];

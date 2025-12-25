@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useI18n } from '@/lib/i18n';
 
 interface HealthProfileFormProps {
   userId: string;
@@ -30,7 +31,8 @@ interface HealthProfileFormProps {
 export default function HealthProfileForm({ userId, initialData }: HealthProfileFormProps) {
   const router = useRouter();
   const supabase = createClientSupabaseClient();
-  
+  const { t } = useI18n();
+
   const [formData, setFormData] = useState({
     gender: initialData?.gender || '',
     birth_date: initialData?.birth_date || '',
@@ -78,11 +80,11 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
   const validateStep = (step: number): boolean => {
     if (step === 0) {
       if (!formData.primary_goal) {
-        setError('请选择主要健康目标');
+        setError(t('healthProfile.error.selectGoal'));
         return false;
       }
       if ((formData.primary_goal === 'lose_weight' || formData.primary_goal === 'gain_muscle') && !formData.target_weight_kg) {
-        setError('请设置目标体重');
+        setError(t('healthProfile.error.setWeight'));
         return false;
       }
     }
@@ -103,7 +105,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateStep(currentStep)) {
       return;
     }
@@ -123,7 +125,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       };
 
       console.log('准备保存数据:', payload);
-      
+
       const response = await fetch('/api/profile/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -152,21 +154,22 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       console.log('API 返回:', result);
 
       if (!response.ok || result.error) {
-        throw new Error(result.error || '保存失败');
+        throw new Error(result.error || t('healthProfile.error.saveFailed'));
       }
 
-      setSuccess('设置已保存，正在返回主页...');
+      setSuccess(t('healthProfile.saved'));
 
       // 后台刷新：更新 AI 分析/方案 + 用户画像向量（用于文章推荐）
-      fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
+      fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+      fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
 
       setTimeout(() => {
         router.push('/landing');
         router.refresh();
       }, 1000);
     } catch (err) {
-      console.error('保存失败:', err);
-      setError(err instanceof Error ? err.message : '保存失败，请重试');
+      console.error('Save failed:', err);
+      setError(err instanceof Error ? err.message : t('healthProfile.error.saveFailed'));
       setIsSaving(false);
     }
   };
@@ -188,32 +191,31 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       {currentStep === 0 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">模块一：目标设定</h2>
-            <p className="text-sm text-[#0B3D2E]/70 mb-6">设定您的健康目标，AI将为您制定个性化计划</p>
+            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">{t('healthProfile.step1.title')}</h2>
+            <p className="text-sm text-[#0B3D2E]/70 mb-6">{t('healthProfile.step1.desc')}</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              主要健康目标 <span className="text-red-500">*</span>
+              {t('healthProfile.primaryGoal')} <span className="text-red-500">*</span>
             </label>
             <div className="space-y-2">
               {[
-                { value: 'lose_weight', label: '减轻体重', needWeight: true },
-                { value: 'maintain_energy', label: '保持健康 / 改善精力', needWeight: false },
-                { value: 'gain_muscle', label: '增加肌肉', needWeight: true },
-                { value: 'improve_metric', label: '改善特定指标（如：睡眠、压力）', needWeight: false },
+                { value: 'lose_weight', labelKey: 'healthProfile.goal.loseWeight', needWeight: true },
+                { value: 'maintain_energy', labelKey: 'healthProfile.goal.maintainEnergy', needWeight: false },
+                { value: 'gain_muscle', labelKey: 'healthProfile.goal.gainMuscle', needWeight: true },
+                { value: 'improve_metric', labelKey: 'healthProfile.goal.improveMetric', needWeight: false },
               ].map(option => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => handleChange('primary_goal', option.value)}
-                  className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
-                    formData.primary_goal === option.value
-                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                  }`}
+                  className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${formData.primary_goal === option.value
+                    ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                    : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
+                    }`}
                 >
-                  {option.label}
+                  {t(option.labelKey)}
                 </button>
               ))}
             </div>
@@ -223,7 +225,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
             <>
               <div>
                 <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                  目标体重 (公斤) <span className="text-red-500">*</span>
+                  {t('healthProfile.targetWeight')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -237,31 +239,30 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
               <div>
                 <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                  每周目标速率 <span className="text-[#0B3D2E]/60 text-xs ml-1">可选</span>
+                  {t('healthProfile.weeklyRate')} <span className="text-[#0B3D2E]/60 text-xs ml-1">{t('healthProfile.optional')}</span>
                 </label>
                 <div className="space-y-2">
-                  {(formData.primary_goal === 'lose_weight' 
+                  {(formData.primary_goal === 'lose_weight'
                     ? [
-                        { value: 'slow', label: '轻松（约 0.25 kg/周）' },
-                        { value: 'moderate', label: '推荐（约 0.5 kg/周）' },
-                        { value: 'fast', label: '进取（约 1 kg/周）' },
-                      ]
+                      { value: 'slow', labelKey: 'healthProfile.rate.slow.lose' },
+                      { value: 'moderate', labelKey: 'healthProfile.rate.moderate.lose' },
+                      { value: 'fast', labelKey: 'healthProfile.rate.fast.lose' },
+                    ]
                     : [
-                        { value: 'slow', label: '缓慢（约 0.1 kg/周）' },
-                        { value: 'moderate', label: '推荐（约 0.2 kg/周）' },
-                      ]
+                      { value: 'slow', labelKey: 'healthProfile.rate.slow.gain' },
+                      { value: 'moderate', labelKey: 'healthProfile.rate.moderate.gain' },
+                    ]
                   ).map(option => (
                     <button
                       key={option.value}
                       type="button"
                       onClick={() => handleChange('weekly_goal_rate', option.value)}
-                      className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${
-                        formData.weekly_goal_rate === option.value
-                          ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                          : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                      }`}
+                      className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${formData.weekly_goal_rate === option.value
+                        ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                        : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
+                        }`}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -275,14 +276,14 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
               onClick={handleBack}
               className="flex-1 bg-white text-[#0B3D2E] border border-[#E7E1D6] py-3 rounded-lg hover:bg-[#FAF6EF] transition-colors font-medium"
             >
-              上一步
+              {t('healthProfile.back')}
             </button>
             <button
               type="button"
               onClick={handleNext}
               className="flex-1 bg-[#0B3D2E] text-white py-3 rounded-lg hover:bg-[#0a3629] transition-colors font-medium"
             >
-              下一步
+              {t('healthProfile.next')}
             </button>
           </div>
         </div>
@@ -291,14 +292,14 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       {currentStep === 1 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">模块二：生活习惯</h2>
-            <p className="text-sm text-[#0B3D2E]/70 mb-6">这些数据将帮助AI更准确地分析您的健康状况</p>
+            <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">{t('healthProfile.step2.title')}</h2>
+            <p className="text-sm text-[#0B3D2E]/70 mb-6">{t('healthProfile.step2.desc')}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                每日睡眠时长 (小时)
+                {t('healthProfile.sleepHours')}
               </label>
               <input
                 type="number"
@@ -312,7 +313,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
             <div>
               <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-                压力水平 (1-10)
+                {t('healthProfile.stressLevel')}
               </label>
               <input
                 type="number"
@@ -328,7 +329,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
           <div>
             <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              精力水平 (1-10)
+              {t('healthProfile.energyLevel')}
             </label>
             <input
               type="number"
@@ -343,27 +344,26 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
           <div>
             <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              运动频率
+              {t('healthProfile.exerciseFrequency')}
             </label>
             <div className="space-y-2">
               {[
-                { value: 'rarely', label: '很少运动' },
-                { value: '1-2_week', label: '每周1-2次' },
-                { value: '2-3_week', label: '每周2-3次' },
-                { value: '4-5_week', label: '每周4-5次' },
-                { value: '6-7_week', label: '每周6-7次' },
+                { value: 'rarely', labelKey: 'healthProfile.exercise.rarely' },
+                { value: '1-2_week', labelKey: 'healthProfile.exercise.1-2' },
+                { value: '2-3_week', labelKey: 'healthProfile.exercise.2-3' },
+                { value: '4-5_week', labelKey: 'healthProfile.exercise.4-5' },
+                { value: '6-7_week', labelKey: 'healthProfile.exercise.6-7' },
               ].map(option => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => handleChange('exercise_frequency', option.value)}
-                  className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${
-                    formData.exercise_frequency === option.value
-                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                  }`}
+                  className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${formData.exercise_frequency === option.value
+                    ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                    : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
+                    }`}
                 >
-                  {option.label}
+                  {t(option.labelKey)}
                 </button>
               ))}
             </div>
@@ -371,26 +371,25 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
           <div>
             <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              咖啡因摄入
+              {t('healthProfile.caffeineIntake')}
             </label>
             <div className="space-y-2">
               {[
-                { value: 'none', label: '不饮用' },
-                { value: '1_cup', label: '每天1杯' },
-                { value: '2-3_cups', label: '每天2-3杯' },
-                { value: '4+_cups', label: '每天4杯以上' },
+                { value: 'none', labelKey: 'healthProfile.caffeine.none' },
+                { value: '1_cup', labelKey: 'healthProfile.caffeine.1' },
+                { value: '2-3_cups', labelKey: 'healthProfile.caffeine.2-3' },
+                { value: '4+_cups', labelKey: 'healthProfile.caffeine.4+' },
               ].map(option => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => handleChange('caffeine_intake', option.value)}
-                  className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${
-                    formData.caffeine_intake === option.value
-                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                  }`}
+                  className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${formData.caffeine_intake === option.value
+                    ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                    : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
+                    }`}
                 >
-                  {option.label}
+                  {t(option.labelKey)}
                 </button>
               ))}
             </div>
@@ -398,26 +397,25 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
           <div>
             <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              酒精摄入
+              {t('healthProfile.alcoholIntake')}
             </label>
             <div className="space-y-2">
               {[
-                { value: 'none', label: '不饮酒' },
-                { value: 'occasional', label: '偶尔（每月1-2次）' },
-                { value: '1-2_week', label: '每周1-2次' },
-                { value: '3+_week', label: '每周3次以上' },
+                { value: 'none', labelKey: 'healthProfile.alcohol.none' },
+                { value: 'occasional', labelKey: 'healthProfile.alcohol.occasional' },
+                { value: '1-2_week', labelKey: 'healthProfile.alcohol.1-2' },
+                { value: '3+_week', labelKey: 'healthProfile.alcohol.3+' },
               ].map(option => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => handleChange('alcohol_intake', option.value)}
-                  className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${
-                    formData.alcohol_intake === option.value
-                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                  }`}
+                  className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${formData.alcohol_intake === option.value
+                    ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                    : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
+                    }`}
                 >
-                  {option.label}
+                  {t(option.labelKey)}
                 </button>
               ))}
             </div>
@@ -425,70 +423,69 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
           <div>
             <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              吸烟状况
+              {t('healthProfile.smokingStatus')}
             </label>
             <div className="space-y-2">
               {[
-                { value: 'non_smoker', label: '不吸烟' },
-                { value: 'ex_smoker', label: '已戒烟' },
-                { value: 'occasional', label: '偶尔吸烟' },
-                { value: 'regular', label: '经常吸烟' },
+                { value: 'non_smoker', labelKey: 'healthProfile.smoking.nonSmoker' },
+                { value: 'ex_smoker', labelKey: 'healthProfile.smoking.exSmoker' },
+                { value: 'occasional', labelKey: 'healthProfile.smoking.occasional' },
+                { value: 'regular', labelKey: 'healthProfile.smoking.regular' },
               ].map(option => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => handleChange('smoking_status', option.value)}
-                  className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${
-                    formData.smoking_status === option.value
-                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                  }`}
+                  className={`w-full text-left px-4 py-2 rounded-lg border transition-all ${formData.smoking_status === option.value
+                    ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                    : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
+                    }`}
                 >
-                  {option.label}
+                  {t(option.labelKey)}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* 代谢健康困扰 */}
+          {/* Metabolic Health Concerns */}
           <div>
             <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
-              代谢健康困扰 <span className="text-[#0B3D2E]/60 text-xs ml-1">多选，帮助AI精准分析</span>
+              {t('healthProfile.metabolicConcerns')} <span className="text-[#0B3D2E]/60 text-xs ml-1">{t('healthProfile.metabolicConcernsHint')}</span>
             </label>
             <p className="text-xs text-[#0B3D2E]/60 mb-3">
-              基于2024年最新代谢衰老研究，选择您当前的主要困扰
+              {t('healthProfile.metabolicConcernsDesc')}
             </p>
             <div className="grid grid-cols-1 gap-2">
               {[
-                { 
-                  value: 'easy_fatigue', 
-                  label: '🔋 容易疲劳 / 精力不足',
-                  mechanism: '线粒体功能障碍',
-                  desc: 'ATP生成减少，可能与久坐或肌肉量不足有关'
+                {
+                  value: 'easy_fatigue',
+                  labelKey: 'healthProfile.concern.fatigue',
+                  mechanismKey: 'healthProfile.concern.fatigueMech',
+                  descKey: 'healthProfile.concern.fatigueDesc'
                 },
-                { 
-                  value: 'belly_fat', 
-                  label: '🫄 腹部容易长肉',
-                  mechanism: 'IL-17/TNF炎症通路',
-                  desc: '内脏脂肪积累，可能与胰岛素抵抗有关'
+                {
+                  value: 'belly_fat',
+                  labelKey: 'healthProfile.concern.bellyFat',
+                  mechanismKey: 'healthProfile.concern.bellyFatMech',
+                  descKey: 'healthProfile.concern.bellyFatDesc'
                 },
-                { 
-                  value: 'muscle_loss', 
-                  label: '💪 肌肉松弛 / 力量下降',
-                  mechanism: '肌少症风险',
-                  desc: '30岁后每年流失1-2%肌肉量'
+                {
+                  value: 'muscle_loss',
+                  labelKey: 'healthProfile.concern.muscleLoss',
+                  mechanismKey: 'healthProfile.concern.muscleLossMech',
+                  descKey: 'healthProfile.concern.muscleLossDesc'
                 },
-                { 
-                  value: 'slow_recovery', 
-                  label: '🏃 恢复速度慢',
-                  mechanism: '线粒体+氧化应激',
-                  desc: '运动后需要较长时间恢复'
+                {
+                  value: 'slow_recovery',
+                  labelKey: 'healthProfile.concern.slowRecovery',
+                  mechanismKey: 'healthProfile.concern.slowRecoveryMech',
+                  descKey: 'healthProfile.concern.slowRecoveryDesc'
                 },
-                { 
-                  value: 'carb_cravings', 
-                  label: '🍚 对碳水渴望增加 / 餐后困倦',
-                  mechanism: '代谢重编程',
-                  desc: '燃料偏好从脂肪转向葡萄糖'
+                {
+                  value: 'carb_cravings',
+                  labelKey: 'healthProfile.concern.carbCravings',
+                  mechanismKey: 'healthProfile.concern.carbCravingsMech',
+                  descKey: 'healthProfile.concern.carbCravingsDesc'
                 },
               ].map(option => {
                 const isSelected = (formData.metabolic_concerns as string[]).includes(option.value);
@@ -497,22 +494,19 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
                     key={option.value}
                     type="button"
                     onClick={() => toggleMetabolicConcern(option.value)}
-                    className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
-                      isSelected
-                        ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
-                        : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
-                    }`}
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${isSelected
+                      ? 'bg-[#0B3D2E] text-white border-[#0B3D2E]'
+                      : 'bg-white text-[#0B3D2E] border-[#E7E1D6] hover:border-[#0B3D2E]'
+                      }`}
                   >
-                    <div className="font-medium mb-1">{option.label}</div>
-                    <div className={`text-xs ${
-                      isSelected ? 'text-white/70' : 'text-[#0B3D2E]/50'
-                    }`}>
-                      <span className="font-semibold">机制：</span>{option.mechanism}
+                    <div className="font-medium mb-1">{t(option.labelKey)}</div>
+                    <div className={`text-xs ${isSelected ? 'text-white/70' : 'text-[#0B3D2E]/50'
+                      }`}>
+                      <span className="font-semibold">{t('healthProfile.mechanism')}</span>{t(option.mechanismKey)}
                     </div>
-                    <div className={`text-xs mt-0.5 ${
-                      isSelected ? 'text-white/60' : 'text-[#0B3D2E]/40'
-                    }`}>
-                      {option.desc}
+                    <div className={`text-xs mt-0.5 ${isSelected ? 'text-white/60' : 'text-[#0B3D2E]/40'
+                      }`}>
+                      {t(option.descKey)}
                     </div>
                   </button>
                 );
@@ -521,7 +515,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
             {(formData.metabolic_concerns as string[]).length > 0 && (
               <div className="mt-3 p-3 bg-[#0B3D2E]/5 rounded-lg border border-[#0B3D2E]/10">
                 <div className="text-xs text-[#0B3D2E]/70">
-                  ✨ 已选择 {(formData.metabolic_concerns as string[]).length} 项困扰，AI将为您制定针对性干预方案
+                  {t('healthProfile.concernsSelected', { count: (formData.metabolic_concerns as string[]).length })}
                 </div>
               </div>
             )}
@@ -533,14 +527,14 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
               onClick={handleBack}
               className="flex-1 bg-white text-[#0B3D2E] border border-[#E7E1D6] py-3 rounded-lg hover:bg-[#FAF6EF] transition-colors font-medium"
             >
-              上一步
+              {t('healthProfile.back')}
             </button>
             <button
               type="submit"
               disabled={isSaving}
               className="flex-1 bg-[#0B3D2E] text-white py-3 rounded-lg hover:bg-[#0a3629] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? '保存中...' : '完成并保存'}
+              {isSaving ? t('healthProfile.saving') : t('healthProfile.saveComplete')}
             </button>
           </div>
         </div>

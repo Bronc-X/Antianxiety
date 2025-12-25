@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useI18n } from '@/lib/i18n';
 
 interface Plan {
   id: string;
@@ -19,6 +19,7 @@ interface DashboardPlansProps {
 }
 
 export default function DashboardPlans({ }: DashboardPlansProps) {
+  const { t, language } = useI18n();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate] = useState(new Date());
@@ -51,19 +52,12 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
     try {
       setIsLoading(true);
 
-      console.log('📤 发起请求: /api/plans/list');
       const response = await fetch('/api/plans/list?status=active&limit=20');
-      console.log('📊 HTTP状态:', response.status);
 
       const result = await response.json();
-      console.log('📦 API完整响应:', result);
-      console.log('📦 result.data:', result.data);
-      console.log('📦 result.data.plans:', result.data?.plans);
 
       if (result.success) {
         const plansList = result.data?.plans || [];
-        console.log('✅ 计划列表加载成功:', plansList.length, '个方案');
-        console.log('📊 计划详情:', plansList);
         setPlans(plansList);
       } else {
         console.error('❌ 加载计划失败:', result.error);
@@ -101,11 +95,9 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
 
       console.log('✅ 计划完成记录成功');
 
-      // TODO: 显示成功提示或更新UI
-
     } catch (error) {
       console.error('❌ 记录完成失败:', error);
-      alert('记录失败，请稍后重试');
+      alert(t('settings.saveFail'));
     } finally {
       setCompletingPlanId(null);
     }
@@ -117,10 +109,10 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
     const isToday = date.toDateString() === today.toDateString();
 
     if (isToday) {
-      return '今天';
+      return t('dashboard.plans.today');
     }
 
-    return date.toLocaleDateString('zh-CN', {
+    return date.toLocaleDateString(language === 'en' ? 'en-US' : 'zh-CN', {
       month: 'long',
       day: 'numeric',
       weekday: 'short'
@@ -163,16 +155,16 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
       <div className="bg-white rounded-2xl shadow-sm border border-[#E7E1D6] p-8 text-center">
         <div className="text-6xl mb-4">📋</div>
         <h3 className="text-lg font-semibold text-[#0B3D2E] mb-2">
-          还没有计划
+          {t('dashboard.plans.emptyTitle')}
         </h3>
         <p className="text-sm text-[#0B3D2E]/60 mb-4">
-          与AI助理对话，让它为你生成个性化的健康方案
+          {t('dashboard.plans.emptyDesc')}
         </p>
         <button
           onClick={() => {/* 打开AI助理 */ }}
           className="px-6 py-2 bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white rounded-lg hover:shadow-lg transition-all"
         >
-          开始对话
+          {t('dashboard.plans.startChat')}
         </button>
       </div>
     );
@@ -184,7 +176,7 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
       <div className="bg-white/50 backdrop-blur-sm border-b border-[#E7E1D6] px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[#0B3D2E]">Plans & Protocol</h2>
+            <h2 className="text-lg font-bold text-[#0B3D2E]">{t('dashboard.plans.title')}</h2>
             <p className="text-xs text-[#0B3D2E]/60 mt-0.5 font-mono uppercase tracking-wider">
               {formatDate(selectedDate)}
             </p>
@@ -192,7 +184,7 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
           <div className="text-right">
             <div className="flex items-baseline gap-1 justify-end">
               <span className="text-2xl font-bold text-[#0B3D2E]">{plans.length}</span>
-              <span className="text-xs text-[#0B3D2E]/40 font-bold uppercase">Active</span>
+              <span className="text-xs text-[#0B3D2E]/40 font-bold uppercase">{t('dashboard.plans.activeCount')}</span>
             </div>
           </div>
         </div>
@@ -241,11 +233,11 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
                   {/* 底部信息 */}
                   <div className="flex items-center gap-4 text-xs text-[#0B3D2E]/60">
                     <span>
-                      创建于 {new Date(plan.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                      {t('dashboard.plans.created')} {new Date(plan.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'zh-CN', { month: 'short', day: 'numeric' })}
                     </span>
                     {plan.status === 'active' && (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                        进行中
+                        {t('dashboard.plans.status.active')}
                       </span>
                     )}
                   </div>
@@ -280,7 +272,7 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
           onClick={loadPlans}
           className="w-full py-2 text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80 transition-colors"
         >
-          刷新计划
+          {t('dashboard.plans.refresh')}
         </button>
       </div>
     </div>

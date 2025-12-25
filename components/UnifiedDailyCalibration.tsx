@@ -87,7 +87,7 @@ export function UnifiedDailyCalibration({
     userName,
     onComplete,
 }: UnifiedDailyCalibrationProps) {
-    const { language } = useI18n();
+    const { t, language } = useI18n();
     const supabase = createClient();
 
     // State

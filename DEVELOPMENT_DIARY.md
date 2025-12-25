@@ -2,6 +2,67 @@
 
 ---
 
+## 2025-12-26 - 个人健康智能体核心系统 + 移动端适配 🧬📱
+
+### 🎯 核心更新
+
+#### 1. 数字健康孪生体 (Digital Twin) 系统完成 ✅
+- ✅ **统一用户画像聚合器** (`lib/user-profile-aggregator.ts`)
+  - 聚合问卷、每日校准、Max对话、硬件数据
+  - 生成向量嵌入支持语义搜索
+- ✅ **Dashboard 页面** (`/dashboard`) - 健康画像仪表盘
+  - 核心指标卡片 (目标/生活/情绪)
+  - HRV/心率/睡眠评分/SpO2 硬件数据展示
+  - 7天趋势可视化
+- ✅ **Goals 页面** (`/goals`) - 阶段性计划管理
+  - CRUD 操作 + 分类 + 优先级
+  - 添加按钮修复 (错误处理 + loading状态)
+- ✅ **DigitalTwinCards 组件** - Landing 页入口卡片
+
+#### 2. API 端点 ✅
+- ✅ `/api/user/profile-sync` - 触发画像聚合
+- ✅ `/api/user/profile-vector` - 获取向量数据
+- ✅ `/api/user/hardware-sync` - 硬件数据同步 (HRV/睡眠等)
+- ✅ `/api/user/generate-plan` - 个性化健康计划生成
+
+#### 3. 数据整合触发点 ✅
+- ✅ 6个表单组件 → profile-sync
+- ✅ Goals 页面操作 → profile-sync
+- ✅ Max 对话结束 → profile-sync (stream + non-stream)
+- ✅ 硬件数据同步 → profile-sync
+
+#### 4. NewUserGuide 重写 ✅
+- ✅ 改为"数字健康孪生体"主题
+- ✅ "Max：越聊越懂你" - 鼓励用户多聊天
+- ✅ 新增"连接智能硬件"步骤 (设置 → 设备)
+
+#### 5. 移动端响应式适配 ✅
+- ✅ `/landing` - padding优化 (px-4), grid隐藏, hero文字缩小
+- ✅ `/dashboard` - 网格在手机上堆叠显示
+- ✅ `/goals` - 响应式间距
+
+#### 6. Capacitor 同步 ✅
+- ✅ `npm run build` 成功
+- ✅ `npx cap sync android` (2.9s, 8插件)
+- ✅ Web 资源已同步到 Android 目录
+
+#### 7. 数据库迁移 ✅
+- ✅ `unified_user_profiles` 表 (向量嵌入)
+- ✅ `phase_goals` 表 (阶段目标)
+- ✅ `phase_goals_fix` 修复迁移
+
+### 📊 代码统计
+- **新增文件**: 15+ 个
+- **修改文件**: 20+ 个
+- **新增代码**: ~2000+ 行
+
+### 🚀 下一步
+- [ ] Android Studio 构建 APK
+- [ ] 真机测试移动端适配效果
+- [ ] 硬件数据采集功能验证
+
+---
+
 ## 2025-12-25 - 个性化推荐系统重构 🎯
 
 ### 🎯 核心更新
