@@ -50,30 +50,88 @@ export default function ComparisonSection() {
                             {/* Dynamic Island / Notch Area */}
                             <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-8 bg-black rounded-full z-20" />
 
-                            {/* Fake app UI */}
-                            <div className="pt-20 px-6">
-                                <div className="flex items-center justify-between mb-8 opacity-50">
-                                    <div className="w-10 h-10 bg-red-500/20 rounded-xl" />
-                                    <div className="text-white/40 text-xs font-mono">FITNESS_PRO</div>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="h-40 rounded-2xl bg-gradient-to-br from-red-900/20 to-transparent border border-red-500/10 p-4 relative overflow-hidden">
-                                        {/* Chart-like elements */}
-                                        <div className="absolute bottom-4 left-4 right-4 flex items-end gap-1 h-20 opacity-30">
-                                            {[40, 60, 30, 80, 20, 90, 10].map((h, i) => (
-                                                <div key={i} className="flex-1 bg-red-500 rounded-sm" style={{ height: `${h}%` }} />
-                                            ))}
+                            {/* Realistic Fitness App UI */}
+                            <div className="pt-16 px-4 h-full flex flex-col">
+                                {/* App Header with Logo */}
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
+                                            <Activity className="w-4 h-4 text-white" />
                                         </div>
-                                        <div className="relative z-10">
-                                            <div className="w-8 h-8 rounded-full border-2 border-red-500/30 mb-2 flex items-center justify-center">
-                                                <AlertTriangle className="w-4 h-4 text-red-500" />
+                                        <span className="text-white/80 text-xs font-semibold tracking-wide">FitPro</span>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                                        <span className="text-xs">👤</span>
+                                    </div>
+                                </div>
+
+                                {/* Streak Counter - 连续打卡 */}
+                                <div className="bg-gradient-to-br from-orange-600/30 to-red-600/20 border border-orange-500/30 rounded-2xl p-4 mb-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-white/60 text-xs">🔥 {language === 'en' ? 'Streak' : '连续打卡'}</span>
+                                        <span className="text-orange-400 text-[10px] font-medium px-2 py-0.5 bg-orange-500/20 rounded-full">
+                                            {language === 'en' ? 'KEEP IT UP!' : '继续保持!'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-3xl font-bold text-white">47</span>
+                                        <span className="text-white/50 text-xs">{language === 'en' ? 'days' : '天'}</span>
+                                    </div>
+                                    {/* Calendar dots */}
+                                    <div className="flex gap-1 mt-3">
+                                        {[...Array(7)].map((_, i) => (
+                                            <div key={i} className={`w-5 h-5 rounded-md flex items-center justify-center text-[8px] ${i < 6 ? 'bg-green-500/30 text-green-400' : 'bg-white/10 text-white/30 border border-dashed border-white/20'}`}>
+                                                {i < 6 ? '✓' : '?'}
                                             </div>
-                                            <div className="h-2 bg-red-500/20 rounded w-1/2 mb-2" />
-                                            <div className="h-2 bg-red-500/10 rounded w-3/4" />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Generic Workout Suggestion - 平庸建议 */}
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-3">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Brain className="w-4 h-4 text-blue-400" />
+                                        <span className="text-white/70 text-xs">{language === 'en' ? "Today's Plan" : '今日计划'}</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-white/80">🏃 {language === 'en' ? 'Run 5km' : '跑步 5公里'}</span>
+                                            <span className="text-red-400 text-[10px]">{language === 'en' ? 'NOT DONE' : '未完成'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-white/80">💪 {language === 'en' ? '50 Push-ups' : '俯卧撑 50个'}</span>
+                                            <span className="text-red-400 text-[10px]">{language === 'en' ? 'NOT DONE' : '未完成'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-white/80">🧘 {language === 'en' ? '10min Yoga' : '瑜伽 10分钟'}</span>
+                                            <span className="text-red-400 text-[10px]">{language === 'en' ? 'NOT DONE' : '未完成'}</span>
                                         </div>
                                     </div>
-                                    <div className="h-24 rounded-2xl bg-white/5" />
-                                    <div className="h-24 rounded-2xl bg-white/5" />
+                                    {/* Progress bar */}
+                                    <div className="mt-3">
+                                        <div className="flex justify-between text-[10px] text-white/40 mb-1">
+                                            <span>{language === 'en' ? 'Progress' : '今日进度'}</span>
+                                            <span className="text-red-400">0%</span>
+                                        </div>
+                                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                            <div className="h-full w-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-full" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Warning Card - 未完成警告 */}
+                                <div className="bg-red-900/30 border border-red-500/30 rounded-2xl p-3 flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <AlertTriangle className="w-4 h-4 text-red-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-red-300 text-xs font-medium">
+                                            {language === 'en' ? 'You\'re falling behind!' : '你落后了！'}
+                                        </p>
+                                        <p className="text-red-400/60 text-[10px] truncate">
+                                            {language === 'en' ? 'Complete tasks to maintain streak' : '完成任务才能保持连续记录'}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 

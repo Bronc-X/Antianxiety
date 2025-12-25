@@ -85,7 +85,24 @@ export default function HeroSection({ onStart }: { onStart?: () => void }) {
                         className="flex flex-col md:block"
                     >
                         <span className="text-[#1A1A1A] dark:text-white">
-                            {language === 'en' ? 'That Tells You to' : '「今天休息」的'}
+                            {language === 'en' ? 'That Tells You to' : (
+                                <>
+                                    「<span className="relative inline-block min-w-[2em] text-center">
+                                        <AnimatePresence mode="wait">
+                                            <motion.span
+                                                key={words[currentWord]}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                transition={{ duration: 0.3 }}
+                                                className="text-[#D4AF37]"
+                                            >
+                                                {words[currentWord]}
+                                            </motion.span>
+                                        </AnimatePresence>
+                                    </span>」的
+                                </>
+                            )}
                         </span>{' '}
                         <span className="italic text-[#D4AF37] relative inline-block">
                             <span className="relative z-10">{language === 'en' ? 'Rest' : 'AI 教练'}</span>
