@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import type { AIAssistantProfile } from '@/types/assistant';
 import { MotionButton } from '@/components/motion/MotionButton';
+import MaxFeatureIntroModal from './MaxFeatureIntroModal';
 
 // 使用 Next.js dynamic 懒加载浮窗聊天组件，减少初始 bundle
 const AIAssistantFloatingChat = dynamic(() => import('./AIAssistantFloatingChat'), {
@@ -21,6 +23,9 @@ const AIAssistantFloatingChat = dynamic(() => import('./AIAssistantFloatingChat'
 export default function AIAssistantFloatingButton() {
   const [isHovered, setIsHovered] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isIntroOpen, setIsIntroOpen] = useState(false);
+  const pathname = usePathname();
+  const isWelcomePage = pathname === '/welcome';
   const [profile, setProfile] = useState<AIAssistantProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -90,8 +95,8 @@ export default function AIAssistantFloatingButton() {
     }
   }, [isChatOpen, supabase]);
 
-  // 如果未登录，不渲染按钮
-  if (!isAuthenticated) {
+  // 如果未登录且不在欢迎页，不渲染按钮
+  if (!isAuthenticated && !isWelcomePage) {
     return null;
   }
 
@@ -118,7 +123,15 @@ export default function AIAssistantFloatingButton() {
         whileDrag={{ scale: 1.1, cursor: 'grabbing' }}
       >
         <MotionButton
-          onClick={() => !isDragging && setIsChatOpen(true)}
+          onClick={() => {
+            if (!isDragging) {
+              if (isWelcomePage) {
+                setIsIntroOpen(true);
+              } else {
+                setIsChatOpen(true);
+              }
+            }
+          }}
           variant="primary"
           size="lg"
           className="flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-8 py-6 sm:px-10 sm:py-7 text-white shadow-lg min-h-[90px] sm:min-h-0 pointer-events-auto relative group/max"
@@ -186,6 +199,11 @@ export default function AIAssistantFloatingButton() {
           />
         )}
       </AnimatePresence>
+
+      <MaxFeatureIntroModal
+        isOpen={isIntroOpen}
+        onClose={() => setIsIntroOpen(false)}
+      />
     </>
   );
 }

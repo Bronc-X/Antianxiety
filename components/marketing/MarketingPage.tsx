@@ -6,11 +6,14 @@ import ComparisonSection from './ComparisonSection';
 import RetreatSection from './RetreatSection';
 import ScienceProof from './ScienceProof';
 import MethodologySection from './MethodologySection';
+import AboutSection from './AboutSection';
 import Footer from './Footer';
 import ScrollSection from './ScrollSection';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import LanguageSwitcher from '../LanguageSwitcher';
+
+import LogoTicker from './LogoTicker';
 
 const FeatureBento = lazy(() => import('./FeatureBento'));
 
@@ -67,6 +70,9 @@ export default function MarketingPage({ onStart }: { onStart?: () => void }) {
 
             <HeroSection onStart={onStart} />
 
+            {/* Scientific Trust Indicator - Infinite Ticker */}
+            <LogoTicker />
+
             {/* Narrative Flow: Problem (Comparison) -> Solution Approach (Retreat) -> Features -> Proof */}
 
             <ScrollSection>
@@ -79,6 +85,10 @@ export default function MarketingPage({ onStart }: { onStart?: () => void }) {
 
             <ScrollSection>
                 <MethodologySection />
+            </ScrollSection>
+
+            <ScrollSection>
+                <AboutSection />
             </ScrollSection>
 
             <ScrollSection>

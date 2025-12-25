@@ -38,7 +38,7 @@ export default function ComparisonSection() {
                         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent z-20 pointer-events-none" />
 
                         {/* Phone screen */}
-                        <div className="absolute inset-0 bg-[#000] overflow-hidden font-sans">
+                        <div className="absolute inset-0 bg-[#121212] overflow-hidden font-sans">
                             {/* Status Bar */}
                             <div className="absolute top-0 left-0 right-0 h-14 flex justify-between items-center px-6 text-white/80 text-xs z-20">
                                 <span>9:41</span>
@@ -169,6 +169,17 @@ export default function ComparisonSection() {
 
                 {/* Text content from Beta */}
                 <div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="mb-8"
+                    >
+                        <span className="text-xs font-bold tracking-[0.2em] text-red-500 uppercase">
+                            {language === 'en' ? 'The Problem' : '这个时代的病症'}
+                        </span>
+                    </motion.div>
+
                     <motion.blockquote
                         className="text-3xl md:text-5xl font-heading font-medium text-[#1A1A1A] dark:text-white leading-tight mb-10"
                         initial={{ opacity: 0, x: 50 }}
@@ -177,10 +188,10 @@ export default function ComparisonSection() {
                         transition={{ duration: 0.8 }}
                     >
                         <span className="text-[#1A1A1A]/20 dark:text-white/20 mr-2">“</span>
-                        {language === 'en' ? "This isn't encouragement," : "这哪里是加油，"}
+                        {language === 'en' ? "Your other apps aren't helping." : "你的那些打卡App，"}
                         <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-700 font-bold">
-                            {language === 'en' ? "it's moral judgment." : "这简直是道德审判。"}
+                            {language === 'en' ? "Don't seem to understand your fatigue." : "似乎根本不懂你的疲惫。"}
                         </span>
                         <span className="text-[#1A1A1A]/20 dark:text-white/20 ml-2">”</span>
                     </motion.blockquote>
@@ -196,17 +207,17 @@ export default function ComparisonSection() {
                             <div className="w-10 h-10 rounded-full bg-[#1A1A1A]/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-red-500/10 transition-colors">
                                 <Activity className="w-5 h-5 text-[#1A1A1A]/40 dark:text-white/40 group-hover:text-red-400" />
                             </div>
-                            <p>{language === 'en' ? "It doesn't care you only slept 4 hours." : "它不在乎你昨天只睡了4小时"}</p>
+                            <p>{language === 'en' ? "They demand a streak when you're crashing." : "在你崩溃边缘时，它还在催你连续打卡。"}</p>
                         </div>
                         <div className="flex items-center gap-4 p-4 rounded-2xl hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-[#1A1A1A]/5 dark:hover:border-white/5 group">
                             <div className="w-10 h-10 rounded-full bg-[#1A1A1A]/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-red-500/10 transition-colors">
                                 <Brain className="w-5 h-5 text-[#1A1A1A]/40 dark:text-white/40 group-hover:text-red-400" />
                             </div>
-                            <p>{language === 'en' ? "It doesn't care you're burning out." : "它不在乎你正在经历人生低谷"}</p>
+                            <p>{language === 'en' ? "They sell anxiety disguised as discipline." : "它们贩卖的不是自律，而是包装精美的焦虑。"}</p>
                         </div>
                         <div className="pl-4 border-l-2 border-red-500/30">
                             <p className="text-[#1A1A1A] dark:text-white font-medium text-xl">
-                                {language === 'en' ? "It only cares about its data." : "它只在乎它的数据好不好看"}
+                                {language === 'en' ? "Data without context is cruelty." : "没有上下文的数据，就是一种暴政。"}
                             </p>
                         </div>
                     </motion.div>
