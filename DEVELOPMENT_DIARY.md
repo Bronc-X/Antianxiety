@@ -2979,3 +2979,52 @@ hooks/
 ### ✅ 推进
 - 已完成 UI 开发与功能集成。
 - 已本地测试通过，所有原有 AI 功能正常运行。
+
+---
+
+## 2025-12-25 晚间 - 终极视觉打磨与信任背书 (Marketing Polish)
+
+### 🎯 核心更新
+
+#### 1. 营销页视觉重构 (Hero & Brand)
+- ✅ **Hero Section 排版升级**：
+  - **三层级视觉**："Global First" (Top Label) → "Coach That Tells You To 'Give Up'" (Serif Italic) → "Health Intelligence — Max" (Massive Bold).
+  - **双语动态文案**：修复了动态词汇（Give Up/Rest/Lie Flat vs 放弃/休息/躺平）随语言状态切换的逻辑。
+  - **背景质感**：在 Mission 区域增加了高级的 Mesh Gradient + Noise + Grid 背景纹理。
+  - **文案精简**：移除了 "Stop fighting your biology" 等冗余段落，保持极简有力。
+
+#### 2. 新增信任背书组件 (LogoTicker)
+- ✅ **无限滚动 Ticker**：位于 Hero 下方，展示权威期刊和平台背书。
+- ✅ **Logos 重构**：
+  - **高清纯享版**：Nature, Science, The Lancet, JAMA, PubMed 采用 CSS/Text 实现，杜绝 SVG 路径导致的乱码，确保任何分辨率下锐利清晰。
+  - **矢量图标版**：Semantic Scholar (Icon+Text), Reddit (Snoo), X (Logo) 采用官方 SVG 路径。
+  - **交互体验**：统一的灰度初始状态 -> 悬停全金 (Hover Gold) 效果。
+  - **无缝循环算法**：采用 4 倍列表复制 + `-25%` CSS 变换位移，实现数学级无缝无限循环。
+- ✅ **视觉压缩**：优化了垂直间距 (`py-6`)，使其更像一个精致的信任条而非独立板块。
+
+#### 3. 文案与体验微调
+- ✅ **About Section**：文案从 "Revolution" 升级为 "New Paradigm" (新范式)，移除了 "Not just an app" 描述。
+- ✅ **Comparison Section**：将 "不在乎你的死活" 柔化为 "似乎根本不懂你的疲惫"，语气更共情。
+- ✅ **Clean Up**：移除了开发环境遗留的 `react-grab` 调试脚本。
+
+### 🔧 技术要点
+- **Ticker 循环逻辑**：
+  ```typescript
+  <motion.div
+      animate={{ x: "-25%" }} // 移动一个完整列表的长度
+      transition={{ repeat: Infinity, ease: "linear", duration: 30 }}
+  >
+      {[...logos, ...logos, ...logos, ...logos]} // 4份副本
+  </motion.div>
+  ```
+- **双语词汇同步**：使用 `useMemo` 监听 `language` 状态变化，动态切换 `words` 数组内容。
+
+### 📁 修改文件
+- `components/marketing/HeroSection.tsx`
+- `components/marketing/LogoTicker.tsx` (New)
+- `components/marketing/MarketingPage.tsx`
+- `components/marketing/AboutSection.tsx`
+- `components/marketing/ComparisonSection.tsx`
+- `app/layout.tsx`
+
+---

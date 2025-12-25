@@ -68,13 +68,7 @@ export default function RootLayout({
             `,
           }}
         />
-        {process.env.NODE_ENV === "development" && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
+
       </head>
       <body
         className={`${inter.variable} ${playfair.variable} antialiased`}

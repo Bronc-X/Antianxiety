@@ -29,7 +29,11 @@ export default function HeroSection({ onStart }: { onStart?: () => void }) {
 
     // Beta "Word Rotation" Logic
     const [currentWord, setCurrentWord] = useState(0);
-    const words = useMemo(() => ['放弃', '休息', '躺平'], []);
+    const words = useMemo(() =>
+        language === 'en'
+            ? ['Give Up', 'Rest', 'Lie Flat']
+            : ['放弃', '休息', '躺平'],
+        [language]);
 
     useEffect(() => {
         if (prefersReducedMotion) return; // Skip animation if reduced motion
@@ -65,70 +69,86 @@ export default function HeroSection({ onStart }: { onStart?: () => void }) {
                     willChange: 'opacity, transform',
                     transform: 'translateZ(0)',
                 }}
-                className="relative z-10 max-w-[1400px] w-full px-6 md:px-12 flex flex-col items-center text-center"
+                className="relative z-10 max-w-5xl mx-auto text-center"
             >
-                {/* Headline */}
-                <h1 className="font-heading text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-medium leading-[1.1] text-[#1A1A1A] dark:text-[#F9F8F6] mb-10 tracking-tight">
-                    <motion.span
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.8 }}
-                        className="block text-[#1A1A1A]/80 dark:text-white/80"
-                    >
-                        {language === 'en' ? 'The Only AI Coach' : '唯一敢建议你'}
-                    </motion.span>
+                {/* Subtitle */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="mb-8"
+                >
+                    <span className="inline-block py-1 px-3 border border-[#D4AF37] rounded-full text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase text-[#D4AF37] bg-[#D4AF37]/5 backdrop-blur-sm">
+                        {language === 'en' ? 'THE MISSION' : '我们的使命'}
+                    </span>
+                </motion.div>
 
+                {/* Headline - New Hierarchy */}
+                <h1 className="flex flex-col items-center mb-6 tracking-tight">
+                    {/* Line 1: Global First - Own Line */}
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6, duration: 0.8 }}
-                        className="flex flex-col md:block"
+                        transition={{ delay: 0.4, duration: 0.8 }}
+                        className="mb-4"
                     >
-                        <span className="text-[#1A1A1A] dark:text-white">
-                            {language === 'en' ? 'That Tells You to' : (
-                                <>
-                                    「<span className="relative inline-block min-w-[2em] text-center">
-                                        <AnimatePresence mode="wait">
-                                            <motion.span
-                                                key={words[currentWord]}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -10 }}
-                                                transition={{ duration: 0.3 }}
-                                                className="text-[#D4AF37]"
-                                            >
-                                                {words[currentWord]}
-                                            </motion.span>
-                                        </AnimatePresence>
-                                    </span>」的
-                                </>
-                            )}
-                        </span>{' '}
-                        <span className="italic text-[#D4AF37] relative inline-block">
-                            <span className="relative z-10">{language === 'en' ? 'Rest' : 'AI 教练'}</span>
-                            <span className="absolute bottom-2 left-0 w-full h-[0.2em] bg-[#D4AF37]/30 -rotate-1 rounded-full" />
+                        <span className="font-heading font-medium text-2xl md:text-4xl lg:text-5xl text-[#1A1A1A] dark:text-white">
+                            {language === 'en' ? "The World's First" : '全球首个'}
                         </span>
+                    </motion.div>
+
+                    {/* Line 2: Coach That Tells You To... */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5, duration: 0.8 }}
+                        className="font-heading font-medium text-2xl md:text-4xl lg:text-5xl text-[#1A1A1A] dark:text-white flex items-center gap-2 mb-8 md:mb-12"
+                    >
+                        {language === 'en' ? 'Coach That Tells You To' : '教你'}
+                        <span className="italic text-[#D4AF37] relative inline-block mx-1">
+                            「<span className="relative inline-block min-w-[2em] text-center">
+                                <AnimatePresence mode="wait">
+                                    <motion.span
+                                        key={words[currentWord]}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        {words[currentWord]}
+                                    </motion.span>
+                                </AnimatePresence>
+                            </span>」
+                        </span>
+                        {language === 'en' ? '' : '的'}
+                    </motion.div>
+
+                    {/* Line 3: Health Intelligence Max */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 0.6, duration: 0.8, type: "spring", stiffness: 100 }}
+                        className="relative"
+                    >
+                        <span className="font-heading font-bold text-5xl md:text-7xl lg:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-[#1A1A1A] to-[#1A1A1A]/80 dark:from-white dark:to-white/80 filter drop-shadow-2xl">
+                            {language === 'en' ? 'Health Intelligence' : '健康智能体'}
+                        </span>
+                        <div className="flex items-center justify-center gap-4 mt-6">
+                            <div className="h-px w-12 md:w-24 bg-[#D4AF37]" />
+                            <span className="font-serif italic text-4xl md:text-6xl text-[#D4AF37]">
+                                Max
+                            </span>
+                            <div className="h-px w-12 md:w-24 bg-[#D4AF37]" />
+                        </div>
                     </motion.div>
                 </h1>
 
-                {/* Subhead */}
-                <motion.p
+                {/* CTA */}
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8, duration: 0.8 }}
-                    className="max-w-2xl mx-auto text-lg md:text-xl text-[#1A1A1A]/60 dark:text-white/60 leading-relaxed mb-12 px-4"
-                >
-                    {language === 'en'
-                        ? "Based on your real-time biological data, not just goals. Here, taking a break isn't laziness—it's preparation."
-                        : "不再盲目坚持，而是基于你的实时生理数据（HRV）做决策。在这里，休息不是偷懒，而是为了更好地出发。"}
-                </motion.p>
-
-                {/* Scroll Indicator - Hidden on mobile for cleaner look */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 2, duration: 1 }}
-                    className="absolute bottom-10 left-1/2 -translate-x-1/2 flex-col items-center gap-3 hidden md:flex"
+                    transition={{ delay: 1, duration: 0.8 }}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-16"
                 >
                     <div className="w-[1px] h-12 bg-gradient-to-b from-transparent via-[#1A1A1A]/20 dark:via-white/20 to-transparent" />
                 </motion.div>
