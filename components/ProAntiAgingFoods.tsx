@@ -193,7 +193,7 @@ export default function ProAntiAgingFoods() {
               {t('Scientific Backing', '科學背書')}
             </p>
             <p className="text-[#0B3D2E]/70 text-xs leading-relaxed">
-              <span className="font-semibold">Arora et al., 2024.</span> "AgeXtend: Artificial Intelligence for Discovery of Anti-Aging Molecules." 
+              <span className="font-semibold">Arora et al., 2024.</span> "AgeXtend: Artificial Intelligence for Discovery of Anti-Aging Molecules."
               <span className="italic"> Nature Aging</span>, DOI: 10.1038/s43587-024-00763-4
             </p>
           </div>
@@ -207,11 +207,10 @@ export default function ProAntiAgingFoods() {
           return (
             <div
               key={molecule.name}
-              className={`relative overflow-hidden rounded-xl border transition-all cursor-pointer ${
-                isSelected
+              className={`relative overflow-hidden rounded-xl border transition-all cursor-pointer ${isSelected
                   ? 'border-[#0B3D2E] bg-[#0B3D2E]/5 shadow-md'
                   : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/50 hover:shadow-sm'
-              }`}
+                }`}
               onClick={() => setSelectedMolecule(isSelected ? null : molecule.name)}
             >
               {/* Header */}
@@ -221,14 +220,10 @@ export default function ProAntiAgingFoods() {
                     <h3 className="text-lg font-bold text-[#1a1a1a]">
                       {isZh ? molecule.name_zh : molecule.name}
                     </h3>
-                    <p className="text-xs text-[#1a1a1a]/50 mt-0.5">
-                      {isZh ? molecule.name : molecule.name_zh}
-                    </p>
                   </div>
                   <button
-                    className={`p-1.5 rounded-full transition-colors ${
-                      isSelected ? 'bg-[#0B3D2E] text-white' : 'bg-[#0B3D2E]/10 text-[#0B3D2E]'
-                    }`}
+                    className={`p-1.5 rounded-full transition-colors ${isSelected ? 'bg-[#0B3D2E] text-white' : 'bg-[#0B3D2E]/10 text-[#0B3D2E]'
+                      }`}
                   >
                     <svg className={`w-4 h-4 transition-transform ${isSelected ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

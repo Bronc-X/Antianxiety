@@ -37,6 +37,28 @@ export const translations: Record<Language, Record<string, string>> = {
     'welcome.estimatedTime': '约 {minutes} 分钟',
     'welcome.scientificScale': '科学量表',
     'welcome.startAssessment': '开始评估',
+
+    // ========== 新版 Hero & 核心价值 ==========
+    'hero.title': '唯一敢建议你今天休息的AI教练',
+    'hero.subtitle': '追踪真相，不追踪完美',
+    'hero.cta': '申请加入内测',
+    'hero.ctaHint': '目前仅接受邮箱申请',
+
+    'feature.elastic.title': '🌊 弹性追踪',
+    'feature.elastic.tagline': '连续21天？不如稳定3个月',
+    'feature.elastic.desc': '告别完美主义陷阱，允许休息，才能走得更远',
+
+    'feature.bodyNav.title': '🧭 身体导航',
+    'feature.bodyNav.tagline': '你的身体知道答案',
+    'feature.bodyNav.desc': '心率变异性、皮质醇模式...用生理数据指引方向',
+
+    'feature.cognitive.title': '🧠 认知校准',
+    'feature.cognitive.tagline': '你的担忧被放大了多少？',
+    'feature.cognitive.desc': '用贝叶斯让焦虑现形，看清真相',
+
+    'social.lookingFor': '正在寻找第1001位用户',
+    'social.notChasing': '我们不追求规模，只追求真正需要的人',
+
     'assessment.page': '第 {page} 页',
     'assessment.of': '/',
     'assessment.clinicalVerified': '临床验证',
@@ -987,6 +1009,28 @@ export const translations: Record<Language, Record<string, string>> = {
     'welcome.estimatedTime': 'Approx {minutes} min',
     'welcome.scientificScale': 'Scientific Scale',
     'welcome.startAssessment': 'Start Assessment',
+
+    // ========== New Hero & Core Value ==========
+    'hero.title': 'The Only AI Coach That Tells You to Rest',
+    'hero.subtitle': 'We track truth, not perfection',
+    'hero.cta': 'Apply for Beta Access',
+    'hero.ctaHint': 'Currently accepting email applications only',
+
+    'feature.elastic.title': '🌊 Elastic Tracking',
+    'feature.elastic.tagline': '21-day streaks? Try 3 stable months.',
+    'feature.elastic.desc': 'Break free from perfectionism. Allow rest, go further.',
+
+    'feature.bodyNav.title': '🧭 Body Navigation',
+    'feature.bodyNav.tagline': 'Your body knows the answer',
+    'feature.bodyNav.desc': 'HRV, cortisol patterns... let physiology guide the way',
+
+    'feature.cognitive.title': '🧠 Cognitive Calibration',
+    'feature.cognitive.tagline': 'How much is your worry amplified?',
+    'feature.cognitive.desc': 'Let Bayes expose anxiety and reveal the truth',
+
+    'social.lookingFor': 'Looking for User #1001',
+    'social.notChasing': "We don't chase scale. We find those who truly need us.",
+
     'assessment.page': 'Page {page}',
     'assessment.of': '/',
     'assessment.clinicalVerified': 'Clinically Verified',

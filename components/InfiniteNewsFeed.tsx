@@ -424,7 +424,7 @@ export default function InfiniteNewsFeed({
                         </p>
                       </div>
 
-                      {/* 查看原文链接 */}
+                      {/* 查看原文链接 + 反馈按钮 */}
                       <div className="mt-4 flex items-center justify-between">
                         <a
                           href={item.url}
@@ -442,15 +442,82 @@ export default function InfiniteNewsFeed({
                           </svg>
                           {isZh ? "阅读全文 →" : "Read Full Article →"}
                         </a>
-                        {item.matchedTags.length > 0 && (
-                          <div className="flex gap-1">
-                            {item.matchedTags.slice(0, 2).map(tag => (
-                              <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-[#9CAF88]/10 text-[#6B7B66]">
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+
+                        <div className="flex items-center gap-2">
+                          {/* Tags */}
+                          {item.matchedTags.length > 0 && (
+                            <div className="flex gap-1 mr-2">
+                              {item.matchedTags.slice(0, 2).map(tag => (
+                                <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-[#9CAF88]/10 text-[#6B7B66]">
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Feedback Buttons */}
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              try {
+                                await fetch('/api/feed-feedback', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    contentId: item.id,
+                                    contentUrl: item.url,
+                                    contentTitle: item.title,
+                                    source: item.source,
+                                    feedbackType: 'bookmark'
+                                  }),
+                                });
+                                // Visual feedback - toggle active state
+                                const btn = e.currentTarget;
+                                btn.classList.toggle('text-[#D4AF37]');
+                                btn.classList.toggle('text-gray-400');
+                              } catch (err) {
+                                console.error('Feedback error:', err);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-[#D4AF37]/10 text-gray-400 transition-colors"
+                            title={isZh ? "收藏" : "Bookmark"}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                          </button>
+
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              try {
+                                await fetch('/api/feed-feedback', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    contentId: item.id,
+                                    contentUrl: item.url,
+                                    contentTitle: item.title,
+                                    source: item.source,
+                                    feedbackType: 'dislike'
+                                  }),
+                                });
+                                // Visual feedback
+                                const btn = e.currentTarget;
+                                btn.classList.toggle('text-red-400');
+                                btn.classList.toggle('text-gray-400');
+                              } catch (err) {
+                                console.error('Feedback error:', err);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 transition-colors"
+                            title={isZh ? "不感兴趣" : "Not Interested"}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

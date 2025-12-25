@@ -331,6 +331,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
     // 后台刷新：让 AI 建议/文章推荐跟随今日数据更新
     fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+    fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
 
     // 延迟跳转，让用户看到活动环
     setTimeout(() => {
@@ -424,8 +425,8 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                 onClick={toggleVoiceRecording}
                 disabled={voiceRecording.isProcessing}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold tracking-wide transition-all ${voiceRecording.isRecording
-                    ? 'bg-red-500 text-white animate-pulse'
-                    : 'bg-[#0B3D2E] text-white hover:bg-[#0a3629] shadow-sm'
+                  ? 'bg-red-500 text-white animate-pulse'
+                  : 'bg-[#0B3D2E] text-white hover:bg-[#0a3629] shadow-sm'
                   } disabled:opacity-50`}
               >
                 {voiceRecording.isRecording ? (
@@ -532,8 +533,8 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                       key={mark.value}
                       onClick={() => updateFormField('sleepQuality', mark.value)}
                       className={`p-3 rounded-lg text-sm font-medium transition-all ${formState.sleepQuality === mark.value
-                          ? 'bg-[#0B3D2E] text-white shadow-md transform scale-[1.02]'
-                          : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
+                        ? 'bg-[#0B3D2E] text-white shadow-md transform scale-[1.02]'
+                        : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
                         }`}
                     >
                       {mark.label}
@@ -573,8 +574,8 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                         key={type.id}
                         onClick={() => updateFormField('exerciseType', type.id)}
                         className={`p-3 rounded-lg text-center transition-all ${formState.exerciseType === type.id
-                            ? 'bg-[#9CAF88] text-white shadow-md'
-                            : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
+                          ? 'bg-[#9CAF88] text-white shadow-md'
+                          : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
                           }`}
                       >
                         <div className="text-xl mb-1">{type.icon}</div>
@@ -594,8 +595,8 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
                       key={mark.value}
                       onClick={() => updateFormField('moodStatus', mark.value)}
                       className={`p-3 rounded-lg text-sm font-medium transition-all ${formState.moodStatus === mark.value
-                          ? 'bg-[#0B3D2E] text-white shadow-md transform scale-[1.02]'
-                          : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
+                        ? 'bg-[#0B3D2E] text-white shadow-md transform scale-[1.02]'
+                        : 'bg-[#FAF6EF] border border-[#E7E1D6] text-[#0B3D2E] hover:border-[#0B3D2E]/30'
                         }`}
                     >
                       {mark.label}

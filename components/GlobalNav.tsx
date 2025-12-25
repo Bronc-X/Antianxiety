@@ -15,16 +15,16 @@ export default function GlobalNav() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const supabase = createClientSupabaseClient();
-  
-  // Hide nav on auth pages
-  const hideNavPages = ['/login', '/signup', '/onboarding', '/auth'];
+
+  // Hide nav on auth pages and marketing pages (which have their own nav)
+  const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta'];
   const shouldHideNav = hideNavPages.some(page => pathname?.startsWith(page));
-  
+
   useEffect(() => {
     async function fetchUserData() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      
+
       if (user) {
         const { data } = await supabase
           .from('profiles')
@@ -34,12 +34,12 @@ export default function GlobalNav() {
         setProfile(data);
       }
     }
-    
+
     if (!shouldHideNav) {
       fetchUserData();
     }
   }, [pathname, shouldHideNav]);
-  
+
   if (shouldHideNav) {
     return null;
   }

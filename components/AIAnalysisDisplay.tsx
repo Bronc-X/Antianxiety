@@ -92,13 +92,13 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
   const [showDeepInference, setShowDeepInference] = useState(false);
   const { language: appLanguage } = useI18n();
   const language: AnalysisLanguage = appLanguage === 'en' ? 'en' : 'zh';
-  
+
   useEffect(() => {
     const duration = 2500;
     const interval = 50;
     const steps = duration / interval;
     const increment = 100 / steps;
-    
+
     let currentProgress = 0;
     const timer = setInterval(() => {
       currentProgress += increment;
@@ -110,7 +110,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
         setProgress(currentProgress);
       }
     }, interval);
-    
+
     return () => clearInterval(timer);
   }, []);
 
@@ -128,37 +128,37 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
           }
         `}</style>
         <div className="relative w-40 h-40">
-          <div 
+          <div
             className="absolute inset-0 rounded-full bg-slate-800"
             style={{
               animation: 'breathe 3.5s ease-in-out infinite',
               boxShadow: '0 0 40px rgba(15, 23, 42, 0.3)'
             }}
           />
-          <div 
+          <div
             className="absolute inset-0 rounded-full border-2 border-slate-400"
             style={{ animation: 'pulse-ring 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite' }}
           />
-          <div 
+          <div
             className="absolute inset-0 rounded-full border-2 border-slate-300"
             style={{ animation: 'pulse-ring 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite 1.25s' }}
           />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <div className="text-3xl font-semibold text-white tracking-tight">{Math.round(progress)}%</div>
-              <div className="text-xs text-white/80 mt-1 font-medium uppercase tracking-wider">Processing</div>
+              <div className="text-xs text-white/80 mt-1 font-medium uppercase tracking-wider">{t('analysis.processing', 'Processing')}</div>
             </div>
           </div>
         </div>
         <div className="text-center space-y-2">
           <div className="text-xl font-semibold text-[#0B3D2E] dark:text-white">
-            Analyzing your health data
+            {t('analysis.loading.title', 'Analyzing your health data')}
           </div>
           <div className="text-sm text-[#0B3D2E]/70 dark:text-neutral-400 max-w-md px-4">
             {
-              progress < 25 ? 'Parsing physiological indicators' :
-              progress < 50 ? 'Evaluating 8-dimensional health status' :
-              progress < 75 ? 'Generating personalized recommendations' : 'Completing analysis report'
+              progress < 25 ? t('analysis.loading.step1', 'Parsing physiological indicators') :
+                progress < 50 ? t('analysis.loading.step2', 'Evaluating 8-dimensional health status') :
+                  progress < 75 ? t('analysis.loading.step3', 'Generating personalized recommendations') : t('analysis.loading.step4', 'Completing analysis report')
             }
           </div>
         </div>
@@ -317,37 +317,37 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
     <div className="space-y-6">
       {/* Header Card */}
       <div className="bg-white dark:bg-neutral-900 border border-[#E7E1D6] dark:border-neutral-800 rounded-lg p-8 shadow-sm">
-	        <div className="flex items-start justify-between mb-6">
-	          <div className="flex-1">
-	            <h1 className="text-2xl font-bold text-[#0B3D2E] dark:text-white mb-1">{t('Health Analysis Report', '健康分析报告')}</h1>
-	            <p className="text-[#1a5c4a] dark:text-neutral-400">{t('AI-powered personalized health assessment', '基于AI的个性化健康评估')}</p>
-	          </div>
-	          <div className="border border-[#E7E1D6] dark:border-neutral-700 px-4 py-2 rounded-lg bg-[#FAF6EF] dark:bg-neutral-800">
-	            <div className="text-xs font-medium text-[#1a5c4a] dark:text-neutral-400 uppercase tracking-wide">{t('Confidence', '置信度')}</div>
-	            <div className="text-2xl font-bold text-[#0B3D2E] dark:text-white">{analysis.confidence_score}%</div>
-	          </div>
-	        </div>
-	        
-	        {confidenceReasons && confidenceReasons.length > 0 && (
-	          <div className="bg-[#FAF6EF] dark:bg-neutral-800 border border-[#E7E1D6] dark:border-neutral-700 rounded-lg p-4 mt-4">
-	            <div className="text-sm font-semibold text-[#0B3D2E] dark:text-white mb-3">{t('Analysis Basis', '分析依据')}</div>
-	            <div className="grid grid-cols-2 gap-2">
-	              {confidenceReasons.map((reason, i) => (
-	                <div key={i} className="text-sm text-[#1a5c4a] flex items-start gap-2">
-	                  <span className="text-[#9CAF88] mt-0.5">·</span>
-	                  <span>{reason}</span>
-	                </div>
-	              ))}
-	            </div>
-	          </div>
-	        )}
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-[#0B3D2E] dark:text-white mb-1">{t('Health Analysis Report', '健康分析报告')}</h1>
+            <p className="text-[#1a5c4a] dark:text-neutral-400">{t('AI-powered personalized health assessment', '基于AI的个性化健康评估')}</p>
+          </div>
+          <div className="border border-[#E7E1D6] dark:border-neutral-700 px-4 py-2 rounded-lg bg-[#FAF6EF] dark:bg-neutral-800">
+            <div className="text-xs font-medium text-[#1a5c4a] dark:text-neutral-400 uppercase tracking-wide">{t('Confidence', '置信度')}</div>
+            <div className="text-2xl font-bold text-[#0B3D2E] dark:text-white">{analysis.confidence_score}%</div>
+          </div>
+        </div>
+
+        {confidenceReasons && confidenceReasons.length > 0 && (
+          <div className="bg-[#FAF6EF] dark:bg-neutral-800 border border-[#E7E1D6] dark:border-neutral-700 rounded-lg p-4 mt-4">
+            <div className="text-sm font-semibold text-[#0B3D2E] dark:text-white mb-3">{t('Analysis Basis', '分析依据')}</div>
+            <div className="grid grid-cols-2 gap-2">
+              {confidenceReasons.map((reason, i) => (
+                <div key={i} className="text-sm text-[#1a5c4a] flex items-start gap-2">
+                  <span className="text-[#9CAF88] mt-0.5">·</span>
+                  <span>{reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Radar Chart - Brand Aligned Style */}
       <div className="relative overflow-hidden bg-white dark:bg-neutral-900 rounded-2xl border border-[#E7E1D6] dark:border-neutral-800 shadow-sm hover:shadow-md transition-shadow duration-300">
         {/* Subtle gradient background matching brand */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF6EF] via-white to-[#FAF6EF]/50 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-800 z-0"></div>
-        
+
         <div className="relative z-10 p-12">
           <div className="flex items-start justify-between mb-8">
             <div>
@@ -358,7 +358,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                 {t('Multi-dimensional physiological analysis with statistical benchmarking', '多维度生理分析与统计基准对比')}
               </p>
             </div>
-            
+
             {/* Statistics Panel */}
             <div className="grid grid-cols-2 gap-3">
               <div className="px-4 py-3 bg-[#FAF6EF]/80 rounded-lg border border-[#E7E1D6]">
@@ -392,7 +392,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
               <span className="text-xs text-[#0B3D2E]/60 font-medium">{t('Optimal', '最优值')}</span>
             </div>
           </div>
-          
+
           <div className="h-[480px] relative">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radarData}>
@@ -403,93 +403,93 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                     <stop offset="50%" stopColor="#1a5c4a" stopOpacity={0.20} />
                     <stop offset="100%" stopColor="#2d8068" stopOpacity={0.08} />
                   </linearGradient>
-                  
+
                   {/* Average fill with muted gold */}
                   <linearGradient id="avgFillBrand" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#D4AF37" stopOpacity={0.18} />
                     <stop offset="100%" stopColor="#D4AF37" stopOpacity={0.06} />
                   </linearGradient>
-                  
+
                   {/* Subtle shadow */}
                   <filter id="brandShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
-                    <feOffset dx="0" dy="2" result="offsetblur"/>
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" />
+                    <feOffset dx="0" dy="2" result="offsetblur" />
                     <feComponentTransfer>
-                      <feFuncA type="linear" slope="0.18"/>
+                      <feFuncA type="linear" slope="0.18" />
                     </feComponentTransfer>
                     <feMerge>
-                      <feMergeNode/>
-                      <feMergeNode in="SourceGraphic"/>
+                      <feMergeNode />
+                      <feMergeNode in="SourceGraphic" />
                     </feMerge>
                   </filter>
                 </defs>
-                
+
                 {/* Enhanced Grid matching brand */}
-                <PolarGrid 
-                  stroke="#E7E1D6" 
+                <PolarGrid
+                  stroke="#E7E1D6"
                   strokeWidth={0.8}
                   strokeOpacity={0.6}
                   gridType="polygon"
                 />
-                
+
                 {/* Angle Axis with brand color */}
-                <PolarAngleAxis 
-                  dataKey="metric" 
-                  tick={{ 
-                    fill: '#0B3D2E', 
-                    fontSize: 11.5, 
+                <PolarAngleAxis
+                  dataKey="metric"
+                  tick={{
+                    fill: '#0B3D2E',
+                    fontSize: 11.5,
                     fontWeight: 600,
                     letterSpacing: '0.02em'
                   }}
                   tickLine={false}
                 />
-                
+
                 {/* Radius Axis */}
-                <PolarRadiusAxis 
-                  angle={90} 
-                  domain={[0, 100]} 
+                <PolarRadiusAxis
+                  angle={90}
+                  domain={[0, 100]}
                   tick={{ fill: '#0B3D2E', fontSize: 9.5, fontWeight: 500, opacity: 0.5 }}
                   tickCount={6}
                   stroke="#E7E1D6"
                   strokeOpacity={0.6}
                   tickFormatter={(value) => `${value}%`}
                 />
-                
+
                 {/* Optimal reference line */}
-                <Radar 
-                  name="Optimal" 
-                  dataKey="fullMark" 
-                  stroke="#0B3D2E" 
-                  fill="transparent" 
+                <Radar
+                  name="Optimal"
+                  dataKey="fullMark"
+                  stroke="#0B3D2E"
+                  fill="transparent"
                   strokeWidth={1.5}
                   strokeDasharray="6 4"
                   strokeOpacity={0.3}
                 />
-                
+
                 {/* Population average (benchmark) */}
-                <Radar 
-                  name="Average" 
-                  dataKey={(item) => item.value * 0.85} 
-                  stroke="#D4AF37" 
-                  fill="url(#avgFillBrand)" 
-                  fillOpacity={1} 
+                <Radar
+                  name="Average"
+                  dataKey={(item) => item.value * 0.85}
+                  stroke="#D4AF37"
+                  fill="url(#avgFillBrand)"
+                  fillOpacity={1}
                   strokeWidth={1.8}
                   strokeOpacity={0.6}
                   dot={false}
                 />
-                
+
                 {/* Your data (prominent) */}
-                <Radar 
-                  name="Current" 
-                  dataKey="value" 
-                  stroke="#0B3D2E" 
-                  fill="url(#radarFillBrand)" 
-                  fillOpacity={1} 
+                <Radar
+                  name="Current"
+                  dataKey="value"
+                  stroke="#0B3D2E"
+                  fill="url(#radarFillBrand)"
+                  fillOpacity={1}
                   strokeWidth={3}
-                  dot={{ 
-                    r: 5, 
-                    fill: '#FAF6EF', 
-                    strokeWidth: 3, 
+                  dot={{
+                    r: 5,
+                    fill: '#FAF6EF',
+                    strokeWidth: 3,
                     stroke: '#0B3D2E'
                   }}
                   activeDot={{
@@ -500,12 +500,12 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                   }}
                   filter="url(#brandShadow)"
                 />
-                
+
                 {/* Brand-aligned tooltip */}
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(250, 246, 239, 0.98)', 
-                    border: '1px solid #E7E1D6', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(250, 246, 239, 0.98)',
+                    border: '1px solid #E7E1D6',
                     borderRadius: '10px',
                     color: '#0B3D2E',
                     boxShadow: '0 10px 40px -10px rgba(11, 61, 46, 0.15), 0 2px 8px -2px rgba(11, 61, 46, 0.1)',
@@ -516,15 +516,15 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                   formatter={(value: number, name: string) => {
                     if (name === 'Current') {
                       return [
-                        <span key="value" style={{ color: '#0B3D2E', fontSize: '16px', fontWeight: 700 }}>{value}</span>, 
+                        <span key="value" style={{ color: '#0B3D2E', fontSize: '16px', fontWeight: 700 }}>{value}</span>,
                         <span key="label" style={{ color: '#0B3D2E', opacity: 0.6, marginLeft: '6px', fontSize: '12px' }}>/ 100</span>
                       ];
                     }
                     return null;
                   }}
-                  labelStyle={{ 
-                    color: '#0B3D2E', 
-                    fontWeight: 600, 
+                  labelStyle={{
+                    color: '#0B3D2E',
+                    fontWeight: 600,
                     marginBottom: '4px',
                     fontSize: '13px',
                     borderBottom: '1px solid #E7E1D6',
@@ -540,7 +540,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
             <span className="text-xs text-[#0B3D2E]/70 font-medium">{t('Data Confidence Level', '数据置信度')}</span>
             <div className="flex items-center gap-2">
               <div className="w-32 h-1.5 bg-[#E7E1D6] rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-[#0B3D2E] to-[#1a5c4a] rounded-full transition-all duration-500"
                   style={{ width: `${analysis.confidence_score || 75}%` }}
                 ></div>
@@ -548,7 +548,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
               <span className="text-xs font-semibold text-[#0B3D2E] min-w-[40px] text-right">{analysis.confidence_score || 75}%</span>
             </div>
           </div>
-          
+
           {/* AI 深度推演按钮 */}
           <button
             onClick={() => setShowDeepInference(true)}
@@ -559,7 +559,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
           </button>
         </div>
       </div>
-      
+
       {/* 深度推演模态框 */}
       <DeepInferenceModal
         isOpen={showDeepInference}
@@ -587,7 +587,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
             const score = getScoreValue(value);
             const explanation = metricExplanations[item.key];
             const isExpanded = activeInfoKey === item.key;
-            
+
             return (
               <div key={item.key} className="border border-[#E7E1D6] rounded-lg p-5 hover:border-[#0B3D2E]/30 transition-all bg-white">
                 <div className="flex items-start justify-between mb-3">
@@ -613,7 +613,7 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
                     {score}
                   </div>
                 </div>
-                
+
                 {/* Scientific explanation panel (expandable) */}
                 {isExpanded && explanation && (
                   <div className="mt-4 pt-4 border-t border-[#E7E1D6] space-y-4 bg-[#FAF6EF]/40 -mx-5 -mb-5 p-5 rounded-b-lg">
@@ -677,36 +677,36 @@ export default function AIAnalysisDisplay({ analysis, plan }: AIAnalysisDisplayP
         </div>
       </div>
 
-	      {/* 优势与改善 */}
-	      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-	        {strengths && strengths.length > 0 && (
-	          <div className="bg-white border border-[#E7E1D6] rounded-lg p-6 shadow-sm">
-	            <div className="text-base font-semibold text-[#0B3D2E] mb-4">{t('Strengths to Maintain', '继续保持')}</div>
-	            <div className="space-y-2">
-	              {strengths.map((s, i) => (
-	                <div key={i} className="flex items-start gap-3 text-[#0B3D2E]/70">
-	                  <span className="text-[#0B3D2E]/40 mt-1">·</span>
-	                  <span>{s}</span>
-	                </div>
-	              ))}
-	            </div>
-	          </div>
-	        )}
+      {/* 优势与改善 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {strengths && strengths.length > 0 && (
+          <div className="bg-white border border-[#E7E1D6] rounded-lg p-6 shadow-sm">
+            <div className="text-base font-semibold text-[#0B3D2E] mb-4">{t('Strengths to Maintain', '继续保持')}</div>
+            <div className="space-y-2">
+              {strengths.map((s, i) => (
+                <div key={i} className="flex items-start gap-3 text-[#0B3D2E]/70">
+                  <span className="text-[#0B3D2E]/40 mt-1">·</span>
+                  <span>{s}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-	        {riskFactors && riskFactors.length > 0 && (
-	          <div className="bg-white border border-[#E7E1D6] rounded-lg p-6 shadow-sm">
-	            <div className="text-base font-semibold text-[#0B3D2E] mb-4">{t('Areas for Improvement', '需要改善')}</div>
-	            <div className="space-y-2">
-	              {riskFactors.map((r, i) => (
-	                <div key={i} className="flex items-start gap-3 text-[#0B3D2E]/70">
-	                  <span className="text-[#0B3D2E]/40 mt-1">·</span>
-	                  <span>{r}</span>
-	                </div>
-	              ))}
-	            </div>
-	          </div>
-	        )}
-	      </div>
+        {riskFactors && riskFactors.length > 0 && (
+          <div className="bg-white border border-[#E7E1D6] rounded-lg p-6 shadow-sm">
+            <div className="text-base font-semibold text-[#0B3D2E] mb-4">{t('Areas for Improvement', '需要改善')}</div>
+            <div className="space-y-2">
+              {riskFactors.map((r, i) => (
+                <div key={i} className="flex items-start gap-3 text-[#0B3D2E]/70">
+                  <span className="text-[#0B3D2E]/40 mt-1">·</span>
+                  <span>{r}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 微习惯 */}
       {plan.micro_habits && plan.micro_habits.length > 0 && (

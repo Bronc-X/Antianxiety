@@ -238,11 +238,10 @@ export function DailyInsightHub({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all duration-300 ${
-                  isActive 
-                    ? `${tab.bgActive} text-white shadow-lg` 
+                className={`relative px-4 py-2.5 rounded-t-xl flex items-center gap-2 transition-all duration-300 ${isActive
+                    ? `${tab.bgActive} text-white shadow-lg`
                     : 'bg-white/60 text-gray-500 hover:bg-white/80 hover:text-gray-700'
-                }`}
+                  }`}
                 style={{
                   boxShadow: isActive ? '0 -4px 12px -2px rgba(0,0,0,0.1)' : 'none'
                 }}
@@ -265,11 +264,11 @@ export function DailyInsightHub({
           <div className={`absolute inset-0 bg-gradient-to-b ${activeConfig.color}`}>
             <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
             <div className="absolute bottom-4 -left-8 w-24 h-24 bg-white/10 rounded-full blur-xl" />
-            
+
             {/* 中央图标区 */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-60 h-60">
               <div className="absolute inset-0 flex items-center justify-center z-10">
-                <motion.div 
+                <motion.div
                   key={activeTab}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -280,13 +279,13 @@ export function DailyInsightHub({
                   {activeTab === 'plan' && <Zap className="w-10 h-10 text-[#5AAFA8] -rotate-45" />}
                 </motion.div>
               </div>
-              <motion.div 
+              <motion.div
                 className="absolute top-4 right-10 w-4 h-4 bg-white/25 rounded-full"
                 animate={{ y: [-3, 3, -3] }}
                 transition={{ duration: 3, repeat: Infinity }}
               />
             </div>
-            
+
             {/* Badge */}
             <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/15 backdrop-blur-md rounded-full">
               <span className="text-[10px] font-bold text-white uppercase tracking-wider">
@@ -298,11 +297,10 @@ export function DailyInsightHub({
           </div>
 
           {/* 底部内容覆盖层 */}
-          <div className={`absolute bottom-0 left-0 w-full p-4 pb-20 pt-16 bg-gradient-to-t ${
-            activeTab === 'today' ? 'from-[#0B3D2E] via-[#0B3D2E]/90' : 
-            activeTab === 'questionnaire' ? 'from-[#2E7D5A] via-[#2E7D5A]/90' : 
-            'from-[#5AAFA8] via-[#5AAFA8]/90'
-          } to-transparent text-white`}>
+          <div className={`absolute bottom-0 left-0 w-full p-4 pb-20 pt-16 bg-gradient-to-t ${activeTab === 'today' ? 'from-[#0B3D2E] via-[#0B3D2E]/90' :
+              activeTab === 'questionnaire' ? 'from-[#2E7D5A] via-[#2E7D5A]/90' :
+                'from-[#5AAFA8] via-[#5AAFA8]/90'
+            } to-transparent text-white`}>
             <AnimatePresence mode="wait">
               {activeTab === 'today' && (
                 <motion.div
@@ -351,7 +349,7 @@ export function DailyInsightHub({
               )}
             </AnimatePresence>
           </div>
-          
+
           {/* 固定底部按钮 - 仅在 today tab 显示 */}
           {activeTab === 'today' && !questionnaireCompleted && (
             <button
@@ -407,7 +405,7 @@ function InsightPanelContent({
 
   if (!todayTask) {
     return (
-      <div 
+      <div
         className="text-center py-6"
         onMouseEnter={() => onHintHover?.(true)}
         onMouseLeave={() => onHintHover?.(false)}
@@ -418,7 +416,7 @@ function InsightPanelContent({
         <p className="text-sm text-gray-500 mt-1">
           {language === 'en' ? 'Click "Start Calibration" above' : '点击上方「开始校准」'}
         </p>
-        <motion.div 
+        <motion.div
           className="mt-3 text-[#D4AF37] flex justify-center"
           animate={{ y: [-2, 2, -2] }}
           transition={{ duration: 1.5, repeat: Infinity }}
@@ -450,8 +448,8 @@ function InsightPanelContent({
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
           <span className="text-[10px] font-bold">
-            {isLowEnergy ? '🌙' : '⚡'} {isLowEnergy 
-              ? (language === 'en' ? 'Recovery' : '恢复') 
+            {isLowEnergy ? '🌙' : '⚡'} {isLowEnergy
+              ? (language === 'en' ? 'Recovery' : '恢复')
               : (language === 'en' ? 'Balanced' : '平衡')
             }
           </span>
@@ -661,6 +659,7 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
 
       // 后台刷新：让 AI 方案与内容推荐跟随问卷状态更新
       fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+      fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
     } catch (error) { console.error(error); }
     finally { setIsSubmitting(false); }
   };
@@ -791,11 +790,11 @@ const TASK_LIBRARY: Record<string, Omit<Task, 'completed' | 'id'> & { id: string
 // 根据用户状态智能生成任务
 function generateSmartTasks(stressLevel: number, energyLevel: number): (Task & { titleEn?: string; descriptionEn?: string })[] {
   const allTasks = Object.values(TASK_LIBRARY);
-  
+
   // 根据状态计算每个任务的得分
   const scoredTasks = allTasks.map(task => {
     let score = 0;
-    
+
     // 低能量状态（energyLevel < 4）：优先休息和睡眠
     if (energyLevel < 4) {
       score = task.priority.lowEnergy;
@@ -808,16 +807,16 @@ function generateSmartTasks(stressLevel: number, energyLevel: number): (Task & {
     else {
       score = task.priority.balanced;
     }
-    
+
     return { ...task, score };
   });
-  
+
   // 按得分排序，取前 4 个
   const topTasks = scoredTasks
     .sort((a, b) => b.score - a.score)
     .slice(0, 4)
     .map(({ score, priority, ...task }) => ({ ...task, completed: false }));
-  
+
   return topTasks as (Task & { titleEn?: string; descriptionEn?: string })[];
 }
 
@@ -831,7 +830,7 @@ function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number;
     const today = new Date().toISOString().split('T')[0];
     const cacheKey = `nma_daily_tasks_${today}_${stressLevel}_${energyLevel}`;
     const savedTasks = localStorage.getItem(cacheKey);
-    
+
     if (savedTasks) {
       setTasks(JSON.parse(savedTasks));
     } else {

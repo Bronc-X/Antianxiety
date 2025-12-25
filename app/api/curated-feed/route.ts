@@ -137,6 +137,7 @@ async function generateAIBenefit(params: {
     phqScore?: number | null;
     isiScore?: number | null;
     inquiryInsights?: Record<string, string>;
+    moodTrend?: string | null;  // 🆕 From unified profile
   };
   isZh: boolean;
 }): Promise<string> {
@@ -295,15 +296,27 @@ export async function GET(request: NextRequest) {
 
     let userTags: string[] = [];
     let focusTopics: string[] = [];
-    let userSignals: { sleepHours?: number | null; stressLevel?: number | null; energyLevel?: number | null } = {};
+    let userSignals: { sleepHours?: number | null; stressLevel?: number | null; energyLevel?: number | null; moodTrend?: string | null } = {};
 
     if (userId) {
       const supabase = await createClient();
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('inferred_scale_scores, metabolic_profile, primary_focus_topics, sleep_hours, stress_level, energy_level')
-        .eq('id', userId)
-        .single();
+
+      // Fetch both regular profile and unified profile in parallel
+      const [profileResult, unifiedProfileResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('inferred_scale_scores, metabolic_profile, primary_focus_topics, sleep_hours, stress_level, energy_level')
+          .eq('id', userId)
+          .single(),
+        supabase
+          .from('unified_user_profiles')
+          .select('health_goals, health_concerns, lifestyle_factors, recent_mood_trend, ai_inferred_traits')
+          .eq('user_id', userId)
+          .single()
+      ]);
+
+      const profile = profileResult.data;
+      const unifiedProfile = unifiedProfileResult.data;
 
       if (profile) {
         const scores = profile.inferred_scale_scores as any;
@@ -325,6 +338,46 @@ export async function GET(request: NextRequest) {
           stressLevel: typeof profile.stress_level === 'number' ? profile.stress_level : null,
           energyLevel: typeof profile.energy_level === 'number' ? profile.energy_level : null,
         };
+      }
+
+      // 🆕 Integrate unified profile data for richer personalization
+      if (unifiedProfile) {
+        console.log('📊 [UnifiedProfile] 使用统一画像增强推荐');
+
+        // Add health concerns as tags
+        if (Array.isArray(unifiedProfile.health_concerns)) {
+          userTags.push(...unifiedProfile.health_concerns);
+          console.log(`   - 健康关注点: ${unifiedProfile.health_concerns.join(', ')}`);
+        }
+
+        // Use mood trend to adjust recommendations
+        const moodTrend = unifiedProfile.recent_mood_trend;
+        userSignals.moodTrend = moodTrend;
+
+        if (moodTrend === 'declining') {
+          userTags.push('情绪困扰');
+          focusTopics.push('mood_support', 'mental_wellness');
+          console.log('   - 情绪趋势: 下降，优先推荐情绪支持内容');
+        } else if (moodTrend === 'improving') {
+          focusTopics.push('progress_tracking', 'habit_building');
+          console.log('   - 情绪趋势: 上升，推荐习惯养成内容');
+        }
+
+        // Extract goals for focus topics
+        if (Array.isArray(unifiedProfile.health_goals)) {
+          const goals = unifiedProfile.health_goals as Array<{ goal_text?: string; category?: string }>;
+          goals.forEach(g => {
+            if (g.category) focusTopics.push(g.category);
+          });
+          console.log(`   - 目标类别: ${goals.map(g => g.category).filter(Boolean).join(', ')}`);
+        }
+
+        // Use lifestyle factors
+        const lifestyle = unifiedProfile.lifestyle_factors as { sleep_hours?: number; stress_level?: string } | null;
+        if (lifestyle?.stress_level === 'high') {
+          userTags.push('压力管理');
+          focusTopics.push('stress_relief');
+        }
       }
 
       // 🆕 获取 Inquiry 上下文并调整推荐策略

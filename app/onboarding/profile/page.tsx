@@ -229,7 +229,7 @@ export default function ProfileSetupPage() {
                 className="w-full px-4 py-3 pr-16 border-2 border-[#E7E1D6] rounded-xl focus:outline-none focus:border-[#0B3D2E] transition-colors text-[#0B3D2E]"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#0B3D2E]/50 text-sm">
-                岁
+                {tr(language, { zh: '岁', en: 'yrs' })}
               </span>
             </div>
           </div>

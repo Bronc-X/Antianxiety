@@ -293,7 +293,7 @@ function mapDbToActionItem(db: DbActionItem): ActionItem {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function getActionItemOwnerId(
   supabase: any,
   actionItemId: string

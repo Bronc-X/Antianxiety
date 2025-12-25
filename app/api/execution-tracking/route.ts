@@ -275,7 +275,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function getActionItemOwnerId(
   supabase: any,
   actionItemId: string
@@ -297,7 +297,7 @@ async function getActionItemOwnerId(
   return plan?.user_id ?? null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function getPlanOwnerId(
   supabase: any,
   planId: string

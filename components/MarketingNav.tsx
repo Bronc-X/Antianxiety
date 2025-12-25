@@ -60,7 +60,7 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
               </span>
             </Link>
           </div>
-          
+
           {user && (
             <nav className="hidden md:flex items-center gap-3 text-sm bg-black/5 dark:bg-white/5 p-1 rounded-full backdrop-blur-md">
               <LanguageSwitcher />

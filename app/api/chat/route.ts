@@ -711,14 +711,14 @@ export async function POST(req: Request) {
 
       const dailyLogForInquiry: DailyLog | null = todayBioData
         ? {
-            sleep_hours: todayBioData.sleep_duration_minutes != null
-              ? todayBioData.sleep_duration_minutes / 60
-              : null,
-            hrv: null,
-            stress_level: todayBioData.stress_level ?? null,
-            exercise_duration_minutes: todayBioData.exercise_duration_minutes ?? null,
-            created_at: todayBioData.created_at,
-          }
+          sleep_hours: todayBioData.sleep_duration_minutes != null
+            ? todayBioData.sleep_duration_minutes / 60
+            : null,
+          hrv: null,
+          stress_level: todayBioData.stress_level ?? null,
+          exercise_duration_minutes: todayBioData.exercise_duration_minutes ?? null,
+          created_at: todayBioData.created_at,
+        }
         : null;
 
       // 🆕 处理主动问询生成 (如果触发)
@@ -751,7 +751,7 @@ export async function POST(req: Request) {
         } catch (error) {
           console.warn('⚠️ 获取 Inquiry 上下文失败:', error);
         }
-        
+
         userContext = buildUserContext(userProfile, todayBioData, recentBioData, questionnaireData, activePlan, inquirySummary);
       }
     }
@@ -1161,6 +1161,12 @@ INSTRUCTIONS:
             papers_count: scientificPapers.length,
             consensus_level: scientificConsensus?.level,
           });
+
+          // 🆕 触发统一画像更新
+          fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/user/profile-sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          }).catch(() => { });
         } catch (error) {
           console.error('❌ 存储 AI 记忆失败:', error);
         }
@@ -1208,6 +1214,12 @@ INSTRUCTIONS:
                   consensus_level: scientificConsensus?.level,
                 });
                 console.log('✅ AI 回复已存储到记忆库');
+
+                // 🆕 触发统一画像更新 (对话可能包含健康相关洞察)
+                fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/user/profile-sync`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                }).catch(() => console.log('Profile sync triggered after chat'));
               } catch (error) {
                 console.error('❌ 存储 AI 记忆失败:', error);
                 // 不影响响应，继续执行

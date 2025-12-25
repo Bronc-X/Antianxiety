@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
         const language = searchParams.get('language') || 'en';
         const isZh = language.startsWith('zh') || language === 'zh';
 
-        let userTags: string[] = [];
+        const userTags: string[] = [];
         let keywords: string[] = [];
 
         // Get user health tags from profile
