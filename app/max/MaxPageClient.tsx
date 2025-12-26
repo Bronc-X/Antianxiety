@@ -20,18 +20,18 @@ import { ArrowLeft, Send, Mic, MicOff, ImagePlus } from 'lucide-react';
  */
 function removePlansFromContent(content: string): string {
   if (!containsPlans(content)) return content;
-  
+
   let cleaned = content.replace(
     /\*{0,2}(?:方案|建议|计划|选项)\s*[1-9一二三四五][\s:：]+\*{0,2}[^\n]*(?:\n(?!\*{0,2}(?:方案|建议|计划|选项)\s*[1-9一二三四五])[^\n]*)*/gi,
     ''
   );
-  
+
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
-  
+
   if (cleaned.length < 20) {
     return '根据你的情况，我为你准备了以下方案，请选择一个开始：';
   }
-  
+
   return cleaned;
 }
 
@@ -58,7 +58,7 @@ interface MaxPageClientProps {
 }
 
 const resolveDisplayName = (profile?: AIAssistantProfile | null): string => {
-  if (!profile) return '朋友';
+  if (!profile) return 'Friend';
   const candidates = [
     profile.full_name,
     profile.nickname,
@@ -67,7 +67,7 @@ const resolveDisplayName = (profile?: AIAssistantProfile | null): string => {
     profile.email?.split?.('@')?.[0],
   ];
   const found = candidates.find((item?: string | null) => item && String(item).trim().length > 0);
-  return found ? String(found).trim() : '朋友';
+  return found ? String(found).trim() : 'Friend';
 };
 
 export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPageClientProps) {
@@ -101,13 +101,13 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
 
       if (data && data.length > 0) {
         const sortedData = [...data].reverse();
-        
+
         const historyMessages: Message[] = sortedData.map((msg) => {
-          const metadata = msg.metadata as { 
-            papers?: PaperSource[]; 
+          const metadata = msg.metadata as {
+            papers?: PaperSource[];
             consensus?: { score: number; level: string; rationale?: string };
           } | null;
-          
+
           return {
             role: msg.role as RoleType,
             content: msg.content,
@@ -117,7 +117,7 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
           };
         });
         setMessages(historyMessages);
-        
+
         const lastSessionId = sortedData[sortedData.length - 1].session_id;
         if (lastSessionId) {
           setSessionId(lastSessionId);
@@ -148,7 +148,7 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
           preferred_name: initialProfile.preferred_name || undefined
         } : undefined
       });
-      
+
       setMessages([{
         role: 'assistant',
         content: inquiry.questionZh,
@@ -197,9 +197,9 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
       });
-      
+
       if (!response.ok) return {};
-      
+
       const data = await response.json();
       if (data.papers && data.papers.length > 0) {
         return {
@@ -240,20 +240,20 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
 
       let papers: PaperSource[] | undefined;
       let consensus: any;
-      
+
       const papersHeader = response.headers.get('x-neuromind-papers');
       const consensusHeader = response.headers.get('x-neuromind-consensus');
-      
+
       if (papersHeader) {
         try {
           papers = JSON.parse(Buffer.from(papersHeader, 'base64').toString('utf-8'));
-        } catch (e) {}
+        } catch (e) { }
       }
-      
+
       if (consensusHeader) {
         try {
           consensus = JSON.parse(Buffer.from(consensusHeader, 'base64').toString('utf-8'));
-        } catch (e) {}
+        } catch (e) { }
       }
 
       const reader = response.body?.getReader();
@@ -280,22 +280,22 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, loadingMessage]);
-    
+
     try {
       const response = await fetch('/api/plans/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plans: [selectedPlan], sessionId }),
       });
-      
+
       const result = await response.json();
-      
+
       setMessages(prev => prev.filter(msg => msg.content !== '⏳ 正在保存您的计划...'));
-      
+
       if (!response.ok) throw new Error(result.error);
-      
+
       window.dispatchEvent(new CustomEvent('planSaved', { detail: result.data }));
-      
+
       const confirmMessage: Message = {
         role: 'assistant',
         content: `✅ **保存成功！**\n\n「${selectedPlan.title}」已添加至您的健康方案。`,
@@ -357,7 +357,7 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
     if (e.nativeEvent.isComposing || e.keyCode === 229) {
       return; // 输入法组合中，不处理
     }
-    
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
@@ -374,7 +374,7 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
         </Link>
         <div className="text-center">
           <h1 className="text-lg font-semibold">Max</h1>
-          <p className="text-xs text-white/70">你的专属健康代理</p>
+          <p className="text-xs text-white/70">Your Personal Health Agent</p>
         </div>
         <div className="w-9" /> {/* 占位保持居中 */}
       </header>
@@ -399,11 +399,10 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
                 <div className={`max-w-[85%] ${isUser ? 'order-1' : 'order-2'}`}>
                   {/* 消息气泡 */}
                   <div
-                    className={`rounded-2xl px-4 py-3 ${
-                      isUser
+                    className={`rounded-2xl px-4 py-3 ${isUser
                         ? 'bg-[#0B3D2E] text-white rounded-br-md'
                         : 'bg-white dark:bg-neutral-800 text-[#2C2C2C] dark:text-white rounded-bl-md shadow-sm border border-[#E7E1D6] dark:border-neutral-700'
-                    }`}
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{displayContent}</p>
                   </div>
@@ -421,14 +420,14 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
                   {/* 论文来源 */}
                   {!isUser && message.papers && message.papers.length > 0 && (
                     <div className="mt-3">
-                      <PaperSources 
+                      <PaperSources
                         papers={message.papers.map(p => ({
                           paperId: p.url || `paper-${p.rank || 0}`,
                           title: p.title,
                           citationCount: p.citationCount,
                           year: p.year || new Date().getFullYear(),
                           url: p.url || '',
-                        }))} 
+                        }))}
                       />
                     </div>
                   )}
@@ -468,7 +467,7 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="输入你的问题..."
+              placeholder="Ask me anything..."
               rows={1}
               className="w-full px-4 py-3 pr-12 bg-[#F5F1EA] dark:bg-neutral-800 rounded-2xl border-0 focus:ring-2 focus:ring-[#0B3D2E]/20 resize-none text-sm text-[#2C2C2C] dark:text-white placeholder:text-[#0B3D2E]/40"
               style={{ maxHeight: '120px' }}
