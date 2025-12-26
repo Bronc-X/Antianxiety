@@ -240,13 +240,13 @@ export default function BrutalistCalibration() {
                     <div className="flex items-center gap-4 mb-8">
                         <button
                             onClick={() => router.back()}
-                            className="p-3 border border-[#333] hover:border-white transition-colors"
+                            className="p-3 border border-[var(--brutalist-border)] hover:border-[var(--brutalist-fg)] transition-colors"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div>
                             <h1 className="brutalist-h3">Daily Calibration</h1>
-                            <p className="text-sm text-[#888]">Your morning readiness check</p>
+                            <p className="text-sm text-[var(--brutalist-muted)]">Your morning readiness check</p>
                         </div>
                     </div>
 
@@ -272,11 +272,11 @@ export default function BrutalistCalibration() {
 
                                 {/* Question */}
                                 <div className="flex items-start gap-4 mb-8">
-                                    <div className={`p-3 border border-[#333] ${getCategoryColor(question.category)}`}>
+                                    <div className={`p-3 border border-[var(--brutalist-border)] ${getCategoryColor(question.category)}`}>
                                         <Icon className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-[#888] uppercase tracking-wider mb-2">
+                                        <p className="text-xs text-[var(--brutalist-muted)] uppercase tracking-wider mb-2">
                                             {question.category.toUpperCase()} · {currentStep + 1}/{CALIBRATION_QUESTIONS.length}
                                         </p>
                                         <h2 className="brutalist-h3">{question.question}</h2>
@@ -289,10 +289,10 @@ export default function BrutalistCalibration() {
                                         <button
                                             key={opt.value}
                                             onClick={() => handleAnswer(opt.value)}
-                                            className="w-full p-4 border border-[#333] hover:border-white hover:bg-white/5 transition-all flex items-center justify-between group"
+                                            className="w-full p-4 border border-[var(--brutalist-border)] hover:border-[var(--brutalist-fg)] hover:bg-[var(--brutalist-fg)]/5 transition-all flex items-center justify-between group"
                                         >
                                             <span className="font-medium">{opt.label}</span>
-                                            <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+                                            <ChevronRight className="w-4 h-4 text-[var(--brutalist-muted)] group-hover:text-[var(--brutalist-fg)] transition-colors" />
                                         </button>
                                     ))}
                                 </div>
@@ -308,26 +308,26 @@ export default function BrutalistCalibration() {
                                 <div className="text-center mb-8">
                                     <div className="text-6xl font-bold mb-2">
                                         {(result?.score || 0).toFixed(1)}
-                                        <span className="text-2xl text-[#888]">/5</span>
+                                        <span className="text-2xl text-[var(--brutalist-muted)]">/5</span>
                                     </div>
-                                    <p className="text-sm text-[#888]">Readiness Score</p>
+                                    <p className="text-sm text-[var(--brutalist-muted)]">Readiness Score</p>
                                 </div>
 
                                 {/* Recommendation */}
                                 <div className={`p-6 border mb-8 text-center ${result?.intensity === 'rest' ? 'border-blue-500/50 bg-blue-500/10' :
-                                        result?.intensity === 'light' ? 'border-cyan-500/50 bg-cyan-500/10' :
-                                            result?.intensity === 'moderate' ? 'border-yellow-500/50 bg-yellow-500/10' :
-                                                'border-[#00FF94]/50 bg-[#00FF94]/10'
+                                    result?.intensity === 'light' ? 'border-cyan-500/50 bg-cyan-500/10' :
+                                        result?.intensity === 'moderate' ? 'border-yellow-500/50 bg-yellow-500/10' :
+                                            'border-[#00FF94]/50 bg-[#00FF94]/10'
                                     }`}>
                                     <Check className={`w-8 h-8 mx-auto mb-3 ${result?.intensity === 'rest' ? 'text-blue-400' :
-                                            result?.intensity === 'light' ? 'text-cyan-400' :
-                                                result?.intensity === 'moderate' ? 'text-yellow-400' :
-                                                    'signal-green'
+                                        result?.intensity === 'light' ? 'text-cyan-400' :
+                                            result?.intensity === 'moderate' ? 'text-yellow-400' :
+                                                'signal-green'
                                         }`} />
                                     <h3 className="brutalist-h3 mb-2">{result?.recommendation}</h3>
                                     <ul className="space-y-1">
                                         {result?.details.map((d, i) => (
-                                            <li key={i} className="text-sm text-[#888]">{d}</li>
+                                            <li key={i} className="text-sm text-[var(--brutalist-muted)]">{d}</li>
                                         ))}
                                     </ul>
                                 </div>
