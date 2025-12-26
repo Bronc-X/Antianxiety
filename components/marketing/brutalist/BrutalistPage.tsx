@@ -7,6 +7,7 @@ import BayesianSection from './BayesianSection';
 import PrivacySection from './PrivacySection';
 import ScienceTicker from './ScienceTicker';
 import BrutalistFooter from './BrutalistFooter';
+import BrutalistDemoSection from './BrutalistDemoSection';
 
 export default function BrutalistPage() {
     return (
@@ -16,6 +17,7 @@ export default function BrutalistPage() {
             <ScienceTicker />
             <VillainSection />
             <BayesianSection />
+            <BrutalistDemoSection />
             <PrivacySection />
             <BrutalistFooter />
         </div>
