@@ -896,7 +896,7 @@ select {
    Targeting Western markets (US/EU)
    ========================================== */
 
-/* Brutalist Color Tokens - Enhanced Contrast */
+/* Brutalist Color Tokens - Dark Mode (Default) */
 :root {
   --brutalist-bg: #050505;
   --brutalist-fg: #FFFFFF;
@@ -910,6 +910,98 @@ select {
   --neon-cyan: #22D3EE;
 }
 
+/* Brutalist Color Tokens - Light Mode */
+.light {
+  --brutalist-bg: #FAFAFA;
+  --brutalist-fg: #1A1A1A;
+  --brutalist-muted: #666666;
+  --brutalist-border: #E0E0E0;
+  --signal-green: #059669;
+  --signal-green-glow: rgba(5, 150, 105, 0.2);
+  --neon-purple: #7C3AED;
+  --neon-cyan: #0891B2;
+}
+
+/* Light Mode Component Overrides */
+.light .brutalist-page {
+  background: var(--brutalist-bg);
+}
+
+.light .brutalist-card {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: var(--brutalist-border);
+}
+
+.light .brutalist-card:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--signal-green);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 20px rgba(5, 150, 105, 0.1);
+}
+
+.light .brutalist-badge {
+  background: rgba(5, 150, 105, 0.1);
+  border-color: rgba(5, 150, 105, 0.3);
+  color: var(--signal-green);
+}
+
+.light .brutalist-cta {
+  border-color: var(--brutalist-fg);
+  color: var(--brutalist-fg);
+}
+
+.light .brutalist-cta:hover {
+  background: var(--brutalist-fg);
+  color: var(--brutalist-bg);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.light .brutalist-cta-filled {
+  background: var(--brutalist-fg);
+  color: var(--brutalist-bg);
+}
+
+.light .brutalist-cta-filled:hover {
+  background: var(--signal-green);
+  border-color: var(--signal-green);
+  color: #FFFFFF;
+  box-shadow: 0 0 30px rgba(5, 150, 105, 0.3);
+}
+
+.light .signal-green {
+  color: var(--signal-green);
+  text-shadow: none;
+}
+
+.light .signal-green-bg {
+  background: var(--signal-green);
+  color: #FFFFFF;
+}
+
+.light .brutalist-flow-node {
+  border-color: var(--brutalist-border);
+}
+
+.light .brutalist-flow-node:hover {
+  border-color: var(--signal-green);
+}
+
+.light input,
+.light textarea {
+  background: #FFFFFF;
+  border-color: var(--brutalist-border);
+  color: var(--brutalist-fg);
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #999999;
+}
+
+.light input:focus,
+.light textarea:focus {
+  border-color: var(--signal-green);
+}
+
 /* Brutalist Page Container */
 .brutalist-page {
   background: var(--brutalist-bg);
@@ -918,6 +1010,7 @@ select {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .brutalist-page * {
@@ -932,16 +1025,16 @@ select {
 .brutalist-page h4,
 .brutalist-page h5,
 .brutalist-page h6 {
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
+  color: var(--brutalist-fg) !important;
+  -webkit-text-fill-color: var(--brutalist-fg) !important;
   background: none !important;
   background-clip: unset !important;
   -webkit-background-clip: unset !important;
 }
 
 .brutalist-page p {
-  color: #CCCCCC !important;
-  -webkit-text-fill-color: #CCCCCC !important;
+  color: var(--brutalist-muted) !important;
+  -webkit-text-fill-color: var(--brutalist-muted) !important;
 }
 
 .brutalist-page span {
@@ -955,20 +1048,25 @@ select {
   font-weight: 900 !important;
   letter-spacing: -0.05em !important;
   line-height: 0.9 !important;
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
+  color: var(--brutalist-fg) !important;
+  -webkit-text-fill-color: var(--brutalist-fg) !important;
   text-shadow: 0 0 80px rgba(255, 255, 255, 0.1);
 }
 
+/* Light mode: No text shadow */
+.light .brutalist-h1 {
+  text-shadow: none;
+}
+
 .brutalist-h1 span {
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
+  color: var(--brutalist-fg) !important;
+  -webkit-text-fill-color: var(--brutalist-fg) !important;
 }
 
 .brutalist-h1 span.text-muted,
 .brutalist-muted-text {
-  color: #AAAAAA !important;
-  -webkit-text-fill-color: #AAAAAA !important;
+  color: var(--brutalist-muted) !important;
+  -webkit-text-fill-color: var(--brutalist-muted) !important;
 }
 
 .brutalist-h2 {

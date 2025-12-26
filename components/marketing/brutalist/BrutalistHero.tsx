@@ -5,7 +5,7 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 
 export default function BrutalistHero() {
     return (
-        <section className="brutalist-section min-h-screen flex items-center pt-20 relative overflow-hidden" style={{ background: '#050505' }}>
+        <section className="brutalist-section min-h-screen flex items-center pt-20 relative overflow-hidden">
             {/* Ambient Glow - Behind everything */}
             <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[150px] animate-pulse" style={{ background: 'rgba(0, 255, 148, 0.08)' }} />
