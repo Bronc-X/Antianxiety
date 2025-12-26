@@ -105,29 +105,29 @@ export default function BrutalistAuth() {
                             >
                                 {/* Email */}
                                 <div>
-                                    <label className="block text-xs uppercase tracking-wider text-[#888] mb-2">
+                                    <label className="block text-xs uppercase tracking-wider text-[var(--brutalist-muted)] mb-2">
                                         Email
                                     </label>
                                     <div className="relative">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#555]" />
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--brutalist-muted)]" />
                                         <input
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             required
                                             placeholder="you@example.com"
-                                            className="w-full bg-transparent border border-[#333] focus:border-white px-4 py-3 pl-12 text-white placeholder-[#555] outline-none transition-colors"
+                                            className="w-full bg-transparent border border-[var(--brutalist-border)] focus:border-[var(--signal-green)] px-4 py-3 pl-12 outline-none transition-colors"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Password */}
                                 <div>
-                                    <label className="block text-xs uppercase tracking-wider text-[#888] mb-2">
+                                    <label className="block text-xs uppercase tracking-wider text-[var(--brutalist-muted)] mb-2">
                                         Password
                                     </label>
                                     <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#555]" />
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--brutalist-muted)]" />
                                         <input
                                             type="password"
                                             value={password}
@@ -135,7 +135,7 @@ export default function BrutalistAuth() {
                                             required
                                             minLength={6}
                                             placeholder="••••••••"
-                                            className="w-full bg-transparent border border-[#333] focus:border-white px-4 py-3 pl-12 text-white placeholder-[#555] outline-none transition-colors"
+                                            className="w-full bg-transparent border border-[var(--brutalist-border)] focus:border-[var(--signal-green)] px-4 py-3 pl-12 outline-none transition-colors"
                                         />
                                     </div>
                                 </div>
