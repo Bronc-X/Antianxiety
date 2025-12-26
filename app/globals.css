@@ -1,6 +1,9 @@
 /* JetBrains Mono - Terminal/Hacker UI Font */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
 
+/* Inter Tight - Swiss Style Bold Typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&display=swap');
+
 @import "tailwindcss";
 
 /* ==========================================
@@ -886,4 +889,244 @@ select {
 .upgrade-page .text-white\/60 {
   color: rgba(255, 255, 255, 0.6) !important;
   -webkit-text-fill-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ==========================================
+   SWISS BRUTALIST DESIGN SYSTEM
+   Targeting Western markets (US/EU)
+   ========================================== */
+
+/* Brutalist Color Tokens */
+:root {
+  --brutalist-bg: #050505;
+  --brutalist-fg: #FAFAFA;
+  --brutalist-muted: #888888;
+  --brutalist-border: #222222;
+  --signal-green: #00FF94;
+  --medical-blue: #3B82F6;
+  --brutalist-accent: #00FF94;
+}
+
+/* Brutalist Page Container */
+.brutalist-page {
+  background: var(--brutalist-bg);
+  color: var(--brutalist-fg);
+  font-family: 'Inter Tight', 'Inter', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.brutalist-page * {
+  color: inherit;
+  -webkit-text-fill-color: inherit;
+}
+
+/* Swiss Typography */
+.brutalist-h1 {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.brutalist-h2 {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.0;
+}
+
+.brutalist-h3 {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.brutalist-body {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--brutalist-muted);
+}
+
+.brutalist-body-lg {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: clamp(1.125rem, 2vw, 1.375rem);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--brutalist-muted);
+}
+
+/* Brutalist Section */
+.brutalist-section {
+  padding: 6rem 1.5rem;
+  border-bottom: 1px solid var(--brutalist-border);
+}
+
+@media (min-width: 768px) {
+  .brutalist-section {
+    padding: 8rem 3rem;
+  }
+}
+
+.brutalist-section-compact {
+  padding: 3rem 1.5rem;
+  border-bottom: 1px solid var(--brutalist-border);
+}
+
+/* Signal Green - Privacy Elements */
+.signal-green {
+  color: var(--signal-green);
+}
+
+.signal-green-bg {
+  background-color: var(--signal-green);
+  color: #050505;
+}
+
+.signal-green-border {
+  border-color: var(--signal-green);
+}
+
+.signal-green-glow {
+  box-shadow: 0 0 20px rgba(0, 255, 148, 0.3);
+}
+
+/* Brutalist Badge (Status Indicator) */
+.brutalist-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(0, 255, 148, 0.1);
+  border: 1px solid rgba(0, 255, 148, 0.3);
+  color: var(--signal-green);
+}
+
+/* Brutalist CTA Button */
+.brutalist-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  font-family: 'Inter Tight', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--brutalist-fg);
+  color: var(--brutalist-fg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.brutalist-cta:hover {
+  background: var(--brutalist-fg);
+  color: var(--brutalist-bg);
+}
+
+.brutalist-cta-filled {
+  background: var(--brutalist-fg);
+  color: var(--brutalist-bg);
+}
+
+.brutalist-cta-filled:hover {
+  background: var(--signal-green);
+  border-color: var(--signal-green);
+  color: var(--brutalist-bg);
+}
+
+/* Brutalist Card */
+.brutalist-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--brutalist-border);
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.brutalist-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Brutalist Flow Diagram */
+.brutalist-flow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brutalist-flow-node {
+  padding: 1rem 1.5rem;
+  border: 1px solid var(--brutalist-border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+}
+
+.brutalist-flow-arrow {
+  color: var(--signal-green);
+  font-size: 1.5rem;
+}
+
+/* Infinite Scroll Marquee */
+.brutalist-marquee {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.brutalist-marquee-content {
+  display: flex;
+  animation: marquee 30s linear infinite;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Brutalist Grid */
+.brutalist-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--brutalist-border);
+}
+
+.brutalist-grid>* {
+  background: var(--brutalist-bg);
+}
+
+/* Serif for Science (Journal names) */
+.brutalist-serif {
+  font-family: 'Times New Roman', 'Georgia', serif;
+  font-style: italic;
+}
+
+/* Scroll Animation Utility */
+.brutalist-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.brutalist-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
 }

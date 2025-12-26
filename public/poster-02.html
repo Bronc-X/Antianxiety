@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiAnxiety 刷屏稿 02</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1080px;
+            height: 1920px;
+            background: linear-gradient(180deg, #0D1117 0%, #161B22 50%, #0D1117 100%);
+            font-family: 'Noto Serif SC', 'Playfair Display', serif;
+            color: #FFFFFF;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+        }
+
+        .glow-center {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(48, 209, 88, 0.12) 0%, transparent 60%);
+            top: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            filter: blur(100px);
+        }
+
+        .header {
+            padding: 60px 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            font-size: 28px;
+            font-weight: 700;
+            color: #30D158;
+            letter-spacing: 0.05em;
+        }
+
+        .tag {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .main {
+            padding: 40px 80px;
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }
+
+        /* 对比区域 */
+        .comparison {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .compare-card {
+            flex: 1;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: left;
+        }
+
+        .compare-card.bad {
+            background: rgba(255, 100, 100, 0.08);
+            border: 1px solid rgba(255, 100, 100, 0.2);
+        }
+
+        .compare-card.good {
+            background: rgba(48, 209, 88, 0.08);
+            border: 1px solid rgba(48, 209, 88, 0.3);
+        }
+
+        .compare-icon {
+            font-size: 48px;
+            margin-bottom: 24px;
+        }
+
+        .compare-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .compare-card.bad .compare-title {
+            color: #FF6B6B;
+        }
+
+        .compare-card.good .compare-title {
+            color: #30D158;
+        }
+
+        .compare-list {
+            list-style: none;
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 2;
+        }
+
+        .compare-list li::before {
+            content: '• ';
+            color: inherit;
+        }
+
+        /* 中间大字 */
+        .vs-text {
+            font-size: 140px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.05);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+
+        /* 核心信息 */
+        .core-message {
+            margin-top: 40px;
+            padding: 50px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.02) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .core-message::before {
+            content: '★';
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 200px;
+            color: rgba(212, 175, 55, 0.03);
+        }
+
+        .core-title {
+            font-size: 20px;
+            color: #D4AF37;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+        }
+
+        .core-text {
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+
+        .core-text .gold {
+            color: #D4AF37;
+        }
+
+        .core-text .green {
+            color: #30D158;
+        }
+
+        /* 特性列表 */
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-top: 60px;
+        }
+
+        .feature-item {
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+
+        .feature-text {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 底部 */
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 60px 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .slogan {
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+
+        .qr-area {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .qr-text {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: right;
+        }
+
+        .qr-placeholder {
+            width: 100px;
+            height: 100px;
+            background: #FFFFFF;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #333;
+            text-align: center;
+        }
+
+        /* 彩蛋 */
+        .easter-egg-2 {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.015);
+            pointer-events: none;
+        }
+
+        .easter-egg-2:hover {
+            color: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow-center"></div>
+
+    <header class="header">
+        <div class="brand">AntiAnxiety™</div>
+        <div class="tag">02/03</div>
+    </header>
+
+    <main class="main">
+        <div class="comparison">
+            <div class="compare-card bad">
+                <div class="compare-icon">🏃</div>
+                <div class="compare-title">传统健身 App</div>
+                <ul class="compare-list">
+                    <li>越努力越焦虑</li>
+                    <li>断卡 = 失败</li>
+                    <li>千人一面的计划</li>
+                    <li>忽略你的生理周期</li>
+                </ul>
+            </div>
+            <div class="compare-card good">
+                <div class="compare-icon">🧬</div>
+                <div class="compare-title">AntiAnxiety</div>
+                <ul class="compare-list">
+                    <li>科学恢复，持续进步</li>
+                    <li>休息 = 策略</li>
+                    <li>AI 个性化闭环</li>
+                    <li>24h 监测你的状态</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="core-message">
+            <div class="core-title">✦ 核心理念</div>
+            <p class="core-text">
+                不是让你<span class="gold">停下来</span><br>
+                是让你在<span class="green">对的时间</span>做对的事
+            </p>
+        </div>
+
+        <div class="features">
+            <div class="feature-item">
+                <div class="feature-icon">📡</div>
+                <div class="feature-text">实时生物数据同步</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🧠</div>
+                <div class="feature-text">贝叶斯推理引擎</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🔄</div>
+                <div class="feature-text">每日自适应闭环</div>
+            </div>
+        </div>
+    </main>
+
+    <div class="easter-egg-2">
+        长按3秒解锁隐藏福利：首月5折码 ANTIANXIETY2024
+    </div>
+
+    <footer class="footer">
+        <div class="slogan">"顺应生理节律的自律"</div>
+        <div class="qr-area">
+            <div class="qr-text">
+                扫码立即体验<br>
+                <strong style="color: #30D158;">antianxiety.app</strong>
+            </div>
+            <div class="qr-placeholder">二维码占位</div>
+        </div>
+    </footer>
+</body>
+
+</html>

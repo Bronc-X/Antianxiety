@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiAnxiety 刷屏稿 01</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1080px;
+            height: 1920px;
+            background: linear-gradient(165deg, #0A0A0A 0%, #1A1510 50%, #0D0D0D 100%);
+            font-family: 'Noto Serif SC', 'Playfair Display', serif;
+            color: #FFFFFF;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 高级纹理背景 */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        /* 装饰光晕 */
+        .glow-1 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+            top: -100px;
+            right: -150px;
+            filter: blur(60px);
+        }
+
+        .glow-2 {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 122, 255, 0.1) 0%, transparent 70%);
+            bottom: 20%;
+            left: -100px;
+            filter: blur(80px);
+        }
+
+        /* 顶部品牌区 */
+        .header {
+            padding: 60px 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            font-size: 28px;
+            font-weight: 700;
+            color: #D4AF37;
+            letter-spacing: 0.05em;
+        }
+
+        .tag {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        /* 主内容区 */
+        .main {
+            padding: 0 80px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 痛点标签 */
+        .pain-tag {
+            display: inline-block;
+            background: rgba(255, 100, 100, 0.15);
+            color: #FF6B6B;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255, 100, 100, 0.3);
+        }
+
+        /* 大标题 */
+        .headline {
+            font-size: 88px;
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 50px;
+            letter-spacing: -0.02em;
+        }
+
+        .headline .accent {
+            color: #D4AF37;
+        }
+
+        .headline .strike {
+            text-decoration: line-through;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 72px;
+        }
+
+        /* 副标题 */
+        .subheadline {
+            font-size: 32px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+            margin-bottom: 60px;
+            max-width: 800px;
+        }
+
+        /* 解决方案卡片 */
+        .solution-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 50px;
+        }
+
+        .solution-label {
+            font-size: 14px;
+            color: #30D158;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+        }
+
+        .solution-text {
+            font-size: 28px;
+            color: #FFFFFF;
+            line-height: 1.6;
+        }
+
+        .solution-text .highlight {
+            color: #D4AF37;
+            font-weight: 700;
+        }
+
+        /* 数据展示 */
+        .stats {
+            display: flex;
+            gap: 60px;
+            margin-top: 80px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 72px;
+            font-weight: 700;
+            color: #D4AF37;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .stat-label {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 10px;
+        }
+
+        /* 底部区域 */
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 60px 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .cta {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .cta .url {
+            color: #D4AF37;
+            font-weight: 600;
+        }
+
+        .qr-placeholder {
+            width: 120px;
+            height: 120px;
+            background: #FFFFFF;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #333;
+            text-align: center;
+            padding: 10px;
+        }
+
+        /* 彩蛋：长按3秒显示 */
+        .easter-egg {
+            position: absolute;
+            bottom: 200px;
+            right: 80px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.03);
+            max-width: 200px;
+            text-align: right;
+            user-select: none;
+            transition: color 0.5s ease;
+        }
+
+        .easter-egg:hover {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 装饰线 */
+        .deco-line {
+            position: absolute;
+            bottom: 350px;
+            left: 80px;
+            right: 80px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+
+    <header class="header">
+        <div class="brand">AntiAnxiety™</div>
+        <div class="tag">01/03</div>
+    </header>
+
+    <main class="main">
+        <div class="pain-tag">🔴 痛点洞察</div>
+
+        <h1 class="headline">
+            你的努力<br>
+            正在<span class="accent">伤害</span>你
+        </h1>
+
+        <p class="subheadline">
+            Keep 告诉你"再坚持一下"<br>
+            但你的 HRV 说：<span class="strike">别听它的</span>
+        </p>
+
+        <div class="solution-card">
+            <div class="solution-label">✦ 解决方案</div>
+            <p class="solution-text">
+                全球首个基于<span class="highlight">贝叶斯推理</span>的健康 AI<br>
+                根据你的生理数据，决定今天该<span class="highlight">冲</span>还是该<span class="highlight">歇</span>
+            </p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value">70%</div>
+                <div class="stat-label">用户首日就减少无效训练</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">3x</div>
+                <div class="stat-label">恢复效率提升</div>
+            </div>
+        </div>
+    </main>
+
+    <div class="deco-line"></div>
+
+    <div class="easter-egg">
+        💡 彩蛋：截图发朋友圈<br>
+        @AntiAnxiety 领取7天Pro
+    </div>
+
+    <footer class="footer">
+        <div class="cta">
+            扫码体验 ▸ <span class="url">antianxiety.app</span>
+        </div>
+        <div class="qr-placeholder">
+            二维码<br>占位
+        </div>
+    </footer>
+</body>
+
+</html>
