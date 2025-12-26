@@ -1,21 +1,22 @@
 import { getServerSession } from '@/lib/auth-utils';
 import { redirect } from 'next/navigation';
 
-// 标记为动态路由，因为使用了 cookies
+// Mark as dynamic route because we use cookies
 export const dynamic = 'force-dynamic';
 
 /**
- * 主页面
- * 根据用户登录状态重定向到相应页面
+ * Homepage - English Version
+ * Redirects to Brutalist landing page
  */
 export default async function Home() {
   const session = await getServerSession();
 
-  // 如果用户已登录，重定向到 landing 页面
+  // If user is logged in, redirect to dashboard
   if (session) {
-    return redirect('/landing');
+    return redirect('/brutalist/dashboard');
   }
 
-  // 如果用户未登录，重定向到欢迎页面
-  return redirect('/welcome');
+  // If not logged in, redirect to Brutalist landing
+  return redirect('/brutalist');
 }
+
