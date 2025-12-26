@@ -925,14 +925,50 @@ select {
   -webkit-text-fill-color: inherit;
 }
 
-/* Swiss Typography - Enhanced */
+/* Swiss Typography - Enhanced with direct colors to override global dark theme */
+.brutalist-page h1,
+.brutalist-page h2,
+.brutalist-page h3,
+.brutalist-page h4,
+.brutalist-page h5,
+.brutalist-page h6 {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  background: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+}
+
+.brutalist-page p {
+  color: #CCCCCC !important;
+  -webkit-text-fill-color: #CCCCCC !important;
+}
+
+.brutalist-page span {
+  color: inherit;
+  -webkit-text-fill-color: inherit;
+}
+
 .brutalist-h1 {
-  font-family: 'Inter Tight', sans-serif;
-  font-size: clamp(3rem, 10vw, 8rem);
-  font-weight: 900;
-  letter-spacing: -0.05em;
-  line-height: 0.9;
+  font-family: 'Inter Tight', sans-serif !important;
+  font-size: clamp(3rem, 10vw, 8rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 0.9 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
   text-shadow: 0 0 80px rgba(255, 255, 255, 0.1);
+}
+
+.brutalist-h1 span {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+.brutalist-h1 span.text-muted,
+.brutalist-muted-text {
+  color: #AAAAAA !important;
+  -webkit-text-fill-color: #AAAAAA !important;
 }
 
 .brutalist-h2 {
