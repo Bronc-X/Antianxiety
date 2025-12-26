@@ -14,7 +14,7 @@ import MaxFeatureIntroModal from './MaxFeatureIntroModal';
 const AIAssistantFloatingChat = dynamic(() => import('./AIAssistantFloatingChat'), {
   loading: () => (
     <div className="fixed inset-0 sm:inset-auto sm:bottom-24 sm:right-6 z-50 w-full sm:w-96 h-full sm:h-[600px] flex items-center justify-center bg-[#FAF6EF] sm:rounded-2xl shadow-2xl border border-[#E7E1D6]">
-      <div className="text-[#0B3D2E]">加载中...</div>
+      <div className="text-[#0B3D2E]">Loading...</div>
     </div>
   ),
   ssr: false,
@@ -52,7 +52,7 @@ export default function AIAssistantFloatingButton() {
         const { data: { user } } = await supabase.auth.getUser();
         setIsAuthenticated(!!user);
       } catch (error) {
-        console.error('检查登录状态失败:', error);
+        console.error('Auth check failed:', error);
         setIsAuthenticated(false);
       }
     };
@@ -86,7 +86,7 @@ export default function AIAssistantFloatingButton() {
           setProfile(data);
         }
       } catch (error) {
-        console.error('加载用户资料失败:', error);
+        console.error('Failed to load profile:', error);
       }
     };
 
@@ -182,7 +182,7 @@ export default function AIAssistantFloatingButton() {
                   </div>
 
                   <p className="text-sm leading-relaxed font-medium text-emerald-50/90">
-                    我是 Max。我将实时监测你的临床状态并全球检索干预手段，动态优化你的方案。
+                    I'm Max. I monitor your physiological signals in real-time, search global interventions, and dynamically optimize your wellness plan.
                   </p>
                 </div>
               </motion.div>
