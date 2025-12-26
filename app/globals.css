@@ -896,15 +896,18 @@ select {
    Targeting Western markets (US/EU)
    ========================================== */
 
-/* Brutalist Color Tokens */
+/* Brutalist Color Tokens - Enhanced Contrast */
 :root {
   --brutalist-bg: #050505;
-  --brutalist-fg: #FAFAFA;
-  --brutalist-muted: #888888;
-  --brutalist-border: #222222;
+  --brutalist-fg: #FFFFFF;
+  --brutalist-muted: #B0B0B0;
+  --brutalist-border: #2A2A2A;
   --signal-green: #00FF94;
+  --signal-green-glow: rgba(0, 255, 148, 0.4);
   --medical-blue: #3B82F6;
   --brutalist-accent: #00FF94;
+  --neon-purple: #A855F7;
+  --neon-cyan: #22D3EE;
 }
 
 /* Brutalist Page Container */
@@ -914,6 +917,7 @@ select {
   font-family: 'Inter Tight', 'Inter', sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 .brutalist-page * {
@@ -921,29 +925,30 @@ select {
   -webkit-text-fill-color: inherit;
 }
 
-/* Swiss Typography */
+/* Swiss Typography - Enhanced */
 .brutalist-h1 {
   font-family: 'Inter Tight', sans-serif;
-  font-size: clamp(3rem, 8vw, 7rem);
+  font-size: clamp(3rem, 10vw, 8rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  text-shadow: 0 0 80px rgba(255, 255, 255, 0.1);
+}
+
+.brutalist-h2 {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: clamp(2.5rem, 6vw, 5rem);
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.95;
 }
 
-.brutalist-h2 {
-  font-family: 'Inter Tight', sans-serif;
-  font-size: clamp(2rem, 5vw, 4rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.0;
-}
-
 .brutalist-h3 {
   font-family: 'Inter Tight', sans-serif;
-  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
-  font-weight: 600;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .brutalist-body {
@@ -956,7 +961,7 @@ select {
 
 .brutalist-body-lg {
   font-family: 'Inter Tight', sans-serif;
-  font-size: clamp(1.125rem, 2vw, 1.375rem);
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
   font-weight: 400;
   line-height: 1.5;
   color: var(--brutalist-muted);
@@ -966,11 +971,12 @@ select {
 .brutalist-section {
   padding: 6rem 1.5rem;
   border-bottom: 1px solid var(--brutalist-border);
+  position: relative;
 }
 
 @media (min-width: 768px) {
   .brutalist-section {
-    padding: 8rem 3rem;
+    padding: 10rem 3rem;
   }
 }
 
@@ -979,61 +985,97 @@ select {
   border-bottom: 1px solid var(--brutalist-border);
 }
 
-/* Signal Green - Privacy Elements */
+/* Signal Green - Privacy Elements with GLOW */
 .signal-green {
   color: var(--signal-green);
+  text-shadow: 0 0 20px var(--signal-green-glow);
 }
 
 .signal-green-bg {
   background-color: var(--signal-green);
   color: #050505;
+  box-shadow: 0 0 40px var(--signal-green-glow);
 }
 
 .signal-green-border {
   border-color: var(--signal-green);
+  box-shadow: 0 0 15px var(--signal-green-glow);
 }
 
 .signal-green-glow {
-  box-shadow: 0 0 20px rgba(0, 255, 148, 0.3);
+  box-shadow: 0 0 30px var(--signal-green-glow), 0 0 60px rgba(0, 255, 148, 0.2);
 }
 
-/* Brutalist Badge (Status Indicator) */
+/* Brutalist Badge (Status Indicator) - Enhanced */
 .brutalist-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: rgba(0, 255, 148, 0.1);
-  border: 1px solid rgba(0, 255, 148, 0.3);
+  background: rgba(0, 255, 148, 0.15);
+  border: 1px solid rgba(0, 255, 148, 0.5);
   color: var(--signal-green);
+  box-shadow: 0 0 20px rgba(0, 255, 148, 0.2);
+  animation: badge-pulse 2s ease-in-out infinite;
 }
 
-/* Brutalist CTA Button */
+@keyframes badge-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(0, 255, 148, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(0, 255, 148, 0.4);
+  }
+}
+
+/* Brutalist CTA Button - Enhanced with glow */
 .brutalist-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 1rem 2rem;
+  padding: 1.25rem 2.5rem;
   font-family: 'Inter Tight', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   background: transparent;
-  border: 1px solid var(--brutalist-fg);
+  border: 2px solid var(--brutalist-fg);
   color: var(--brutalist-fg);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.brutalist-cta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.brutalist-cta:hover::before {
+  left: 100%;
 }
 
 .brutalist-cta:hover {
   background: var(--brutalist-fg);
   color: var(--brutalist-bg);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
 }
 
 .brutalist-cta-filled {
@@ -1045,19 +1087,36 @@ select {
   background: var(--signal-green);
   border-color: var(--signal-green);
   color: var(--brutalist-bg);
+  box-shadow: 0 0 40px var(--signal-green-glow);
 }
 
-/* Brutalist Card */
+/* Brutalist Card - Enhanced with hover glow */
 .brutalist-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--brutalist-border);
   padding: 2rem;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.brutalist-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 255, 148, 0.05) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
 .brutalist-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(0, 255, 148, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 255, 148, 0.1);
+}
+
+.brutalist-card:hover::before {
+  opacity: 1;
 }
 
 /* Brutalist Flow Diagram */
@@ -1073,23 +1132,45 @@ select {
   border: 1px solid var(--brutalist-border);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.brutalist-flow-node:hover {
+  border-color: var(--signal-green);
+  box-shadow: 0 0 20px rgba(0, 255, 148, 0.2);
 }
 
 .brutalist-flow-arrow {
   color: var(--signal-green);
   font-size: 1.5rem;
+  animation: arrow-pulse 1.5s ease-in-out infinite;
 }
 
-/* Infinite Scroll Marquee */
+@keyframes arrow-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: translateX(4px);
+  }
+}
+
+/* Infinite Scroll Marquee - Faster and smoother */
 .brutalist-marquee {
   display: flex;
   overflow: hidden;
   white-space: nowrap;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
 }
 
 .brutalist-marquee-content {
   display: flex;
-  animation: marquee 30s linear infinite;
+  animation: marquee 20s linear infinite;
 }
 
 @keyframes marquee {
@@ -1119,14 +1200,259 @@ select {
   font-style: italic;
 }
 
-/* Scroll Animation Utility */
+/* === FLASHY ANIMATIONS === */
+
+/* Glitch Effect */
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+  }
+
+  20% {
+    transform: translate(-2px, 2px);
+  }
+
+  40% {
+    transform: translate(-2px, -2px);
+  }
+
+  60% {
+    transform: translate(2px, 2px);
+  }
+
+  80% {
+    transform: translate(2px, -2px);
+  }
+
+  100% {
+    transform: translate(0);
+  }
+}
+
+.brutalist-glitch:hover {
+  animation: glitch 0.3s ease infinite;
+}
+
+/* Gradient Shift */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.brutalist-gradient-text {
+  background: linear-gradient(90deg, #fff, var(--signal-green), var(--neon-cyan), #fff);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* Floating Animation */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.brutalist-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Scanner Line */
+@keyframes scanner {
+  0% {
+    top: 0;
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    top: 100%;
+    opacity: 1;
+  }
+}
+
+.brutalist-scanner::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--signal-green), transparent);
+  animation: scanner 3s ease-in-out infinite;
+}
+
+/* Neon Border */
+@keyframes neon-border {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px var(--signal-green), 0 0 10px var(--signal-green), 0 0 20px var(--signal-green);
+  }
+
+  50% {
+    box-shadow: 0 0 10px var(--signal-green), 0 0 20px var(--signal-green), 0 0 40px var(--signal-green);
+  }
+}
+
+.brutalist-neon-border {
+  border: 1px solid var(--signal-green);
+  animation: neon-border 2s ease-in-out infinite;
+}
+
+/* Typewriter Effect */
+@keyframes typewriter {
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink-caret {
+  50% {
+    border-color: transparent;
+  }
+}
+
+.brutalist-typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 3px solid var(--signal-green);
+  animation: typewriter 2s steps(30) 1s forwards, blink-caret 0.75s step-end infinite;
+}
+
+/* Particle Background */
+.brutalist-particles {
+  position: relative;
+  overflow: hidden;
+}
+
+.brutalist-particles::before,
+.brutalist-particles::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--signal-green);
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: particle-float 8s ease-in-out infinite;
+}
+
+.brutalist-particles::before {
+  top: 20%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.brutalist-particles::after {
+  top: 60%;
+  right: 15%;
+  animation-delay: 4s;
+}
+
+@keyframes particle-float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+
+  25% {
+    transform: translate(20px, -30px) scale(1.2);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: translate(-10px, -60px) scale(0.8);
+    opacity: 0.4;
+  }
+
+  75% {
+    transform: translate(30px, -30px) scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+/* Scroll Animation Utility - Enhanced */
 .brutalist-reveal {
   opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .brutalist-reveal.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Stagger Animation Delay Classes */
+.brutalist-delay-1 {
+  transition-delay: 0.1s;
+}
+
+.brutalist-delay-2 {
+  transition-delay: 0.2s;
+}
+
+.brutalist-delay-3 {
+  transition-delay: 0.3s;
+}
+
+.brutalist-delay-4 {
+  transition-delay: 0.4s;
+}
+
+.brutalist-delay-5 {
+  transition-delay: 0.5s;
+}
+
+/* Horizontal Scroll Line */
+@keyframes h-line-scroll {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.brutalist-hline-animated {
+  position: relative;
+  overflow: hidden;
+}
+
+.brutalist-hline-animated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--signal-green), transparent);
+  animation: h-line-scroll 3s ease-in-out infinite;
 }
