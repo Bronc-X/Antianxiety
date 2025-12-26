@@ -53,10 +53,10 @@ export default function BrutalistHero() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.3 }}
                         >
-                            <button className="brutalist-cta group">
+                            <a href="/brutalist/signup" className="brutalist-cta group inline-flex">
                                 <span>Request Access</span>
                                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                            </button>
+                            </a>
                         </motion.div>
                     </div>
 
