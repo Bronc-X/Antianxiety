@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiAnxiety 刷屏稿 03</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1080px;
+            height: 1920px;
+            background: linear-gradient(175deg, #1A1512 0%, #0A0A0A 40%, #0D1015 100%);
+            font-family: 'Noto Serif SC', 'Playfair Display', serif;
+            color: #FFFFFF;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.025;
+            pointer-events: none;
+        }
+
+        .glow-top {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, transparent 60%);
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            filter: blur(80px);
+        }
+
+        .glow-bottom {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(191, 90, 242, 0.1) 0%, transparent 60%);
+            bottom: 10%;
+            right: -100px;
+            filter: blur(100px);
+        }
+
+        .header {
+            padding: 60px 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #D4AF37, #F5D375);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.05em;
+        }
+
+        .tag {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .main {
+            padding: 20px 80px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 大标题 */
+        .hero-text {
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .hero-text .line1 {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 48px;
+        }
+
+        .hero-text .line2 {
+            color: #FFFFFF;
+        }
+
+        .hero-text .gold {
+            color: #D4AF37;
+        }
+
+        .hero-sub {
+            text-align: center;
+            font-size: 22px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 50px;
+        }
+
+        /* 旅程时间线 */
+        .journey {
+            position: relative;
+            padding-left: 60px;
+            margin-bottom: 40px;
+        }
+
+        .journey::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, #D4AF37, #30D158, #007AFF, #BF5AF2);
+        }
+
+        .journey-item {
+            position: relative;
+            padding: 30px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+        }
+
+        .journey-item::before {
+            content: '';
+            position: absolute;
+            left: -48px;
+            top: 35px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid;
+        }
+
+        .journey-item:nth-child(1)::before {
+            border-color: #D4AF37;
+            background: rgba(212, 175, 55, 0.3);
+        }
+
+        .journey-item:nth-child(2)::before {
+            border-color: #30D158;
+            background: rgba(48, 209, 88, 0.3);
+        }
+
+        .journey-item:nth-child(3)::before {
+            border-color: #007AFF;
+            background: rgba(0, 122, 255, 0.3);
+        }
+
+        .journey-item:nth-child(4)::before {
+            border-color: #BF5AF2;
+            background: rgba(191, 90, 242, 0.3);
+        }
+
+        .journey-day {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .journey-item:nth-child(1) .journey-day {
+            color: #D4AF37;
+        }
+
+        .journey-item:nth-child(2) .journey-day {
+            color: #30D158;
+        }
+
+        .journey-item:nth-child(3) .journey-day {
+            color: #007AFF;
+        }
+
+        .journey-item:nth-child(4) .journey-day {
+            color: #BF5AF2;
+        }
+
+        .journey-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .journey-desc {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* 底部 CTA */
+        .cta-section {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 24px;
+            margin-top: 20px;
+        }
+
+        .cta-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta-title .gold {
+            color: #D4AF37;
+        }
+
+        .cta-desc {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 24px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #D4AF37, #B8962F);
+            color: #000;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 20px 60px;
+            border-radius: 50px;
+            text-decoration: none;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 50px 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .footer-left {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .footer-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .qr-placeholder {
+            width: 90px;
+            height: 90px;
+            background: #FFFFFF;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #333;
+        }
+
+        .url-text {
+            font-size: 18px;
+            color: #D4AF37;
+            font-weight: 600;
+        }
+
+        /* 彩蛋：隐藏在时间线背后 */
+        .easter-egg-3 {
+            position: absolute;
+            top: 50%;
+            right: 80px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.02);
+            letter-spacing: 0.5em;
+        }
+
+        .easter-egg-3:hover {
+            color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 装饰元素 */
+        .deco-stars {
+            position: absolute;
+            top: 180px;
+            right: 80px;
+            font-size: 48px;
+            opacity: 0.1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow-top"></div>
+    <div class="glow-bottom"></div>
+
+    <header class="header">
+        <div class="brand">AntiAnxiety™</div>
+        <div class="tag">03/03</div>
+    </header>
+
+    <main class="main">
+        <div class="hero-text">
+            <div class="line1">30天后的你</div>
+            <div class="line2">会是<span class="gold">什么状态</span>？</div>
+        </div>
+        <p class="hero-sub">一个真实用户的蜕变旅程</p>
+
+        <div class="journey">
+            <div class="journey-item">
+                <div class="journey-day">DAY 1</div>
+                <div class="journey-title">首次校准</div>
+                <div class="journey-desc">同步穿戴设备，AI 了解你的基线</div>
+            </div>
+            <div class="journey-item">
+                <div class="journey-day">DAY 7</div>
+                <div class="journey-title">发现盲点</div>
+                <div class="journey-desc">"原来我周三总是 HRV 最低..."</div>
+            </div>
+            <div class="journey-item">
+                <div class="journey-day">DAY 14</div>
+                <div class="journey-title">习惯形成</div>
+                <div class="journey-desc">不再纠结"今天该不该练"，AI 已帮你决定</div>
+            </div>
+            <div class="journey-item">
+                <div class="journey-day">DAY 30</div>
+                <div class="journey-title">焦虑减半</div>
+                <div class="journey-desc">焦虑指数↓52%，睡眠质量↑38%</div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <div class="cta-title">现在开始，<span class="gold">遇见更好的自己</span></div>
+            <p class="cta-desc">首月仅需 ¥29 · 不满意全额退款</p>
+            <div class="cta-button">立即体验 →</div>
+        </div>
+    </main>
+
+    <div class="deco-stars">✦✦✦</div>
+
+    <div class="easter-egg-3">
+        你发现了这条隐藏消息！私信「彩蛋」领取限量周边
+    </div>
+
+    <footer class="footer">
+        <div class="footer-left">
+            © 2024 AntiAnxiety · 顺应生理节律的自律
+        </div>
+        <div class="footer-right">
+            <div class="url-text">antianxiety.app</div>
+            <div class="qr-placeholder">二维码占位</div>
+        </div>
+    </footer>
+</body>
+
+</html>

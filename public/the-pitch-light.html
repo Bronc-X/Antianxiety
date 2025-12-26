@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiAnxiety | 全球首个"反焦虑"生物数字孪生体</title>
+    <meta name="description" content="告别健康焦虑，拥抱科学休息。基于HealthKit与贝叶斯算法的1:1数字生理分身。">
+
+    <!-- Premium Serif Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            /* Dark Luxury Color Palette */
+            --bg-primary: #0A0A0A;
+            --bg-secondary: #111111;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255, 255, 255, 0.55);
+            --text-muted: rgba(255, 255, 255, 0.35);
+
+            /* Accent Colors */
+            --accent-blue: #007AFF;
+            /* 医疗蓝 */
+            --accent-orange: #FF9500;
+            /* 警示橙 */
+            --accent-gold: #D4AF37;
+            /* 金色 */
+            --accent-red: #FF453A;
+            /* 警示红 */
+            --accent-green: #30D158;
+            /* 成功绿 */
+            --accent-purple: #BF5AF2;
+            /* 紫色 */
+
+            /* Border & Glass */
+            --border-color: rgba(255, 255, 255, 0.08);
+            --glass-bg: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.06);
+
+            /* Typography */
+            --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.7;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle Noise Texture */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.015;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Scrolling Container */
+        .container {
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+            height: 100vh;
+        }
+
+        section {
+            min-height: 100vh;
+            width: 100%;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem 2rem;
+            position: relative;
+            border-bottom: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        /* =========================================
+           TYPOGRAPHY SYSTEM
+           ========================================= */
+        .section-tag {
+            font-family: var(--font-sans);
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .heavy-prompt {
+            font-family: var(--font-serif);
+            font-size: clamp(3rem, 12vw, 9rem);
+            font-weight: 500;
+            font-style: italic;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
+            text-align: center;
+            color: var(--text-primary);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+            z-index: 2;
+            max-width: 90vw;
+        }
+
+        .heavy-prompt .accent-blue {
+            color: var(--accent-blue);
+        }
+
+        .heavy-prompt .accent-orange {
+            color: var(--accent-orange);
+        }
+
+        .heavy-prompt .accent-gold {
+            color: var(--accent-gold);
+        }
+
+        .heavy-prompt .accent-red {
+            color: var(--accent-red);
+        }
+
+        .heavy-prompt .accent-green {
+            color: var(--accent-green);
+        }
+
+        .heavy-prompt .accent-purple {
+            color: var(--accent-purple);
+        }
+
+        .subtitle {
+            font-family: var(--font-sans);
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            color: var(--text-secondary);
+            margin-top: 1.5rem;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+        }
+
+        .content-block {
+            max-width: 680px;
+            margin-top: 3rem;
+            opacity: 0;
+            transform: translateY(35px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+        }
+
+        .content-block p {
+            font-size: clamp(1rem, 2.2vw, 1.2rem);
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.9;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-block p:last-child {
+            margin-bottom: 0;
+        }
+
+        .content-block .highlight {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .content-block .accent-blue {
+            color: var(--accent-blue);
+        }
+
+        .content-block .accent-orange {
+            color: var(--accent-orange);
+        }
+
+        .content-block .accent-gold {
+            color: var(--accent-gold);
+        }
+
+        /* Pull Quote */
+        .pull-quote {
+            font-family: var(--font-serif);
+            font-size: clamp(1.4rem, 3vw, 2rem);
+            font-style: italic;
+            color: var(--text-primary);
+            text-align: center;
+            max-width: 800px;
+            margin: 2rem 0;
+            line-height: 1.5;
+        }
+
+        /* =========================================
+           GLASSMORPHISM CARDS
+           ========================================= */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 2rem 2.5rem;
+            max-width: 620px;
+            margin-top: 2.5rem;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+        }
+
+        .glass-card .citation {
+            font-family: var(--font-sans);
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .glass-card blockquote {
+            font-family: var(--font-serif);
+            font-size: 1.15rem;
+            font-style: italic;
+            color: var(--text-primary);
+            line-height: 1.7;
+            border-left: 2px solid var(--accent-blue);
+            padding-left: 1.5rem;
+            margin: 0;
+        }
+
+        /* =========================================
+           PAIN POINTS LIST
+           ========================================= */
+        .pain-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            max-width: 700px;
+            margin-top: 2rem;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+        }
+
+        .pain-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 0.75rem;
+            padding: 1.5rem;
+            background: rgba(255, 69, 58, 0.05);
+            border: 1px solid rgba(255, 69, 58, 0.15);
+        }
+
+        .pain-item .icon {
+            font-size: 2rem;
+        }
+
+        .pain-item .label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .pain-item .desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .result-box {
+            background: rgba(255, 149, 0, 0.08);
+            border: 1px solid rgba(255, 149, 0, 0.2);
+            padding: 1.25rem 1.5rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .result-box p {
+            color: var(--accent-orange);
+            font-weight: 500;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .moat-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem 2rem;
+            max-width: 600px;
+            margin-top: 2rem;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
+        }
+
+        .moat-card .moat-title {
+            font-family: var(--font-sans);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-purple);
+            margin-bottom: 0.75rem;
+        }
+
+        .moat-card .moat-desc {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        section.active .moat-card {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .pain-list {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+
+        /* =========================================
+           CIRCULAR LOOP DIAGRAM
+           ========================================= */
+        .circular-loop {
+            width: 100%;
+            max-width: 480px;
+            margin-top: 2rem;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+        }
+
+        section.active .circular-loop {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .circular-loop svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .rotating-ring {
+            animation: rotate-ring 30s linear infinite;
+            transform-origin: center;
+        }
+
+        @keyframes rotate-ring {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .trend-chart.enhanced {
+            max-width: 550px;
+            padding: 1.5rem 1rem;
+        }
+
+        /* =========================================
+           LEGACY LOOP DIAGRAM
+           ========================================= */
+        .loop-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            width: 100%;
+            max-width: 700px;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+        }
+
+        .loop-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .loop-row.center {
+            justify-content: center;
+        }
+
+        .loop-arrow {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            opacity: 0.5;
+        }
+
+        .loop-arrow.down {
+            transform: rotate(90deg);
+        }
+
+        .loop-arrow.up {
+            transform: rotate(-90deg);
+        }
+
+        .node-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 1rem 1.25rem;
+            flex: 1;
+            min-width: 0;
+            transition: all 0.4s ease;
+        }
+
+        .node-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .node-card.full {
+            flex: none;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .node-step {
+            font-family: var(--font-sans);
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-blue);
+            margin-bottom: 0.35rem;
+        }
+
+        .node-title {
+            font-family: var(--font-serif);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .node-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+            line-height: 1.4;
+        }
+
+        .node-card.core {
+            border-color: var(--accent-blue);
+            background: rgba(0, 122, 255, 0.08);
+        }
+
+        .node-card.core .node-step {
+            color: var(--accent-gold);
+        }
+
+        .loop-feedback {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            border: 1px dashed var(--accent-gold);
+            background: rgba(212, 175, 55, 0.05);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .loop-feedback span {
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            font-weight: 500;
+        }
+
+        /* =========================================
+           METRICS CARDS
+           ========================================= */
+        .metrics-row {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 2rem;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
+        }
+
+        section.active .metrics-row {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            border: 1px solid var(--border-color);
+            background: var(--glass-bg);
+            min-width: 130px;
+        }
+
+        .metric-card .value {
+            font-family: var(--font-serif);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            line-height: 1;
+        }
+
+        .metric-card .label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 0.5rem;
+        }
+
+        /* =========================================
+           MAX FEATURE CARDS
+           ========================================= */
+        .max-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+            max-width: 800px;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+        }
+
+        section.active .max-features {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .max-feature-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.4s ease;
+        }
+
+        .max-feature-card:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-4px);
+        }
+
+        .max-feature-card .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .max-feature-card .feature-title {
+            font-family: var(--font-serif);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .max-feature-card .feature-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .max-features {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+
+        /* =========================================
+           MARKET VISION CARDS
+           ========================================= */
+        .vision-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+            max-width: 600px;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+        }
+
+        section.active .vision-list {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .vision-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.25rem 1.5rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            text-align: left;
+        }
+
+        .vision-item .icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .vision-item .content {
+            flex: 1;
+        }
+
+        .vision-item .title {
+            font-family: var(--font-serif);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .vision-item .desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .loop-row {
+                flex-direction: column;
+            }
+
+            .loop-arrow {
+                transform: rotate(90deg) !important;
+            }
+
+            .metrics-row {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        /* =========================================
+           JOURNAL TICKER
+           ========================================= */
+        .ticker-wrapper {
+            position: absolute;
+            bottom: 5%;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+            opacity: 0;
+            transition: opacity 1.2s ease 0.7s;
+        }
+
+        .ticker-content {
+            display: inline-block;
+            animation: scroll 40s linear infinite;
+        }
+
+        .journal-logo {
+            display: inline-block;
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            font-weight: 500;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.08);
+            margin: 0 3rem;
+        }
+
+        @keyframes scroll {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* =========================================
+           MOAT DATA VISUALIZATION
+           ========================================= */
+        .data-comparison {
+            display: flex;
+            gap: 2rem;
+            margin-top: 2.5rem;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
+        }
+
+        .data-block {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            border: 1px solid var(--border-color);
+            min-width: 140px;
+        }
+
+        .data-block .value {
+            font-family: var(--font-serif);
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            line-height: 1;
+        }
+
+        .data-block .label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 0.75rem;
+        }
+
+        .data-block.highlight .value {
+            color: var(--accent-gold);
+        }
+
+        .data-block.highlight {
+            border-color: var(--accent-gold);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        /* =========================================
+           CTA SECTION
+           ========================================= */
+        .cta-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            margin-top: 3rem;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
+        }
+
+        .btn-primary {
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--bg-primary);
+            background: var(--text-primary);
+            border: none;
+            padding: 1rem 2.5rem;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-gold);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            font-family: var(--font-sans);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            color: var(--text-primary);
+            border-bottom-color: var(--text-primary);
+        }
+
+        /* =========================================
+           SCROLL INDICATOR
+           ========================================= */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 1s ease 1s;
+        }
+
+        section.active .scroll-indicator {
+            opacity: 0.35;
+        }
+
+        .scroll-indicator span {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+        }
+
+        .scroll-line {
+            width: 1px;
+            height: 35px;
+            background: linear-gradient(to bottom, var(--text-muted), transparent);
+            animation: scroll-pulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes scroll-pulse {
+
+            0%,
+            100% {
+                opacity: 0.2;
+                height: 35px;
+            }
+
+            50% {
+                opacity: 0.6;
+                height: 45px;
+            }
+        }
+
+        /* =========================================
+           AMBIENT GLOW EFFECTS
+           ========================================= */
+        .glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        .glow-blue {
+            background: radial-gradient(circle, rgba(0, 122, 255, 0.25) 0%, transparent 70%);
+        }
+
+        .glow-orange {
+            background: radial-gradient(circle, rgba(255, 149, 0, 0.2) 0%, transparent 70%);
+        }
+
+        .glow-gold {
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, transparent 70%);
+        }
+
+        .glow-red {
+            background: radial-gradient(circle, rgba(255, 69, 58, 0.15) 0%, transparent 70%);
+        }
+
+        .glow-green {
+            background: radial-gradient(circle, rgba(48, 209, 88, 0.2) 0%, transparent 70%);
+        }
+
+        /* =========================================
+           ANIMATIONS TRIGGERED STATE
+           ========================================= */
+        section.active .section-tag,
+        section.active .heavy-prompt,
+        section.active .subtitle,
+        section.active .content-block,
+        section.active .glass-card,
+        section.active .pain-list,
+        section.active .loop-diagram,
+        section.active .ticker-wrapper,
+        section.active .data-comparison,
+        section.active .cta-group {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* =========================================
+           RESPONSIVE
+           ========================================= */
+        @media (max-width: 768px) {
+            section {
+                padding: 3rem 1.5rem;
+            }
+
+            .heavy-prompt {
+                font-size: clamp(2.5rem, 14vw, 4.5rem);
+            }
+
+            .content-block {
+                margin-top: 2rem;
+            }
+
+            .content-block p {
+                font-size: 1rem;
+            }
+
+            .glass-card {
+                padding: 1.5rem;
+            }
+
+            .pain-item {
+                padding: 0.75rem 1rem;
+            }
+
+            .node-card {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+                text-align: center;
+            }
+
+            .node-number {
+                display: none;
+            }
+
+            .node-badge {
+                justify-self: center;
+            }
+
+            .node-content {
+                text-align: center;
+            }
+
+            .data-comparison {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .journal-logo {
+                font-size: 1.3rem;
+                margin: 0 1.5rem;
+            }
+
+            .glow {
+                display: none;
+            }
+        }
+
+        /* =========================================
+           NAVIGATION BAR
+           ========================================= */
+        .nav-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-logo {
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-style: italic;
+            color: var(--text-primary);
+            letter-spacing: 0.02em;
+        }
+
+        .nav-logo .tm {
+            font-size: 0.6em;
+            vertical-align: super;
+            font-style: normal;
+            opacity: 0.6;
+        }
+
+        .nav-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--font-sans);
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+        }
+
+        .nav-spacer {
+            width: 100px;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--glass-bg);
+            border-color: var(--accent-gold);
+        }
+
+        /* Logo Group for Pain Items */
+        .logo-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Familiarity Trend Chart */
+        .trend-chart {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.6s;
+        }
+
+        section.active .trend-chart {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .trend-chart .chart-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .trend-chart svg {
+            width: 100%;
+            height: auto;
+        }
+
+        @media (max-width: 768px) {
+            .nav-bar {
+                padding: 0.75rem 1rem;
+            }
+
+            .nav-logo {
+                font-size: 0.95rem;
+            }
+
+            .nav-title {
+                font-size: 0.6rem;
+                letter-spacing: 0.1em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <div class="nav-logo">AntiAnxiety<span class="tm">TM</span></div>
+        <div class="nav-title">MARPA 路演演示</div>
+        <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="12" cy="12" r="5" />
+                <path
+                    d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            </svg>
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" style="display:none;">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+        </button>
+    </nav>
+
+    <div class="container">
+
+        <!-- ============================================
+         第一屏：开场与定义 (The Hook)
+         ============================================ -->
+        <section>
+            <div class="glow glow-blue" style="width: 600px; height: 600px; top: -20%; left: -15%;"></div>
+            <div class="glow glow-gold" style="width: 400px; height: 400px; bottom: 10%; right: -10%;"></div>
+
+            <span class="section-tag">🟢 AntiAnxiety</span>
+            <h1 class="heavy-prompt">个人健康<br><span class="accent-blue">智能体</span></h1>
+            <p class="subtitle">The World's First Anti-Anxiety Health Agent for the 30+ Elite.</p>
+
+            <div class="content-block">
+                <p>
+                    市场主流 APP 一直用<span class="highlight">线性增长</span>来提升日活，<br>
+                    忽略<span class="accent-orange">代谢退行</span>的真相。
+                </p>
+                <p class="pull-quote">
+                    所以我做了这个：<br>
+                    全球首个<span class="accent-gold">"反焦虑"</span>个人健康智能体
+                </p>
+            </div>
+
+            <div class="scroll-indicator">
+                <span>Scroll</span>
+                <div class="scroll-line"></div>
+            </div>
+        </section>
+
+        <!-- ============================================
+         第二屏：痛点 (The Pain)
+         ============================================ -->
+        <section>
+            <div class="glow glow-red" style="width: 500px; height: 500px; top: 15%; right: -10%;"></div>
+
+            <span class="section-tag">🔴 The Pain</span>
+            <h1 class="heavy-prompt">代谢<br><span class="accent-red">悬崖</span></h1>
+            <p class="subtitle">Metabolic Cliff — The Hidden Battlefield After 30</p>
+
+            <div class="content-block">
+                <p>30 岁后的焦虑，源于<span class="highlight">"生理现实"</span>与<span class="highlight">"数字算法"</span>的错位。</p>
+                <p>你的身体面临代谢下行，但市面上的 App 却在逼迫你"线性增长"。</p>
+            </div>
+
+            <div class="pain-list">
+                <div class="pain-item">
+                    <div class="logo-group" style="margin-bottom: 0.5rem;">
+                        <!-- Keep Logo -->
+                        <svg width="55" height="24" viewBox="0 0 100 40" fill="currentColor">
+                            <text x="0" y="28" font-family="Arial Black, sans-serif" font-size="24"
+                                font-weight="900">Keep</text>
+                        </svg>
+                        <!-- Strava Logo -->
+                        <svg width="60" height="24" viewBox="0 0 100 40" fill="currentColor">
+                            <text x="0" y="28" font-family="Arial, sans-serif" font-size="20" font-weight="700"
+                                font-style="italic">Strava</text>
+                        </svg>
+                    </div>
+                    <div class="desc">把你当机器，用断卡制造挫败感</div>
+                </div>
+                <div class="pain-item">
+                    <div class="logo-group">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.8956zm16.0993 3.8558L12.6 8.3829l2.02-1.1638a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" />
+                        </svg>
+                    </div>
+                    <div class="label">AGI 大模型</div>
+                    <div class="desc">把你当统计，建议永远"多喝热水"</div>
+                </div>
+                <div class="pain-item" style="grid-column: span 2; max-width: 500px; justify-self: center;">
+                    <div class="logo-group">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
+                        </svg>
+                    </div>
+                    <div class="label">大厂不做</div>
+                    <div class="desc">服务亿级群体，只能提供标准化、普世化建议</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+         第三屏：科学真相 (The Evidence)
+         ============================================ -->
+        <section>
+            <div class="glow glow-blue" style="width: 450px; height: 450px; bottom: 20%; left: 5%;"></div>
+
+            <span class="section-tag">🔵 The Evidence</span>
+            <h1 class="heavy-prompt">休息即<br><span class="accent-green">进化</span></h1>
+            <p class="subtitle">Rest Is Progress — Evidence-Based Discovery</p>
+
+            <div class="content-block">
+                <p class="pull-quote">"真正的长期主义，是抑制行动的定力。"</p>
+            </div>
+
+            <div class="glass-card">
+                <span class="citation">📚 Medicine & Science in Sports & Exercise (Kiviniemi et al. 2007)</span>
+                <blockquote>
+                    "HRV-guided training produced greater improvement in maximal running performance and VO₂max compared
+                    to predefined training."
+                </blockquote>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem; font-style: normal;">
+                    “基于 HRV 的训练指导，比预先设定的训练计划，能带来更高的最大跑步性能和 VO₂max 提升。”
+                </p>
+            </div>
+
+            <div class="content-block" style="margin-top: 2rem;">
+                <p>
+                    当身体报警时，强行运动带来的不是适应，而是<span class="accent-orange">炎症</span>。<br>
+                    我们是全球唯一基于循证医学，鼓励你<span class="accent-gold">"放弃"</span>的平台。
+                </p>
+            </div>
+
+            <div class="ticker-wrapper">
+                <div class="ticker-content">
+                    <span class="journal-logo">Nature</span>
+                    <span class="journal-logo">The Lancet</span>
+                    <span class="journal-logo">Cell</span>
+                    <span class="journal-logo">NEJM</span>
+                    <span class="journal-logo">JAMA</span>
+                    <span class="journal-logo">Science</span>
+                    <span class="journal-logo">Nature</span>
+                    <span class="journal-logo">The Lancet</span>
+                    <span class="journal-logo">Cell</span>
+                    <span class="journal-logo">NEJM</span>
+                    <span class="journal-logo">JAMA</span>
+                    <span class="journal-logo">Science</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+         第四屏：解决方案 (The Solution)
+         ============================================ -->
+        <section>
+            <div class="glow glow-blue" style="width: 500px; height: 500px; top: 10%; right: 5%;"></div>
+            <div class="glow glow-gold" style="width: 350px; height: 350px; bottom: 15%; left: -5%;"></div>
+
+            <span class="section-tag">🟣 The Solution</span>
+            <h1 class="heavy-prompt">智能<br><span class="accent-blue">闭环</span></h1>
+            <p class="subtitle">AI-Powered Closed Loop — Goodbye Willpower, Hello Automation</p>
+
+            <div class="loop-diagram">
+                <!-- Ellipse Loop SVG -->
+                <svg viewBox="0 0 700 420" style="width: 100%; max-width: 700px; height: auto;">
+                    <!-- Ellipse track -->
+                    <ellipse cx="350" cy="210" rx="290" ry="140" fill="none" stroke="rgba(255,255,255,0.05)"
+                        stroke-width="45" />
+                    <ellipse cx="350" cy="210" rx="290" ry="140" fill="none" stroke="url(#ellipseGrad2)"
+                        stroke-width="2" stroke-dasharray="8 4" />
+
+                    <defs>
+                        <linearGradient id="ellipseGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#D4AF37" />
+                            <stop offset="50%" stop-color="#007AFF" />
+                            <stop offset="100%" stop-color="#D4AF37" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Step 01: Top -->
+                    <g class="loop-step">
+                        <rect x="260" y="35" width="180" height="70" rx="4" fill="rgba(212,175,55,0.1)" stroke="#D4AF37"
+                            stroke-width="1.5" />
+                        <text x="350" y="58" text-anchor="middle" fill="#D4AF37" font-size="10" font-weight="700">STEP
+                            01</text>
+                        <text x="350" y="78" text-anchor="middle" fill="currentColor" font-size="14"
+                            font-weight="600">主动问询</text>
+                        <text x="350" y="94" text-anchor="middle" fill="currentColor" fill-opacity="0.5"
+                            font-size="9">每日主观状态抓取</text>
+                    </g>
+
+                    <!-- Step 02: Right -->
+                    <g class="loop-step">
+                        <rect x="540" y="175" width="155" height="70" rx="4" fill="rgba(0,122,255,0.1)" stroke="#007AFF"
+                            stroke-width="1.5" />
+                        <text x="617" y="198" text-anchor="middle" fill="#007AFF" font-size="10" font-weight="700">STEP
+                            02</text>
+                        <text x="617" y="218" text-anchor="middle" fill="currentColor" font-size="14"
+                            font-weight="600">硬件数据</text>
+                        <text x="617" y="234" text-anchor="middle" fill="currentColor" fill-opacity="0.5"
+                            font-size="9">Oura · Watch · HRV</text>
+                    </g>
+
+                    <!-- Step 03: Bottom -->
+                    <g class="loop-step">
+                        <rect x="260" y="315" width="180" height="70" rx="4" fill="rgba(48,209,88,0.1)" stroke="#30D158"
+                            stroke-width="1.5" />
+                        <text x="350" y="338" text-anchor="middle" fill="#30D158" font-size="10" font-weight="700">STEP
+                            03</text>
+                        <text x="350" y="358" text-anchor="middle" fill="currentColor" font-size="14"
+                            font-weight="600">RAG 推送</text>
+                        <text x="350" y="374" text-anchor="middle" fill="currentColor" fill-opacity="0.5"
+                            font-size="9">个性化期刊 + 行动清单</text>
+                    </g>
+
+                    <!-- Step 04: Left -->
+                    <g class="loop-step">
+                        <rect x="5" y="175" width="145" height="70" rx="4" fill="rgba(191,90,242,0.1)" stroke="#BF5AF2"
+                            stroke-width="1.5" />
+                        <text x="77" y="198" text-anchor="middle" fill="#BF5AF2" font-size="10" font-weight="700">STEP
+                            04</text>
+                        <text x="77" y="218" text-anchor="middle" fill="currentColor" font-size="14"
+                            font-weight="600">生物验证</text>
+                        <text x="77" y="234" text-anchor="middle" fill="currentColor" fill-opacity="0.5"
+                            font-size="9">权重修正 → 越用越准</text>
+                    </g>
+
+                    <!-- Center: Bayesian Engine -->
+                    <ellipse cx="350" cy="210" rx="100" ry="55" fill="rgba(0,122,255,0.08)" stroke="#007AFF"
+                        stroke-width="1.5" />
+                    <text x="350" y="195" text-anchor="middle" fill="#D4AF37" font-size="11" font-weight="700">★
+                        贝叶斯引擎</text>
+                    <text x="350" y="215" text-anchor="middle" fill="currentColor" font-size="13" font-weight="600">训练
+                        or 恢复？</text>
+                    <text x="350" y="232" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">个性化决策</text>
+                </svg>
+
+                <div
+                    style="text-align: center; margin-top: 0.5rem; color: var(--accent-gold); font-size: 0.85rem; font-weight: 500;">
+                    🔄 流程自动流转至第二天 — 形成闭环
+                </div>
+
+                <!-- Enhanced Familiarity Trend Chart -->
+                <div class="trend-chart enhanced">
+                    <div class="chart-title">AI 对用户熟悉度走势 · Personalization Over Time</div>
+                    <svg viewBox="0 0 480 180" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.35" />
+                                <stop offset="100%" stop-color="#D4AF37" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Grid lines -->
+                        <line x1="50" y1="25" x2="50" y2="130" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
+                        <line x1="200" y1="25" x2="200" y2="130" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
+                        <line x1="430" y1="25" x2="430" y2="130" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
+                        <line x1="50" y1="130" x2="430" y2="130" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+
+                        <!-- Y-axis labels -->
+                        <text x="35" y="32" text-anchor="end" fill="rgba(255,255,255,0.3)" font-size="9">100%</text>
+                        <text x="35" y="80" text-anchor="end" fill="rgba(255,255,255,0.3)" font-size="9">50%</text>
+                        <text x="35" y="133" text-anchor="end" fill="rgba(255,255,255,0.3)" font-size="9">0%</text>
+
+                        <!-- Area fill -->
+                        <path d="M50,100 C100,88 150,78 200,65 S320,42 370,32 S420,25 430,22 L430,130 L50,130 Z"
+                            fill="url(#areaGradient)" />
+
+                        <!-- Main trend line -->
+                        <path d="M50,100 C100,88 150,78 200,65 S320,42 370,32 S420,25 430,22" fill="none"
+                            stroke="#D4AF37" stroke-width="3" stroke-linecap="round" />
+
+                        <!-- Data points with rings -->
+                        <circle cx="50" cy="100" r="10" fill="rgba(212,175,55,0.15)" stroke="none" />
+                        <circle cx="50" cy="100" r="6" fill="#0A0A0A" stroke="#D4AF37" stroke-width="2" />
+
+                        <circle cx="200" cy="65" r="10" fill="rgba(212,175,55,0.15)" stroke="none" />
+                        <circle cx="200" cy="65" r="6" fill="#0A0A0A" stroke="#D4AF37" stroke-width="2" />
+
+                        <circle cx="430" cy="22" r="12" fill="rgba(212,175,55,0.2)" stroke="none" />
+                        <circle cx="430" cy="22" r="8" fill="#D4AF37" />
+
+                        <!-- Value labels -->
+                        <rect x="30" y="78" width="40" height="18" rx="3" fill="rgba(212,175,55,0.12)" />
+                        <text x="50" y="91" text-anchor="middle" fill="#D4AF37" font-size="11"
+                            font-weight="700">70%</text>
+
+                        <rect x="180" y="43" width="40" height="18" rx="3" fill="rgba(212,175,55,0.12)" />
+                        <text x="200" y="56" text-anchor="middle" fill="#D4AF37" font-size="11"
+                            font-weight="700">80%</text>
+
+                        <rect x="402" y="32" width="56" height="22" rx="4" fill="#D4AF37" />
+                        <text x="430" y="48" text-anchor="middle" fill="#0A0A0A" font-size="13"
+                            font-weight="800">95%</text>
+
+                        <!-- X-axis with phase info -->
+                        <text x="50" y="150" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="11"
+                            font-weight="500">1
+                            天</text>
+                        <text x="50" y="165" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-size="8">初始化</text>
+
+                        <text x="200" y="150" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="11"
+                            font-weight="500">10
+                            天</text>
+                        <text x="200" y="165" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-size="8">学习期</text>
+
+                        <text x="430" y="150" text-anchor="middle" fill="#D4AF37" font-size="12" font-weight="700">30
+                            天</text>
+                        <text x="430" y="165" text-anchor="middle" fill="rgba(212,175,55,0.7)"
+                            font-size="8">深度个性化</text>
+
+                        <!-- Milestone indicators -->
+                        <line x1="50" y1="130" x2="50" y2="136" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+                        <line x1="200" y1="130" x2="200" y2="136" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+                        <line x1="430" y1="130" x2="430" y2="136" stroke="#D4AF37" stroke-width="2" />
+                    </svg>
+                </div>
+
+                <div class="content-block" style="margin-top: 2rem;">
+                    <p>这是一个会根据你的状态，<span class="highlight">动态调整终点线</span>的系统。</p>
+                </div>
+        </section>
+
+        <!-- ============================================
+         第五屏：认识 Max (Meet Max - The Agent)
+         ============================================ -->
+        <section>
+            <div class="glow glow-green" style="width: 550px; height: 550px; top: 10%; right: -5%;"></div>
+            <div class="glow glow-gold" style="width: 400px; height: 400px; bottom: 20%; left: -10%;"></div>
+
+            <span class="section-tag">🤖 The Agent</span>
+            <h1 class="heavy-prompt">认识<br><span class="accent-green">Max</span></h1>
+            <p class="subtitle">24h 跑工作流的个人健康智能体</p>
+
+            <div class="content-block">
+                <p class="pull-quote">
+                    Max 不是一个 AI 聊天机器人。<br>
+                    它是一个<span class="accent-gold">闭环智能系统</span>。
+                </p>
+            </div>
+
+            <!-- Max 五大核心功能 -->
+            <div class="max-features" style="grid-template-columns: repeat(5, 1fr); gap: 1rem;">
+                <div class="max-feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">主动关怀</div>
+                    <div class="feature-desc">不等你崩溃才行动，<br>先一步察觉异常</div>
+                </div>
+                <div class="max-feature-card">
+                    <div class="feature-icon">📚</div>
+                    <div class="feature-title">真正的研究</div>
+                    <div class="feature-desc">过滤营销软文，<br>只推临床研究</div>
+                </div>
+                <div class="max-feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-title">诚实不确定性</div>
+                    <div class="feature-desc">给你概率，<br>不是虚假的确定性</div>
+                </div>
+                <div class="max-feature-card">
+                    <div class="feature-icon">☀️</div>
+                    <div class="feature-title">每日身心校准</div>
+                    <div class="feature-desc">60秒让你知道，<br>今天该冲还是该歇</div>
+                </div>
+                <div class="max-feature-card">
+                    <div class="feature-icon">⌚</div>
+                    <div class="feature-title">用你现有的</div>
+                    <div class="feature-desc">兼容95%穿戴设备，<br>不用买新硬件</div>
+                </div>
+            </div>
+
+            <div class="content-block" style="margin-top: 2rem;">
+                <p style="font-size: 0.9rem; color: var(--text-muted);">
+                    它不会说"加油！"。它会说：<br>
+                    "你现在感到焦虑，意味着皮质醇已达峰值。一个5分钟的步行是为了'代谢'你的压力激素。"
+                </p>
+            </div>
+        </section>
+
+        <!-- ============================================
+         第六屏：护城河 (The Moat)
+         ============================================ -->
+        <section>
+            <div class="glow glow-gold" style="width: 600px; height: 600px; top: 5%; left: -10%;"></div>
+
+            <span class="section-tag">🟡 The Moat</span>
+            <h1 class="heavy-prompt"><span class="accent-gold">不可替代</span></h1>
+            <p class="subtitle">Irreplaceable — N-of-1 Data Network Effect</p>
+
+            <div class="content-block">
+                <p class="pull-quote">"通用模型服务数 10 亿人，怎么懂你？"</p>
+                <p>
+                    AntiAnxiety 用得越久，它对你<span class="accent-gold">"疲劳曲线"</span>的预测就越精准。
+                </p>
+            </div>
+
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <div class="value">80%</div>
+                    <div class="label">订阅用户黏性</div>
+                </div>
+                <div class="metric-card">
+                    <div class="value">70%</div>
+                    <div class="label">日活率</div>
+                </div>
+            </div>
+
+            <div class="data-comparison">
+                <div class="data-block">
+                    <div class="value">70%</div>
+                    <div class="label">1 天</div>
+                </div>
+                <div class="data-block">
+                    <div class="value">80%</div>
+                    <div class="label">10 天</div>
+                </div>
+                <div class="data-block highlight">
+                    <div class="value">95%</div>
+                    <div class="label">30 天</div>
+                </div>
+            </div>
+
+            <div class="content-block" style="margin-top: 2rem;">
+                <p>
+                    三个月后，它将比你自己更了解你的身体。<br>
+                    这种<span class="highlight">深度共生的依赖关系</span>，是我们无法被大厂复制的壁垒。
+                </p>
+            </div>
+        </section>
+
+        <!-- ============================================
+         第六屏：愿景与行动 (The Vision)
+         ============================================ -->
+        <section>
+            <div class="glow glow-green" style="width: 500px; height: 500px; bottom: 20%; right: 10%;"></div>
+            <div class="glow glow-blue" style="width: 400px; height: 400px; top: 10%; left: 5%;"></div>
+
+            <span class="section-tag">⚫️ The Vision</span>
+            <h1 class="heavy-prompt">未来<br><span class="accent-green">市场</span></h1>
+            <p class="subtitle">Future Markets — From Health to Lifestyle</p>
+
+            <div class="vision-list">
+                <div class="vision-item">
+                    <span class="icon">🎯</span>
+                    <div class="content">
+                        <div class="title">精力资产管理</div>
+                        <div class="desc">从健康管理进阶到全周期精力管理 — 针对中产阶级高客单价的垂直赛道</div>
+                    </div>
+                </div>
+                <div class="vision-item">
+                    <span class="icon">🏢</span>
+                    <div class="content">
+                        <div class="title">企业员工健康福利</div>
+                        <div class="desc">延伸至 toB 的 EAP（员工援助计划）— 提升企业健康生产力</div>
+                    </div>
+                </div>
+                <div class="vision-item">
+                    <span class="icon">⌚</span>
+                    <div class="content">
+                        <div class="title">自有生态硬件</div>
+                        <div class="desc">从第三方穿戴到自有设备：智能戒指、生物贴片、HRV 耳机等 Z 世代新兴穿戴</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cta-group">
+                <button class="btn-primary">Join the Revolution</button>
+                <a href="mailto:contact@antianxiety.app" class="btn-secondary">联系创始人 →</a>
+            </div>
+
+            <div class="content-block" style="margin-top: 2rem;">
+                <p
+                    style="font-family: var(--font-serif); font-style: italic; font-size: 1.3rem; color: var(--accent-gold);">
+                    AntiAnxiety.
+                </p>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.3,
+            rootMargin: '-5% 0px -5% 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Add active class to first section on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.querySelector('section').classList.add('active');
+            }, 150);
+        });
+
+        // Smooth scroll behavior for mobile
+        if ('scrollBehavior' in document.documentElement.style === false) {
+            import('https://unpkg.com/smoothscroll-polyfill@0.4.4/dist/smoothscroll.min.js')
+                .then(() => window.__forceSmoothScrollPolyfill__ = true);
+        }
+
+        // Theme Toggle Function
+        let isDarkTheme = true;
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+            const root = document.documentElement;
+            const sunIcon = document.querySelector('.icon-sun');
+            const moonIcon = document.querySelector('.icon-moon');
+
+            if (isDarkTheme) {
+                // Dark theme
+                root.style.setProperty('--bg-primary', '#0A0A0A');
+                root.style.setProperty('--bg-secondary', '#111111');
+                root.style.setProperty('--bg-card', 'rgba(255, 255, 255, 0.03)');
+                root.style.setProperty('--text-primary', '#FFFFFF');
+                root.style.setProperty('--text-secondary', 'rgba(255, 255, 255, 0.55)');
+                root.style.setProperty('--text-muted', 'rgba(255, 255, 255, 0.35)');
+                root.style.setProperty('--border-color', 'rgba(255, 255, 255, 0.08)');
+                root.style.setProperty('--glass-bg', 'rgba(255, 255, 255, 0.02)');
+                root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.06)');
+                document.querySelector('.nav-bar').style.background = 'rgba(10, 10, 10, 0.85)';
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            } else {
+                // Light theme
+                root.style.setProperty('--bg-primary', '#FAF6EF');
+                root.style.setProperty('--bg-secondary', '#F5F0E8');
+                root.style.setProperty('--bg-card', 'rgba(255, 255, 255, 0.7)');
+                root.style.setProperty('--text-primary', '#1A1A1A');
+                root.style.setProperty('--text-secondary', 'rgba(26, 26, 26, 0.6)');
+                root.style.setProperty('--text-muted', 'rgba(26, 26, 26, 0.4)');
+                root.style.setProperty('--border-color', 'rgba(26, 26, 26, 0.08)');
+                root.style.setProperty('--glass-bg', 'rgba(255, 255, 255, 0.6)');
+                root.style.setProperty('--glass-border', 'rgba(26, 26, 26, 0.08)');
+                document.querySelector('.nav-bar').style.background = 'rgba(250, 246, 239, 0.9)';
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+            }
+        }
+    </script>
+
+    <!-- 悬浮按钮 -->
+    <div class="floating-buttons">
+        <button class="float-btn" onclick="openModal('scene-modal')">
+            <span>📊</span>
+            <span>场景</span>
+        </button>
+        <button class="float-btn" onclick="openModal('driver-modal')">
+            <span>🚀</span>
+            <span>驱动力</span>
+        </button>
+    </div>
+
+    <!-- 场景模态框 -->
+    <div id="scene-modal" class="image-modal" onclick="closeModal('scene-modal')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal('scene-modal')">✕</button>
+            <h2 class="modal-title">场景分析</h2>
+            <img src="pitch-scene.png" alt="场景分析" class="modal-image">
+        </div>
+    </div>
+
+    <!-- 驱动力模态框 -->
+    <div id="driver-modal" class="image-modal" onclick="closeModal('driver-modal')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal('driver-modal')">✕</button>
+            <h2 class="modal-title">驱动力分析</h2>
+            <img src="pitch-driver.png" alt="驱动力分析" class="modal-image">
+        </div>
+    </div>
+
+    <style>
+        /* Floating Buttons */
+        .floating-buttons {
+            position: fixed;
+            right: 24px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .float-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.9), rgba(180, 140, 20, 0.9));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .float-btn span:first-child {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+
+        .float-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(212, 175, 55, 0.4);
+        }
+
+        /* Image Modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .image-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            position: relative;
+            max-width: 95vw;
+            max-height: 95vh;
+            background: var(--bg-secondary, #111);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: auto;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .modal-title {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            color: var(--accent-gold, #D4AF37);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .modal-image {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .floating-buttons {
+                right: 16px;
+                bottom: 80px;
+            }
+
+            .float-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 0.55rem;
+            }
+
+            .float-btn span:first-child {
+                font-size: 1rem;
+            }
+        }
+    </style>
+
+    <script>
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // ESC 键关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.image-modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+                document.body.style.overflow = '';
+            }
+        });
+    </script>
+
+</body>
+
+</html>

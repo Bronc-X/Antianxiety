@@ -17,7 +17,7 @@ export default function GlobalNav() {
   const supabase = createClientSupabaseClient();
 
   // Hide nav on auth pages and marketing pages (which have their own nav)
-  const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta'];
+  const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta', '/brutalist'];
   const shouldHideNav = hideNavPages.some(page => pathname?.startsWith(page));
 
   useEffect(() => {
