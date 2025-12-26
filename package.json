@@ -63,6 +63,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.67.0",
+    "react-markdown": "^10.1.0",
     "react-tweet": "^3.2.2",
     "recharts": "^3.5.0",
     "resend": "^6.5.2",
