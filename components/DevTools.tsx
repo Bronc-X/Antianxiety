@@ -153,10 +153,10 @@ export function DevTools() {
         touchAction: 'none',
       }}
       className={`fixed z-[9999] px-3 py-1.5 text-white text-xs rounded-full transition-colors cursor-grab active:cursor-grabbing select-none ${isActive
-          ? 'bg-emerald-600 opacity-100 shadow-lg'
-          : 'bg-[#0B3D2E] opacity-80 hover:opacity-100'
+        ? 'bg-emerald-600 opacity-100 shadow-lg'
+        : 'bg-[#0B3D2E] opacity-80 hover:opacity-100'
         } ${isDragging ? 'scale-110 shadow-xl' : ''}`}
-      title="拖动移动 | Ctrl+Shift+C 切换 | Alt+Click 检查"
+      title="Drag to move | Ctrl+Shift+C toggle | Alt+Click inspect"
     >
       🔍 {isActive ? 'Grab Active' : 'Dev Mode'}
     </button>

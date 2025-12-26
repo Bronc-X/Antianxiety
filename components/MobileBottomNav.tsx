@@ -31,7 +31,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     id: 'today',
-    label: '今日',
+    label: 'Today',
     icon: <CalendarDays className="w-5 h-5" />,
     href: '/landing',
     activeRoutes: ['/landing', '/plans', '/'],
@@ -45,14 +45,14 @@ const navItems: NavItem[] = [
   },
   {
     id: 'science',
-    label: '科学',
+    label: 'Science',
     icon: <FlaskConical className="w-5 h-5" />,
     href: '/bayesian',
     activeRoutes: ['/bayesian', '/analysis', '/feed', '/content'],
   },
   {
     id: 'profile',
-    label: '我的',
+    label: 'Profile',
     icon: <User className="w-5 h-5" />,
     href: '/settings',
     activeRoutes: ['/settings', '/upgrade', '/profile'],
@@ -118,8 +118,8 @@ export default function MobileBottomNav() {
                       }}
                       // Tailwind colors need to be resolved or used as classes logic below checks this
                       className={`relative z-10 transition-colors ${active
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-neutral-400 dark:text-neutral-500'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-neutral-400 dark:text-neutral-500'
                         }`}
                       whileTap={{ scale: 0.8 }}
                     >
@@ -142,8 +142,8 @@ export default function MobileBottomNav() {
                   */}
                   <span
                     className={`text-[9px] font-medium transition-all duration-300 ${active
-                        ? 'text-emerald-600 dark:text-emerald-400 opacity-100 translate-y-0'
-                        : 'text-neutral-400 dark:text-neutral-500 opacity-0 -translate-y-2 hidden'
+                      ? 'text-emerald-600 dark:text-emerald-400 opacity-100 translate-y-0'
+                      : 'text-neutral-400 dark:text-neutral-500 opacity-0 -translate-y-2 hidden'
                       }`}
                   >
                     {item.label}
