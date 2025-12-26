@@ -15,7 +15,10 @@ interface NavLink {
 
 const navLinks: NavLink[] = [
     { href: '/brutalist/dashboard', label: 'Dashboard', requiresAuth: true },
+    { href: '/brutalist/max', label: 'Max', requiresAuth: true },
     { href: '/brutalist/calibration', label: 'Calibrate', requiresAuth: true },
+    { href: '/brutalist/plans', label: 'Plans', requiresAuth: true },
+    { href: '/brutalist/feed', label: 'Radio', requiresAuth: true },
 ];
 
 export default function BrutalistNav() {
@@ -90,9 +93,9 @@ export default function BrutalistNav() {
                         {!loading && (
                             user ? (
                                 <div className="flex items-center gap-3">
-                                    <div className="brutalist-badge">
+                                    <div className="brutalist-badge hover:bg-[var(--signal-green)]/10 cursor-pointer transition-colors">
                                         <User className="w-3 h-3" />
-                                        <span className="hidden lg:inline">{user.email?.split('@')[0]}</span>
+                                        <a href="/brutalist/profile"><span className="hidden lg:inline">{user.email?.split('@')[0]}</span></a>
                                     </div>
                                     <button
                                         onClick={handleLogout}
