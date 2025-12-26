@@ -30,7 +30,7 @@ function getClientIdentifier(req: NextRequest): string {
     // 使用 token 的前 16 位作为标识（避免暴露完整 token）
     return `user:${supabaseAuth.substring(0, 16)}`;
   }
-  
+
   // 回退到 IP 地址
   const forwarded = req.headers.get('x-forwarded-for');
   const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
@@ -44,26 +44,26 @@ function checkRateLimit(
   const config = RATE_LIMITS[limitType];
   const key = `${identifier}:${limitType}`;
   const now = Date.now();
-  
+
   let entry = rateLimitMap.get(key);
-  
+
   // 清理过期条目
   if (entry && entry.resetAt < now) {
     rateLimitMap.delete(key);
     entry = undefined;
   }
-  
+
   if (!entry) {
     entry = { count: 0, resetAt: now + config.windowMs };
   }
-  
+
   if (entry.count >= config.max) {
     return { allowed: false, remaining: 0, resetAt: entry.resetAt };
   }
-  
+
   entry.count++;
   rateLimitMap.set(key, entry);
-  
+
   return {
     allowed: true,
     remaining: config.max - entry.count,
@@ -72,31 +72,44 @@ function checkRateLimit(
 }
 
 export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  
-  // 只对 API 路由应用限流
+  const { pathname, hostname } = req.nextUrl;
+
+  // Language-based redirect for root domain
+  // Root domain (antianxiety.app) redirects to language-specific subdomain
+  if (hostname === 'antianxiety.app' || hostname === 'www.antianxiety.app') {
+    const acceptLang = req.headers.get('accept-language') || '';
+    const isZh = acceptLang.toLowerCase().includes('zh');
+    const targetHost = isZh ? 'zh.antianxiety.app' : 'en.antianxiety.app';
+
+    const redirectUrl = new URL(pathname, `https://${targetHost}`);
+    redirectUrl.search = req.nextUrl.search;
+
+    return NextResponse.redirect(redirectUrl, 302);
+  }
+
+  // Only apply rate limiting to API routes
   if (pathname.startsWith('/api/')) {
     const identifier = getClientIdentifier(req);
-    
-    // 确定限流类型
+
+    // Determine rate limit type
     let limitType: 'chat' | 'ai' | 'api' = 'api';
     if (pathname === '/api/chat') {
       limitType = 'chat';
     } else if (pathname.startsWith('/api/ai/')) {
       limitType = 'ai';
     }
-    
-    // 检查限流
+
+    // Check rate limit
     const { allowed, remaining, resetAt } = checkRateLimit(identifier, limitType);
-    
+
     if (!allowed) {
-      const resetTime = new Date(resetAt).toLocaleTimeString('zh-CN');
-      console.warn(`🚫 限流触发: ${identifier} - ${pathname}`);
-      
+      const resetTime = new Date(resetAt).toLocaleTimeString('en-US');
+      console.warn(`🚫 Rate limit exceeded: ${identifier} - ${pathname}`);
+
       return new NextResponse(
         JSON.stringify({
           error: 'rate_limit_exceeded',
-          message: `请求过于频繁，请在 ${resetTime} 后重试`,
+          message: `Too many requests. Please try again after ${resetTime}`,
           resetAt: resetAt,
         }),
         {
@@ -111,14 +124,14 @@ export function middleware(req: NextRequest) {
         }
       );
     }
-    
-    // 添加限流信息到响应头
+
+    // Add rate limit info to response headers
     const response = NextResponse.next();
     response.headers.set('X-RateLimit-Remaining', String(remaining));
     return response;
   }
-  
-  // 非 API 路由直接放行
+
+  // Non-API routes pass through
   return NextResponse.next();
 }
 
