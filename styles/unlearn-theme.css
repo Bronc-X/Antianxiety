@@ -1,0 +1,218 @@
+/* ========================================
+   unlearn.ai Style Design Tokens
+   ======================================== */
+
+:root {
+    /* Color Palette - Deep Purple Tech Theme */
+    --unlearn-bg-deep: #1A081C;
+    --unlearn-bg-deep-rgb: 26, 8, 28;
+    --unlearn-accent-primary: #AA8FFF;
+    --unlearn-accent-primary-rgb: 170, 143, 255;
+    --unlearn-accent-hover: #C4B3FF;
+    --unlearn-surface-light: #F5F3EF;
+    --unlearn-surface-light-rgb: 245, 243, 239;
+    --unlearn-text-on-dark: #FFFFFF;
+    --unlearn-text-on-light: #1F212A;
+    --unlearn-text-muted: rgba(255, 255, 255, 0.7);
+    --unlearn-border-subtle: rgba(255, 255, 255, 0.1);
+
+    /* Typography */
+    --unlearn-font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --unlearn-heading-xl: clamp(48px, 8vw, 72px);
+    --unlearn-heading-lg: clamp(32px, 5vw, 48px);
+    --unlearn-heading-md: clamp(24px, 3vw, 32px);
+    --unlearn-body-lg: 18px;
+    --unlearn-body: 16px;
+    --unlearn-body-sm: 14px;
+
+    /* Spacing */
+    --unlearn-section-padding: clamp(60px, 10vw, 120px);
+    --unlearn-container-max: 1280px;
+
+    /* Border Radius */
+    --unlearn-radius-pill: 100px;
+    --unlearn-radius-card: 12px;
+    --unlearn-radius-nav: 11px;
+    --unlearn-radius-sm: 8px;
+
+    /* Shadows */
+    --unlearn-shadow-nav: 0 4px 30px rgba(0, 0, 0, 0.15);
+    --unlearn-shadow-card: 0 8px 32px rgba(26, 8, 28, 0.12);
+    --unlearn-shadow-glow: 0 0 40px rgba(170, 143, 255, 0.3);
+
+    /* Transitions */
+    --unlearn-transition-fast: 0.15s ease;
+    --unlearn-transition-base: 0.3s ease;
+    --unlearn-transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   Base Styles for unlearn Theme
+   ======================================== */
+
+.unlearn-theme {
+    background-color: var(--unlearn-bg-deep);
+    color: var(--unlearn-text-on-dark);
+    font-family: var(--unlearn-font-primary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* CRITICAL: Override global heading styles for unlearn theme */
+/* Must use !important to override globals.css !important rules */
+.unlearn-theme h1,
+.unlearn-theme h2,
+.unlearn-theme h3,
+.unlearn-theme h4,
+.unlearn-theme h5,
+.unlearn-theme h6 {
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+}
+
+/* Explicit white text for dark sections */
+.unlearn-theme h1.text-white,
+.unlearn-theme h2.text-white,
+.unlearn-theme h3.text-white,
+.unlearn-theme h1[class*="text-white"],
+.unlearn-theme h2[class*="text-white"],
+.unlearn-theme h3[class*="text-white"] {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Force white on sections with dark backgrounds */
+.unlearn-theme section[style*="1A081C"] h1,
+.unlearn-theme section[style*="1A081C"] h2,
+.unlearn-theme section[style*="1A081C"] h3 {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Typography Utilities */
+.unlearn-heading-xl {
+    font-size: var(--unlearn-heading-xl);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.unlearn-heading-lg {
+    font-size: var(--unlearn-heading-lg);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+.unlearn-heading-md {
+    font-size: var(--unlearn-heading-md);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.unlearn-body-lg {
+    font-size: var(--unlearn-body-lg);
+    line-height: 1.7;
+}
+
+/* Section Utilities */
+.unlearn-section {
+    padding: var(--unlearn-section-padding) 0;
+    position: relative;
+}
+
+.unlearn-section--dark {
+    background-color: var(--unlearn-bg-deep);
+    color: var(--unlearn-text-on-dark);
+}
+
+.unlearn-section--light {
+    background-color: var(--unlearn-surface-light);
+    color: var(--unlearn-text-on-light);
+}
+
+.unlearn-container {
+    max-width: var(--unlearn-container-max);
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Button Base */
+.unlearn-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 28px;
+    font-size: var(--unlearn-body);
+    font-weight: 500;
+    border-radius: var(--unlearn-radius-pill);
+    transition: all var(--unlearn-transition-base);
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+}
+
+.unlearn-btn--primary {
+    background-color: var(--unlearn-accent-primary);
+    color: var(--unlearn-bg-deep);
+}
+
+.unlearn-btn--primary:hover {
+    background-color: var(--unlearn-accent-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--unlearn-shadow-glow);
+}
+
+.unlearn-btn--secondary {
+    background-color: transparent;
+    color: var(--unlearn-text-on-dark);
+    border: 1px solid var(--unlearn-border-subtle);
+}
+
+.unlearn-btn--secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--unlearn-accent-primary);
+}
+
+/* Card Styles */
+.unlearn-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--unlearn-border-subtle);
+    border-radius: var(--unlearn-radius-card);
+    padding: 24px;
+    backdrop-filter: blur(10px);
+}
+
+/* Gradient Overlays */
+.unlearn-gradient-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+            rgba(var(--unlearn-bg-deep-rgb), 0.7) 0%,
+            rgba(var(--unlearn-bg-deep-rgb), 0.9) 100%);
+    pointer-events: none;
+}
+
+/* Animation Classes for GSAP */
+.unlearn-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.unlearn-reveal--active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Smooth Scroll */
+html.unlearn-smooth {
+    scroll-behavior: smooth;
+}
+
+/* Selection Color */
+.unlearn-theme ::selection {
+    background-color: var(--unlearn-accent-primary);
+    color: var(--unlearn-bg-deep);
+}

@@ -6,6 +6,9 @@
 
 @import "tailwindcss";
 
+/* unlearn.ai Style Theme */
+@import "../styles/unlearn-theme.css";
+
 /* ==========================================
    禁用 Tailwind v4 自动深色模式
    强制使用 class 策略而非 media 策略
@@ -207,13 +210,13 @@ body {
    MOTION.DEV INSPIRED TYPOGRAPHY
    ========================================== */
 
-h1:not(.text-gradient):not(.text-gradient-accent),
-h2:not(.text-gradient):not(.text-gradient-accent),
-h3:not(.text-gradient):not(.text-gradient-accent),
-h4:not(.text-gradient):not(.text-gradient-accent),
-h5:not(.text-gradient):not(.text-gradient-accent),
-h6:not(.text-gradient):not(.text-gradient-accent),
-.brand-text:not(.text-gradient):not(.text-gradient-accent) {
+h1:not(.text-gradient):not(.text-gradient-accent):not(.unlearn-theme *),
+h2:not(.text-gradient):not(.text-gradient-accent):not(.unlearn-theme *),
+h3:not(.text-gradient):not(.text-gradient-accent):not(.unlearn-theme *),
+h4:not(.text-gradient):not(.text-gradient-accent):not(.unlearn-theme *),
+h5:not(.text-gradient):not(.text-gradient-accent):not(.unlearn-theme *),
+h6:not(.text-gradient):not(.text-gradient-accent):not(.unlearn-theme *),
+.brand-text:not(.text-gradient):not(.text-gradient-accent):not(.unlearn-theme *) {
   font-family: var(--font-inter), "Inter", "Smiley Sans", sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;

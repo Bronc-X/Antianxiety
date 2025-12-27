@@ -7,6 +7,8 @@ import Link from 'next/link';
 import AnimatedSection from '@/components/AnimatedSection';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/lib/i18n';
+import { useAppRegion } from '@/lib/subdomain-utils';
+import WeChatQRLogin from '@/components/auth/WeChatQRLogin';
 
 function LoginFormContent() {
   const { t } = useI18n();
@@ -17,7 +19,10 @@ function LoginFormContent() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
-  const [oauthProviderLoading, setOauthProviderLoading] = useState<'twitter' | 'github' | 'wechat' | null>(null);
+  const [oauthProviderLoading, setOauthProviderLoading] = useState<'twitter' | 'github' | 'wechat' | 'reddit' | 'phone' | null>(null);
+  const [showPhoneLogin, setShowPhoneLogin] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const appRegion = useAppRegion();
   const isEmailLoginRedirectingRef = useRef(false);
   const searchParams = useSearchParams();
   const supabase = createClientSupabaseClient();
@@ -77,14 +82,20 @@ function LoginFormContent() {
     return () => { subscription.unsubscribe(); };
   }, [supabase.auth, searchParams, t]);
 
-  const handleOAuthLogin = async (provider: 'twitter' | 'github' | 'wechat') => {
+  const handleOAuthLogin = async (provider: 'twitter' | 'github' | 'reddit') => {
     setOauthProviderLoading(provider);
     setMessage(null);
     try {
+      // Reddit uses custom OAuth flow
+      if (provider === 'reddit') {
+        window.location.href = '/api/auth/reddit';
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider as 'twitter' | 'github',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/welcome`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/landing`,
           skipBrowserRedirect: false,
         },
       });
@@ -95,6 +106,27 @@ function LoginFormContent() {
       if (data?.url) { window.location.assign(data.url); }
     } catch (err) {
       setMessage({ type: 'error', text: t('error.unknown') });
+      setOauthProviderLoading(null);
+    }
+  };
+
+  const handlePhoneLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setOauthProviderLoading('phone');
+    setMessage(null);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: phoneNumber,
+      });
+      if (error) {
+        setMessage({ type: 'error', text: error.message });
+      } else {
+        setMessage({ type: 'success', text: t('login.otpSent') || 'Verification code sent!' });
+        setShowPhoneLogin(false);
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: t('error.unknown') });
+    } finally {
       setOauthProviderLoading(null);
     }
   };
@@ -220,27 +252,42 @@ function LoginFormContent() {
               <span className="mx-3 text-xs uppercase tracking-widest text-[#0B3D2E]/50 dark:text-neutral-500">{t('login.orOther')}</span>
               <div className="flex-1 border-t border-dashed border-[#E7E1D6] dark:border-neutral-700" />
             </div>
-            <div className="mt-6 flex justify-center gap-4">
-              {/* X (Twitter) - 黑色 */}
-              <button type="button" onClick={() => handleOAuthLogin('twitter')} disabled={oauthProviderLoading !== null}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-black text-white shadow-sm transition-all hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={t('login.useX')}>
-                <span className="text-lg font-semibold">X</span>
-              </button>
-              {/* GitHub - 深灰 */}
-              <button type="button" onClick={() => handleOAuthLogin('github')} disabled={oauthProviderLoading !== null}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-[#24292e] text-white shadow-sm transition-all hover:bg-[#24292e]/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={t('login.useGithub')}>
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
-              </button>
-              {/* 微信 - 绿色 */}
-              <button type="button" onClick={() => handleOAuthLogin('wechat')} disabled={oauthProviderLoading !== null}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1AAD19] text-white shadow-sm transition-all hover:bg-[#1AAD19]/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={t('login.useWechat')}>
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178A1.17 1.17 0 014.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178 1.17 1.17 0 01-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 01.598.082l1.584.926a.272.272 0 00.14.045c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 01-.023-.156.49.49 0 01.201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.269-.03-.406-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.969-.982z" />
-                </svg>
-              </button>
+            <div className="mt-6 flex flex-wrap justify-center gap-4">
+              {appRegion === 'zh' ? (
+                /* Chinese Version: WeChat Only */
+                <WeChatQRLogin
+                  onSuccess={() => window.location.href = '/landing'}
+                  onError={(err) => setMessage({ type: 'error', text: err })}
+                />
+              ) : (
+                /* English Version: GitHub, X, Reddit, Phone */
+                <>
+                  {/* X (Twitter) */}
+                  <button type="button" onClick={() => handleOAuthLogin('twitter')} disabled={oauthProviderLoading !== null}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-black text-white shadow-sm transition-all hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={t('login.useX') || 'Sign in with X'}>
+                    <span className="text-lg font-semibold">X</span>
+                  </button>
+                  {/* GitHub */}
+                  <button type="button" onClick={() => handleOAuthLogin('github')} disabled={oauthProviderLoading !== null}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-[#24292e] text-white shadow-sm transition-all hover:bg-[#24292e]/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={t('login.useGithub') || 'Sign in with GitHub'}>
+                    <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+                  </button>
+                  {/* Reddit */}
+                  <button type="button" onClick={() => handleOAuthLogin('reddit')} disabled={oauthProviderLoading !== null}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FF4500] text-white shadow-sm transition-all hover:bg-[#FF4500]/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Sign in with Reddit">
+                    <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" /></svg>
+                  </button>
+                  {/* Phone */}
+                  <button type="button" onClick={() => setShowPhoneLogin(true)} disabled={oauthProviderLoading !== null}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm transition-all hover:bg-emerald-600/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Sign in with Phone">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </AnimatedSection>
@@ -274,6 +321,37 @@ function LoginFormContent() {
                   <button type="button" onClick={() => { setShowForgotPassword(false); setForgotPasswordEmail(''); setMessage(null); }}
                     className="rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-[#0B3D2E] dark:text-white hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors">
                     {t('common.cancel')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </AnimatedSection>
+        )}
+
+        {/* Phone Login Modal */}
+        {showPhoneLogin && (
+          <AnimatedSection variant="fadeUp" className="mt-4">
+            <div className="rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">Phone Login</h3>
+                <button type="button" onClick={() => { setShowPhoneLogin(false); setPhoneNumber(''); setMessage(null); }} className="text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white">✕</button>
+              </div>
+              <form onSubmit={handlePhoneLogin} className="space-y-4">
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">Phone Number</label>
+                  <input id="phone" type="tel" required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="mt-1 block w-full rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20"
+                    placeholder="+1 (555) 123-4567" />
+                  <p className="mt-1 text-xs text-neutral-500">Include country code (e.g., +1 for US)</p>
+                </div>
+                <div className="flex gap-3">
+                  <button type="submit" disabled={oauthProviderLoading === 'phone'}
+                    className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-50">
+                    {oauthProviderLoading === 'phone' ? 'Sending...' : 'Send Code'}
+                  </button>
+                  <button type="button" onClick={() => { setShowPhoneLogin(false); setPhoneNumber(''); }}
+                    className="rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-[#0B3D2E] dark:text-white hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors">
+                    Cancel
                   </button>
                 </div>
               </form>
