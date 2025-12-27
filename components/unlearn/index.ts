@@ -9,3 +9,8 @@ export { default as UnlearnCard, UnlearnBentoCard } from './UnlearnCard';
 export { default as UnlearnFooter } from './UnlearnFooter';
 export { default as UnlearnFeatures } from './UnlearnFeatures';
 export { default as UnlearnCTA } from './UnlearnCTA';
+
+// Digital Twin Components
+export { default as DigitalTwinHero } from './DigitalTwinHero';
+export { default as DigitalTwinDashboard } from './DigitalTwinDashboard';
+export { default as ParticipantDigitalTwin } from './ParticipantDigitalTwin';
