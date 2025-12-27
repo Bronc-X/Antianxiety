@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import {
     UnlearnNav,
-    AnimatedHero,
+    DigitalTwinHero,
     LogoTicker,
     ProblemSolution,
+    AnimatedHero,
     UnlearnFeatures,
     DigitalTwinDashboard,
     ParticipantDigitalTwin,
@@ -40,8 +41,17 @@ export default function UnlearnPage() {
                 ctaHref="/signup"
             />
 
-            {/* Animated Hero with Woman Portraits */}
-            <AnimatedHero onGetStarted={() => window.location.href = '/signup'} />
+            {/* Original Digital Twin Hero - Woman Facing Her Twin (RESTORED) */}
+            <DigitalTwinHero
+                headline={language === 'en'
+                    ? "Meet your digital twin. Understand yourself like never before."
+                    : "遇见你的数字孪生体，前所未有地了解自己。"}
+                subheadline={language === 'en'
+                    ? "Your AI-powered health companion learns your unique patterns and guides you toward lasting calm."
+                    : "你的人工智能健康伙伴学习你独特的模式，引导你走向持久的平静。"}
+                ctaLabel={language === 'en' ? 'Start Your Journey' : '开始你的旅程'}
+                ctaHref="/signup"
+            />
 
             {/* Scientific Trust - Logo Ticker */}
             <LogoTicker />
@@ -56,6 +66,9 @@ export default function UnlearnPage() {
             <section id="features">
                 <UnlearnFeatures />
             </section>
+
+            {/* Woman Portrait Carousel (Moved Down) */}
+            <AnimatedHero onGetStarted={() => window.location.href = '/signup'} />
 
             {/* Digital Twin Dashboard */}
             <DigitalTwinDashboard />
