@@ -17,7 +17,7 @@ export const metadata = {
 export default function UnlearnPage() {
     return (
         <main className="unlearn-theme">
-            {/* Navigation */}
+            {/* Navigation - Single floating nav */}
             <UnlearnNav
                 links={[
                     { label: 'Features', href: '#features' },
@@ -29,10 +29,10 @@ export default function UnlearnPage() {
                 ctaHref="/signup"
             />
 
-            {/* Digital Twin Hero Section - Split portrait */}
+            {/* Digital Twin Hero Section - Face to face portrait */}
             <DigitalTwinHero
-                headline="Simulate outcomes for every participant at the beginning of your journey."
-                subheadline="Your AI-powered digital twin learns your unique patterns and predicts what works best for you."
+                headline="Meet your digital twin. Understand yourself like never before."
+                subheadline="Your AI-powered health companion learns your unique patterns and guides you toward lasting calm."
                 ctaLabel="Start Your Journey"
                 ctaHref="/signup"
             />
@@ -46,64 +46,58 @@ export default function UnlearnPage() {
             {/* Participant Data Table */}
             <ParticipantDigitalTwin />
 
-            {/* Science Section - Light variant */}
+            {/* Science Section - Light variant with original cream background */}
             <section
                 id="science"
                 className="py-24"
-                style={{ backgroundColor: '#F5F3EF', color: '#1F212A' }}
+                style={{ backgroundColor: '#FAF6EF', color: '#1A1A1A' }}
             >
                 <div className="max-w-[1280px] mx-auto px-6">
                     <div className="grid md:grid-cols-2 gap-12 items-center">
                         <div>
-                            <p
-                                className="text-sm uppercase tracking-widest font-medium mb-4"
-                                style={{ color: '#AA8FFF' }}
-                            >
+                            <p className="text-sm uppercase tracking-widest font-medium mb-4 text-[#D4AF37]">
                                 The Science
                             </p>
                             <h2
-                                className="font-bold leading-[1.1] tracking-[-0.02em] mb-6"
+                                className="font-bold leading-[1.1] tracking-[-0.02em] mb-6 text-[#1A1A1A]"
                                 style={{ fontSize: 'clamp(32px, 5vw, 48px)' }}
                             >
                                 Backed by clinical research
                             </h2>
-                            <p className="text-lg text-[#1F212A]/70 leading-relaxed mb-8">
+                            <p className="text-lg text-[#1A1A1A]/70 leading-relaxed mb-8">
                                 Our methods are built on peer-reviewed research and clinical-grade assessment tools.
                                 We use validated instruments like the PHQ-9, GAD-7, and proprietary algorithms
                                 developed with leading mental health researchers.
                             </p>
                             <div className="flex flex-wrap gap-4">
-                                <div className="px-5 py-3 bg-white rounded-lg border border-[#1F212A]/10">
-                                    <div className="text-2xl font-bold" style={{ color: '#AA8FFF' }}>98%</div>
-                                    <div className="text-sm text-[#1F212A]/60">User satisfaction</div>
+                                <div className="px-5 py-3 bg-white border border-[#1A1A1A]/10">
+                                    <div className="text-2xl font-bold text-[#0B3D2E]">98%</div>
+                                    <div className="text-sm text-[#1A1A1A]/60">User satisfaction</div>
                                 </div>
-                                <div className="px-5 py-3 bg-white rounded-lg border border-[#1F212A]/10">
-                                    <div className="text-2xl font-bold" style={{ color: '#AA8FFF' }}>47%</div>
-                                    <div className="text-sm text-[#1F212A]/60">Anxiety reduction</div>
+                                <div className="px-5 py-3 bg-white border border-[#1A1A1A]/10">
+                                    <div className="text-2xl font-bold text-[#0B3D2E]">47%</div>
+                                    <div className="text-sm text-[#1A1A1A]/60">Anxiety reduction</div>
                                 </div>
-                                <div className="px-5 py-3 bg-white rounded-lg border border-[#1F212A]/10">
-                                    <div className="text-2xl font-bold" style={{ color: '#AA8FFF' }}>12</div>
-                                    <div className="text-sm text-[#1F212A]/60">Days avg. to results</div>
+                                <div className="px-5 py-3 bg-white border border-[#1A1A1A]/10">
+                                    <div className="text-2xl font-bold text-[#0B3D2E]">12</div>
+                                    <div className="text-sm text-[#1A1A1A]/60">Days avg. to results</div>
                                 </div>
                             </div>
                         </div>
                         <div
-                            className="aspect-square bg-gradient-to-br from-[#AA8FFF]/20 to-[#1A081C]/10 rounded-2xl"
+                            className="aspect-square bg-gradient-to-br from-[#0B3D2E]/10 to-[#D4AF37]/10"
                         />
                     </div>
                 </div>
             </section>
 
-            {/* Testimonials / Social Proof */}
+            {/* Testimonials */}
             <section
                 className="py-24"
-                style={{ backgroundColor: '#1A081C', color: '#FFFFFF' }}
+                style={{ backgroundColor: '#0B3D2E', color: '#FFFFFF' }}
             >
                 <div className="max-w-[1280px] mx-auto px-6 text-center">
-                    <p
-                        className="text-sm uppercase tracking-widest font-medium mb-4"
-                        style={{ color: '#AA8FFF' }}
-                    >
+                    <p className="text-sm uppercase tracking-widest font-medium mb-4 text-[#D4AF37]">
                         Testimonials
                     </p>
                     <h2
@@ -132,7 +126,7 @@ export default function UnlearnPage() {
                         ].map((testimonial, i) => (
                             <div
                                 key={i}
-                                className="p-6 rounded-xl text-left"
+                                className="p-6 text-left"
                                 style={{
                                     backgroundColor: 'rgba(255,255,255,0.05)',
                                     border: '1px solid rgba(255,255,255,0.1)',

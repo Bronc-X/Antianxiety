@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
-import { motion, useInView, useAnimation } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
 import {
     Brain,
     Activity,
@@ -67,12 +67,12 @@ export default function UnlearnFeatures() {
             ref={containerRef}
             id="features"
             className="relative py-24"
-            style={{ backgroundColor: '#1A081C' }}
+            style={{ backgroundColor: '#0B3D2E' }}
         >
             {/* Background Glow */}
             <div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] rounded-full blur-[200px] pointer-events-none"
-                style={{ backgroundColor: 'rgba(170, 143, 255, 0.08)' }}
+                style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)' }}
             />
 
             <div className="relative z-10 max-w-[1280px] mx-auto px-6">
@@ -83,10 +83,7 @@ export default function UnlearnFeatures() {
                     transition={{ duration: 0.6 }}
                     className="max-w-3xl mb-16"
                 >
-                    <p
-                        className="text-sm uppercase tracking-widest font-medium mb-4"
-                        style={{ color: '#AA8FFF' }}
-                    >
+                    <p className="text-sm uppercase tracking-widest font-medium mb-4 text-[#D4AF37]">
                         Features
                     </p>
                     <h2

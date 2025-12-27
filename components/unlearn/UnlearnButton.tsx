@@ -1,23 +1,37 @@
 'use client';
 
 import Link from 'next/link';
-import { ReactNode } from 'react';
-import { ArrowUpRight, ArrowRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
+import { ReactNode, ButtonHTMLAttributes } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface UnlearnButtonProps {
+interface UnlearnButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     children: ReactNode;
     variant?: ButtonVariant;
     size?: ButtonSize;
     href?: string;
-    onClick?: () => void;
-    icon?: 'arrow' | 'arrow-up-right' | 'none';
-    className?: string;
-    disabled?: boolean;
-    type?: 'button' | 'submit';
+    icon?: 'arrow' | 'none';
+    fullWidth?: boolean;
 }
+
+const variantStyles: Record<ButtonVariant, string> = {
+    primary: `
+    bg-[#D4AF37] text-[#0B3D2E]
+    hover:bg-[#E5C158]
+    hover:shadow-[0_4px_20px_rgba(212,175,55,0.4)]
+  `,
+    secondary: `
+    bg-transparent text-white
+    border border-white/20
+    hover:bg-white/10 hover:border-[#D4AF37]
+  `,
+    ghost: `
+    bg-transparent text-white/80
+    hover:text-white hover:bg-white/5
+  `,
+};
 
 const sizeStyles: Record<ButtonSize, string> = {
     sm: 'px-4 py-2 text-sm',
@@ -25,76 +39,44 @@ const sizeStyles: Record<ButtonSize, string> = {
     lg: 'px-8 py-4 text-lg',
 };
 
-const variantStyles: Record<ButtonVariant, string> = {
-    primary: `
-    bg-[#AA8FFF] text-[#1A081C]
-    hover:bg-[#C4B3FF]
-    hover:shadow-[0_0_30px_rgba(170,143,255,0.4)]
-  `,
-    secondary: `
-    bg-transparent text-white
-    border border-white/20
-    hover:bg-white/10
-    hover:border-[#AA8FFF]
-  `,
-    ghost: `
-    bg-transparent text-white/70
-    hover:text-white
-    hover:bg-white/5
-  `,
-};
-
 export default function UnlearnButton({
     children,
     variant = 'primary',
     size = 'md',
     href,
-    onClick,
     icon = 'none',
+    fullWidth = false,
     className = '',
-    disabled = false,
-    type = 'button',
+    ...props
 }: UnlearnButtonProps) {
-    const baseStyles = `
+    const classes = `
     inline-flex items-center justify-center gap-2
     font-medium
-    rounded-full
     transition-all duration-300
     hover:-translate-y-0.5
-    disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
-  `;
-
-    const combinedStyles = `
-    ${baseStyles}
-    ${sizeStyles[size]}
     ${variantStyles[variant]}
+    ${sizeStyles[size]}
+    ${fullWidth ? 'w-full' : ''}
     ${className}
   `;
-
-    const IconComponent = icon === 'arrow-up-right' ? ArrowUpRight : icon === 'arrow' ? ArrowRight : null;
 
     const content = (
         <>
             {children}
-            {IconComponent && <IconComponent className="w-4 h-4" />}
+            {icon === 'arrow' && <ArrowUpRight className="w-4 h-4" />}
         </>
     );
 
     if (href) {
         return (
-            <Link href={href} className={combinedStyles}>
+            <Link href={href} className={classes}>
                 {content}
             </Link>
         );
     }
 
     return (
-        <button
-            type={type}
-            onClick={onClick}
-            disabled={disabled}
-            className={combinedStyles}
-        >
+        <button className={classes} {...props}>
             {content}
         </button>
     );

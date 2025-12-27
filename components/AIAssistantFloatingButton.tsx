@@ -26,6 +26,7 @@ export default function AIAssistantFloatingButton() {
   const [isIntroOpen, setIsIntroOpen] = useState(false);
   const pathname = usePathname();
   const isWelcomePage = pathname === '/welcome';
+  const isMarketingPage = ['/unlearn', '/beta'].some(p => pathname?.startsWith(p));
   const [profile, setProfile] = useState<AIAssistantProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -95,8 +96,8 @@ export default function AIAssistantFloatingButton() {
     }
   }, [isChatOpen, supabase]);
 
-  // 如果未登录且不在欢迎页，不渲染按钮
-  if (!isAuthenticated && !isWelcomePage) {
+  // 如果未登录且不在欢迎页，或者在营销页面，不渲染按钮
+  if (isMarketingPage || (!isAuthenticated && !isWelcomePage)) {
     return null;
   }
 

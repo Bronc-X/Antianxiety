@@ -29,13 +29,13 @@ export default function UnlearnCard({
 
     const bgColor = variant === 'dark'
         ? 'rgba(255, 255, 255, 0.05)'
-        : 'rgba(31, 33, 42, 0.05)';
+        : 'rgba(11, 61, 46, 0.05)';
     const borderColor = variant === 'dark'
         ? 'rgba(255, 255, 255, 0.1)'
-        : 'rgba(31, 33, 42, 0.1)';
+        : 'rgba(11, 61, 46, 0.1)';
     const iconBgColor = variant === 'dark'
-        ? 'rgba(170, 143, 255, 0.15)'
-        : 'rgba(170, 143, 255, 0.1)';
+        ? 'rgba(212, 175, 55, 0.15)'
+        : 'rgba(212, 175, 55, 0.1)';
 
     return (
         <motion.div
@@ -44,7 +44,7 @@ export default function UnlearnCard({
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
             className={`
-        relative p-6 rounded-[12px] backdrop-blur-sm
+        relative p-6 backdrop-blur-sm
         ${hoverEffect ? 'hover:-translate-y-1 hover:shadow-lg transition-all duration-300' : ''}
         ${className}
       `}
@@ -55,10 +55,10 @@ export default function UnlearnCard({
         >
             {Icon && (
                 <div
-                    className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
+                    className="w-12 h-12 flex items-center justify-center mb-4"
                     style={{ backgroundColor: iconBgColor }}
                 >
-                    <Icon className="w-6 h-6" style={{ color: '#AA8FFF' }} />
+                    <Icon className="w-6 h-6 text-[#D4AF37]" />
                 </div>
             )}
 
@@ -70,7 +70,7 @@ export default function UnlearnCard({
                 <p
                     className="text-sm leading-relaxed"
                     style={{
-                        color: variant === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(31,33,42,0.7)',
+                        color: variant === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(11,61,46,0.7)',
                     }}
                 >
                     {description}
