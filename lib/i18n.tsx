@@ -42,6 +42,15 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('zh');
 
   useEffect(() => {
+    // Check URL query parameter first (for development testing)
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (isLanguage(langParam)) {
+      setLanguageState(langParam);
+      document.documentElement.lang = toHtmlLang(langParam);
+      return;
+    }
+
     const initialLanguage = normalizeClientLanguage();
     setLanguageState(initialLanguage);
     document.documentElement.lang = toHtmlLang(initialLanguage);

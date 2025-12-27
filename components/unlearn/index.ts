@@ -19,11 +19,14 @@ export { default as ParticipantDigitalTwin } from './ParticipantDigitalTwin';
 export { default as LogoTicker } from './LogoTicker';
 export { default as ProblemSolution } from './ProblemSolution';
 export { default as AboutStory } from './AboutStory';
+export { default as AnimatedHero } from './AnimatedHero';
 
 // AI Intelligent Agent Components
 export { default as AIInquiryPanel } from './AIInquiryPanel';
 export { default as MaxChatPanel } from './MaxChatPanel';
 export { default as FeedbackLoop } from './FeedbackLoop';
+export { default as MaxShowcase } from './MaxShowcase';
+export { default as MaxFloatingButton } from './MaxFloatingButton';
 
 // HRV & Wearables Components
 export { default as WearableConnect } from './WearableConnect';
