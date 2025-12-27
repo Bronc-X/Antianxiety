@@ -13,8 +13,8 @@ interface DigitalTwinHeroProps {
 }
 
 export default function DigitalTwinHero({
-    headline = 'Simulate outcomes for every participant at the beginning of your journey.',
-    subheadline = 'Your AI-powered digital twin learns your unique patterns and predicts what works best for you.',
+    headline = 'Meet your digital twin. Understand yourself like never before.',
+    subheadline = 'Your AI-powered health companion learns your unique patterns and guides you toward lasting calm.',
     ctaLabel = 'Start Your Journey',
     ctaHref = '/signup',
 }: DigitalTwinHeroProps) {
@@ -25,27 +25,25 @@ export default function DigitalTwinHero({
         <section
             ref={containerRef}
             className="relative min-h-screen flex items-center overflow-hidden"
-            style={{ backgroundColor: '#1A081C' }}
+            style={{ backgroundColor: '#0B3D2E' }}
         >
-            {/* Split Background - Image on left, purple on right */}
+            {/* Split Background - Cream on left, Green on right */}
             <div className="absolute inset-0 flex">
-                {/* Left side - will show the realistic photo part */}
-                <div className="w-1/2 bg-[#F5F3EF]" />
-                {/* Right side - deep purple */}
-                <div className="w-1/2 bg-[#1A081C]" />
+                <div className="w-1/2 bg-[#FAF6EF]" />
+                <div className="w-1/2 bg-[#0B3D2E]" />
             </div>
 
-            {/* Digital Twin Portrait - Centered split image */}
+            {/* Digital Twin Portrait - Face to face */}
             <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                    transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
+                    transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
                     className="relative w-full h-full max-w-[1400px]"
                 >
                     <Image
-                        src="/digital-twin-hero.png"
-                        alt="Digital Twin Visualization"
+                        src="/digital-twin-facing.png"
+                        alt="You and Your Digital Twin"
                         fill
                         className="object-contain object-center"
                         priority
@@ -57,7 +55,7 @@ export default function DigitalTwinHero({
             <div
                 className="absolute top-0 right-0 w-1/2 h-full pointer-events-none"
                 style={{
-                    background: 'linear-gradient(to left, rgba(26,8,28,0.9) 30%, rgba(26,8,28,0.5) 70%, transparent 100%)',
+                    background: 'linear-gradient(to left, rgba(11,61,46,0.95) 20%, rgba(11,61,46,0.7) 60%, transparent 100%)',
                 }}
             />
 
@@ -67,31 +65,49 @@ export default function DigitalTwinHero({
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={isInView ? { opacity: 1, y: 0 } : {}}
-                        transition={{ duration: 0.8, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                        transition={{ duration: 0.8, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
                     >
+                        {/* Badge */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={isInView ? { opacity: 1, x: 0 } : {}}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                            className="inline-flex items-center gap-2 px-4 py-2 mb-6 border border-[#D4AF37]/30 bg-[#D4AF37]/10"
+                        >
+                            <span className="w-2 h-2 bg-[#D4AF37] animate-pulse" />
+                            <span className="text-xs uppercase tracking-widest font-medium text-[#D4AF37]">
+                                Digital Twin Technology
+                            </span>
+                        </motion.div>
+
+                        {/* Headline */}
                         <h1
-                            className="text-white font-serif italic leading-[1.1] tracking-[-0.01em] mb-8"
+                            className="text-white font-bold leading-[1.05] tracking-[-0.02em] mb-6"
                             style={{ fontSize: 'clamp(32px, 5vw, 48px)' }}
                         >
                             {headline}
                         </h1>
 
-                        <p className="text-white/70 text-lg leading-relaxed mb-10 max-w-md">
+                        {/* Subheadline */}
+                        <p
+                            className="text-white/70 max-w-md mb-10 leading-relaxed"
+                            style={{ fontSize: 'clamp(16px, 2vw, 18px)' }}
+                        >
                             {subheadline}
                         </p>
 
+                        {/* CTA Button */}
                         <Link
                             href={ctaHref}
                             className="
                 inline-flex items-center gap-3
                 px-8 py-4
-                bg-[#AA8FFF] text-[#1A081C]
+                bg-[#D4AF37] text-[#0B3D2E]
                 text-lg font-semibold
-                rounded-full
-                hover:bg-[#C4B3FF]
+                hover:bg-[#E5C158]
                 transition-all duration-300
                 hover:-translate-y-1
-                hover:shadow-[0_0_40px_rgba(170,143,255,0.5)]
+                hover:shadow-[0_8px_30px_rgba(212,175,55,0.4)]
               "
                         >
                             {ctaLabel}
@@ -107,14 +123,14 @@ export default function DigitalTwinHero({
                 transition={{ duration: 0.5, delay: 1.2 }}
                 className="absolute bottom-8 left-8 flex items-center gap-3 text-white/50"
             >
-                <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center pt-2">
+                <div className="w-6 h-10 border-2 border-white/30 flex justify-center pt-2">
                     <motion.div
                         animate={{ y: [0, 8, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                        className="w-1.5 h-1.5 bg-white/50 rounded-full"
+                        className="w-1.5 h-1.5 bg-[#D4AF37]"
                     />
                 </div>
-                <span className="text-xs uppercase tracking-widest">Scroll to learn more</span>
+                <span className="text-xs uppercase tracking-widest">Scroll to explore</span>
             </motion.div>
         </section>
     );

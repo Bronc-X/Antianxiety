@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useRef, useState, useEffect } from 'react';
+import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Settings, User } from 'lucide-react';
 
 // Mock patient data
@@ -28,16 +28,47 @@ const chartData = [
     { month: '24m', prediction: 3.8, actual: 3.5 },
 ];
 
+// Animated number component
+function AnimatedNumber({ value, duration = 1 }: { value: number; duration?: number }) {
+    const count = useMotionValue(0);
+    const rounded = useTransform(count, (v) => Math.round(v * 10) / 10);
+    const [displayValue, setDisplayValue] = useState(0);
+
+    useEffect(() => {
+        const controls = animate(count, value, {
+            duration,
+            ease: 'easeOut',
+        });
+
+        const unsubscribe = rounded.on('change', (v) => setDisplayValue(v));
+
+        return () => {
+            controls.stop();
+            unsubscribe();
+        };
+    }, [value, count, rounded, duration]);
+
+    return <>{displayValue}</>;
+}
+
 export default function DigitalTwinDashboard() {
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { once: true, margin: '-100px' });
     const [selectedPatient, setSelectedPatient] = useState(patients[0]);
+    const [animationComplete, setAnimationComplete] = useState(false);
+
+    useEffect(() => {
+        if (isInView) {
+            const timer = setTimeout(() => setAnimationComplete(true), 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isInView]);
 
     return (
         <section
             ref={containerRef}
             className="relative py-24"
-            style={{ backgroundColor: '#1A081C' }}
+            style={{ backgroundColor: '#0B3D2E' }}
         >
             <div className="max-w-[1280px] mx-auto px-6">
                 {/* Section Header */}
@@ -47,10 +78,7 @@ export default function DigitalTwinDashboard() {
                     transition={{ duration: 0.6 }}
                     className="mb-12"
                 >
-                    <p
-                        className="text-sm uppercase tracking-widest font-medium mb-4"
-                        style={{ color: '#AA8FFF' }}
-                    >
+                    <p className="text-sm uppercase tracking-widest font-medium mb-4 text-[#D4AF37]">
                         Digital Twin Technology
                     </p>
                     <h2
@@ -66,23 +94,20 @@ export default function DigitalTwinDashboard() {
                     initial={{ opacity: 0, y: 40 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.8, delay: 0.2 }}
-                    className="rounded-2xl overflow-hidden"
+                    className="overflow-hidden"
                     style={{
-                        backgroundColor: 'rgba(26, 8, 28, 0.8)',
-                        border: '1px solid rgba(170, 143, 255, 0.2)',
+                        backgroundColor: 'rgba(11, 61, 46, 0.8)',
+                        border: '1px solid rgba(212, 175, 55, 0.2)',
                     }}
                 >
                     {/* Dashboard Header */}
                     <div
                         className="flex items-center justify-between px-6 py-4"
-                        style={{ borderBottom: '1px solid rgba(170, 143, 255, 0.15)' }}
+                        style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.15)' }}
                     >
                         <div className="flex items-center gap-3">
-                            <div
-                                className="w-8 h-8 rounded flex items-center justify-center"
-                                style={{ backgroundColor: '#AA8FFF' }}
-                            >
-                                <span className="text-[#1A081C] font-bold text-sm">A</span>
+                            <div className="w-8 h-8 bg-[#D4AF37] flex items-center justify-center">
+                                <span className="text-[#0B3D2E] font-bold text-sm">A</span>
                             </div>
                             <span className="text-white font-medium">Anxiety Recovery Program</span>
                         </div>
@@ -107,24 +132,23 @@ export default function DigitalTwinDashboard() {
                                     transition={{ duration: 0.3, delay: 0.3 + i * 0.05 }}
                                     onClick={() => setSelectedPatient(patient)}
                                     className={`
-                    relative w-12 h-12 rounded-full overflow-hidden
+                    relative w-12 h-12 overflow-hidden
                     transition-all duration-300
                     ${selectedPatient.id === patient.id
-                                            ? 'ring-2 ring-[#AA8FFF] ring-offset-2 ring-offset-[#1A081C]'
+                                            ? 'ring-2 ring-[#D4AF37] ring-offset-2 ring-offset-[#0B3D2E]'
                                             : 'opacity-60 hover:opacity-100'
                                         }
                   `}
                                     style={{
-                                        background: `linear-gradient(135deg, #AA8FFF 0%, #7B61FF 100%)`,
+                                        background: `linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)`,
                                     }}
                                 >
-                                    <div className="absolute inset-0 flex items-center justify-center text-white font-medium text-sm">
+                                    <div className="absolute inset-0 flex items-center justify-center text-[#0B3D2E] font-medium text-sm">
                                         {patient.name.split(' ')[0][0]}{patient.name.split(' ')[1]?.[0] || ''}
                                     </div>
                                 </motion.button>
                             ))}
-                            {/* Add more indicator */}
-                            <div className="w-12 h-12 rounded-full border border-dashed border-white/20 flex items-center justify-center text-white/30 text-xl">
+                            <div className="w-12 h-12 border border-dashed border-white/20 flex items-center justify-center text-white/30 text-xl">
                                 +
                             </div>
                         </div>
@@ -133,24 +157,27 @@ export default function DigitalTwinDashboard() {
                     {/* Chart Section */}
                     <div className="px-6 py-6">
                         <div
-                            className="rounded-xl p-6"
+                            className="p-6"
                             style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
                         >
                             <h3 className="text-white font-medium mb-6">
-                                Digital Twins Prediction vs. Actual Outcomes
+                                Digital Twin Prediction vs. Actual Outcomes
                             </h3>
 
-                            {/* Simple SVG Chart */}
+                            {/* Animated SVG Chart */}
                             <div className="relative h-[200px]">
                                 <svg
                                     viewBox="0 0 400 150"
                                     className="w-full h-full"
                                     preserveAspectRatio="none"
                                 >
-                                    {/* Grid lines */}
+                                    {/* Grid lines with subtle animation */}
                                     {[0, 1, 2, 3, 4, 5].map((i) => (
-                                        <line
+                                        <motion.line
                                             key={i}
+                                            initial={{ opacity: 0 }}
+                                            animate={isInView ? { opacity: 1 } : {}}
+                                            transition={{ duration: 0.3, delay: 0.1 * i }}
                                             x1="0"
                                             y1={i * 30}
                                             x2="400"
@@ -160,25 +187,25 @@ export default function DigitalTwinDashboard() {
                                         />
                                     ))}
 
-                                    {/* Prediction line (purple) */}
+                                    {/* Prediction line (gold) with draw animation */}
                                     <motion.path
-                                        initial={{ pathLength: 0 }}
-                                        animate={isInView ? { pathLength: 1 } : {}}
-                                        transition={{ duration: 1.5, delay: 0.5 }}
+                                        initial={{ pathLength: 0, opacity: 0 }}
+                                        animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
+                                        transition={{ duration: 2, delay: 0.5, ease: 'easeOut' }}
                                         d={`M ${chartData.map((d, i) =>
                                             `${(i / (chartData.length - 1)) * 380 + 10},${130 - d.prediction * 30}`
                                         ).join(' L ')}`}
                                         fill="none"
-                                        stroke="#AA8FFF"
+                                        stroke="#D4AF37"
                                         strokeWidth="2"
                                         strokeLinecap="round"
                                     />
 
-                                    {/* Actual line (white) */}
+                                    {/* Actual line (white) with draw animation */}
                                     <motion.path
-                                        initial={{ pathLength: 0 }}
-                                        animate={isInView ? { pathLength: 1 } : {}}
-                                        transition={{ duration: 1.5, delay: 0.7 }}
+                                        initial={{ pathLength: 0, opacity: 0 }}
+                                        animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
+                                        transition={{ duration: 2, delay: 0.7, ease: 'easeOut' }}
                                         d={`M ${chartData.map((d, i) =>
                                             `${(i / (chartData.length - 1)) * 380 + 10},${130 - d.actual * 30}`
                                         ).join(' L ')}`}
@@ -188,30 +215,40 @@ export default function DigitalTwinDashboard() {
                                         strokeLinecap="round"
                                     />
 
-                                    {/* Data points - Prediction */}
+                                    {/* Data points - Prediction with pop animation */}
                                     {chartData.map((d, i) => (
                                         <motion.circle
                                             key={`pred-${i}`}
-                                            initial={{ opacity: 0, scale: 0 }}
-                                            animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                                            transition={{ duration: 0.3, delay: 0.8 + i * 0.1 }}
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={isInView ? { scale: 1, opacity: 1 } : {}}
+                                            transition={{
+                                                duration: 0.4,
+                                                delay: 1.5 + i * 0.1,
+                                                type: 'spring',
+                                                stiffness: 200
+                                            }}
                                             cx={(i / (chartData.length - 1)) * 380 + 10}
                                             cy={130 - d.prediction * 30}
-                                            r="4"
-                                            fill="#AA8FFF"
+                                            r="5"
+                                            fill="#D4AF37"
                                         />
                                     ))}
 
-                                    {/* Data points - Actual */}
+                                    {/* Data points - Actual with pop animation */}
                                     {chartData.map((d, i) => (
                                         <motion.circle
                                             key={`actual-${i}`}
-                                            initial={{ opacity: 0, scale: 0 }}
-                                            animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                                            transition={{ duration: 0.3, delay: 0.9 + i * 0.1 }}
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={isInView ? { scale: 1, opacity: 1 } : {}}
+                                            transition={{
+                                                duration: 0.4,
+                                                delay: 1.7 + i * 0.1,
+                                                type: 'spring',
+                                                stiffness: 200
+                                            }}
                                             cx={(i / (chartData.length - 1)) * 380 + 10}
                                             cy={130 - d.actual * 30}
-                                            r="4"
+                                            r="5"
                                             fill="rgba(255,255,255,0.8)"
                                         />
                                     ))}
@@ -228,14 +265,43 @@ export default function DigitalTwinDashboard() {
                             {/* Legend */}
                             <div className="flex items-center gap-6 mt-6">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#AA8FFF' }} />
-                                    <span className="text-sm text-white/60">Digital Twins Prediction</span>
+                                    <div className="w-3 h-3 bg-[#D4AF37]" />
+                                    <span className="text-sm text-white/60">Digital Twin Prediction</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-white/60" />
+                                    <div className="w-3 h-3 bg-white/60" />
                                     <span className="text-sm text-white/60">Actual Outcomes</span>
                                 </div>
                             </div>
+
+                            {/* Animated Stats */}
+                            {animationComplete && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.5 }}
+                                    className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-white/10"
+                                >
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-[#D4AF37]">
+                                            <AnimatedNumber value={94} />%
+                                        </div>
+                                        <div className="text-xs text-white/50 mt-1">Prediction Accuracy</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-white">
+                                            <AnimatedNumber value={47} />%
+                                        </div>
+                                        <div className="text-xs text-white/50 mt-1">Improvement Rate</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-[#D4AF37]">
+                                            <AnimatedNumber value={12} />
+                                        </div>
+                                        <div className="text-xs text-white/50 mt-1">Days to Results</div>
+                                    </div>
+                                </motion.div>
+                            )}
                         </div>
                     </div>
                 </motion.div>

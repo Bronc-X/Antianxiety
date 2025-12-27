@@ -1,9 +1,28 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useRef, useState, useEffect } from 'react';
+import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Settings, User, ChevronLeft, ChevronRight } from 'lucide-react';
-import Image from 'next/image';
+
+// Animated number for table cells
+function AnimatedValue({ value, delay = 0 }: { value: string; delay?: number }) {
+    const [show, setShow] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShow(true), delay);
+        return () => clearTimeout(timer);
+    }, [delay]);
+
+    return (
+        <motion.span
+            initial={{ opacity: 0, y: 5 }}
+            animate={show ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.3 }}
+        >
+            {value}
+        </motion.span>
+    );
+}
 
 // Assessment metrics data
 const metrics = [
@@ -48,7 +67,7 @@ export default function ParticipantDigitalTwin() {
         <section
             ref={containerRef}
             className="relative py-24"
-            style={{ backgroundColor: '#1A081C' }}
+            style={{ backgroundColor: '#0B3D2E' }}
         >
             <div className="max-w-[1400px] mx-auto px-6">
                 <div className="grid lg:grid-cols-[300px_1fr] gap-12 items-start">
@@ -60,10 +79,10 @@ export default function ParticipantDigitalTwin() {
                         className="space-y-6"
                     >
                         <div
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-                            style={{ backgroundColor: 'rgba(170, 143, 255, 0.15)', color: '#AA8FFF' }}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
+                            style={{ backgroundColor: 'rgba(212, 175, 55, 0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)' }}
                         >
-                            <span className="w-2 h-2 rounded-sm bg-[#AA8FFF]" />
+                            <span className="w-2 h-2 bg-[#D4AF37]" />
                             DIGITAL TWIN TECHNOLOGY
                         </div>
 
@@ -74,7 +93,7 @@ export default function ParticipantDigitalTwin() {
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={isInView ? { opacity: 1, x: 0 } : {}}
                                     transition={{ duration: 0.4, delay: 0.2 + i * 0.1 }}
-                                    className="px-4 py-3 rounded-lg text-sm text-white/80"
+                                    className="px-4 py-3 text-sm text-white/80"
                                     style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
                                 >
                                     {label}
@@ -83,8 +102,8 @@ export default function ParticipantDigitalTwin() {
                         </div>
 
                         <div
-                            className="px-4 py-3 rounded-lg text-sm font-medium"
-                            style={{ backgroundColor: 'rgba(170, 143, 255, 0.2)', color: '#AA8FFF', border: '1px solid rgba(170,143,255,0.3)' }}
+                            className="px-4 py-3 text-sm font-medium"
+                            style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)' }}
                         >
                             Endpoints
                         </div>
@@ -107,27 +126,24 @@ export default function ParticipantDigitalTwin() {
                         initial={{ opacity: 0, y: 30 }}
                         animate={isInView ? { opacity: 1, y: 0 } : {}}
                         transition={{ duration: 0.8, delay: 0.3 }}
-                        className="rounded-2xl overflow-hidden"
+                        className="overflow-hidden"
                         style={{
-                            backgroundColor: 'rgba(26, 8, 28, 0.9)',
-                            border: '1px solid rgba(170, 143, 255, 0.2)',
+                            backgroundColor: 'rgba(11, 61, 46, 0.9)',
+                            border: '1px solid rgba(212, 175, 55, 0.2)',
                             boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
                         }}
                     >
                         {/* Header */}
                         <div
                             className="flex items-center justify-between px-6 py-4"
-                            style={{ borderBottom: '1px solid rgba(170, 143, 255, 0.15)' }}
+                            style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.15)' }}
                         >
                             <div className="flex items-center gap-4">
-                                <div
-                                    className="w-8 h-8 rounded flex items-center justify-center"
-                                    style={{ backgroundColor: '#AA8FFF' }}
-                                >
-                                    <span className="text-[#1A081C] font-bold text-sm">A</span>
+                                <div className="w-8 h-8 bg-[#D4AF37] flex items-center justify-center">
+                                    <span className="text-[#0B3D2E] font-bold text-sm">A</span>
                                 </div>
                                 <span className="text-white text-sm">
-                                    Participant&apos;s Digital Twin in <span style={{ color: '#AA8FFF' }}>Anxiety Recovery</span>
+                                    Participant&apos;s Digital Twin in <span className="text-[#D4AF37]">Anxiety Recovery</span>
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -141,12 +157,12 @@ export default function ParticipantDigitalTwin() {
                         </div>
 
                         {/* Participant Info */}
-                        <div className="flex items-start gap-6 px-6 py-4" style={{ borderBottom: '1px solid rgba(170, 143, 255, 0.1)' }}>
+                        <div className="flex items-start gap-6 px-6 py-4" style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.1)' }}>
                             {/* Avatar */}
-                            <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                            <div className="relative w-16 h-16 overflow-hidden flex-shrink-0">
                                 <div
                                     className="absolute inset-0 flex items-center justify-center text-2xl font-bold"
-                                    style={{ background: 'linear-gradient(135deg, #AA8FFF 0%, #7B61FF 100%)', color: '#1A081C' }}
+                                    style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)', color: '#0B3D2E' }}
                                 >
                                     SM
                                 </div>
@@ -206,11 +222,11 @@ export default function ParticipantDigitalTwin() {
                             </button>
                         </div>
 
-                        {/* Data Table */}
+                        {/* Data Table with animated values */}
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr style={{ backgroundColor: 'rgba(170, 143, 255, 0.1)' }}>
+                                    <tr style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)' }}>
                                         <th className="px-4 py-3 text-left text-white/60 font-medium">Metric</th>
                                         <th className="px-4 py-3 text-center text-white/60 font-medium">Baseline</th>
                                         <th className="px-4 py-3 text-center text-white/60 font-medium">3 weeks</th>
@@ -231,12 +247,24 @@ export default function ParticipantDigitalTwin() {
                                             style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}
                                         >
                                             <td className="px-4 py-3 text-white/80">{metric.name}</td>
-                                            <td className="px-4 py-3 text-center" style={{ color: '#AA8FFF' }}>{metric.baseline}</td>
-                                            <td className="px-4 py-3 text-center text-white/60">{metric.month3}</td>
-                                            <td className="px-4 py-3 text-center text-white/60">{metric.month6}</td>
-                                            <td className="px-4 py-3 text-center text-white/60">{metric.month9}</td>
-                                            <td className="px-4 py-3 text-center text-white/60">{metric.month12}</td>
-                                            <td className="px-4 py-3 text-center text-white/60">{metric.month15}</td>
+                                            <td className="px-4 py-3 text-center text-[#D4AF37]">
+                                                <AnimatedValue value={String(metric.baseline)} delay={500 + i * 50} />
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-white/60">
+                                                <AnimatedValue value={metric.month3} delay={600 + i * 50} />
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-white/60">
+                                                <AnimatedValue value={metric.month6} delay={700 + i * 50} />
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-white/60">
+                                                <AnimatedValue value={metric.month9} delay={800 + i * 50} />
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-white/60">
+                                                <AnimatedValue value={metric.month12} delay={900 + i * 50} />
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-white/60">
+                                                <AnimatedValue value={metric.month15} delay={1000 + i * 50} />
+                                            </td>
                                         </motion.tr>
                                     ))}
                                 </tbody>

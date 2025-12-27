@@ -11,7 +11,6 @@ export default function UnlearnCTA() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle email signup
         console.log('Email submitted:', email);
     };
 
@@ -19,16 +18,16 @@ export default function UnlearnCTA() {
         <section
             ref={containerRef}
             className="relative py-32 overflow-hidden"
-            style={{ backgroundColor: '#1A081C' }}
+            style={{ backgroundColor: '#0B3D2E' }}
         >
             {/* Gradient Orbs */}
             <div
                 className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full blur-[150px] pointer-events-none"
-                style={{ backgroundColor: 'rgba(170, 143, 255, 0.15)' }}
+                style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)' }}
             />
             <div
                 className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full blur-[120px] pointer-events-none"
-                style={{ backgroundColor: 'rgba(170, 143, 255, 0.1)' }}
+                style={{ backgroundColor: 'rgba(212, 175, 55, 0.06)' }}
             />
 
             <motion.div
@@ -62,9 +61,8 @@ export default function UnlearnCTA() {
               flex-1 px-5 py-4
               bg-white/10 backdrop-blur-sm
               border border-white/20
-              rounded-full
               text-white placeholder-white/50
-              focus:outline-none focus:border-[#AA8FFF]
+              focus:outline-none focus:border-[#D4AF37]
               transition-colors
             "
                         required
