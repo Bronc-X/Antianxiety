@@ -14,3 +14,24 @@ export { default as UnlearnCTA } from './UnlearnCTA';
 export { default as DigitalTwinHero } from './DigitalTwinHero';
 export { default as DigitalTwinDashboard } from './DigitalTwinDashboard';
 export { default as ParticipantDigitalTwin } from './ParticipantDigitalTwin';
+
+// Marketing Migration Components
+export { default as LogoTicker } from './LogoTicker';
+export { default as ProblemSolution } from './ProblemSolution';
+export { default as AboutStory } from './AboutStory';
+
+// AI Intelligent Agent Components
+export { default as AIInquiryPanel } from './AIInquiryPanel';
+export { default as MaxChatPanel } from './MaxChatPanel';
+export { default as FeedbackLoop } from './FeedbackLoop';
+
+// HRV & Wearables Components
+export { default as WearableConnect } from './WearableConnect';
+export { default as HRVDashboard } from './HRVDashboard';
+
+// Plans & Science Feed Components
+export { default as PlanDashboard } from './PlanDashboard';
+export { default as ScienceFeed } from './ScienceFeed';
+
+// Daily Calibration Component
+export { default as DailyCalibration } from './DailyCalibration';

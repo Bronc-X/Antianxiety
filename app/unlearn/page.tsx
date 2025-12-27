@@ -1,9 +1,12 @@
 import {
     UnlearnNav,
     DigitalTwinHero,
+    LogoTicker,
+    ProblemSolution,
     UnlearnFeatures,
     DigitalTwinDashboard,
     ParticipantDigitalTwin,
+    AboutStory,
     UnlearnCTA,
     UnlearnFooter,
 } from '@/components/unlearn';
@@ -17,19 +20,19 @@ export const metadata = {
 export default function UnlearnPage() {
     return (
         <main className="unlearn-theme">
-            {/* Navigation - Single floating nav */}
+            {/* Navigation */}
             <UnlearnNav
                 links={[
                     { label: 'Features', href: '#features' },
                     { label: 'Science', href: '#science' },
+                    { label: 'About', href: '#about' },
                     { label: 'Pricing', href: '/pricing' },
-                    { label: 'About', href: '/about' },
                 ]}
                 ctaLabel="Get Started"
                 ctaHref="/signup"
             />
 
-            {/* Digital Twin Hero Section - Face to face portrait */}
+            {/* Digital Twin Hero - Face to face portrait */}
             <DigitalTwinHero
                 headline="Meet your digital twin. Understand yourself like never before."
                 subheadline="Your AI-powered health companion learns your unique patterns and guides you toward lasting calm."
@@ -37,8 +40,16 @@ export default function UnlearnPage() {
                 ctaHref="/signup"
             />
 
+            {/* Scientific Trust - Logo Ticker */}
+            <LogoTicker />
+
+            {/* Problem & Solution Sections */}
+            <ProblemSolution />
+
             {/* Features Grid */}
-            <UnlearnFeatures />
+            <section id="features">
+                <UnlearnFeatures />
+            </section>
 
             {/* Digital Twin Dashboard */}
             <DigitalTwinDashboard />
@@ -46,11 +57,16 @@ export default function UnlearnPage() {
             {/* Participant Data Table */}
             <ParticipantDigitalTwin />
 
-            {/* Science Section - Light variant with original cream background */}
+            {/* About Section */}
+            <section id="about">
+                <AboutStory />
+            </section>
+
+            {/* Science Section */}
             <section
                 id="science"
                 className="py-24"
-                style={{ backgroundColor: '#FAF6EF', color: '#1A1A1A' }}
+                style={{ backgroundColor: '#0B3D2E', color: '#FFFFFF' }}
             >
                 <div className="max-w-[1280px] mx-auto px-6">
                     <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -59,33 +75,33 @@ export default function UnlearnPage() {
                                 The Science
                             </p>
                             <h2
-                                className="font-bold leading-[1.1] tracking-[-0.02em] mb-6 text-[#1A1A1A]"
+                                className="text-white font-bold leading-[1.1] tracking-[-0.02em] mb-6"
                                 style={{ fontSize: 'clamp(32px, 5vw, 48px)' }}
                             >
                                 Backed by clinical research
                             </h2>
-                            <p className="text-lg text-[#1A1A1A]/70 leading-relaxed mb-8">
+                            <p className="text-lg text-white/60 leading-relaxed mb-8">
                                 Our methods are built on peer-reviewed research and clinical-grade assessment tools.
                                 We use validated instruments like the PHQ-9, GAD-7, and proprietary algorithms
                                 developed with leading mental health researchers.
                             </p>
                             <div className="flex flex-wrap gap-4">
-                                <div className="px-5 py-3 bg-white border border-[#1A1A1A]/10">
-                                    <div className="text-2xl font-bold text-[#0B3D2E]">98%</div>
-                                    <div className="text-sm text-[#1A1A1A]/60">User satisfaction</div>
+                                <div className="px-5 py-3 bg-white/5 border border-white/10">
+                                    <div className="text-2xl font-bold text-[#D4AF37]">98%</div>
+                                    <div className="text-sm text-white/60">User satisfaction</div>
                                 </div>
-                                <div className="px-5 py-3 bg-white border border-[#1A1A1A]/10">
-                                    <div className="text-2xl font-bold text-[#0B3D2E]">47%</div>
-                                    <div className="text-sm text-[#1A1A1A]/60">Anxiety reduction</div>
+                                <div className="px-5 py-3 bg-white/5 border border-white/10">
+                                    <div className="text-2xl font-bold text-[#D4AF37]">47%</div>
+                                    <div className="text-sm text-white/60">Anxiety reduction</div>
                                 </div>
-                                <div className="px-5 py-3 bg-white border border-[#1A1A1A]/10">
-                                    <div className="text-2xl font-bold text-[#0B3D2E]">12</div>
-                                    <div className="text-sm text-[#1A1A1A]/60">Days avg. to results</div>
+                                <div className="px-5 py-3 bg-white/5 border border-white/10">
+                                    <div className="text-2xl font-bold text-[#D4AF37]">12</div>
+                                    <div className="text-sm text-white/60">Days avg. to results</div>
                                 </div>
                             </div>
                         </div>
                         <div
-                            className="aspect-square bg-gradient-to-br from-[#0B3D2E]/10 to-[#D4AF37]/10"
+                            className="aspect-square bg-gradient-to-br from-[#D4AF37]/10 to-[#0B3D2E]/50"
                         />
                     </div>
                 </div>
@@ -94,14 +110,14 @@ export default function UnlearnPage() {
             {/* Testimonials */}
             <section
                 className="py-24"
-                style={{ backgroundColor: '#0B3D2E', color: '#FFFFFF' }}
+                style={{ backgroundColor: '#FAF6EF', color: '#1A1A1A' }}
             >
                 <div className="max-w-[1280px] mx-auto px-6 text-center">
                     <p className="text-sm uppercase tracking-widest font-medium mb-4 text-[#D4AF37]">
                         Testimonials
                     </p>
                     <h2
-                        className="text-white font-bold leading-[1.1] tracking-[-0.02em] mb-12 max-w-2xl mx-auto"
+                        className="text-[#1A1A1A] font-bold leading-[1.1] tracking-[-0.02em] mb-12 max-w-2xl mx-auto"
                         style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}
                     >
                         Trusted by thousands to manage their mental health
@@ -128,14 +144,14 @@ export default function UnlearnPage() {
                                 key={i}
                                 className="p-6 text-left"
                                 style={{
-                                    backgroundColor: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    backgroundColor: '#FFFFFF',
+                                    border: '1px solid rgba(26,26,26,0.1)',
                                 }}
                             >
-                                <p className="text-white/80 mb-6 leading-relaxed">&quot;{testimonial.quote}&quot;</p>
+                                <p className="text-[#1A1A1A]/70 mb-6 leading-relaxed">&quot;{testimonial.quote}&quot;</p>
                                 <div>
-                                    <div className="font-semibold text-white">{testimonial.author}</div>
-                                    <div className="text-sm text-white/50">{testimonial.role}</div>
+                                    <div className="font-semibold text-[#1A1A1A]">{testimonial.author}</div>
+                                    <div className="text-sm text-[#1A1A1A]/50">{testimonial.role}</div>
                                 </div>
                             </div>
                         ))}
