@@ -1,7 +1,9 @@
 import {
     UnlearnNav,
-    UnlearnHero,
+    DigitalTwinHero,
     UnlearnFeatures,
+    DigitalTwinDashboard,
+    ParticipantDigitalTwin,
     UnlearnCTA,
     UnlearnFooter,
 } from '@/components/unlearn';
@@ -27,16 +29,22 @@ export default function UnlearnPage() {
                 ctaHref="/signup"
             />
 
-            {/* Hero Section */}
-            <UnlearnHero
-                headline="Redefine Your Relationship With Anxiety"
-                subheadline="The world's first AI health coach that understands your unique biology and guides you toward lasting calm."
+            {/* Digital Twin Hero Section - Split portrait */}
+            <DigitalTwinHero
+                headline="Simulate outcomes for every participant at the beginning of your journey."
+                subheadline="Your AI-powered digital twin learns your unique patterns and predicts what works best for you."
                 ctaLabel="Start Your Journey"
                 ctaHref="/signup"
             />
 
             {/* Features Grid */}
             <UnlearnFeatures />
+
+            {/* Digital Twin Dashboard */}
+            <DigitalTwinDashboard />
+
+            {/* Participant Data Table */}
+            <ParticipantDigitalTwin />
 
             {/* Science Section - Light variant */}
             <section
@@ -86,7 +94,7 @@ export default function UnlearnPage() {
                 </div>
             </section>
 
-            {/* Testimonials / Social Proof (placeholder) */}
+            {/* Testimonials / Social Proof */}
             <section
                 className="py-24"
                 style={{ backgroundColor: '#1A081C', color: '#FFFFFF' }}
@@ -99,7 +107,7 @@ export default function UnlearnPage() {
                         Testimonials
                     </p>
                     <h2
-                        className="font-bold leading-[1.1] tracking-[-0.02em] mb-12 max-w-2xl mx-auto"
+                        className="text-white font-bold leading-[1.1] tracking-[-0.02em] mb-12 max-w-2xl mx-auto"
                         style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}
                     >
                         Trusted by thousands to manage their mental health
@@ -130,9 +138,9 @@ export default function UnlearnPage() {
                                     border: '1px solid rgba(255,255,255,0.1)',
                                 }}
                             >
-                                <p className="text-white/80 mb-6 leading-relaxed">"{testimonial.quote}"</p>
+                                <p className="text-white/80 mb-6 leading-relaxed">&quot;{testimonial.quote}&quot;</p>
                                 <div>
-                                    <div className="font-semibold">{testimonial.author}</div>
+                                    <div className="font-semibold text-white">{testimonial.author}</div>
                                     <div className="text-sm text-white/50">{testimonial.role}</div>
                                 </div>
                             </div>
