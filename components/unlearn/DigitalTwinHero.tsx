@@ -46,7 +46,7 @@ export default function DigitalTwinHero({
             </div>
 
             {/* Digital Twin Portrait - Face to face */}
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center pb-48">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={isInView ? { opacity: 1, scale: 1 } : {}}
