@@ -69,6 +69,7 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: input,
+                    stream: false,
                     language,
                 }),
             });
@@ -78,7 +79,7 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
             const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: data.reply || data.message || (language === 'en' ? 'I understand. Let me think about that.' : '我明白了，让我思考一下。'),
+                content: data.response || data.reply || data.message || (language === 'en' ? 'I understand. Let me think about that.' : '我明白了，让我思考一下。'),
                 timestamp: new Date(),
             };
 

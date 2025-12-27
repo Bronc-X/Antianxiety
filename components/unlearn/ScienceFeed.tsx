@@ -30,44 +30,38 @@ export default function ScienceFeed() {
             const data = await res.json();
 
             if (data.items && data.items.length > 0) {
-                setItems(data.items);
+                // Transform API response to expected format
+                const transformedItems = data.items.map((item: any) => ({
+                    id: item.id?.toString() || String(Math.random()),
+                    source_url: item.source_url || '#',
+                    source_type: item.source_type || 'research',
+                    content_text: item.content_text || item.title || item.summary || '',
+                    published_at: item.published_at
+                        ? new Date(item.published_at).toLocaleDateString()
+                        : new Date().toLocaleDateString(),
+                    relevance_score: item.relevance_score,
+                }));
+                setItems(transformedItems);
+            } else if (data.trending && data.trending.length > 0) {
+                // Fallback to trending if no personalized items
+                const transformedItems = data.trending.map((item: any) => ({
+                    id: item.id?.toString() || String(Math.random()),
+                    source_url: item.source_url || '#',
+                    source_type: item.source_type || 'trending',
+                    content_text: item.content_text || item.title || '',
+                    published_at: item.published_at
+                        ? new Date(item.published_at).toLocaleDateString()
+                        : new Date().toLocaleDateString(),
+                    relevance_score: null,
+                }));
+                setItems(transformedItems);
             } else {
-                // Demo data
-                setItems([
-                    {
-                        id: '1',
-                        source_url: 'https://nature.com/articles/example1',
-                        source_type: 'nature',
-                        content_text: language === 'en'
-                            ? 'New research shows HRV-based interventions can reduce anxiety symptoms by 47% in 12 weeks'
-                            : '新研究表明基于HRV的干预可以在12周内将焦虑症状减少47%',
-                        published_at: '2024-12-25',
-                        relevance_score: 0.92,
-                    },
-                    {
-                        id: '2',
-                        source_url: 'https://science.org/articles/example2',
-                        source_type: 'science',
-                        content_text: language === 'en'
-                            ? 'Sleep optimization protocol shows significant improvements in autonomic nervous system function'
-                            : '睡眠优化方案显示出自主神经系统功能的显著改善',
-                        published_at: '2024-12-24',
-                        relevance_score: 0.88,
-                    },
-                    {
-                        id: '3',
-                        source_url: 'https://lancet.com/articles/example3',
-                        source_type: 'lancet',
-                        content_text: language === 'en'
-                            ? 'Digital twins in healthcare: personalized treatment prediction reaches 94% accuracy'
-                            : '医疗领域的数字孪生：个性化治疗预测准确率达到94%',
-                        published_at: '2024-12-23',
-                        relevance_score: 0.85,
-                    },
-                ]);
+                // No content available
+                setItems([]);
             }
         } catch (error) {
             console.error('Failed to fetch feed:', error);
+            setItems([]);
         } finally {
             setLoading(false);
         }

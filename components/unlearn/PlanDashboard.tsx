@@ -39,48 +39,34 @@ export default function PlanDashboard() {
     const fetchPlans = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/plans');
+            const res = await fetch('/api/plans/list?status=active');
             const data = await res.json();
 
-            if (data.plans) {
-                setPlans(data.plans);
+            if (data.success && data.data?.plans && data.data.plans.length > 0) {
+                // Transform API data to component format
+                const transformedPlans = data.data.plans.map((plan: any) => ({
+                    id: plan.id,
+                    title: plan.title || (language === 'en' ? 'Health Plan' : '健康方案'),
+                    plan_type: plan.plan_type || 'comprehensive',
+                    status: plan.status || 'active',
+                    difficulty: plan.difficulty || 'medium',
+                    expected_duration_days: plan.expected_duration_days || 14,
+                    progress: plan.progress || 0,
+                    items: plan.content?.actions?.map((action: any, idx: number) => ({
+                        id: `${plan.id}-${idx}`,
+                        text: action.description || action.text || action,
+                        completed: action.completed || false,
+                    })) || [],
+                    created_at: plan.created_at,
+                }));
+                setPlans(transformedPlans);
             } else {
-                // Demo data
-                setPlans([
-                    {
-                        id: '1',
-                        title: language === 'en' ? 'Morning Routine Optimization' : '早晨作息优化',
-                        plan_type: 'sleep',
-                        status: 'active',
-                        difficulty: 'easy',
-                        expected_duration_days: 14,
-                        progress: 65,
-                        items: [
-                            { id: '1-1', text: language === 'en' ? 'Wake up at 6:30 AM' : '6:30起床', completed: true },
-                            { id: '1-2', text: language === 'en' ? '10 min stretching' : '10分钟拉伸', completed: true },
-                            { id: '1-3', text: language === 'en' ? 'Mindful breakfast' : '正念早餐', completed: false },
-                        ],
-                        created_at: new Date().toISOString(),
-                    },
-                    {
-                        id: '2',
-                        title: language === 'en' ? 'HRV Improvement Protocol' : 'HRV 提升方案',
-                        plan_type: 'comprehensive',
-                        status: 'active',
-                        difficulty: 'medium',
-                        expected_duration_days: 30,
-                        progress: 40,
-                        items: [
-                            { id: '2-1', text: language === 'en' ? 'Box breathing 5 min' : '方块呼吸5分钟', completed: true },
-                            { id: '2-2', text: language === 'en' ? 'Cold exposure 30s' : '冷暴露30秒', completed: false },
-                            { id: '2-3', text: language === 'en' ? 'No caffeine after 2pm' : '下午2点后禁咖啡因', completed: false },
-                        ],
-                        created_at: new Date().toISOString(),
-                    },
-                ]);
+                // No plans yet - show empty state or prompt to create
+                setPlans([]);
             }
         } catch (error) {
             console.error('Failed to fetch plans:', error);
+            setPlans([]);
         } finally {
             setLoading(false);
         }

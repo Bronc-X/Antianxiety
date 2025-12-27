@@ -218,6 +218,131 @@ export async function POST(request: NextRequest) {
     }
 }
 
+export async function GET() {
+    try {
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll();
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            cookieStore.set(name, value, options);
+                        });
+                    },
+                },
+            }
+        );
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: 'Unauthorized', connections: {} },
+                { status: 401 }
+            );
+        }
+
+        const { data: tokens } = await supabase
+            .from('wearable_tokens')
+            .select('provider, last_sync_at, expires_at, device_name')
+            .eq('user_id', user.id);
+
+        const connections: Record<string, { connected: boolean; lastSync?: string }> = {};
+        tokens?.forEach((token) => {
+            connections[token.provider] = {
+                connected: true,
+                lastSync: token.last_sync_at ? new Date(token.last_sync_at).toLocaleString() : undefined,
+            };
+        });
+
+        const { data: healthData } = await supabase
+            .from('user_health_data')
+            .select('data_type, value, score, quality, metadata, recorded_at')
+            .eq('user_id', user.id)
+            .in('data_type', ['hrv', 'sleep', 'activity'])
+            .order('recorded_at', { ascending: false })
+            .limit(50);
+
+        const latestByType: Record<string, any> = {};
+        healthData?.forEach((item) => {
+            if (!latestByType[item.data_type]) {
+                latestByType[item.data_type] = item;
+            }
+        });
+
+        const hrvRow = latestByType.hrv;
+        const sleepRow = latestByType.sleep;
+        const activityRow = latestByType.activity;
+
+        let latestData: Record<string, unknown> | null = null;
+
+        if (hrvRow && (typeof hrvRow.value === 'number' || typeof hrvRow.score === 'number')) {
+            const hrvValue = Math.round(Number(hrvRow.value ?? hrvRow.score));
+            const quality = hrvRow.quality as string | undefined;
+            const statusMap: Record<string, 'low' | 'normal' | 'good' | 'excellent'> = {
+                poor: 'low',
+                fair: 'normal',
+                good: 'good',
+                excellent: 'excellent',
+            };
+            const status = statusMap[quality || 'good'] || 'good';
+
+            const sleepMinutes = sleepRow?.value ? Number(sleepRow.value) : null;
+            const sleepHours = sleepMinutes
+                ? (sleepMinutes > 24 ? sleepMinutes / 60 : sleepMinutes)
+                : null;
+            const deepMinutes = sleepRow?.metadata?.deepMinutes ? Number(sleepRow.metadata.deepMinutes) : null;
+            const remMinutes = sleepRow?.metadata?.remMinutes ? Number(sleepRow.metadata.remMinutes) : null;
+
+            latestData = {
+                hrv: {
+                    value: hrvValue,
+                    status,
+                    trend: 0,
+                    lastUpdated: hrvRow.recorded_at ? new Date(hrvRow.recorded_at).toLocaleString() : '—',
+                },
+                sleep: sleepHours
+                    ? {
+                        duration: Math.round(sleepHours * 10) / 10,
+                        quality: sleepRow?.score ? Math.round(Number(sleepRow.score)) : 80,
+                        deepSleep: deepMinutes ? Math.round((deepMinutes / 60) * 10) / 10 : 0,
+                        remSleep: remMinutes ? Math.round((remMinutes / 60) * 10) / 10 : 0,
+                    }
+                    : null,
+                activity: activityRow
+                    ? {
+                        steps: activityRow.metadata?.steps
+                            ? Number(activityRow.metadata.steps)
+                            : Math.round(Number(activityRow.value || 0)),
+                        calories: activityRow.metadata?.calories
+                            ? Number(activityRow.metadata.calories)
+                            : 0,
+                        activeMinutes: activityRow.metadata?.activeMinutes
+                            ? Number(activityRow.metadata.activeMinutes)
+                            : 0,
+                    }
+                    : null,
+            };
+        }
+
+        return NextResponse.json({
+            connections,
+            latestData,
+        });
+    } catch (error) {
+        console.error('Wearables sync GET error:', error);
+        return NextResponse.json(
+            { error: 'Failed to load wearable status', connections: {} },
+            { status: 500 }
+        );
+    }
+}
+
 // GET: 获取同步状态
 export async function GET(request: NextRequest) {
     try {
