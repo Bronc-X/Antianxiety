@@ -36,38 +36,17 @@ export default function DigitalTwinHero({
     return (
         <section
             ref={containerRef}
-            className="relative min-h-screen flex flex-col overflow-hidden"
+            className="relative min-h-screen flex items-center overflow-hidden"
             style={{ backgroundColor: '#0B3D2E' }}
         >
-            {/* Split Background - Cream on left, Lavender/Purple halftone on right */}
+            {/* Split Background - Cream on left, Green on right */}
             <div className="absolute inset-0 flex">
                 <div className="w-1/2 bg-[#FAF6EF]" />
-                <div
-                    className="w-1/2 relative"
-                    style={{
-                        backgroundColor: '#C8B6E2',
-                        backgroundImage: `
-                            radial-gradient(circle, rgba(139,115,178,0.5) 1px, transparent 1px)
-                        `,
-                        backgroundSize: '4px 4px',
-                    }}
-                >
-                    {/* Purple halftone dots overlay for digital twin effect */}
-                    <div
-                        className="absolute inset-0"
-                        style={{
-                            backgroundImage: `
-                                radial-gradient(circle, rgba(139,115,178,0.3) 2px, transparent 2px)
-                            `,
-                            backgroundSize: '6px 6px',
-                            backgroundPosition: '3px 3px',
-                        }}
-                    />
-                </div>
+                <div className="w-1/2 bg-[#0B3D2E]" />
             </div>
 
-            {/* Digital Twin Portrait - Face to face - Takes most of the screen */}
-            <div className="flex-1 relative flex items-center justify-center pt-20">
+            {/* Digital Twin Portrait - Face to face */}
+            <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={isInView ? { opacity: 1, scale: 1 } : {}}
@@ -84,11 +63,16 @@ export default function DigitalTwinHero({
                 </motion.div>
             </div>
 
-            {/* Content - Below the image */}
+            {/* Gradient overlay on right side for text readability */}
             <div
-                className="relative z-10 py-16 px-6"
-                style={{ backgroundColor: '#0B3D2E' }}
-            >
+                className="absolute top-0 right-0 w-1/2 h-full pointer-events-none"
+                style={{
+                    background: 'linear-gradient(to left, rgba(11,61,46,0.95) 20%, rgba(11,61,46,0.7) 60%, transparent 100%)',
+                }}
+            />
+
+            {/* Content - Below the image */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 py-12 px-6" style={{ backgroundColor: '#0B3D2E' }}>
                 <div className="max-w-[1400px] mx-auto">
                     <div className="grid md:grid-cols-2 gap-8 items-center">
                         {/* Left side - Headline */}
@@ -159,7 +143,7 @@ export default function DigitalTwinHero({
                 initial={{ opacity: 0 }}
                 animate={isInView ? { opacity: 1 } : {}}
                 transition={{ duration: 0.5, delay: 1.2 }}
-                className="absolute bottom-8 left-8 flex items-center gap-3 text-white/70"
+                className="absolute bottom-32 left-8 flex items-center gap-3 text-white/70 z-20"
             >
                 <div className="w-6 h-10 border-2 border-white/40 flex justify-center pt-2">
                     <motion.div
