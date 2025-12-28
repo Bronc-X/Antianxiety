@@ -230,7 +230,14 @@ export function ClinicalOnboarding({
     const goToNextPage = useCallback(() => {
         if (currentPage < TOTAL_PAGES - 1) {
             setDirection(1);
-            setCurrentPage(prev => prev + 1);
+            // Check if we should show encouragement after this page
+            // Show after page 2 (before page 3) and after page 4 (before page 5)
+            if (ENCOURAGEMENT_PAGES.includes(currentPage)) {
+                setShowEncouragement(true);
+                setStep('encouragement');
+            } else {
+                setCurrentPage(prev => prev + 1);
+            }
         } else {
             // All pages complete
             completeOnboarding();
@@ -240,8 +247,9 @@ export function ClinicalOnboarding({
     // Continue from encouragement
     const continueFromEncouragement = useCallback(() => {
         setShowEncouragement(false);
-        setStep('questions');
+        setDirection(1);
         setCurrentPage(prev => prev + 1);
+        setStep('questions');
     }, []);
 
     // Go to previous page
@@ -490,6 +498,100 @@ export function ClinicalOnboarding({
                             <span>{t('welcome.startAssessment')}</span>
                             <ChevronRight className="w-5 h-5" />
                         </button>
+                    </motion.div>
+                )}
+
+                {/* Encouragement - shown between pages */}
+                {step === 'encouragement' && (
+                    <motion.div
+                        key="encouragement"
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        custom={direction}
+                        className="relative p-10 md:p-12"
+                    >
+                        <div className="text-center">
+                            {/* Progress indicator */}
+                            <div className="mb-8">
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium">
+                                    <Sparkles className="w-4 h-4" />
+                                    <span>
+                                        {language === 'en' 
+                                            ? `${Math.round(progressPercent)}% Complete` 
+                                            : `已完成 ${Math.round(progressPercent)}%`}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Encouragement message based on progress */}
+                            {currentPage === 2 && (
+                                <>
+                                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                                        <Brain className="w-8 h-8 text-white" />
+                                    </div>
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-4">
+                                        {language === 'en' ? 'Great Progress!' : '进展顺利！'}
+                                    </h2>
+                                    <p className="text-emerald-800/60 text-base md:text-lg leading-relaxed max-w-md mx-auto mb-4">
+                                        {language === 'en' 
+                                            ? "You're doing wonderfully. Your honest answers help us understand you better." 
+                                            : '你做得很棒。你的真实回答帮助我们更好地了解你。'}
+                                    </p>
+                                    <p className="text-emerald-800/40 text-sm">
+                                        {language === 'en' 
+                                            ? 'Just a few more questions to go...' 
+                                            : '还有几个问题就完成了...'}
+                                    </p>
+                                </>
+                            )}
+
+                            {currentPage === 4 && (
+                                <>
+                                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                                        <CheckCircle2 className="w-8 h-8 text-white" />
+                                    </div>
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-4">
+                                        {language === 'en' ? 'Almost There!' : '马上就好！'}
+                                    </h2>
+                                    <p className="text-emerald-800/60 text-base md:text-lg leading-relaxed max-w-md mx-auto mb-4">
+                                        {language === 'en' 
+                                            ? "You're in the final stretch. Thank you for your patience and honesty." 
+                                            : '最后一小段了。感谢你的耐心和真诚。'}
+                                    </p>
+                                    <p className="text-emerald-800/40 text-sm">
+                                        {language === 'en' 
+                                            ? 'Your personalized insights are being prepared...' 
+                                            : '你的个性化分析正在准备中...'}
+                                    </p>
+                                </>
+                            )}
+
+                            {/* Progress bar */}
+                            <div className="mt-8 mb-10 max-w-xs mx-auto">
+                                <div className="h-2 bg-emerald-100 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${progressPercent}%` }}
+                                        transition={{ duration: 0.8, ease: "easeOut" }}
+                                    />
+                                </div>
+                                <div className="flex justify-between mt-2 text-xs text-emerald-800/40">
+                                    <span>{language === 'en' ? 'Start' : '开始'}</span>
+                                    <span>{language === 'en' ? 'Complete' : '完成'}</span>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={continueFromEncouragement}
+                                className="w-full max-w-xs mx-auto h-14 bg-[#0B3D2E] text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-[#06261c] transition-colors shadow-lg shadow-emerald-900/10"
+                            >
+                                <span>{language === 'en' ? 'Continue' : '继续'}</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
                     </motion.div>
                 )}
 

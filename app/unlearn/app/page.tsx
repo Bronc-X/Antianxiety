@@ -59,7 +59,7 @@ export default function AppDashboard() {
                             className="flex items-center gap-2 px-5 py-3 bg-[#D4AF37] text-[#0B3D2E] font-semibold font-serif hover:bg-[#E5C158] transition-colors"
                         >
                             <Sparkles className="w-5 h-5" />
-                            {language === 'en' ? 'Daily Check-in' : '每日打卡'}
+                            {language === 'en' ? 'Daily Calibration' : '每日校准'}
                         </button>
                     </motion.div>
                 </div>

@@ -18,8 +18,9 @@ export const SwipeDesign2 = () => {
                 {/* Editorial Header */}
                 <div className="w-full flex justify-between items-center border-b border-[#1c1c1c]/10 pb-4 mb-8">
                     <div className="flex items-center gap-2">
-                        <img src="/marketing/logo.png" alt="Logo" className="w-6 h-6 object-contain mix-blend-multiply opacity-80" />
-                        <span className="text-xl font-bold tracking-tighter">VOL. 01</span>
+                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                        <span className="text-sm font-bold tracking-tight text-[#1c1c1c]">AntiAnxiety™</span>
+                        <span className="text-xl font-bold tracking-tighter ml-2">VOL. 01</span>
                     </div>
                     <span className="font-sans text-[10px] uppercase tracking-widest bg-[#1c1c1c] text-[#EBE9E4] px-2 py-1 rounded-full">Biological Rhythm</span>
                 </div>

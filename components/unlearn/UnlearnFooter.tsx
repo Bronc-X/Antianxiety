@@ -90,11 +90,9 @@ export default function UnlearnFooter({
                     {/* Brand Column */}
                     <div className="col-span-2">
                         <Link href="/" className="flex items-center gap-2 mb-4">
-                            <div className="w-10 h-10 bg-[#D4AF37] flex items-center justify-center">
-                                <span className="text-[#0B3D2E] font-bold">A</span>
-                            </div>
-                            <span className="font-semibold text-white text-xl">
-                                Antianxiety
+                            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                            <span className="font-bold text-white text-xl tracking-tight">
+                                AntiAnxiety<sup className="text-xs">™</sup>
                             </span>
                         </Link>
                         <p className="text-white/60 text-sm leading-relaxed max-w-xs mb-6">
@@ -172,7 +170,7 @@ export default function UnlearnFooter({
                     style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
                 >
                     <p className="text-white/40 text-sm">
-                        © {new Date().getFullYear()} Antianxiety. {language === 'en' ? 'All rights reserved.' : '保留所有权利。'}
+                        © {new Date().getFullYear()} AntiAnxiety™. {language === 'en' ? 'All rights reserved.' : '保留所有权利。'}
                     </p>
                     <div className="flex items-center gap-6">
                         <Link href="/privacy" className="text-white/40 hover:text-white/60 text-sm transition-colors">

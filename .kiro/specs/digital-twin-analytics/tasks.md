@@ -112,18 +112,18 @@
     - **Validates: Requirements 8.4**
 
 - [x] 10. Update Frontend Component
-  - [ ] 10.1 Refactor ParticipantDigitalTwin to use real data
+  - [x] 10.1 Refactor ParticipantDigitalTwin to use real data
     - Update `components/unlearn/ParticipantDigitalTwin.tsx`
     - Replace static data with API calls to `/api/digital-twin/dashboard`
     - Add loading and error states
     - Show "collecting data" state when insufficient data
     - _Requirements: 2.6, 7.2, 7.3, 7.4_
-  - [ ] 10.2 Add data refresh trigger
+  - [x] 10.2 Add data refresh trigger
     - Trigger re-analysis after daily calibration completion
     - Show "Analyzing..." indicator during refresh
     - _Requirements: 7.1_
 
-- [ ] 11. Final Checkpoint - Integration complete
+- [x] 11. Final Checkpoint - Integration complete
   - Run all property tests
   - Verify end-to-end flow: Questionnaire → Calibrations → Analysis → Dashboard
   - Ensure all tests pass, ask the user if questions arise

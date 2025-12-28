@@ -37,7 +37,7 @@ export const ImageUploadIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// 简化版Logo - 只有圆点+品牌名
+// 简化版Logo - 翡翠绿圆点+品牌名
 export const BrandLogoSimple = ({ className, dotClassName }: { className?: string; dotClassName?: string }) => (
   <div className={`flex items-center gap-1.5 ${className || ''}`}>
     <svg
@@ -52,11 +52,11 @@ export const BrandLogoSimple = ({ className, dotClassName }: { className?: strin
         cx="6"
         cy="6"
         r="6"
-        fill="#0B3D2E"
+        fill="#10b981"
       />
     </svg>
-    <span className="text-xs text-[#0B3D2E]/60">
-      AntiAnxiety 图标系统
+    <span className="text-xs text-white/80 font-semibold tracking-tight">
+      AntiAnxiety™
     </span>
   </div>
 );
@@ -101,7 +101,7 @@ export const MicrophoneIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Antianxiety Logo - 圆点标志
+// Antianxiety Logo - 翡翠绿圆点标志
 export const LogoDot = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -115,13 +115,13 @@ export const LogoDot = ({ className }: { className?: string }) => (
       cx="12"
       cy="12"
       r="8"
-      fill="#0B3D2E"
+      fill="#10b981"
     />
   </svg>
 );
 
-// Antianxiety 完整Logo - 圆点+文字
-export const AntianxietyLogo = ({ className, dotClassName }: { className?: string; dotClassName?: string }) => (
+// Antianxiety 完整Logo - 翡翠绿圆点+文字
+export const AntianxietyLogo = ({ className, dotClassName, textColor = "white" }: { className?: string; dotClassName?: string; textColor?: string }) => (
   <div className={`flex items-center gap-2 ${className || ''}`}>
     <svg
       className={dotClassName}
@@ -135,11 +135,11 @@ export const AntianxietyLogo = ({ className, dotClassName }: { className?: strin
         cx="8"
         cy="8"
         r="8"
-        fill="#0B3D2E"
+        fill="#10b981"
       />
     </svg>
-    <span className="text-sm font-medium text-[#0B3D2E]">
-      Antianxiety<sup className="text-xs">™</sup>
+    <span className={`text-sm font-bold tracking-tight ${textColor === 'dark' ? 'text-[#1c1c1c]' : 'text-white'}`}>
+      AntiAnxiety<sup className="text-[10px]">™</sup>
     </span>
   </div>
 );

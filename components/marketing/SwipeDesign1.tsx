@@ -22,8 +22,9 @@ export const SwipeDesign1 = () => {
                 {/* Top Section: Branding & Status */}
                 <div className="flex justify-between items-start">
                     <div className="flex flex-col gap-1">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-white">
-                            <img src="/marketing/logo.png" alt="Antianxiety Logo" className="w-full h-full object-cover p-1" />
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                            <span className="text-sm font-bold tracking-tight">AntiAnxiety™</span>
                         </div>
                         <span className="text-[10px] tracking-[0.2em] font-bold mt-2 uppercase text-gray-400">Bionic-X Series</span>
                     </div>

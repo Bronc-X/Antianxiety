@@ -36,8 +36,8 @@ export default function MarketingPage({ onStart }: { onStart?: () => void }) {
                     <div className="flex h-14 items-center justify-between">
                         {/* Logo - Left */}
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="h-2 w-2 rounded-full bg-[#1A1A1A] dark:bg-white" />
-                            <span className="text-sm font-semibold tracking-wide text-[#1A1A1A] dark:text-white">
+                            <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                            <span className="text-sm font-bold tracking-tight text-[#1A1A1A] dark:text-white">
                                 AntiAnxiety<sup className="text-[8px]">™</sup>
                             </span>
                         </div>

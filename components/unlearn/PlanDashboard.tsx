@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import {
     Target, CheckCircle, Circle, ChevronRight,
-    Plus, Loader2, Sparkles, Calendar, X
+    Plus, Loader2, Sparkles, Calendar, X, History
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
@@ -36,6 +36,9 @@ export default function PlanDashboard() {
     const [updating, setUpdating] = useState<string | null>(null);
     const [showNewPlan, setShowNewPlan] = useState(false);
     const [showSuggestion, setShowSuggestion] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
+    const [historyPlans, setHistoryPlans] = useState<Plan[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
     const [creatingPlan, setCreatingPlan] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isUnauthorized, setIsUnauthorized] = useState(false);
@@ -155,6 +158,27 @@ export default function PlanDashboard() {
             setPlans([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchHistoryPlans = async () => {
+        try {
+            setHistoryLoading(true);
+            const res = await fetch('/api/plans/list?status=completed');
+            if (!res.ok) {
+                throw new Error('Failed to fetch history');
+            }
+            const data = await res.json();
+            if (data.success && data.data?.plans) {
+                setHistoryPlans(data.data.plans.map(normalizePlan));
+            } else {
+                setHistoryPlans([]);
+            }
+        } catch (error) {
+            console.error('Failed to fetch history plans:', error);
+            setHistoryPlans([]);
+        } finally {
+            setHistoryLoading(false);
         }
     };
 
@@ -362,11 +386,14 @@ export default function PlanDashboard() {
                         </h2>
                     </div>
                     <button
-                        onClick={() => setShowNewPlan(true)}
+                        onClick={() => {
+                            setShowHistory(true);
+                            fetchHistoryPlans();
+                        }}
                         className="flex items-center gap-2 px-4 py-2 bg-[#0B3D2E] text-white hover:bg-[#0B3D2E]/90 transition-colors"
                     >
-                        <Plus className="w-4 h-4" />
-                        <span className="text-sm">{language === 'en' ? 'New Plan' : '新建计划'}</span>
+                        <History className="w-4 h-4" />
+                        <span className="text-sm">{language === 'en' ? 'History' : '历史计划'}</span>
                     </button>
                 </div>
 
@@ -390,8 +417,8 @@ export default function PlanDashboard() {
                             onClick={() => setShowNewPlan(true)}
                             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0B3D2E] text-white hover:bg-[#0B3D2E]/90 transition-colors"
                         >
-                            <Plus className="w-4 h-4" />
-                            {language === 'en' ? 'Create Plan' : '创建方案'}
+                            <Sparkles className="w-4 h-4" />
+                            {language === 'en' ? 'Create Plan with Max' : 'Max协助你一起制定计划'}
                         </button>
                     </div>
                 ) : (
@@ -472,40 +499,100 @@ export default function PlanDashboard() {
                     </div>
                 )}
 
-                {/* AI Suggestion */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="mt-8 p-6 bg-[#0B3D2E] border border-[#D4AF37]/20"
-                >
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-[#D4AF37] flex items-center justify-center shrink-0">
-                            <Sparkles className="w-6 h-6 text-[#0B3D2E]" />
-                        </div>
-                        <div>
-                            <h4 className="text-white font-semibold mb-1">
-                                {language === 'en' ? 'Max suggests a new plan' : 'Max 建议一个新方案'}
-                            </h4>
-                            <p className="text-white/60 text-sm">
-                                {language === 'en'
-                                    ? 'Based on your HRV data, a stress management protocol could help improve your recovery.'
-                                    : '根据你的 HRV 数据，一个压力管理方案可能有助于改善你的恢复能力。'}
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setShowSuggestion(true);
-                                loadSuggestion();
-                            }}
-                            className="px-4 py-2 bg-[#D4AF37] text-[#0B3D2E] font-medium text-sm hover:bg-[#E5C158] transition-colors shrink-0"
-                        >
-                            {language === 'en' ? 'View' : '查看'}
-                        </button>
-                    </div>
-                </motion.div>
-
                 <AnimatePresence>
+                    {/* History Modal */}
+                    {showHistory && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6"
+                            onClick={() => setShowHistory(false)}
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 20, scale: 0.98 }}
+                                transition={{ duration: 0.2 }}
+                                className="w-full max-w-2xl max-h-[80vh] bg-[#FAF6EF] border border-[#1A1A1A]/10 overflow-hidden flex flex-col"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between p-6 border-b border-[#1A1A1A]/10">
+                                    <h3 className="text-xl font-semibold text-[#1A1A1A]">
+                                        {language === 'en' ? 'Plan History' : '历史计划'}
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowHistory(false)}
+                                        className="p-2 text-[#1A1A1A]/50 hover:text-[#1A1A1A] transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6">
+                                    {historyLoading ? (
+                                        <div className="flex items-center justify-center py-12">
+                                            <Loader2 className="w-8 h-8 text-[#0B3D2E] animate-spin" />
+                                        </div>
+                                    ) : historyPlans.length === 0 ? (
+                                        <div className="text-center py-12">
+                                            <History className="w-12 h-12 text-[#1A1A1A]/20 mx-auto mb-4" />
+                                            <p className="text-[#1A1A1A]/50">
+                                                {language === 'en' ? 'No completed plans yet.' : '暂无已完成的计划。'}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {historyPlans.map((plan) => (
+                                                <div
+                                                    key={plan.id}
+                                                    className="bg-white border border-[#1A1A1A]/10 p-4"
+                                                >
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 bg-[#0B3D2E]/10 flex items-center justify-center">
+                                                                <CheckCircle className="w-4 h-4 text-[#0B3D2E]" />
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-medium text-[#1A1A1A]">{plan.title}</h4>
+                                                                <p className="text-xs text-[#1A1A1A]/40">
+                                                                    {new Date(plan.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'zh-CN')}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-sm text-[#0B3D2E] font-medium">
+                                                            {plan.progress}%
+                                                        </span>
+                                                    </div>
+                                                    {plan.items.length > 0 && (
+                                                        <div className="space-y-1 mt-3 pt-3 border-t border-[#1A1A1A]/5">
+                                                            {plan.items.slice(0, 3).map((item) => (
+                                                                <div key={item.id} className="flex items-center gap-2 text-sm">
+                                                                    {item.completed ? (
+                                                                        <CheckCircle className="w-3 h-3 text-[#0B3D2E]" />
+                                                                    ) : (
+                                                                        <Circle className="w-3 h-3 text-[#1A1A1A]/30" />
+                                                                    )}
+                                                                    <span className={item.completed ? 'text-[#1A1A1A]/40 line-through' : 'text-[#1A1A1A]/70'}>
+                                                                        {item.text}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                            {plan.items.length > 3 && (
+                                                                <p className="text-xs text-[#1A1A1A]/40 pl-5">
+                                                                    +{plan.items.length - 3} {language === 'en' ? 'more items' : '更多项目'}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+
                     {showNewPlan && (
                         <motion.div
                             initial={{ opacity: 0 }}

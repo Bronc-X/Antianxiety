@@ -103,23 +103,13 @@ export default function DailyCalibration() {
                         <CheckCircle className="w-10 h-10 text-[#0B3D2E]" />
                     </motion.div>
                     <h2 className="text-white text-2xl font-bold mb-4">
-                        {language === 'en' ? 'Calibration Complete!' : '校准完成！'}
+                        {language === 'en' ? 'Calibration Complete!' : '今日校准完成！'}
                     </h2>
-                    <p className="text-white/60 mb-8">
+                    <p className="text-white/60">
                         {language === 'en'
-                            ? 'Your digital twin has been updated with today\'s data. Max will use this to personalize your recommendations.'
-                            : '你的数字孪生已更新今日数据。Max 将使用这些数据来个性化你的建议。'}
+                            ? 'Your digital twin has been updated with today\'s data. Come back tomorrow for your next calibration.'
+                            : '你的数字孪生已更新今日数据。明天再来进行下一次校准吧。'}
                     </p>
-                    <button
-                        onClick={() => {
-                            setCompleted(false);
-                            setStep(0);
-                            setAnswers({});
-                        }}
-                        className="px-6 py-3 border border-white/20 text-white hover:bg-white/5 transition-colors"
-                    >
-                        {language === 'en' ? 'Start New Calibration' : '开始新的校准'}
-                    </button>
                 </div>
             </section>
         );
@@ -191,9 +181,9 @@ export default function DailyCalibration() {
                                     <button
                                         key={option.value}
                                         onClick={() => handleAnswer(option.value)}
-                                        className={`p-4 text-left border transition-all ${answers[currentQuestion.id] === option.value
-                                                ? 'bg-[#D4AF37]/10 border-[#D4AF37] text-white'
-                                                : 'bg-white/5 border-white/10 text-white/70 hover:border-white/30'
+                                        className={`p-4 text-left border transition-all font-medium ${answers[currentQuestion.id] === option.value
+                                                ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-white'
+                                                : 'bg-white/10 border-white/20 text-white hover:border-white/40 hover:bg-white/15'
                                             }`}
                                     >
                                         {option.label}

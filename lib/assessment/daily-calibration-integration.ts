@@ -26,6 +26,7 @@ import {
     updateUserFrequency,
     type StabilityResult,
 } from './stability-calculator';
+import { onCalibrationComplete } from '@/lib/digital-twin/refresh-trigger';
 
 export interface DailyCalibrationQuestion {
     id: string;
@@ -148,6 +149,9 @@ export async function processDailyCalibration(
             daily_stability_streak: stability.consecutiveStableDays,
         })
         .eq('id', userId);
+
+    // Trigger digital twin analysis in background (non-blocking)
+    onCalibrationComplete(userId);
 
     return {
         dailyIndex,
