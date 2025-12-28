@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { Sparkles } from 'lucide-react';
@@ -19,6 +19,35 @@ import {
 export default function AppDashboard() {
     const { language } = useI18n();
     const [showCalibration, setShowCalibration] = useState(false);
+    const [weather, setWeather] = useState<{
+        temperature: number;
+        high?: number;
+        low?: number;
+        weatherCode: number;
+    } | null>(null);
+    const [weatherStatus, setWeatherStatus] = useState<'idle' | 'loading' | 'ready' | 'denied' | 'error'>('idle');
+    const [city, setCity] = useState<string | null>(null);
+
+    const getWeatherLabel = (code: number) => {
+        if (language === 'en') {
+            if (code === 0) return 'Clear';
+            if (code <= 3) return 'Partly Cloudy';
+            if (code <= 49) return 'Fog';
+            if (code <= 59) return 'Light Rain';
+            if (code <= 69) return 'Rain';
+            if (code <= 79) return 'Heavy Rain';
+            if (code <= 84) return 'Storm';
+            return 'Cloudy';
+        }
+        if (code === 0) return '晴';
+        if (code <= 3) return '少云';
+        if (code <= 49) return '有雾';
+        if (code <= 59) return '小雨';
+        if (code <= 69) return '中雨';
+        if (code <= 79) return '大雨';
+        if (code <= 84) return '雷暴';
+        return '多云';
+    };
 
     // Get time-based greeting
     const getGreeting = () => {
@@ -34,6 +63,116 @@ export default function AppDashboard() {
         }
     };
 
+    useEffect(() => {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) {
+            setWeatherStatus('denied');
+            return;
+        }
+
+        let cancelled = false;
+        const controller = new AbortController();
+
+        const fetchWeather = async (latitude: number, longitude: number) => {
+            try {
+                const response = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto`,
+                    {
+                        signal: controller.signal,
+                        cache: 'no-store',
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Weather request failed');
+                }
+
+                const data = await response.json();
+                const current = data?.current;
+                const daily = data?.daily;
+
+                if (!current) {
+                    throw new Error('Missing weather data');
+                }
+
+                const high = Array.isArray(daily?.temperature_2m_max) ? daily.temperature_2m_max[0] : null;
+                const low = Array.isArray(daily?.temperature_2m_min) ? daily.temperature_2m_min[0] : null;
+                const weatherCode = typeof current.weather_code === 'number'
+                    ? current.weather_code
+                    : Array.isArray(daily?.weather_code)
+                        ? daily.weather_code[0]
+                        : 0;
+
+                if (cancelled) {
+                    return;
+                }
+
+                setWeather({
+                    temperature: Math.round(current.temperature_2m),
+                    high: typeof high === 'number' ? Math.round(high) : undefined,
+                    low: typeof low === 'number' ? Math.round(low) : undefined,
+                    weatherCode,
+                });
+                setWeatherStatus('ready');
+
+                try {
+                    const geoResponse = await fetch(
+                        `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=${language === 'en' ? 'en' : 'zh'}&format=json`,
+                        {
+                            signal: controller.signal,
+                            cache: 'no-store',
+                        }
+                    );
+
+                    if (!geoResponse.ok) {
+                        return;
+                    }
+
+                    const geoData = await geoResponse.json();
+                    const result = Array.isArray(geoData?.results) ? geoData.results[0] : null;
+                    const nameParts = [result?.name, result?.admin1].filter(Boolean);
+                    const cityName = nameParts.join(' ');
+
+                    if (!cancelled) {
+                        setCity(cityName || null);
+                    }
+                } catch (error) {
+                    if (!cancelled) {
+                        setCity(null);
+                    }
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setWeatherStatus('error');
+                }
+            }
+        };
+
+        setWeatherStatus('loading');
+        setCity(null);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                fetchWeather(position.coords.latitude, position.coords.longitude);
+            },
+            () => {
+                if (!cancelled) {
+                    setWeatherStatus('denied');
+                }
+            },
+            {
+                enableHighAccuracy: false,
+                timeout: 6000,
+                maximumAge: 10 * 60 * 1000,
+            }
+        );
+
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
+    }, [language]);
+
+    const cityLabel = city || (language === 'en' ? 'Local' : '\u5f53\u5730');
+
     return (
         <main className="unlearn-theme font-serif">
             {/* Welcome Header */}
@@ -45,9 +184,37 @@ export default function AppDashboard() {
                         className="flex items-center justify-between"
                     >
                         <div>
-                            <h1 className="text-white text-3xl md:text-4xl font-bold mb-2 font-serif">
-                                {getGreeting()}
-                            </h1>
+                            <div className="flex flex-wrap items-center gap-3 mb-2">
+                                <h1 className="text-white text-3xl md:text-4xl font-bold font-serif">
+                                    {getGreeting()}
+                                </h1>
+                                {weatherStatus !== 'idle' && (
+                                    <div className="flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-semibold font-serif text-white/90 backdrop-blur-sm">
+                                        {weatherStatus === 'loading' && (
+                                            <span>{language === 'en' ? 'Locating...' : '定位中...'}</span>
+                                        )}
+                                        {weatherStatus === 'denied' && (
+                                            <span>{language === 'en' ? 'Location off' : '定位关闭'}</span>
+                                        )}
+                                        {weatherStatus === 'error' && (
+                                            <span>{language === 'en' ? 'Weather unavailable' : '天气不可用'}</span>
+                                        )}
+                                        {weatherStatus === 'ready' && weather && (
+                                            <>
+                                                <span className="text-white/80">{cityLabel}</span>
+                                                <span className="text-white/50">|</span>
+                                                <span>{getWeatherLabel(weather.weatherCode)}</span>
+                                                <span className="text-white/80">{weather.temperature}C</span>
+                                                {typeof weather.high === 'number' && typeof weather.low === 'number' && (
+                                                    <span className="text-white/60">
+                                                        {weather.high}/{weather.low}C
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                             <p className="text-white/60 font-serif">
                                 {language === 'en'
                                     ? "Here's what your digital twin learned about you"

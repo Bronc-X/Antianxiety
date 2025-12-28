@@ -6,6 +6,84 @@ interface DailyCalibrationPayload {
     responses: Record<string, string | number | null>;
 }
 
+const isMissingDailyQuestionnaireTable = (message?: string) => {
+    if (!message) return false;
+    return message.includes('daily_questionnaire_responses')
+        || message.includes('schema cache')
+        || message.includes('does not exist');
+};
+
+export async function GET(request: NextRequest) {
+    try {
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll();
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            cookieStore.set(name, value, options);
+                        });
+                    },
+                },
+            }
+        );
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const tomorrowStart = new Date(todayStart);
+        tomorrowStart.setDate(todayStart.getDate() + 1);
+        const today = todayStart.toISOString().split('T')[0];
+
+        const { data: existingQuestionnaire, error: questionnaireError } = await supabase
+            .from('daily_questionnaire_responses')
+            .select('id')
+            .eq('user_id', user.id)
+            .gte('created_at', todayStart.toISOString())
+            .lt('created_at', tomorrowStart.toISOString())
+            .maybeSingle();
+
+        if (questionnaireError && !isMissingDailyQuestionnaireTable(questionnaireError.message)) {
+            return NextResponse.json(
+                { error: 'Failed to load daily questionnaire status', details: questionnaireError.message },
+                { status: 500 }
+            );
+        }
+
+        const { data: existingCalibration } = await supabase
+            .from('daily_calibrations')
+            .select('id, date')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .maybeSingle();
+
+        return NextResponse.json({
+            completedToday: !!existingCalibration,
+            syncNeeded: !existingCalibration && !!existingQuestionnaire,
+            date: existingCalibration?.date ?? null,
+        });
+    } catch (error) {
+        console.error('Daily calibration status error:', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body: DailyCalibrationPayload = await request.json();
@@ -49,14 +127,37 @@ export async function POST(request: NextRequest) {
         todayStart.setHours(0, 0, 0, 0);
         const tomorrowStart = new Date(todayStart);
         tomorrowStart.setDate(todayStart.getDate() + 1);
+        const today = todayStart.toISOString().split('T')[0];
 
-        const { data: existing } = await supabase
+        const { data: existing, error: questionnaireError } = await supabase
             .from('daily_questionnaire_responses')
             .select('id')
             .eq('user_id', user.id)
             .gte('created_at', todayStart.toISOString())
             .lt('created_at', tomorrowStart.toISOString())
             .maybeSingle();
+
+        const questionnaireAvailable = !questionnaireError || !isMissingDailyQuestionnaireTable(questionnaireError.message);
+        if (questionnaireError && !isMissingDailyQuestionnaireTable(questionnaireError.message)) {
+            return NextResponse.json(
+                { error: 'Failed to load daily questionnaire', details: questionnaireError.message },
+                { status: 500 }
+            );
+        }
+
+        const { data: existingCalibration } = await supabase
+            .from('daily_calibrations')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .maybeSingle();
+
+        if (existing?.id && existingCalibration?.id) {
+            return NextResponse.json(
+                { error: 'Already completed today', completedToday: true },
+                { status: 409 }
+            );
+        }
 
         const toNumberSafe = (value: unknown) => {
             if (value === null || value === undefined) return null;
@@ -104,25 +205,39 @@ export async function POST(request: NextRequest) {
             mood: moodScore,
         };
 
-        if (existing?.id) {
-            await supabase
-                .from('daily_questionnaire_responses')
-                .update({
-                    responses: normalizedResponses,
-                    questions: Object.keys(normalizedResponses),
-                })
-                .eq('id', existing.id);
-        } else {
-            await supabase
-                .from('daily_questionnaire_responses')
-                .insert({
-                    user_id: user.id,
-                    responses: normalizedResponses,
-                    questions: Object.keys(normalizedResponses),
-                });
-        }
+        if (questionnaireAvailable) {
+            if (existing?.id) {
+                const { error: updateError } = await supabase
+                    .from('daily_questionnaire_responses')
+                    .update({
+                        responses: normalizedResponses,
+                        questions: Object.keys(normalizedResponses),
+                    })
+                    .eq('id', existing.id);
 
-        const today = todayStart.toISOString().split('T')[0];
+                if (updateError) {
+                    return NextResponse.json(
+                        { error: 'Failed to update daily questionnaire', details: updateError.message },
+                        { status: 500 }
+                    );
+                }
+            } else {
+                const { error: insertError } = await supabase
+                    .from('daily_questionnaire_responses')
+                    .insert({
+                        user_id: user.id,
+                        responses: normalizedResponses,
+                        questions: Object.keys(normalizedResponses),
+                    });
+
+                if (insertError) {
+                    return NextResponse.json(
+                        { error: 'Failed to save daily questionnaire', details: insertError.message },
+                        { status: 500 }
+                    );
+                }
+            }
+        }
 
         const { error: calibrationError } = await supabase
             .from('daily_calibrations')
@@ -138,7 +253,10 @@ export async function POST(request: NextRequest) {
             });
 
         if (calibrationError) {
-            console.warn('Daily calibration sync warning:', calibrationError.message);
+            return NextResponse.json(
+                { error: 'Failed to sync daily calibration', details: calibrationError.message },
+                { status: 500 }
+            );
         }
 
         const sleepQualityLabel = sleepQualityScore !== null
@@ -188,7 +306,7 @@ export async function POST(request: NextRequest) {
             headers: { cookie: cookieHeader },
         }).catch(() => {});
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, completedToday: true, date: today });
     } catch (error) {
         console.error('Daily calibration API error:', error);
         return NextResponse.json(

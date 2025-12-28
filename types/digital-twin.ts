@@ -347,6 +347,9 @@ export interface DashboardResponse {
 export interface DataCollectionStatus {
   hasBaseline: boolean;
   calibrationCount: number;
+  calibrationDays?: number;
+  firstCalibrationDate?: string | null;
+  lastCalibrationDate?: string | null;
   requiredCalibrations: number;
   isReady: boolean;
   progress: number;  // 0-100

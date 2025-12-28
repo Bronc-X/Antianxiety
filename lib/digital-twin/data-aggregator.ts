@@ -397,13 +397,35 @@ export async function getDataCollectionStatus(userId: string): Promise<DataColle
     .eq('user_id', userId);
 
   const calibrationCount = count || 0;
+  let firstCalibrationDate: string | null = null;
+  let lastCalibrationDate: string | null = null;
+
+  if (calibrationCount > 0) {
+    const { data: earliestCalibration } = await supabase
+      .from('daily_calibrations')
+      .select('date')
+      .eq('user_id', userId)
+      .order('date', { ascending: true })
+      .limit(1);
+
+    const { data: latestCalibration } = await supabase
+      .from('daily_calibrations')
+      .select('date')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(1);
+
+    firstCalibrationDate = earliestCalibration?.[0]?.date ?? null;
+    lastCalibrationDate = latestCalibration?.[0]?.date ?? null;
+  }
   const requiredCalibrations = MIN_CALIBRATIONS_FOR_ANALYSIS;
   const isReady = hasBaseline && calibrationCount >= requiredCalibrations;
 
   // 计算进度
   let progress = 0;
-  if (hasBaseline) progress += 50;
-  progress += Math.min(50, (calibrationCount / requiredCalibrations) * 50);
+  if (hasBaseline && requiredCalibrations > 0) {
+    progress = Math.min(100, (calibrationCount / requiredCalibrations) * 100);
+  }
 
   // 生成消息
   let message = '';
@@ -418,6 +440,9 @@ export async function getDataCollectionStatus(userId: string): Promise<DataColle
   return {
     hasBaseline,
     calibrationCount,
+    calibrationDays: calibrationCount,
+    firstCalibrationDate,
+    lastCalibrationDate,
     requiredCalibrations,
     isReady,
     progress: Math.round(progress),

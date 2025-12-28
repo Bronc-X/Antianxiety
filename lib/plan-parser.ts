@@ -179,10 +179,17 @@ export function parsePlans(message: string): ParsedPlan[] {
  * 格式化方案为存储格式
  */
 export function formatPlanForStorage(plan: ParsedPlan) {
+  // 为每个 item 生成唯一 ID
+  const itemsWithIds = (plan.items || []).map((item, index) => ({
+    ...item,
+    id: item.id || `item_${Date.now()}_${index}`,
+    completed: item.status === 'completed',
+  }));
+  
   return {
     title: plan.title,
     content: plan.content,
-    items: plan.items || [], // Save items
+    items: itemsWithIds,
     difficulty: plan.difficulty ? parseDifficulty(plan.difficulty) : undefined,
     expected_duration_days: plan.duration ? parseDuration(plan.duration) : undefined,
   };

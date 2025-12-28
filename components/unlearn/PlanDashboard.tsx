@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import {
     Target, CheckCircle, Circle, ChevronRight,
-    Plus, Loader2, Sparkles, Calendar, X, History
+    Plus, Loader2, Sparkles, Calendar, X, History, RotateCcw
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import MaxPlanDialogSimple from '@/components/max/MaxPlanDialogSimple';
 
 interface PlanItem {
     id: string;
@@ -35,11 +36,13 @@ export default function PlanDashboard() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<string | null>(null);
     const [showNewPlan, setShowNewPlan] = useState(false);
+    const [showMaxPlanDialog, setShowMaxPlanDialog] = useState(false);
     const [showSuggestion, setShowSuggestion] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [historyPlans, setHistoryPlans] = useState<Plan[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [creatingPlan, setCreatingPlan] = useState(false);
+    const [archivingPlan, setArchivingPlan] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isUnauthorized, setIsUnauthorized] = useState(false);
     const [suggestionLoading, setSuggestionLoading] = useState(false);
@@ -92,6 +95,14 @@ export default function PlanDashboard() {
     };
 
     const normalizePlan = (plan: any): Plan => {
+        console.log('📊 normalizePlan input:', { 
+            id: plan.id, 
+            contentType: typeof plan.content,
+            contentPreview: typeof plan.content === 'string' 
+                ? plan.content.substring(0, 200) 
+                : JSON.stringify(plan.content).substring(0, 200)
+        });
+
         const rawContent = typeof plan.content === 'string'
             ? (() => {
                 try {
@@ -107,14 +118,30 @@ export default function PlanDashboard() {
             : Array.isArray(rawContent.actions)
                 ? rawContent.actions
                 : [];
+        
+        console.log('📊 rawItems:', rawItems.map((item: any, i: number) => ({
+            index: i,
+            id: item.id,
+            completed: item.completed,
+            status: item.status
+        })));
+
         const items = rawItems.map((item: any, index: number) => ({
             id: item.id?.toString() || `${plan.id}-${index}`,
             text: item.text || item.title || String(item),
             completed: item.completed === true || item.status === 'completed',
         }));
 
-        const completedCount = items.filter(item => item.completed).length;
+        const completedCount = items.filter((item: PlanItem) => item.completed).length;
         const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
+
+        console.log('📊 normalizePlan output:', { 
+            id: plan.id, 
+            itemsCount: items.length,
+            completedCount,
+            progress,
+            items: items.map((i: PlanItem) => ({ id: i.id, completed: i.completed }))
+        });
 
         return {
             id: plan.id,
@@ -135,6 +162,7 @@ export default function PlanDashboard() {
             setLoading(true);
             setErrorMessage(null);
             setIsUnauthorized(false);
+            console.log('🔍 fetchPlans: Fetching active plans...');
             const res = await fetch('/api/plans/list?status=active');
             if (res.status === 401) {
                 setPlans([]);
@@ -145,8 +173,14 @@ export default function PlanDashboard() {
                 throw new Error('Failed to fetch plans');
             }
             const data = await res.json();
+            console.log('🔍 fetchPlans: Raw API response:', data);
 
             if (data.success && data.data?.plans && data.data.plans.length > 0) {
+                console.log('🔍 fetchPlans: Raw plans from API:', data.data.plans.map((p: any) => ({
+                    id: p.id,
+                    contentType: typeof p.content,
+                    content: typeof p.content === 'string' ? p.content.substring(0, 300) : JSON.stringify(p.content).substring(0, 300)
+                })));
                 setPlans(data.data.plans.map(normalizePlan));
             } else {
                 // No plans yet - show empty state or prompt to create
@@ -182,55 +216,144 @@ export default function PlanDashboard() {
         }
     };
 
+    /**
+     * 归档当前计划并打开新计划对话框
+     */
+    const archiveAndResetPlan = async (planId: string) => {
+        setArchivingPlan(planId);
+        
+        try {
+            // 将当前计划标记为已完成（归档）
+            const res = await fetch('/api/plans/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    planId,
+                    status: 'archived',
+                    completedItems: [],
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to archive plan');
+            }
+
+            toast({
+                message: language === 'en' ? 'Plan archived. Creating new plan...' : '计划已归档，正在创建新计划...',
+                type: 'success',
+                duration: 2000,
+            });
+
+            // 先从本地状态移除已归档的计划
+            setPlans(prev => prev.filter(p => p.id !== planId));
+            
+            // 立即打开 Max 对话框
+            setShowMaxPlanDialog(true);
+            
+            // 设置 archivingPlan 为 null，避免阻塞
+            setArchivingPlan(null);
+            
+            // 后台静默刷新计划列表（不设置 loading 状态）
+            fetch('/api/plans/list?status=active')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data?.plans) {
+                        setPlans(data.data.plans.map(normalizePlan));
+                    }
+                })
+                .catch(() => {});
+
+        } catch (error) {
+            console.error('Failed to archive plan:', error);
+            toast({
+                message: language === 'en' ? 'Failed to archive plan. Please try again.' : '归档计划失败，请稍后重试。',
+                type: 'error',
+            });
+            setArchivingPlan(null);
+        }
+    };
+
     const toggleItem = async (planId: string, itemId: string) => {
         setUpdating(itemId);
-        let updatedPlan: Plan | null = null;
+
+        console.log('🔄 toggleItem called:', { planId, itemId });
+
+        // 先找到当前计划并计算新状态
+        const currentPlan = plans.find(p => p.id === planId);
+        if (!currentPlan) {
+            console.error('❌ Plan not found:', planId);
+            setUpdating(null);
+            return;
+        }
+
+        // 计算新的 items 状态
+        const newItems = currentPlan.items.map(item =>
+            item.id === itemId ? { ...item, completed: !item.completed } : item
+        );
+        const completedCount = newItems.filter(i => i.completed).length;
+        const newProgress = Math.round((completedCount / newItems.length) * 100);
+
+        console.log('📝 Calculated new state:', { 
+            planId, 
+            items: newItems.map(i => ({ id: i.id, completed: i.completed })),
+            progress: newProgress 
+        });
 
         // Optimistic update
         setPlans(prev => prev.map(plan => {
             if (plan.id === planId) {
-                const newItems = plan.items.map(item =>
-                    item.id === itemId ? { ...item, completed: !item.completed } : item
-                );
-                const completedCount = newItems.filter(i => i.completed).length;
-                updatedPlan = {
+                return {
                     ...plan,
                     items: newItems,
-                    progress: Math.round((completedCount / newItems.length) * 100),
+                    progress: newProgress,
                 };
-                return updatedPlan;
             }
             return plan;
         }));
 
-        try {
-            if (updatedPlan) {
-                const completedItems = updatedPlan.items.map(item => ({
-                    id: item.id,
-                    completed: item.completed,
-                }));
-                const allCompleted = updatedPlan.items.every(item => item.completed);
-                const anyCompleted = updatedPlan.items.some(item => item.completed);
-                const status = allCompleted ? 'completed' : anyCompleted ? 'partial' : 'skipped';
+        // 准备 API 请求数据
+        const completedItems = newItems.map((item: PlanItem) => ({
+            id: item.id,
+            completed: item.completed,
+        }));
+        const allCompleted = newItems.every((item: PlanItem) => item.completed);
+        const anyCompleted = newItems.some((item: PlanItem) => item.completed);
+        const status = allCompleted ? 'completed' : anyCompleted ? 'partial' : 'skipped';
 
-                await fetch('/api/plans/complete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        planId,
-                        status,
-                        completedItems,
-                    }),
-                });
-                fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
-                fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => {});
+        console.log('📤 Sending to API:', { planId, status, completedItems });
+
+        try {
+            const res = await fetch('/api/plans/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    planId,
+                    status,
+                    completedItems,
+                }),
+            });
+            
+            console.log('📥 API response status:', res.status);
+            
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                console.error('❌ Failed to save completion:', errorData);
+                throw new Error(errorData.error || 'Failed to save');
             }
+            
+            const result = await res.json();
+            console.log('✅ Plan completion saved:', result);
+            
+            fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
+            fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => {});
         } catch (error) {
-            console.error('Failed to update item:', error);
+            console.error('❌ Failed to update item:', error);
             toast({
                 message: language === 'en' ? 'Failed to update plan item.' : '更新计划失败，请稍后重试。',
                 type: 'error',
             });
+            // Revert optimistic update on error
+            fetchPlans();
         } finally {
             setUpdating(null);
         }
@@ -359,13 +482,28 @@ export default function PlanDashboard() {
     const canSubmitDraft = planDraft.title.trim().length > 0
         && planDraft.items.some(item => item.trim().length > 0);
 
-    if (loading) {
+    // MaxPlanDialogSimple 使用简化的直接渲染
+    const maxPlanDialogElement = (
+        <MaxPlanDialogSimple
+            isOpen={showMaxPlanDialog}
+            onClose={() => setShowMaxPlanDialog(false)}
+            onPlanCreated={() => {
+                fetchPlans();
+                fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
+            }}
+        />
+    );
+
+    if (loading && !showMaxPlanDialog) {
         return (
-            <section className="py-16 px-6" style={{ backgroundColor: '#FAF6EF' }}>
-                <div className="max-w-[1000px] mx-auto flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 text-[#0B3D2E] animate-spin" />
-                </div>
-            </section>
+            <>
+                <section className="py-16 px-6" style={{ backgroundColor: '#FAF6EF' }}>
+                    <div className="max-w-[1000px] mx-auto flex items-center justify-center py-20">
+                        <Loader2 className="w-8 h-8 text-[#0B3D2E] animate-spin" />
+                    </div>
+                </section>
+                {maxPlanDialogElement}
+            </>
         );
     }
 
@@ -414,7 +552,7 @@ export default function PlanDashboard() {
                             <p className="text-sm text-red-500 mb-4">{errorMessage}</p>
                         )}
                         <button
-                            onClick={() => setShowNewPlan(true)}
+                            onClick={() => setShowMaxPlanDialog(true)}
                             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0B3D2E] text-white hover:bg-[#0B3D2E]/90 transition-colors"
                         >
                             <Sparkles className="w-4 h-4" />
@@ -452,9 +590,27 @@ export default function PlanDashboard() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-2xl font-bold text-[#0B3D2E]">{plan.progress}%</div>
-                                        <div className="text-xs text-[#1A1A1A]/40">{language === 'en' ? 'complete' : '已完成'}</div>
+                                    <div className="flex items-center gap-4">
+                                        {/* 重新设置按钮 */}
+                                        <button
+                                            onClick={() => archiveAndResetPlan(plan.id)}
+                                            disabled={archivingPlan === plan.id}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#1A1A1A]/60 hover:text-[#0B3D2E] hover:bg-[#0B3D2E]/5 rounded transition-colors disabled:opacity-50"
+                                            title={language === 'en' ? 'Reset and create new plan' : '重新设置计划'}
+                                        >
+                                            {archivingPlan === plan.id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <RotateCcw className="w-4 h-4" />
+                                            )}
+                                            <span className="hidden sm:inline">
+                                                {language === 'en' ? 'Reset' : '重新设置'}
+                                            </span>
+                                        </button>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-[#0B3D2E]">{plan.progress}%</div>
+                                            <div className="text-xs text-[#1A1A1A]/40">{language === 'en' ? 'complete' : '已完成'}</div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -791,6 +947,9 @@ export default function PlanDashboard() {
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* Max Plan Dialog */}
+                {maxPlanDialogElement}
             </div>
         </section>
     );

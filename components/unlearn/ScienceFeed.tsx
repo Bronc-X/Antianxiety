@@ -84,13 +84,30 @@ function FeedCard({
     language: string;
     onFeedback: (id: string | number, isPositive: boolean) => void;
 }) {
+    const isLightCard = index % 2 === 0;
+    const cardClasses = isLightCard
+        ? 'p-6 bg-white border border-[#E7E1D6] text-[#0B3D2E] shadow-[0_12px_40px_rgba(11,61,46,0.08)]'
+        : 'p-6 bg-[#0F4A37] border border-white/10 text-white';
+    const titleClass = isLightCard ? 'text-[#0B3D2E]' : 'text-white';
+    const summaryClass = isLightCard ? 'text-[#0B3D2E]/70' : 'text-white/60';
+    const highlightClass = isLightCard ? 'bg-[#F5F1E8] border-[#D4AF37]' : 'bg-[#D4AF37]/10 border-[#D4AF37]';
+    const highlightText = isLightCard ? 'text-[#0B3D2E]/80' : 'text-white/80';
+    const insightClass = isLightCard ? 'bg-[#E8F2EE] border-[#0B3D2E]' : 'bg-emerald-500/10 border-emerald-500';
+    const insightText = isLightCard ? 'text-[#0B3D2E]/80' : 'text-white/80';
+    const tagClass = isLightCard ? 'bg-[#0B3D2E]/5 text-[#0B3D2E]/70' : 'bg-white/5 text-white/60';
+    const dividerClass = isLightCard ? 'border-[#E7E1D6]' : 'border-white/10';
+    const actionLinkClass = isLightCard ? 'text-[#0B3D2E]' : 'text-[#D4AF37]';
+    const actionLinkHoverClass = isLightCard ? 'hover:text-[#0B3D2E]/70' : 'hover:text-[#E5C158]';
+    const positiveActionClass = isLightCard ? 'text-[#0B3D2E]/40 hover:text-emerald-600' : 'text-white/30 hover:text-emerald-400';
+    const negativeActionClass = isLightCard ? 'text-[#0B3D2E]/40 hover:text-red-500' : 'text-white/30 hover:text-red-400';
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
-            className="p-6 bg-white/5 border border-white/10 hover:border-[#D4AF37]/30 transition-all"
+            className={`${cardClasses} hover:border-[#D4AF37]/30 transition-all`}
         >
             {/* Header: Platform + Match */}
             <div className="flex items-center justify-between mb-4">
@@ -99,31 +116,31 @@ function FeedCard({
             </div>
 
             {/* Title */}
-            <h3 className="text-white font-semibold text-lg mb-3 leading-tight">
+            <h3 className={`${titleClass} font-semibold text-lg mb-3 leading-tight`}>
                 {item.title}
             </h3>
 
             {/* Summary */}
-            <p className="text-white/60 text-sm mb-4 leading-relaxed line-clamp-3">
+            <p className={`${summaryClass} text-sm mb-4 leading-relaxed line-clamp-3`}>
                 {item.summary}
             </p>
 
             {/* Why Recommended */}
-            <div className="p-4 bg-[#D4AF37]/10 border-l-2 border-[#D4AF37] mb-4">
+            <div className={`p-4 border-l-2 mb-4 ${highlightClass}`}>
                 <div className="flex items-center gap-2 text-[#D4AF37] text-xs font-medium mb-2">
                     <Sparkles className="w-4 h-4" />
                     {language === 'en' ? 'Why this is for you' : '为什么推荐给你'}
                 </div>
-                <p className="text-white/80 text-sm">{item.why_recommended}</p>
+                <p className={`${highlightText} text-sm`}>{item.why_recommended}</p>
             </div>
 
             {/* Actionable Insight */}
-            <div className="p-4 bg-emerald-500/10 border-l-2 border-emerald-500 mb-4">
-                <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium mb-2">
+            <div className={`p-4 border-l-2 mb-4 ${insightClass}`}>
+                <div className={`flex items-center gap-2 text-xs font-medium mb-2 ${isLightCard ? 'text-emerald-700' : 'text-emerald-400'}`}>
                     <Lightbulb className="w-4 h-4" />
                     {language === 'en' ? 'What you can do' : '你可以这样做'}
                 </div>
-                <p className="text-white/80 text-sm">{item.actionable_insight}</p>
+                <p className={`${insightText} text-sm`}>{item.actionable_insight}</p>
             </div>
 
             {/* Tags */}
@@ -132,7 +149,7 @@ function FeedCard({
                     {item.tags.map((tag, i) => (
                         <span 
                             key={i}
-                            className="flex items-center gap-1 px-2 py-1 bg-white/5 text-white/60 text-xs rounded"
+                            className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${tagClass}`}
                         >
                             <Tag className="w-3 h-3" />
                             {tag}
@@ -142,12 +159,12 @@ function FeedCard({
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+            <div className={`flex items-center justify-between pt-4 border-t ${dividerClass}`}>
                 <a
                     href={item.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-[#D4AF37] hover:text-[#E5C158] transition-colors"
+                    className={`flex items-center gap-2 text-sm ${actionLinkClass} ${actionLinkHoverClass} transition-colors`}
                 >
                     <BookOpen className="w-4 h-4" />
                     {language === 'en' ? 'Read Full Article' : '阅读全文'}
@@ -156,14 +173,14 @@ function FeedCard({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => onFeedback(item.id, true)}
-                        className="p-2 text-white/30 hover:text-emerald-400 transition-colors"
+                        className={`p-2 transition-colors ${positiveActionClass}`}
                         title={language === 'en' ? 'Helpful' : '有帮助'}
                     >
                         <ThumbsUp className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => onFeedback(item.id, false)}
-                        className="p-2 text-white/30 hover:text-red-400 transition-colors"
+                        className={`p-2 transition-colors ${negativeActionClass}`}
                         title={language === 'en' ? 'Not relevant' : '不相关'}
                     >
                         <ThumbsDown className="w-4 h-4" />
