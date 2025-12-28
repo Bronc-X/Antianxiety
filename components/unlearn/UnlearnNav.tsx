@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ArrowUpRight } from 'lucide-react';
+import { Menu, X, ArrowUpRight, User, LogOut } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useRouter } from 'next/navigation';
 
 interface NavLink {
     label: string;
@@ -16,17 +18,23 @@ interface UnlearnNavProps {
     links?: NavLink[];
     ctaLabel?: string;
     ctaHref?: string;
+    isAppNav?: boolean; // 是否是应用内导航（已登录状态）
 }
 
 export default function UnlearnNav({
     links,
     ctaLabel = 'Get Started',
     ctaHref = '/signup',
+    isAppNav = false,
 }: UnlearnNavProps) {
-    const { language } = useI18n();
+    const { language, t } = useI18n();
+    const router = useRouter();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(isAppNav);
+    const [showUserMenu, setShowUserMenu] = useState(false);
     const loginLabel = language === 'en' ? 'Sign In' : '登录';
+    const logoutLabel = t('userMenu.logout');
     const fallbackLinks: NavLink[] = language === 'en'
         ? [
             { label: 'Product', href: '#product' },
@@ -52,6 +60,25 @@ export default function UnlearnNav({
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // 检查登录状态
+    useEffect(() => {
+        if (!isAppNav) {
+            const supabase = createClientSupabaseClient();
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                setIsLoggedIn(!!session);
+            });
+        }
+    }, [isAppNav]);
+
+    const handleLogout = async () => {
+        const supabase = createClientSupabaseClient();
+        await supabase.auth.signOut();
+        setIsLoggedIn(false);
+        setShowUserMenu(false);
+        router.push('/');
+        router.refresh();
+    };
+
     return (
         <>
             <motion.nav
@@ -70,7 +97,7 @@ export default function UnlearnNav({
                 style={{ width: 'min(90vw, 900px)' }}
             >
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2 shrink-0">
+                <Link href={isLoggedIn ? '/unlearn/app' : '/'} className="flex items-center gap-2 shrink-0">
                     <div className="w-8 h-8 bg-[#0B3D2E] flex items-center justify-center">
                         <span className="text-white font-bold text-sm">A</span>
                     </div>
@@ -97,28 +124,72 @@ export default function UnlearnNav({
                     <div className="hidden md:flex items-center">
                         <LanguageSwitcher />
                     </div>
-                    <Link
-                        href="/login"
-                        className="hidden sm:block text-sm font-medium text-[#1A1A1A]/70 hover:text-[#0B3D2E] transition-colors"
-                    >
-                        {loginLabel}
-                    </Link>
-                    <Link
-                        href={ctaHref}
-                        className="
-              flex items-center gap-2
-              px-4 py-2.5
-              bg-[#0B3D2E] text-white
-              text-sm font-medium
-              hover:bg-[#0a3427]
-              transition-all duration-300
-              hover:-translate-y-0.5
-              hover:shadow-[0_4px_20px_rgba(11,61,46,0.3)]
-            "
-                    >
-                        {ctaLabel}
-                        <ArrowUpRight className="w-4 h-4" />
-                    </Link>
+                    
+                    {isLoggedIn ? (
+                        /* 已登录状态 - 显示用户菜单 */
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowUserMenu(!showUserMenu)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#1A1A1A]/70 hover:text-[#0B3D2E] transition-colors"
+                            >
+                                <User className="w-5 h-5" />
+                            </button>
+                            {showUserMenu && (
+                                <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-[#1A1A1A]/10 shadow-lg">
+                                    <Link
+                                        href="/unlearn/app/settings"
+                                        className="block px-4 py-3 text-sm text-[#1A1A1A] hover:bg-[#FAF6EF] transition-colors"
+                                        onClick={() => setShowUserMenu(false)}
+                                    >
+                                        {t('userMenu.settings')}
+                                    </Link>
+
+                                    <Link 
+                                        href="/onboarding/upgrade?from=menu" 
+                                        className="block px-4 py-3 text-sm text-[#1A1A1A] hover:bg-[#FAF6EF] transition-colors" 
+                                        onClick={() => setShowUserMenu(false)} 
+                                    > 
+                                        {t('userMenu.upgrade')} 
+                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        {logoutLabel}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        /* 未登录状态 - 显示登录按钮 */
+                        <Link
+                            href="/login"
+                            className="hidden sm:block text-sm font-medium text-[#1A1A1A]/70 hover:text-[#0B3D2E] transition-colors"
+                        >
+                            {loginLabel}
+                        </Link>
+                    )}
+                    
+                    {/* CTA 按钮 - 只在未登录或有特定 CTA 时显示 */}
+                    {(!isLoggedIn || (ctaHref && ctaHref !== '/unlearn/app/calibration')) && (
+                        <Link
+                            href={isLoggedIn ? '/unlearn/app' : ctaHref}
+                            className="
+                              flex items-center gap-2
+                              px-4 py-2.5
+                              bg-[#0B3D2E] text-white
+                              text-sm font-medium
+                              hover:bg-[#0a3427]
+                              transition-all duration-300
+                              hover:-translate-y-0.5
+                              hover:shadow-[0_4px_20px_rgba(11,61,46,0.3)]
+                            "
+                        >
+                            {isLoggedIn ? (language === 'en' ? 'Dashboard' : '仪表盘') : ctaLabel}
+                            <ArrowUpRight className="w-4 h-4" />
+                        </Link>
+                    )}
 
                     {/* Mobile Menu Toggle */}
                     <button
@@ -159,13 +230,26 @@ export default function UnlearnNav({
                                 </Link>
                             ))}
                             <hr className="border-[#1A1A1A]/10 my-2" />
-                            <Link
-                                href="/login"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="text-lg font-medium text-[#1A1A1A]/70 py-2"
-                            >
-                                {loginLabel}
-                            </Link>
+                            {isLoggedIn ? (
+                                <button
+                                    onClick={() => {
+                                        handleLogout();
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                    className="text-lg font-medium text-red-600 py-2 text-left flex items-center gap-2"
+                                >
+                                    <LogOut className="w-5 h-5" />
+                                    {logoutLabel}
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="text-lg font-medium text-[#1A1A1A]/70 py-2"
+                                >
+                                    {loginLabel}
+                                </Link>
+                            )}
                             <div className="pt-4 border-t border-[#1A1A1A]/10 flex items-center justify-between">
                                 <span className="text-sm text-[#1A1A1A]/50">
                                     {language === 'en' ? 'Language' : '语言'}
