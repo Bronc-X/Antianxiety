@@ -298,6 +298,7 @@ export default function ParticipantDigitalTwin() {
     // Trigger analysis
     const triggerAnalysis = useCallback(async () => {
         setIsAnalyzing(true);
+        hasFetchedRef.current = false; // Allow refetch after analysis
         
         try {
             const response = await fetch('/api/digital-twin/analyze', {
@@ -312,7 +313,7 @@ export default function ParticipantDigitalTwin() {
             }
             
             // Refresh dashboard after analysis
-            await fetchDashboard();
+            await fetchDashboard(true);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Analysis failed');
         } finally {
@@ -320,10 +321,11 @@ export default function ParticipantDigitalTwin() {
         }
     }, [fetchDashboard]);
 
-    // Initial fetch
+    // Initial fetch - only run once on mount
     useEffect(() => {
         fetchDashboard();
-    }, [fetchDashboard]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // View options
     const viewOptions = language === 'en'
@@ -389,12 +391,11 @@ export default function ParticipantDigitalTwin() {
                                     animate={isInView ? { opacity: 1, x: 0 } : {}}
                                     transition={{ duration: 0.4, delay: 0.2 + i * 0.1 }}
                                     onClick={() => setActiveView(option.id)}
-                                    disabled={!dashboardData}
-                                    className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-all duration-300 cursor-pointer ${
                                         activeView === option.id
                                             ? 'bg-[#D4AF37]/20 border-l-2 border-[#D4AF37] text-[#D4AF37]'
                                             : 'bg-white/5 border-l-2 border-transparent text-white/70 hover:bg-white/10 hover:text-white'
-                                    }`}
+                                    } ${!dashboardData ? 'opacity-60' : ''}`}
                                 >
                                     <option.icon className={`w-4 h-4 ${activeView === option.id ? 'text-[#D4AF37]' : 'text-white/50'}`} />
                                     {option.label}
