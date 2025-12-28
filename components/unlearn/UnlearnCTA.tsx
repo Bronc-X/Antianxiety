@@ -3,15 +3,19 @@
 import { useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import UnlearnButton from './UnlearnButton';
+import { useI18n } from '@/lib/i18n';
 
 export default function UnlearnCTA() {
+    const { language } = useI18n();
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { once: true, margin: '-100px' });
     const [email, setEmail] = useState('');
+    const [submitted, setSubmitted] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         console.log('Email submitted:', email);
+        setSubmitted(true);
     };
 
     return (
@@ -40,24 +44,39 @@ export default function UnlearnCTA() {
                     className="text-white font-bold leading-[1.1] tracking-[-0.02em] mb-6"
                     style={{ fontSize: 'clamp(36px, 6vw, 56px)' }}
                 >
-                    Ready to take control of your mental health?
+                    {language === 'en'
+                        ? 'Ready to take control of your mental health?'
+                        : '准备好掌控你的心理健康了吗？'}
                 </h2>
                 <p className="text-lg text-white/60 leading-relaxed mb-10 max-w-xl mx-auto">
-                    Join thousands of people who are already using Antianxiety to understand their patterns
-                    and build lasting resilience.
+                    {language === 'en'
+                        ? 'Join thousands of people who are already using Antianxiety to understand their patterns and build lasting resilience.'
+                        : '加入数千名正在使用 Antianxiety 了解自身模式、建立长期韧性的人。'}
                 </p>
 
                 {/* Email Signup Form */}
-                <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto"
-                >
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
-                        className="
+                {submitted ? (
+                    <div className="max-w-md mx-auto bg-white/10 border border-white/20 px-6 py-5 text-white">
+                        <p className="text-lg font-semibold mb-2">
+                            {language === 'en' ? 'Thanks for joining the waitlist!' : '感谢加入候补名单！'}
+                        </p>
+                        <p className="text-white/60 text-sm">
+                            {language === 'en'
+                                ? 'We will reach out with onboarding details soon.'
+                                : '我们会尽快发送入门信息。'}
+                        </p>
+                    </div>
+                ) : (
+                    <form
+                        onSubmit={handleSubmit}
+                        className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto"
+                    >
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder={language === 'en' ? 'Enter your email' : '输入你的邮箱'}
+                            className="
               flex-1 px-5 py-4
               bg-white/10 backdrop-blur-sm
               border border-white/20
@@ -65,20 +84,23 @@ export default function UnlearnCTA() {
               focus:outline-none focus:border-[#D4AF37]
               transition-colors
             "
-                        required
-                    />
-                    <UnlearnButton
-                        type="submit"
-                        variant="primary"
-                        size="lg"
-                        icon="arrow"
-                    >
-                        Get Started
-                    </UnlearnButton>
-                </form>
+                            required
+                        />
+                        <UnlearnButton
+                            type="submit"
+                            variant="primary"
+                            size="lg"
+                            icon="arrow"
+                        >
+                            {language === 'en' ? 'Get Started' : '开始使用'}
+                        </UnlearnButton>
+                    </form>
+                )}
 
                 <p className="text-sm text-white/40 mt-6">
-                    Free to start • No credit card required • Cancel anytime
+                    {language === 'en'
+                        ? 'Free to start • No credit card required • Cancel anytime'
+                        : '免费开始 • 无需信用卡 • 随时可取消'}
                 </p>
             </motion.div>
         </section>

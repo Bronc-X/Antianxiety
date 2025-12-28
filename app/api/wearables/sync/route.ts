@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getConnector } from '@/lib/services/wearables';
-import type { WearableProvider, NormalizedHealthData } from '@/types/wearable';
+import type { WearableProvider } from '@/types/wearable';
 
 interface SyncRequest {
     provider?: WearableProvider;
@@ -218,8 +218,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// GET: 获取同步状态
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
     try {
         const cookieStore = await cookies();
         const supabase = createServerClient(
@@ -242,16 +241,138 @@ export async function GET(request: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return NextResponse.json(
+                { error: 'Unauthorized', connections: {}, connectedDevices: [], recentSyncs: [] },
+                { status: 401 }
+            );
         }
 
-        // 获取已连接设备
         const { data: tokens } = await supabase
             .from('wearable_tokens')
-            .select('provider, device_name, last_sync_at, expires_at')
+            .select('provider, last_sync_at, expires_at, device_name')
             .eq('user_id', user.id);
 
-        // 获取最近同步日志
+        const connections: Record<string, { connected: boolean; lastSync?: string }> = {};
+        tokens?.forEach((token) => {
+            connections[token.provider] = {
+                connected: true,
+                lastSync: token.last_sync_at ? new Date(token.last_sync_at).toLocaleString() : undefined,
+            };
+        });
+
+        const { data: healthData } = await supabase
+            .from('user_health_data')
+            .select('data_type, value, score, quality, metadata, recorded_at, source')
+            .eq('user_id', user.id)
+            .in('data_type', [
+                'hrv',
+                'sleep',
+                'activity',
+                'sleep_score',
+                'deep_sleep_minutes',
+                'rem_sleep_minutes',
+                'light_sleep_minutes',
+                'steps',
+                'active_calories',
+            ])
+            .order('recorded_at', { ascending: false })
+            .limit(100);
+
+        const latestByType: Record<string, any> = {};
+        const latestBySource: Record<string, string> = {};
+        healthData?.forEach((item) => {
+            if (!latestByType[item.data_type]) {
+                latestByType[item.data_type] = item;
+            }
+            if (item.source && !latestBySource[item.source]) {
+                latestBySource[item.source] = item.recorded_at;
+            }
+        });
+
+        const hrvRow = latestByType.hrv;
+        const sleepRow = latestByType.sleep;
+        const sleepScoreRow = latestByType.sleep_score;
+        const deepRow = latestByType.deep_sleep_minutes;
+        const remRow = latestByType.rem_sleep_minutes;
+        const lightRow = latestByType.light_sleep_minutes;
+        const activityRow = latestByType.activity;
+        const stepsRow = latestByType.steps;
+        const caloriesRow = latestByType.active_calories;
+
+        const appleHealthSync = latestBySource.apple_health || latestBySource.healthkit;
+        if (appleHealthSync) {
+            connections.healthkit = {
+                connected: true,
+                lastSync: new Date(appleHealthSync).toLocaleString(),
+            };
+        }
+        if (latestBySource.health_connect) {
+            connections.health_connect = {
+                connected: true,
+                lastSync: new Date(latestBySource.health_connect).toLocaleString(),
+            };
+        }
+
+        let latestData: Record<string, unknown> | null = null;
+
+        if (hrvRow && (typeof hrvRow.value === 'number' || typeof hrvRow.score === 'number')) {
+            const hrvValue = Math.round(Number(hrvRow.value ?? hrvRow.score));
+            const quality = hrvRow.quality as string | undefined;
+            const statusMap: Record<string, 'low' | 'normal' | 'good' | 'excellent'> = {
+                poor: 'low',
+                fair: 'normal',
+                good: 'good',
+                excellent: 'excellent',
+            };
+            const status = statusMap[quality || 'good'] || 'good';
+
+            const sleepMinutesFromSummary = sleepRow?.value ? Number(sleepRow.value) : null;
+            const sleepMinutesFromStages = [deepRow?.value, remRow?.value, lightRow?.value]
+                .filter((val) => typeof val === 'number')
+                .reduce((sum: number, val: number) => sum + val, 0);
+            const totalSleepMinutes = sleepMinutesFromSummary || (sleepMinutesFromStages > 0 ? sleepMinutesFromStages : null);
+            const sleepHours = totalSleepMinutes
+                ? (totalSleepMinutes > 24 ? totalSleepMinutes / 60 : totalSleepMinutes)
+                : null;
+            const deepMinutes = deepRow?.value ? Number(deepRow.value) : sleepRow?.metadata?.deepMinutes ? Number(sleepRow.metadata.deepMinutes) : null;
+            const remMinutes = remRow?.value ? Number(remRow.value) : sleepRow?.metadata?.remMinutes ? Number(sleepRow.metadata.remMinutes) : null;
+            const sleepQualityScore = sleepScoreRow?.value ?? sleepRow?.score ?? null;
+
+            latestData = {
+                hrv: {
+                    value: hrvValue,
+                    status,
+                    trend: 0,
+                    lastUpdated: hrvRow.recorded_at ? new Date(hrvRow.recorded_at).toLocaleString() : '—',
+                },
+                sleep: sleepHours
+                    ? {
+                        duration: Math.round(sleepHours * 10) / 10,
+                        quality: sleepQualityScore ? Math.round(Number(sleepQualityScore)) : 0,
+                        deepSleep: deepMinutes ? Math.round((deepMinutes / 60) * 10) / 10 : 0,
+                        remSleep: remMinutes ? Math.round((remMinutes / 60) * 10) / 10 : 0,
+                    }
+                    : null,
+                activity: activityRow || stepsRow || caloriesRow
+                    ? {
+                        steps: stepsRow?.value
+                            ? Number(stepsRow.value)
+                            : activityRow?.metadata?.steps
+                                ? Number(activityRow.metadata.steps)
+                                : Math.round(Number(activityRow?.value || 0)),
+                        calories: caloriesRow?.value
+                            ? Number(caloriesRow.value)
+                            : activityRow?.metadata?.calories
+                                ? Number(activityRow.metadata.calories)
+                                : 0,
+                        activeMinutes: activityRow?.metadata?.activeMinutes
+                            ? Number(activityRow.metadata.activeMinutes)
+                            : 0,
+                    }
+                    : null,
+            };
+        }
+
         const { data: recentSyncs } = await supabase
             .from('wearable_sync_log')
             .select('*')
@@ -259,13 +380,36 @@ export async function GET(request: NextRequest) {
             .order('synced_at', { ascending: false })
             .limit(10);
 
+        const connectedDevices = tokens ? [...tokens] : [];
+        const connectedProviders = new Set(connectedDevices.map((token) => token.provider));
+        if (appleHealthSync && !connectedProviders.has('healthkit')) {
+            connectedDevices.push({
+                provider: 'healthkit',
+                device_name: 'HealthKit',
+                last_sync_at: appleHealthSync,
+                expires_at: null,
+            });
+        }
+        if (latestBySource.health_connect && !connectedProviders.has('health_connect')) {
+            connectedDevices.push({
+                provider: 'health_connect',
+                device_name: 'Health Connect',
+                last_sync_at: latestBySource.health_connect,
+                expires_at: null,
+            });
+        }
+
         return NextResponse.json({
-            connectedDevices: tokens || [],
+            connections,
+            latestData,
+            connectedDevices,
             recentSyncs: recentSyncs || [],
         });
-
     } catch (error) {
-        console.error('Wearable status error:', error);
-        return NextResponse.json({ error: 'Failed to get status' }, { status: 500 });
+        console.error('Wearables sync GET error:', error);
+        return NextResponse.json(
+            { error: 'Failed to load wearable status', connections: {}, connectedDevices: [], recentSyncs: [] },
+            { status: 500 }
+        );
     }
 }

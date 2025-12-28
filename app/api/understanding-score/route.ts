@@ -21,7 +21,7 @@ import { isAdminToken } from '@/lib/admin-auth';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const requestedUserId = searchParams.get('userId');
     const includeHistory = searchParams.get('includeHistory') === 'true';
     const days = parseInt(searchParams.get('days') || '30', 10);
     
@@ -36,20 +36,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'userId is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!isAdmin && userId !== user?.id) {
+    if (!isAdmin && requestedUserId && requestedUserId !== user?.id) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
       );
     }
-    const targetUserId = isAdmin ? (userId || user?.id) : user?.id;
+    const targetUserId = isAdmin ? (requestedUserId || user?.id) : user?.id;
     if (!targetUserId) {
       return NextResponse.json(
         { error: 'userId is required' },

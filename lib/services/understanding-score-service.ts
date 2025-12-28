@@ -50,11 +50,12 @@ export async function calculateScore(userId: string): Promise<UserUnderstandingS
   const supabase = getSupabaseClient();
   
   // Get or create the score record
-  let { data: scoreRecord, error } = await supabase
+  const { data, error } = await supabase
     .from('user_understanding_scores')
     .select('*')
     .eq('user_id', userId)
     .single();
+  let scoreRecord = data;
   
   if (error && error.code === 'PGRST116') {
     // Create new record if not exists

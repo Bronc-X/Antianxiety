@@ -164,6 +164,16 @@ export async function POST(request: NextRequest) {
       // Don't fail the request for this
     }
 
+    const cookieHeader = request.headers.get('cookie') ?? '';
+    await fetch(new URL('/api/user/refresh', request.url), {
+      method: 'POST',
+      headers: { cookie: cookieHeader },
+    }).catch(() => {});
+    await fetch(new URL('/api/user/profile-sync', request.url), {
+      method: 'POST',
+      headers: { cookie: cookieHeader },
+    }).catch(() => {});
+
     return NextResponse.json({
       success: true,
       inquiry: updatedInquiry,

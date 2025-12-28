@@ -56,3 +56,41 @@ npm run dev
 
 - 不要把真实密钥写进仓库/文档
 - `.env.local` 应保留在本地（已被 `.gitignore` 忽略）
+
+## 新电脑环境准备（Mac）
+
+### 必装软件
+
+1. Xcode（App Store）+ Command Line Tools：`xcode-select --install`
+2. Homebrew：<https://brew.sh>
+3. Node.js 20 LTS：`brew install node@20`
+4. CocoaPods：`brew install cocoapods`
+5. Android Studio（含 SDK / Emulator）
+6. JDK 17：`brew install --cask temurin@17`
+
+### 关键环境变量（Android）
+
+```bash
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator"
+```
+
+### 项目初始化
+
+```bash
+npm install
+npm run check-env
+npm run dev
+```
+
+### iOS / Android 构建准备
+
+```bash
+npx cap sync ios
+npx cap sync android
+```
+
+补充：
+- iOS HealthKit 需要在 Xcode 中打开 `ios/App/App.xcworkspace`，启用 HealthKit Capability。
+- Android Health Connect 需要安装并配置对应的 Capacitor 插件（见 `package.json` 依赖和 native 配置）。

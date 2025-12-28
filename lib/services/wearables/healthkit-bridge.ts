@@ -80,7 +80,7 @@ export class HealthKitBridge {
     async fetchData(
         startDate: Date,
         endDate: Date,
-        dataTypes: HealthDataType[] = ['sleep', 'hrv', 'heart_rate']
+        dataTypes: HealthDataType[] = ['sleep', 'hrv', 'heart_rate', 'steps', 'active_calories']
     ): Promise<NormalizedHealthData[]> {
         const results: NormalizedHealthData[] = [];
         const plugin = await this.getPlugin();
@@ -100,6 +100,16 @@ export class HealthKitBridge {
             results.push(...hrData);
         }
 
+        if (dataTypes.includes('steps')) {
+            const stepData = await this.fetchStepsData(plugin, startDate, endDate);
+            results.push(...stepData);
+        }
+
+        if (dataTypes.includes('active_calories')) {
+            const calorieData = await this.fetchActiveEnergyData(plugin, startDate, endDate);
+            results.push(...calorieData);
+        }
+
         return results;
     }
 
@@ -117,7 +127,9 @@ export class HealthKitBridge {
             endDate: endDate.toISOString(),
         });
 
-        return result.samples.map((sample: HealthKitSleepSample) => {
+        return result.samples
+            .filter((sample: HealthKitSleepSample) => sample.value === 'asleep')
+            .map((sample: HealthKitSleepSample) => {
             const durationMinutes = (new Date(sample.endDate).getTime() -
                 new Date(sample.startDate).getTime()) / 60000;
 
@@ -177,6 +189,48 @@ export class HealthKitBridge {
             recordedAt: new Date(sample.startDate),
             value: sample.quantity,
             quality: this.getRestingHRQuality(sample.quantity),
+            rawData: sample,
+        }));
+    }
+
+    private async fetchStepsData(
+        plugin: HealthKitPlugin,
+        startDate: Date,
+        endDate: Date
+    ): Promise<NormalizedHealthData[]> {
+        const result = await plugin.queryQuantitySamples({
+            sampleType: 'HKQuantityTypeIdentifierStepCount',
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            unit: 'count',
+        });
+
+        return result.samples.map((sample: HealthKitQuantitySample) => ({
+            source: 'healthkit' as WearableProvider,
+            dataType: 'steps' as HealthDataType,
+            recordedAt: new Date(sample.startDate),
+            value: sample.quantity,
+            rawData: sample,
+        }));
+    }
+
+    private async fetchActiveEnergyData(
+        plugin: HealthKitPlugin,
+        startDate: Date,
+        endDate: Date
+    ): Promise<NormalizedHealthData[]> {
+        const result = await plugin.queryQuantitySamples({
+            sampleType: 'HKQuantityTypeIdentifierActiveEnergyBurned',
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            unit: 'kcal',
+        });
+
+        return result.samples.map((sample: HealthKitQuantitySample) => ({
+            source: 'healthkit' as WearableProvider,
+            dataType: 'active_calories' as HealthDataType,
+            recordedAt: new Date(sample.startDate),
+            value: sample.quantity,
             rawData: sample,
         }));
     }

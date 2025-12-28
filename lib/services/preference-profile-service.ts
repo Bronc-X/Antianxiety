@@ -39,11 +39,12 @@ function getSupabaseClient() {
 export async function getPreferenceProfile(userId: string): Promise<UserPreferenceProfile> {
   const supabase = getSupabaseClient();
   
-  let { data: profile, error } = await supabase
+  const { data, error } = await supabase
     .from('user_preference_profiles')
     .select('*')
     .eq('user_id', userId)
     .single();
+  let profile = data;
   
   if (error && error.code === 'PGRST116') {
     // Create new profile if not exists

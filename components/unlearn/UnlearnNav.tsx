@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 interface NavLink {
     label: string;
@@ -16,20 +18,29 @@ interface UnlearnNavProps {
     ctaHref?: string;
 }
 
-const defaultLinks: NavLink[] = [
-    { label: 'Product', href: '#product' },
-    { label: 'Science', href: '#science' },
-    { label: 'About', href: '#about' },
-    { label: 'News', href: '#news' },
-];
-
 export default function UnlearnNav({
-    links = defaultLinks,
+    links,
     ctaLabel = 'Get Started',
     ctaHref = '/signup',
 }: UnlearnNavProps) {
+    const { language } = useI18n();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const loginLabel = language === 'en' ? 'Sign In' : '登录';
+    const fallbackLinks: NavLink[] = language === 'en'
+        ? [
+            { label: 'Product', href: '#product' },
+            { label: 'Science', href: '#science' },
+            { label: 'About', href: '#about' },
+            { label: 'News', href: '#news' },
+        ]
+        : [
+            { label: '产品', href: '#product' },
+            { label: '科学', href: '#science' },
+            { label: '关于', href: '#about' },
+            { label: '资讯', href: '#news' },
+        ];
+    const resolvedLinks = links && links.length > 0 ? links : fallbackLinks;
 
     useEffect(() => {
         const handleScroll = () => {
@@ -68,7 +79,7 @@ export default function UnlearnNav({
 
                 {/* Desktop Links */}
                 <div className="hidden md:flex items-center gap-6">
-                    {links.map((link) => (
+                    {resolvedLinks.map((link) => (
                         <Link
                             key={link.href}
                             href={link.href}
@@ -81,11 +92,14 @@ export default function UnlearnNav({
 
                 {/* CTA Buttons */}
                 <div className="flex items-center gap-3">
+                    <div className="hidden md:flex items-center">
+                        <LanguageSwitcher />
+                    </div>
                     <Link
                         href="/login"
                         className="hidden sm:block text-sm font-medium text-[#1A1A1A]/70 hover:text-[#0B3D2E] transition-colors"
                     >
-                        Sign In
+                        {loginLabel}
                     </Link>
                     <Link
                         href={ctaHref}
@@ -132,7 +146,7 @@ export default function UnlearnNav({
             "
                     >
                         <div className="flex flex-col gap-4">
-                            {links.map((link) => (
+                            {resolvedLinks.map((link) => (
                                 <Link
                                     key={link.href}
                                     href={link.href}
@@ -148,8 +162,14 @@ export default function UnlearnNav({
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className="text-lg font-medium text-[#1A1A1A]/70 py-2"
                             >
-                                Sign In
+                                {loginLabel}
                             </Link>
+                            <div className="pt-4 border-t border-[#1A1A1A]/10 flex items-center justify-between">
+                                <span className="text-sm text-[#1A1A1A]/50">
+                                    {language === 'en' ? 'Language' : '语言'}
+                                </span>
+                                <LanguageSwitcher />
+                            </div>
                         </div>
                     </motion.div>
                 )}

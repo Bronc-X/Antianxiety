@@ -20,6 +20,10 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>AntiAnxiety reads Health data to sync HRV, sleep, and activity for personalized insights.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>AntiAnxiety does not write Health data. Access is used to improve your recovery recommendations.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
