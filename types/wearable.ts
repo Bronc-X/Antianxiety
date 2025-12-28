@@ -11,8 +11,15 @@ export type WearableProvider = 'fitbit' | 'oura' | 'health_connect' | 'healthkit
 
 export type HealthDataType =
     | 'sleep'
+    | 'sleep_score'
+    | 'deep_sleep_minutes'
+    | 'rem_sleep_minutes'
+    | 'light_sleep_minutes'
     | 'hrv'
+    | 'resting_heart_rate'
     | 'activity'
+    | 'steps'
+    | 'active_calories'
     | 'heart_rate'
     | 'stress'
     | 'readiness'

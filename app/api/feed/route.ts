@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { DB_TABLES, RELEVANCE_THRESHOLD } from '@/lib/config/constants';
 import { parseApiError } from '@/lib/apiUtils';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { trendingTopics } from '@/data/trendingTopics';
 
 export const runtime = 'nodejs';
 
@@ -29,7 +28,7 @@ interface PersonalizationMeta {
   ready: boolean;
   reason: string;
   message?: string;
-  fallback?: 'latest' | 'trending' | 'none';
+  fallback?: 'latest' | 'none';
 }
 
 /**
@@ -65,13 +64,16 @@ export async function GET(request: NextRequest) {
 
     if (!profile.user_persona_embedding) {
       const fallbackItems = await getLatestHighQualityFeed(supabase, limit, sourceType);
+      const hasFallback = fallbackItems.length > 0;
       return NextResponse.json({
         items: fallbackItems,
         personalization: buildMeta({
           ready: false,
           reason: 'missing_embedding',
-          message: '尚未生成个人画像向量，已为你展示最新高评分内容。',
-          fallback: fallbackItems.length ? 'latest' : 'trending',
+          message: hasFallback
+            ? '尚未生成个人画像向量，已为你展示最新高评分内容。'
+            : '尚未生成个人画像向量，内容池暂无可展示内容。',
+          fallback: hasFallback ? 'latest' : 'none',
         }),
       });
     }
@@ -108,13 +110,16 @@ export async function GET(request: NextRequest) {
       }
 
       const latest = await getLatestHighQualityFeed(supabase, limit, sourceType);
+      const hasLatest = latest.length > 0;
       return NextResponse.json({
         items: latest,
         personalization: buildMeta({
           ready: true,
           reason: 'rpc_fallback',
-          message: '向量搜索暂不可用，已改用最新内容池。',
-          fallback: latest.length ? 'latest' : 'trending',
+          message: hasLatest
+            ? '向量搜索暂不可用，已改用最新内容池。'
+            : '向量搜索暂不可用，内容池暂无可展示内容。',
+          fallback: hasLatest ? 'latest' : 'none',
         }),
       });
     }
@@ -125,13 +130,16 @@ export async function GET(request: NextRequest) {
 
     if (!Array.isArray(filteredContent) || filteredContent.length === 0) {
       const fallbackItems = await getLatestHighQualityFeed(supabase, limit, sourceType);
+      const hasFallback = fallbackItems.length > 0;
       return NextResponse.json({
         items: fallbackItems,
         personalization: buildMeta({
           ready: true,
           reason: 'no_high_match',
-          message: '暂未匹配到 4.5 星以上的内容，已展示最新优质内容。',
-          fallback: fallbackItems.length ? 'latest' : 'trending',
+          message: hasFallback
+            ? '暂未匹配到 4.5 星以上的内容，已展示最新优质内容。'
+            : '暂未匹配到 4.5 星以上的内容，内容池暂无可展示内容。',
+          fallback: hasFallback ? 'latest' : 'none',
         }),
       });
     }
@@ -234,27 +242,7 @@ async function getLatestHighQualityFeed(
     return data;
   }
 
-  return buildTrendingFallback(limit, sourceType);
-}
-
-function buildTrendingFallback(limit: number, sourceType: string | null): ContentFeedVector[] {
-  const normalizedFilter = sourceType?.toLowerCase() ?? null;
-  const normalizedTopics = trendingTopics
-    .filter((topic) => {
-      if (!normalizedFilter) return true;
-      return topic.source.toLowerCase() === normalizedFilter;
-    })
-    .slice(0, limit)
-    .map((topic, index) => ({
-      id: `trending-${topic.id}-${index}`,
-      source_url: topic.url,
-      source_type: topic.source.toLowerCase() === 'x' ? 'x' : 'reddit',
-      content_text: topic.summary,
-      published_at: null,
-      relevance_score: topic.baseScore ?? RELEVANCE_THRESHOLD,
-    }));
-
-  return normalizedTopics;
+  return [];
 }
 
 function cosineSimilarity(vecA: number[], vecB: number[]): number {

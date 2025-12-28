@@ -23,8 +23,10 @@
     --twin-text-muted: rgba(255, 255, 255, 0.7);
     --twin-border-subtle: rgba(255, 255, 255, 0.15);
 
-    /* Typography */
-    --twin-font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* Typography - Serif First for Premium Feel */
+    --twin-font-primary: 'Playfair Display', 'Noto Serif SC', 'Source Han Serif CN', 'Songti SC', Georgia, 'Times New Roman', serif;
+    --twin-font-heading: 'Playfair Display', 'Noto Serif SC', 'Source Han Serif CN', Georgia, serif;
+    --twin-font-body: 'Source Serif Pro', 'Noto Serif SC', Georgia, serif;
     --twin-heading-xl: clamp(48px, 8vw, 72px);
     --twin-heading-lg: clamp(32px, 5vw, 48px);
     --twin-heading-md: clamp(24px, 3vw, 32px);

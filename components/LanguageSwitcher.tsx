@@ -30,6 +30,11 @@ export default function LanguageSwitcher() {
   const handleLanguageChange = (newLang: Language) => {
     setLanguage(newLang);
     setIsOpen(false);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('lang')) {
+      url.searchParams.set('lang', newLang);
+      window.history.replaceState({}, '', url.toString());
+    }
     // Force page refresh to apply translations
     window.location.reload();
   };

@@ -1,17 +1,18 @@
 /**
  * Hardware Health Data Sync API
  * 
- * Receives health data from wearable devices (Fitbit, Oura, Apple Health, Health Connect)
+ * Receives health data from wearable devices (Apple Health, Health Connect)
  * and stores it in the unified profile system.
  * 
  * POST /api/user/hardware-sync
  * 
  * Body: {
- *   source: 'fitbit' | 'oura' | 'apple_health' | 'health_connect',
+ *   source: 'healthkit' | 'apple_health' | 'health_connect',
  *   data: {
  *     hrv?: number,           // Heart Rate Variability (ms)
  *     resting_heart_rate?: number,
  *     sleep_score?: number,   // 0-100
+ *     sleep_minutes?: number, // Total sleep minutes (when stages unavailable)
  *     deep_sleep_minutes?: number,
  *     rem_sleep_minutes?: number,
  *     light_sleep_minutes?: number,
@@ -34,6 +35,7 @@ interface HardwareData {
     hrv?: number;
     resting_heart_rate?: number;
     sleep_score?: number;
+    sleep_minutes?: number;
     deep_sleep_minutes?: number;
     rem_sleep_minutes?: number;
     light_sleep_minutes?: number;
@@ -46,7 +48,7 @@ interface HardwareData {
 }
 
 interface SyncRequest {
-    source: 'fitbit' | 'oura' | 'apple_health' | 'health_connect';
+    source: 'healthkit' | 'apple_health' | 'health_connect';
     data: HardwareData;
 }
 
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
 
         const body: SyncRequest = await request.json();
         const { source, data } = body;
+        const normalizedSource = source === 'apple_health' ? 'healthkit' : source;
 
         if (!source || !data) {
             return NextResponse.json({ error: 'Missing source or data' }, { status: 400 });
@@ -70,29 +73,41 @@ export async function POST(request: NextRequest) {
         const recordedAt = data.recorded_at || new Date().toISOString();
         const today = recordedAt.split('T')[0];
 
-        console.log(`📡 [Hardware Sync] User: ${user.id}, Source: ${source}`);
-        console.log(`   HRV: ${data.hrv}, Sleep Score: ${data.sleep_score}`);
+        console.log(`📡 [Hardware Sync] User: ${user.id}, Source: ${normalizedSource}`);
+        console.log(`   HRV: ${data.hrv}, Sleep Score: ${data.sleep_score}, Sleep Minutes: ${data.sleep_minutes}`);
 
         // 1. Store individual data points to user_health_data table
         const dataPoints: Array<{ data_type: string; value: number; source: string; recorded_at: string }> = [];
 
         if (data.hrv !== undefined) {
-            dataPoints.push({ data_type: 'hrv', value: data.hrv, source, recorded_at: recordedAt });
+            dataPoints.push({ data_type: 'hrv', value: data.hrv, source: normalizedSource, recorded_at: recordedAt });
         }
         if (data.resting_heart_rate !== undefined) {
-            dataPoints.push({ data_type: 'resting_heart_rate', value: data.resting_heart_rate, source, recorded_at: recordedAt });
+            dataPoints.push({ data_type: 'resting_heart_rate', value: data.resting_heart_rate, source: normalizedSource, recorded_at: recordedAt });
         }
         if (data.sleep_score !== undefined) {
-            dataPoints.push({ data_type: 'sleep_score', value: data.sleep_score, source, recorded_at: recordedAt });
+            dataPoints.push({ data_type: 'sleep_score', value: data.sleep_score, source: normalizedSource, recorded_at: recordedAt });
+        }
+        if (data.sleep_minutes !== undefined) {
+            dataPoints.push({ data_type: 'sleep', value: data.sleep_minutes, source: normalizedSource, recorded_at: recordedAt });
         }
         if (data.deep_sleep_minutes !== undefined) {
-            dataPoints.push({ data_type: 'deep_sleep_minutes', value: data.deep_sleep_minutes, source, recorded_at: recordedAt });
+            dataPoints.push({ data_type: 'deep_sleep_minutes', value: data.deep_sleep_minutes, source: normalizedSource, recorded_at: recordedAt });
+        }
+        if (data.rem_sleep_minutes !== undefined) {
+            dataPoints.push({ data_type: 'rem_sleep_minutes', value: data.rem_sleep_minutes, source: normalizedSource, recorded_at: recordedAt });
+        }
+        if (data.light_sleep_minutes !== undefined) {
+            dataPoints.push({ data_type: 'light_sleep_minutes', value: data.light_sleep_minutes, source: normalizedSource, recorded_at: recordedAt });
         }
         if (data.spo2 !== undefined) {
-            dataPoints.push({ data_type: 'spo2', value: data.spo2, source, recorded_at: recordedAt });
+            dataPoints.push({ data_type: 'spo2', value: data.spo2, source: normalizedSource, recorded_at: recordedAt });
         }
         if (data.steps !== undefined) {
-            dataPoints.push({ data_type: 'steps', value: data.steps, source, recorded_at: recordedAt });
+            dataPoints.push({ data_type: 'steps', value: data.steps, source: normalizedSource, recorded_at: recordedAt });
+        }
+        if (data.active_calories !== undefined) {
+            dataPoints.push({ data_type: 'active_calories', value: data.active_calories, source: normalizedSource, recorded_at: recordedAt });
         }
 
         // Insert data points
@@ -110,13 +125,18 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. Update today's daily_wellness_logs with hardware data
-        if (data.hrv || data.sleep_score || data.deep_sleep_minutes) {
+        if (data.hrv || data.sleep_score || data.deep_sleep_minutes || data.sleep_minutes || data.rem_sleep_minutes || data.light_sleep_minutes) {
             const updateFields: Record<string, unknown> = {};
 
             // Map hardware data to daily log fields
-            if (data.deep_sleep_minutes !== undefined && data.rem_sleep_minutes !== undefined && data.light_sleep_minutes !== undefined) {
-                const totalSleep = data.deep_sleep_minutes + data.rem_sleep_minutes + data.light_sleep_minutes;
-                updateFields.sleep_duration_minutes = totalSleep;
+            const stageMinutes = [data.deep_sleep_minutes, data.rem_sleep_minutes, data.light_sleep_minutes]
+                .filter((value): value is number => typeof value === 'number');
+            const totalStageMinutes = stageMinutes.reduce((sum, value) => sum + value, 0);
+
+            if (totalStageMinutes > 0) {
+                updateFields.sleep_duration_minutes = totalStageMinutes;
+            } else if (data.sleep_minutes !== undefined) {
+                updateFields.sleep_duration_minutes = data.sleep_minutes;
             }
 
             if (Object.keys(updateFields).length > 0) {
@@ -133,15 +153,20 @@ export async function POST(request: NextRequest) {
         }
 
         // 3. Trigger profile sync to update unified profile
-        fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/user/profile-sync`, {
+        const cookieHeader = request.headers.get('cookie') ?? '';
+        await fetch(new URL('/api/user/refresh', request.url), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        }).catch(() => console.log('Profile sync triggered after hardware sync'));
+            headers: { cookie: cookieHeader },
+        }).catch(() => {});
+        await fetch(new URL('/api/user/profile-sync', request.url), {
+            method: 'POST',
+            headers: { cookie: cookieHeader },
+        }).catch(() => {});
 
         return NextResponse.json({
             success: true,
             dataPointsStored: dataPoints.length,
-            source,
+            source: normalizedSource,
         });
 
     } catch (error) {

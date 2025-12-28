@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
+import { syncHealthConnectData, syncHealthKitData, type SyncErrorCode } from '@/lib/services/wearables/client-sync';
 
 interface ConnectedDevice {
     provider: string;
@@ -24,26 +25,18 @@ interface SyncLog {
     error_message?: string;
 }
 
-const PROVIDER_INFO: Record<string, { name: string; icon: string; color: string }> = {
-    fitbit: {
-        name: 'Fitbit',
-        icon: '⌚',
-        color: '#00B0B9',
-    },
-    oura: {
-        name: 'Oura Ring',
-        icon: '💍',
-        color: '#1A1A2E',
-    },
+const PROVIDER_INFO: Record<string, { name: string; icon: string; color: string; guide: string }> = {
     healthkit: {
-        name: 'Apple Watch',
+        name: 'HealthKit',
         icon: '⌚',
         color: '#FF2D55',
+        guide: '请在 iOS App 中授权 HealthKit，同步 HRV 与睡眠数据。',
     },
     health_connect: {
         name: 'Health Connect',
         icon: '🏃',
         color: '#4285F4',
+        guide: '请在 Android App 中授权 Health Connect，同步健康数据。',
     },
 };
 
@@ -51,8 +44,9 @@ export default function WearableConnectionManager() {
     const [connectedDevices, setConnectedDevices] = useState<ConnectedDevice[]>([]);
     const [recentSyncs, setRecentSyncs] = useState<SyncLog[]>([]);
     const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
+    const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [guideProvider, setGuideProvider] = useState<string | null>(null);
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,8 +93,8 @@ export default function WearableConnectionManager() {
         }
     }
 
-    async function handleConnect(provider: string) {
-        window.location.href = `/api/wearables/connect/${provider}`;
+    function handleConnect(provider: string) {
+        setGuideProvider(prev => prev === provider ? null : provider);
     }
 
     async function handleDisconnect(provider: string) {
@@ -124,26 +118,53 @@ export default function WearableConnectionManager() {
         }
     }
 
+    function getSyncErrorMessage(code?: SyncErrorCode) {
+        switch (code) {
+            case 'permission':
+                return '权限被拒绝，请在系统健康应用中开启访问权限';
+            case 'unavailable':
+                return '当前设备暂不可用健康数据同步';
+            case 'no_data':
+                return '未发现可同步的近期健康数据';
+            default:
+                return '同步失败，请稍后重试';
+        }
+    }
+
     async function handleSync(provider?: string) {
         try {
-            setSyncing(true);
+            setSyncingProvider(provider || 'all');
             setError(null);
 
-            const response = await fetch('/api/wearables/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider, daysBack: 7 }),
-            });
+            if (provider === 'healthkit') {
+                const result = await syncHealthKitData();
+                if (!result.success) {
+                    setError(getSyncErrorMessage(result.error));
+                    return;
+                }
+            } else if (provider === 'health_connect') {
+                const result = await syncHealthConnectData();
+                if (!result.success) {
+                    setError(getSyncErrorMessage(result.error));
+                    return;
+                }
+            } else {
+                const response = await fetch('/api/wearables/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, daysBack: 7 }),
+                });
 
-            if (!response.ok) {
-                throw new Error('Sync failed');
+                if (!response.ok) {
+                    throw new Error('Sync failed');
+                }
             }
 
             await loadStatus();
         } catch (err) {
             setError('同步失败，请稍后重试');
         } finally {
-            setSyncing(false);
+            setSyncingProvider(null);
         }
     }
 
@@ -171,6 +192,7 @@ export default function WearableConnectionManager() {
     return (
         <div className="wearable-manager">
             <h3 className="section-title">🔗 穿戴设备连接</h3>
+            <p className="section-subtitle">仅支持 HealthKit 与 Health Connect（OS-hub 策略）。</p>
 
             {error && (
                 <div className="error-banner">
@@ -205,9 +227,9 @@ export default function WearableConnectionManager() {
                                         <button
                                             className="btn-sync"
                                             onClick={() => handleSync(provider)}
-                                            disabled={syncing}
+                                            disabled={syncingProvider !== null}
                                         >
-                                            {syncing ? '同步中...' : '同步'}
+                                            {syncingProvider ? '同步中...' : '同步'}
                                         </button>
                                         <button
                                             className="btn-disconnect"
@@ -221,7 +243,7 @@ export default function WearableConnectionManager() {
                                         className="btn-connect"
                                         onClick={() => handleConnect(provider)}
                                     >
-                                        连接
+                                        {guideProvider === provider ? '关闭说明' : '查看说明'}
                                     </button>
                                 )}
                             </div>
@@ -229,6 +251,11 @@ export default function WearableConnectionManager() {
                     );
                 })}
             </div>
+            {guideProvider && (
+                <div className="device-guide">
+                    {PROVIDER_INFO[guideProvider]?.guide}
+                </div>
+            )}
 
             {/* 同步历史 */}
             {recentSyncs.length > 0 && (
@@ -261,6 +288,12 @@ export default function WearableConnectionManager() {
         .section-title {
           font-size: 1.25rem;
           font-weight: 600;
+          margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+          font-size: 0.875rem;
+          color: #6b7280;
           margin-bottom: 1rem;
         }
         
@@ -347,6 +380,16 @@ export default function WearableConnectionManager() {
         
         .btn-disconnect:hover {
           background: #fee2e2;
+        }
+
+        .device-guide {
+          margin-top: 1rem;
+          padding: 0.75rem 1rem;
+          border-radius: 0.5rem;
+          background: #f9fafb;
+          color: #374151;
+          font-size: 0.875rem;
+          border: 1px dashed #e5e7eb;
         }
         
         .sync-history {

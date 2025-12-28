@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { useI18n } from '@/lib/i18n';
 
 interface FooterLink {
     label: string;
@@ -19,30 +19,70 @@ interface UnlearnFooterProps {
     socialLinks?: SocialLink;
 }
 
-const footerLinks: Record<string, FooterLink[]> = {
-    Company: [
-        { label: 'About', href: '/about' },
-        { label: 'Careers', href: '/careers' },
-        { label: 'Press', href: '/press' },
-        { label: 'Contact', href: '/contact' },
-    ],
-    Resources: [
-        { label: 'Blog', href: '/blog' },
-        { label: 'Research', href: '/research' },
-        { label: 'Documentation', href: '/docs' },
-        { label: 'Support', href: '/support' },
-    ],
-    Legal: [
-        { label: 'Privacy', href: '/privacy' },
-        { label: 'Terms', href: '/terms' },
-        { label: 'Security', href: '/security' },
-        { label: 'HIPAA', href: '/hipaa' },
-    ],
-};
-
 export default function UnlearnFooter({
     socialLinks = {},
 }: UnlearnFooterProps) {
+    const { language } = useI18n();
+    const footerSections: Array<{ title: string; links: FooterLink[] }> = language === 'en'
+        ? [
+            {
+                title: 'Company',
+                links: [
+                    { label: 'About', href: '/about' },
+                    { label: 'Careers', href: '/careers' },
+                    { label: 'Press', href: '/press' },
+                    { label: 'Contact', href: '/contact' },
+                ],
+            },
+            {
+                title: 'Resources',
+                links: [
+                    { label: 'Blog', href: '/blog' },
+                    { label: 'Research', href: '/research' },
+                    { label: 'Documentation', href: '/docs' },
+                    { label: 'Support', href: '/support' },
+                ],
+            },
+            {
+                title: 'Legal',
+                links: [
+                    { label: 'Privacy', href: '/privacy' },
+                    { label: 'Terms', href: '/terms' },
+                    { label: 'Security', href: '/security' },
+                    { label: 'HIPAA', href: '/hipaa' },
+                ],
+            },
+        ]
+        : [
+            {
+                title: '公司',
+                links: [
+                    { label: '关于我们', href: '/about' },
+                    { label: '加入我们', href: '/careers' },
+                    { label: '媒体报道', href: '/press' },
+                    { label: '联系我们', href: '/contact' },
+                ],
+            },
+            {
+                title: '资源',
+                links: [
+                    { label: '博客', href: '/blog' },
+                    { label: '研究', href: '/research' },
+                    { label: '文档', href: '/docs' },
+                    { label: '支持', href: '/support' },
+                ],
+            },
+            {
+                title: '法律',
+                links: [
+                    { label: '隐私政策', href: '/privacy' },
+                    { label: '服务条款', href: '/terms' },
+                    { label: '安全', href: '/security' },
+                    { label: 'HIPAA', href: '/hipaa' },
+                ],
+            },
+        ];
+
     return (
         <footer style={{ backgroundColor: '#0B3D2E' }}>
             <div className="max-w-[1280px] mx-auto px-6 py-16">
@@ -58,7 +98,9 @@ export default function UnlearnFooter({
                             </span>
                         </Link>
                         <p className="text-white/60 text-sm leading-relaxed max-w-xs mb-6">
-                            Redefining mental health through the power of AI and personalized care.
+                            {language === 'en'
+                                ? 'Redefining mental health through the power of AI and personalized care.'
+                                : '以 AI 与个性化关怀重新定义心理健康。'}
                         </p>
 
                         {/* Social Links */}
@@ -103,13 +145,13 @@ export default function UnlearnFooter({
                     </div>
 
                     {/* Link Columns */}
-                    {Object.entries(footerLinks).map(([category, links]) => (
-                        <div key={category}>
+                    {footerSections.map((section) => (
+                        <div key={section.title}>
                             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
-                                {category}
+                                {section.title}
                             </h4>
                             <ul className="space-y-3">
-                                {links.map((link) => (
+                                {section.links.map((link) => (
                                     <li key={link.href}>
                                         <Link
                                             href={link.href}
@@ -130,14 +172,14 @@ export default function UnlearnFooter({
                     style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
                 >
                     <p className="text-white/40 text-sm">
-                        © {new Date().getFullYear()} Antianxiety. All rights reserved.
+                        © {new Date().getFullYear()} Antianxiety. {language === 'en' ? 'All rights reserved.' : '保留所有权利。'}
                     </p>
                     <div className="flex items-center gap-6">
                         <Link href="/privacy" className="text-white/40 hover:text-white/60 text-sm transition-colors">
-                            Privacy Policy
+                            {language === 'en' ? 'Privacy Policy' : '隐私政策'}
                         </Link>
                         <Link href="/terms" className="text-white/40 hover:text-white/60 text-sm transition-colors">
-                            Terms of Service
+                            {language === 'en' ? 'Terms of Service' : '服务条款'}
                         </Link>
                     </div>
                 </div>

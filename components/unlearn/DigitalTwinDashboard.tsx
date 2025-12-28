@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Settings, User } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 // Mock patient data
 const patients = [
@@ -52,10 +53,12 @@ function AnimatedNumber({ value, duration = 1 }: { value: number; duration?: num
 }
 
 export default function DigitalTwinDashboard() {
+    const { language } = useI18n();
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { once: true, margin: '-100px' });
     const [selectedPatient, setSelectedPatient] = useState(patients[0]);
     const [animationComplete, setAnimationComplete] = useState(false);
+    const monthLabel = (month: string) => (language === 'en' ? month : month.replace('m', '个月'));
 
     useEffect(() => {
         if (isInView) {
@@ -79,13 +82,13 @@ export default function DigitalTwinDashboard() {
                     className="mb-12"
                 >
                     <p className="text-sm uppercase tracking-widest font-medium mb-4 text-[#D4AF37]">
-                        Digital Twin Technology
+                        {language === 'en' ? 'Digital Twin Technology' : '数字孪生技术'}
                     </p>
                     <h2
                         className="text-white font-bold leading-[1.1] tracking-[-0.02em] mb-4"
                         style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}
                     >
-                        Predict outcomes before they happen
+                        {language === 'en' ? 'Predict outcomes before they happen' : '在结果发生前完成预测'}
                     </h2>
                 </motion.div>
 
@@ -109,7 +112,9 @@ export default function DigitalTwinDashboard() {
                             <div className="w-8 h-8 bg-[#D4AF37] flex items-center justify-center">
                                 <span className="text-[#0B3D2E] font-bold text-sm">A</span>
                             </div>
-                            <span className="text-white font-medium">Anxiety Recovery Program</span>
+                            <span className="text-white font-medium">
+                                {language === 'en' ? 'Anxiety Recovery Program' : '焦虑恢复计划'}
+                            </span>
                         </div>
                         <div className="flex items-center gap-2">
                             <button className="p-2 text-white/50 hover:text-white transition-colors">
@@ -161,7 +166,9 @@ export default function DigitalTwinDashboard() {
                             style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
                         >
                             <h3 className="text-white font-medium mb-6">
-                                Digital Twin Prediction vs. Actual Outcomes
+                                {language === 'en'
+                                    ? 'Digital Twin Prediction vs. Actual Outcomes'
+                                    : '数字孪生预测 vs. 实际结果'}
                             </h3>
 
                             {/* Animated SVG Chart */}
@@ -257,7 +264,7 @@ export default function DigitalTwinDashboard() {
                                 {/* X-axis labels */}
                                 <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2 text-xs text-white/40">
                                     {chartData.map((d) => (
-                                        <span key={d.month}>{d.month}</span>
+                                        <span key={d.month}>{monthLabel(d.month)}</span>
                                     ))}
                                 </div>
                             </div>
@@ -266,11 +273,15 @@ export default function DigitalTwinDashboard() {
                             <div className="flex items-center gap-6 mt-6">
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 bg-[#D4AF37]" />
-                                    <span className="text-sm text-white/60">Digital Twin Prediction</span>
+                                    <span className="text-sm text-white/60">
+                                        {language === 'en' ? 'Digital Twin Prediction' : '数字孪生预测'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 bg-white/60" />
-                                    <span className="text-sm text-white/60">Actual Outcomes</span>
+                                    <span className="text-sm text-white/60">
+                                        {language === 'en' ? 'Actual Outcomes' : '实际结果'}
+                                    </span>
                                 </div>
                             </div>
 
@@ -286,19 +297,25 @@ export default function DigitalTwinDashboard() {
                                         <div className="text-2xl font-bold text-[#D4AF37]">
                                             <AnimatedNumber value={94} />%
                                         </div>
-                                        <div className="text-xs text-white/50 mt-1">Prediction Accuracy</div>
+                                        <div className="text-xs text-white/50 mt-1">
+                                            {language === 'en' ? 'Prediction Accuracy' : '预测准确率'}
+                                        </div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-white">
                                             <AnimatedNumber value={47} />%
                                         </div>
-                                        <div className="text-xs text-white/50 mt-1">Improvement Rate</div>
+                                        <div className="text-xs text-white/50 mt-1">
+                                            {language === 'en' ? 'Improvement Rate' : '改善幅度'}
+                                        </div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-[#D4AF37]">
                                             <AnimatedNumber value={12} />
                                         </div>
-                                        <div className="text-xs text-white/50 mt-1">Days to Results</div>
+                                        <div className="text-xs text-white/50 mt-1">
+                                            {language === 'en' ? 'Days to Results' : '平均见效天数'}
+                                        </div>
                                     </div>
                                 </motion.div>
                             )}
