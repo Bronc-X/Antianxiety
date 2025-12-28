@@ -94,6 +94,13 @@ function DataCollectionState({
     status: DataCollectionStatus; 
     language: string;
 }) {
+    const calibrationDays = status.calibrationDays ?? status.calibrationCount ?? 0;
+    const dateSummary = status.firstCalibrationDate && status.lastCalibrationDate
+        ? (status.firstCalibrationDate === status.lastCalibrationDate
+            ? status.lastCalibrationDate
+            : `${status.firstCalibrationDate} - ${status.lastCalibrationDate}`)
+        : status.lastCalibrationDate || status.firstCalibrationDate || '';
+
     return (
         <div className="flex flex-col items-center justify-center py-16 px-6">
             <div className="w-20 h-20 rounded-full bg-[#D4AF37]/20 flex items-center justify-center mb-6">
@@ -134,6 +141,17 @@ function DataCollectionState({
                     </div>
                     <div className="text-white/50 text-xs">{language === 'en' ? 'Baseline Assessment' : '基线评估'}</div>
                 </div>
+            </div>
+
+            <div className="mt-4 text-xs text-white/50">
+                <span>
+                    {language === 'en' ? `Collected ${calibrationDays} days` : `已记录 ${calibrationDays} 天`}
+                </span>
+                {dateSummary && (
+                    <span>
+                        {language === 'en' ? ` · Last ${dateSummary}` : ` · 最近 ${dateSummary}`}
+                    </span>
+                )}
             </div>
         </div>
     );
@@ -247,8 +265,8 @@ export default function ParticipantDigitalTwin() {
     // Prevent multiple fetches
     const hasFetchedRef = useRef(false);
     
-    // Toast for no data hint
-    const [showNoDataHint, setShowNoDataHint] = useState(false);
+    // Toast for no data hint - with position
+    const [hintPosition, setHintPosition] = useState<{ x: number; y: number } | null>(null);
 
     // Fetch dashboard data
     const fetchDashboard = useCallback(async (isRetry = false) => {
@@ -330,6 +348,17 @@ export default function ParticipantDigitalTwin() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => {
+        const handleCalibration = () => {
+            fetchDashboard(true);
+        };
+
+        window.addEventListener('daily-calibration:completed', handleCalibration);
+        return () => {
+            window.removeEventListener('daily-calibration:completed', handleCalibration);
+        };
+    }, [fetchDashboard]);
+
     // View options
     const viewOptions = language === 'en'
         ? [
@@ -393,38 +422,46 @@ export default function ParticipantDigitalTwin() {
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={isInView ? { opacity: 1, x: 0 } : {}}
                                     transition={{ duration: 0.4, delay: 0.2 + i * 0.1 }}
-                                    onClick={() => {
+                                    onClick={(e) => {
                                         if (!dashboardData) {
-                                            setShowNoDataHint(true);
-                                            setTimeout(() => setShowNoDataHint(false), 2000);
+                                            // Use clientX/clientY for fixed positioning near click
+                                            setHintPosition({ x: e.clientX + 15, y: e.clientY });
+                                            setTimeout(() => setHintPosition(null), 2000);
                                             return;
                                         }
                                         setActiveView(option.id);
                                     }}
                                     className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-all duration-300 cursor-pointer ${
                                         activeView === option.id
-                                            ? 'bg-[#D4AF37]/20 border-l-2 border-[#D4AF37] text-[#D4AF37]'
-                                            : 'bg-white/5 border-l-2 border-transparent text-white/70 hover:bg-white/10 hover:text-white'
-                                    } ${!dashboardData ? 'opacity-60' : ''}`}
+                                            ? 'bg-[#D4AF37]/20 border-l-2 border-[#D4AF37]'
+                                            : 'bg-white/5 border-l-2 border-transparent hover:bg-white/10'
+                                    } ${!dashboardData ? 'opacity-70' : ''}`}
                                 >
                                     <option.icon className={`w-4 h-4 ${activeView === option.id ? 'text-[#D4AF37]' : 'text-white/50'}`} />
-                                    {option.label}
+                                    <span className={activeView === option.id ? 'text-[#D4AF37]' : 'text-white'}>
+                                        {option.label}
+                                    </span>
                                 </motion.button>
                             ))}
                         </div>
                         
-                        {/* No Data Hint Toast */}
+                        {/* No Data Hint - fixed position near click */}
                         <AnimatePresence>
-                            {showNoDataHint && (
+                            {hintPosition && (
                                 <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className="mt-3 px-3 py-2 bg-white/10 border border-white/20 text-white/80 text-xs rounded"
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    className="fixed z-[100] px-3 py-2 bg-[#0B3D2E] border border-[#D4AF37]/50 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none"
+                                    style={{ 
+                                        left: hintPosition.x, 
+                                        top: hintPosition.y,
+                                        transform: 'translateY(-50%)'
+                                    }}
                                 >
                                     {language === 'en' 
-                                        ? '📊 Complete data collection first to unlock this view'
-                                        : '📊 请先完成数据收集以解锁此视图'}
+                                        ? 'Complete 3 consecutive days of data first'
+                                        : '请先完成数据累计（连续3天就可以啦）'}
                                 </motion.div>
                             )}
                         </AnimatePresence>

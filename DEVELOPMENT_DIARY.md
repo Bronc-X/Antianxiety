@@ -2,6 +2,64 @@
 
 ---
 
+## 2025-12-29 - Max 协助制定计划对话系统 🤖📋
+
+### 🎯 核心更新
+
+#### 1. Max Plan Creation Dialog 完整实现 ✅
+- ✅ **类型定义** (`types/max-plan.ts`)
+  - ChatMessage, PlanItemDraft, DialogState 等完整类型
+  - API 请求/响应类型定义
+- ✅ **数据聚合服务** (`lib/max/plan-data-aggregator.ts`)
+  - 聚合 inquiry、calibration、HRV 数据
+  - 数据新鲜度检查（7天阈值）
+- ✅ **问题生成器** (`lib/max/question-generator.ts`)
+  - 根据缺失数据生成问题
+  - 3 个问题上限，优先级排序
+- ✅ **AI 计划生成器** (`lib/max/plan-generator.ts`)
+  - DeepSeek/Gemini API 集成
+  - HRV 数据集成，备用计划生成
+- ✅ **计划项替换器** (`lib/max/plan-replacer.ts`)
+  - 同类别不同内容的替换项生成
+  - 中英文模板库
+
+#### 2. API 端点 ✅
+- ✅ `/api/max/plan-chat` - 对话交互 (init/respond/generate/skip)
+- ✅ `/api/max/plan-replace` - 计划项替换
+
+#### 3. UI 组件 ✅
+- ✅ **MaxPlanDialog** (`components/max/MaxPlanDialog.tsx`)
+  - 对话式界面，打字动画效果
+  - 计划项卡片，替换按钮
+  - 确认保存功能
+- ✅ **PlanDashboard 集成** - 替换原有 showNewPlan 模态框
+
+#### 4. 多语言支持 ✅
+- ✅ `lib/i18n-dict.ts` 添加 Max Plan 相关翻译
+- ✅ 中英文问题模板和计划模板
+
+#### 5. 属性测试 (60 个测试全部通过) ✅
+- ✅ Property 1: Data Isolation (7 tests)
+- ✅ Property 2: Data-Driven Question Generation (8 tests)
+- ✅ Property 4: Plan Generation Completeness (6 tests)
+- ✅ Property 5: HRV Data Integration (4 tests)
+- ✅ Property 6: Replacement Consistency (9 tests)
+- ✅ Property 7: Save Data Integrity (10 tests)
+- ✅ Property 8: History Display Correctness (9 tests)
+- ✅ Property 9: Language Preference Compliance (7 tests)
+
+### 📊 代码统计
+- **文件变更**: 15 个文件
+- **新增代码**: ~2500 行
+- **测试覆盖**: 60 个属性测试
+
+### 🚀 下一步计划
+- [ ] 生产环境测试
+- [ ] 用户反馈收集
+- [ ] 性能优化
+
+---
+
 ## 2025-12-26 - 个人健康智能体核心系统 + 移动端适配 🧬📱
 
 ### 🎯 核心更新

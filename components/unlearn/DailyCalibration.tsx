@@ -20,6 +20,59 @@ export default function DailyCalibration() {
     const [answers, setAnswers] = useState<Record<string, string | number>>({});
     const [submitting, setSubmitting] = useState(false);
     const [completed, setCompleted] = useState(false);
+    const [checkingStatus, setCheckingStatus] = useState(true);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const checkStatus = async () => {
+            setCheckingStatus(true);
+            setStatusMessage(null);
+
+            try {
+                const res = await fetch('/api/assessment/daily-calibration');
+                if (res.status === 401) {
+                    if (isActive) {
+                        setStatusMessage(language === 'en' ? 'Please sign in to submit calibration.' : '请先登录后再提交校准。');
+                    }
+                    return;
+                }
+                if (!res.ok) {
+                    throw new Error('Failed to check status');
+                }
+
+                const data = await res.json();
+                if (!isActive) return;
+
+                if (data.completedToday) {
+                    setCompleted(true);
+                    return;
+                }
+
+                if (data.syncNeeded) {
+                    setStatusMessage(language === 'en'
+                        ? 'We saved your answers, but sync is pending. Please submit again.'
+                        : '已保存你的答案，但同步未完成。请再提交一次。'
+                    );
+                }
+            } catch (error) {
+                if (isActive) {
+                    setStatusMessage(language === 'en' ? 'Unable to check today\'s status.' : '无法检查今日校准状态。');
+                }
+            } finally {
+                if (isActive) {
+                    setCheckingStatus(false);
+                }
+            }
+        };
+
+        checkStatus();
+
+        return () => {
+            isActive = false;
+        };
+    }, [language]);
 
     const questions: CalibrationQuestion[] = [
         {
@@ -63,6 +116,16 @@ export default function DailyCalibration() {
     const currentQuestion = questions[step];
     const progress = ((step + 1) / questions.length) * 100;
 
+    const formatErrorMessage = (message: string) => {
+        if (language === 'en') return message;
+        if (message.includes('Unauthorized')) return '请先登录后再提交校准。';
+        if (message.includes('Already completed today')) return '今日校准已完成。';
+        if (message.includes('Failed to save daily questionnaire')) return '保存每日问卷失败。';
+        if (message.includes('Failed to update daily questionnaire')) return '更新每日问卷失败。';
+        if (message.includes('Failed to sync daily calibration')) return '同步每日校准失败。';
+        return message;
+    };
+
     const handleAnswer = (value: string | number) => {
         setAnswers(prev => ({
             ...prev,
@@ -76,20 +139,52 @@ export default function DailyCalibration() {
         } else {
             // Submit calibration
             setSubmitting(true);
+            setStatusMessage(null);
             try {
-                await fetch('/api/assessment/daily-calibration', {
+                const res = await fetch('/api/assessment/daily-calibration', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ responses: answers }),
                 });
+
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        setStatusMessage(language === 'en' ? 'Please sign in to submit calibration.' : '请先登录后再提交校准。');
+                        return;
+                    }
+                    if (res.status === 409) {
+                        setCompleted(true);
+                        return;
+                    }
+                    const data = await res.json().catch(() => ({}));
+                    const errorText = data?.details ? `${data.error}: ${data.details}` : data.error;
+                    throw new Error(errorText || 'Failed to submit calibration');
+                }
+
                 setCompleted(true);
+                window.dispatchEvent(new Event('daily-calibration:completed'));
             } catch (error) {
                 console.error('Failed to submit calibration:', error);
+                const message = error instanceof Error ? error.message : 'Submission failed. Please try again.';
+                setStatusMessage(formatErrorMessage(message));
             } finally {
                 setSubmitting(false);
             }
         }
     };
+
+    if (checkingStatus) {
+        return (
+            <section className="py-16 px-6" style={{ backgroundColor: '#0B3D2E' }}>
+                <div className="max-w-[600px] mx-auto text-center">
+                    <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin mx-auto mb-3" />
+                    <p className="text-white/60 text-sm">
+                        {language === 'en' ? 'Checking today\'s status...' : '正在检查今日状态...'}
+                    </p>
+                </div>
+            </section>
+        );
+    }
 
     if (completed) {
         return (
@@ -126,6 +221,11 @@ export default function DailyCalibration() {
                     <h2 className="text-white text-2xl font-bold">
                         {language === 'en' ? 'How are you feeling today?' : '你今天感觉怎么样？'}
                     </h2>
+                    {statusMessage && (
+                        <p className="text-xs text-[#D4AF37] mt-3">
+                            {statusMessage}
+                        </p>
+                    )}
                 </div>
 
                 {/* Progress Bar */}

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ArrowUpRight, User, LogOut } from 'lucide-react';
@@ -33,6 +34,8 @@ export default function UnlearnNav({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(isAppNav);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [userAvatar, setUserAvatar] = useState<string | null>(null);
+    const [userName, setUserName] = useState<string | null>(null);
     const loginLabel = language === 'en' ? 'Sign In' : '登录';
     const logoutLabel = t('userMenu.logout');
     const fallbackLinks: NavLink[] = language === 'en'
@@ -60,14 +63,35 @@ export default function UnlearnNav({
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // 检查登录状态
+    // 检查登录状态并获取用户信息
     useEffect(() => {
-        if (!isAppNav) {
-            const supabase = createClientSupabaseClient();
-            supabase.auth.getSession().then(({ data: { session } }) => {
-                setIsLoggedIn(!!session);
-            });
-        }
+        const supabase = createClientSupabaseClient();
+        
+        const fetchUserData = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setIsLoggedIn(true);
+                // 获取用户头像和名称
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('avatar_url, display_name, full_name')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (profile) {
+                    setUserAvatar(profile.avatar_url);
+                    setUserName(profile.display_name || profile.full_name || session.user.email?.split('@')[0] || null);
+                } else {
+                    // 使用 user metadata 作为备选
+                    setUserAvatar(session.user.user_metadata?.avatar_url || null);
+                    setUserName(session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || null);
+                }
+            } else {
+                setIsLoggedIn(false);
+            }
+        };
+        
+        fetchUserData();
     }, [isAppNav]);
 
     const handleLogout = async () => {
@@ -133,7 +157,21 @@ export default function UnlearnNav({
                                 <User className="w-5 h-5" />
                             </button>
                             {showUserMenu && (
-                                <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-[#1A1A1A]/10 shadow-lg">
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-[#1A1A1A]/10 shadow-lg rounded-lg overflow-hidden">
+                                    {/* 用户头像区域 - 只在有头像时显示 */}
+                                    {userAvatar && (
+                                        <div className="px-4 py-4 border-b border-[#1A1A1A]/10 bg-[#FAF6EF] flex justify-center">
+                                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#0B3D2E]/20">
+                                                <Image
+                                                    src={userAvatar}
+                                                    alt={userName || 'User'}
+                                                    width={64}
+                                                    height={64}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                     <Link
                                         href="/unlearn/app/settings"
                                         className="block px-4 py-3 text-sm text-[#1A1A1A] hover:bg-[#FAF6EF] transition-colors"

@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Heart, Moon, Activity, TrendingUp, Loader2 } from 'lucide-react';
-import { useRef } from 'react';
+import { Moon, Activity, TrendingUp, Loader2 } from 'lucide-react';
 import ParticipantDigitalTwin from './ParticipantDigitalTwin';
 
 interface HRVData {
@@ -31,17 +30,22 @@ export default function HRVDashboard() {
     const { language } = useI18n();
     const ref = useRef<HTMLDivElement>(null);
     const isInView = useInView(ref, { once: true });
-    const [loading, setLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
     const [hrv, setHrv] = useState<HRVData | null>(null);
     const [sleep, setSleep] = useState<SleepData | null>(null);
     const [activity, setActivity] = useState<ActivityData | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    
+    // Track if initial fetch has completed to prevent re-fetching on re-renders
+    const hasFetchedRef = useRef(false);
 
-    const fetchHealthData = async (showLoading = true) => {
+    const fetchHealthData = useCallback(async (isInitial = false) => {
+        // Prevent duplicate initial fetches
+        if (isInitial && hasFetchedRef.current) return;
+        if (isInitial) hasFetchedRef.current = true;
+        
         try {
-            if (showLoading) setLoading(true);
             setErrorMessage(null);
-            // Try to fetch from wearables sync endpoint
             const res = await fetch('/api/wearables/sync', { method: 'GET' });
             const data = await res.json();
 
@@ -61,17 +65,19 @@ export default function HRVDashboard() {
             setSleep(null);
             setActivity(null);
         } finally {
-            setLoading(false);
+            if (isInitial) setInitialLoading(false);
         }
-    };
+    }, [language]);
 
+    // Initial fetch - only runs once
     useEffect(() => {
         fetchHealthData(true);
-    }, []);
+    }, [fetchHealthData]);
 
+    // Background refresh interval
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchHealthData(false); // Don't show loading on background refresh
+            fetchHealthData(false);
         }, 60000);
 
         const handleFocus = () => fetchHealthData(false);
@@ -81,7 +87,7 @@ export default function HRVDashboard() {
             clearInterval(interval);
             window.removeEventListener('focus', handleFocus);
         };
-    }, []);
+    }, [fetchHealthData]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -103,7 +109,7 @@ export default function HRVDashboard() {
         return labels[status]?.[language] || status;
     };
 
-    if (loading) {
+    if (initialLoading) {
         return (
             <section className="py-16 px-6" style={{ backgroundColor: '#0B3D2E' }}>
                 <div className="max-w-[1000px] mx-auto flex items-center justify-center py-20">

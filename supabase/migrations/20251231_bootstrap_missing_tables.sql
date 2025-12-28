@@ -21,6 +21,23 @@ CREATE TABLE IF NOT EXISTS public.phase_goals (
   updated_at timestamptz DEFAULT now()
 );
 
+-- Ensure phase_goals columns exist for older schemas
+ALTER TABLE public.phase_goals
+  ADD COLUMN IF NOT EXISTS user_id uuid,
+  ADD COLUMN IF NOT EXISTS goal_type text,
+  ADD COLUMN IF NOT EXISTS priority text,
+  ADD COLUMN IF NOT EXISTS title text,
+  ADD COLUMN IF NOT EXISTS rationale text,
+  ADD COLUMN IF NOT EXISTS citations jsonb DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS is_ai_recommended boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS user_modified boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS goal_text text,
+  ADD COLUMN IF NOT EXISTS category text,
+  ADD COLUMN IF NOT EXISTS target_date date,
+  ADD COLUMN IF NOT EXISTS progress integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS is_completed boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 CREATE INDEX IF NOT EXISTS idx_phase_goals_user_id ON public.phase_goals(user_id);
 CREATE INDEX IF NOT EXISTS idx_phase_goals_category ON public.phase_goals(category);
 CREATE INDEX IF NOT EXISTS idx_phase_goals_active ON public.phase_goals(user_id, is_completed) WHERE NOT is_completed;
@@ -72,6 +89,11 @@ CREATE TABLE IF NOT EXISTS public.onboarding_answers (
   created_at timestamptz DEFAULT now()
 );
 
+-- Ensure onboarding_answers columns exist for older schemas
+ALTER TABLE public.onboarding_answers
+  ADD COLUMN IF NOT EXISTS user_id uuid,
+  ADD COLUMN IF NOT EXISTS sequence_order integer;
+
 CREATE INDEX IF NOT EXISTS idx_onboarding_answers_user_id ON public.onboarding_answers(user_id);
 CREATE INDEX IF NOT EXISTS idx_onboarding_answers_sequence ON public.onboarding_answers(user_id, sequence_order);
 
@@ -95,6 +117,11 @@ CREATE TABLE IF NOT EXISTS public.inquiry_history (
   created_at timestamptz DEFAULT now()
 );
 
+-- Ensure inquiry_history columns exist for older schemas
+ALTER TABLE public.inquiry_history
+  ADD COLUMN IF NOT EXISTS user_id uuid,
+  ADD COLUMN IF NOT EXISTS responded_at timestamptz;
+
 CREATE INDEX IF NOT EXISTS idx_inquiry_history_user_id ON public.inquiry_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_inquiry_history_pending
   ON public.inquiry_history(user_id, responded_at) WHERE responded_at IS NULL;
@@ -115,6 +142,12 @@ CREATE TABLE IF NOT EXISTS public.user_activity_patterns (
   updated_at timestamptz DEFAULT now(),
   UNIQUE(user_id, day_of_week, hour_of_day)
 );
+
+-- Ensure user_activity_patterns columns exist for older schemas
+ALTER TABLE public.user_activity_patterns
+  ADD COLUMN IF NOT EXISTS user_id uuid,
+  ADD COLUMN IF NOT EXISTS day_of_week integer,
+  ADD COLUMN IF NOT EXISTS hour_of_day integer;
 
 CREATE INDEX IF NOT EXISTS idx_activity_patterns_user_time
   ON public.user_activity_patterns(user_id, day_of_week, hour_of_day);
@@ -158,6 +191,12 @@ CREATE TABLE IF NOT EXISTS public.curated_feed_queue (
   UNIQUE(user_id, title)
 );
 
+-- Ensure curated_feed_queue columns exist for older schemas
+ALTER TABLE public.curated_feed_queue
+  ADD COLUMN IF NOT EXISTS user_id uuid,
+  ADD COLUMN IF NOT EXISTS is_read boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS relevance_score float;
+
 CREATE INDEX IF NOT EXISTS idx_curated_feed_user_id ON public.curated_feed_queue(user_id);
 CREATE INDEX IF NOT EXISTS idx_curated_feed_unread
   ON public.curated_feed_queue(user_id, is_read) WHERE is_read = false;
@@ -180,6 +219,12 @@ CREATE TABLE IF NOT EXISTS public.chat_conversations (
   metadata jsonb DEFAULT '{}'::jsonb,
   created_at timestamptz DEFAULT now()
 );
+
+-- Ensure chat_conversations columns exist for older schemas
+ALTER TABLE public.chat_conversations
+  ADD COLUMN IF NOT EXISTS user_id uuid,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS session_id uuid;
 
 CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_id ON public.chat_conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_conversations_created_at ON public.chat_conversations(created_at DESC);
@@ -211,6 +256,12 @@ CREATE TABLE IF NOT EXISTS public.daily_calibrations (
   updated_at timestamptz DEFAULT now(),
   UNIQUE (user_id, date)
 );
+
+-- Ensure daily_calibrations columns exist for older schemas
+ALTER TABLE public.daily_calibrations
+  ADD COLUMN IF NOT EXISTS user_id uuid,
+  ADD COLUMN IF NOT EXISTS date date,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_daily_calibrations_user_date
   ON public.daily_calibrations(user_id, date DESC);
@@ -297,6 +348,10 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   UNIQUE (user_id)
 );
 
+-- Ensure user_profiles columns exist for older schemas
+ALTER TABLE public.user_profiles
+  ADD COLUMN IF NOT EXISTS user_id uuid;
+
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON public.user_profiles(user_id);
 
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
@@ -378,6 +433,13 @@ BEGIN
 END $$;
 
 -- 12) belief_sessions view mapped to bayesian_beliefs
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'bayesian_beliefs'
+  ) THEN
+    EXECUTE $view$
 CREATE OR REPLACE VIEW public.belief_sessions AS
 SELECT
   id,
@@ -391,6 +453,9 @@ SELECT
   belief_context AS belief_text,
   created_at
 FROM public.bayesian_beliefs;
+$view$;
+  END IF;
+END $$;
 
 -- 13) search_user_memories RPC for semantic search
 CREATE OR REPLACE FUNCTION public.search_user_memories(
@@ -424,3 +489,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.search_user_memories(uuid, vector, int) TO authenticated;
+

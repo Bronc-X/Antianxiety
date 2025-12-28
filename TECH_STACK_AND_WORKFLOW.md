@@ -265,6 +265,17 @@
 | 主动询问逻辑 | 条件分支 + 选项映射 | `lib/active-inquiry.ts` |
 | 生物电压计算 | 加权公式 (睡眠×0.4 + HRV×0.3 + 压力×0.3) | `lib/bio-voltage.ts` |
 
+### Max 计划生成服务层
+
+| 功能模块 | 技术实现 | 关键文件 |
+|----------|----------|----------|
+| 数据聚合 | Supabase 多表查询 + 新鲜度检查 | `lib/max/plan-data-aggregator.ts` |
+| 问题生成 | 优先级排序 + 3问题上限 | `lib/max/question-generator.ts` |
+| AI 计划生成 | DeepSeek/Gemini API + HRV 集成 | `lib/max/plan-generator.ts` |
+| 计划项替换 | 同类别模板库 + 一致性验证 | `lib/max/plan-replacer.ts` |
+| 对话 API | init/respond/generate/skip 动作 | `app/api/max/plan-chat/route.ts` |
+| 替换 API | 单项替换 + 一致性检查 | `app/api/max/plan-replace/route.ts` |
+
 ### AI 服务层
 
 | 功能模块 | 技术实现 | 关键文件 |

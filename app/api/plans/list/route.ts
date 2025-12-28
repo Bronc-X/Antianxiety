@@ -65,6 +65,21 @@ export async function GET(request: NextRequest) {
     
     console.log(`✅ 获取到 ${plans?.length || 0} 个计划`);
     
+    // 调试：打印第一个计划的 content 详情
+    if (plans && plans.length > 0) {
+      const firstPlan = plans[0];
+      console.log('📋 第一个计划的 content:', JSON.stringify(firstPlan.content, null, 2));
+      if (firstPlan.content?.items) {
+        console.log('📋 items 详情:', firstPlan.content.items.map((item: any, i: number) => ({
+          index: i,
+          id: item.id,
+          text: item.text?.substring(0, 30),
+          completed: item.completed,
+          status: item.status
+        })));
+      }
+    }
+    
     return NextResponse.json({
       success: true,
       data: {

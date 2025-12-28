@@ -40,3 +40,6 @@ export { default as ScienceFeed } from './ScienceFeed';
 
 // Daily Calibration Component
 export { default as DailyCalibration } from './DailyCalibration';
+
+// Mobile Navigation
+export { default as AppBottomNav } from './AppBottomNav';
