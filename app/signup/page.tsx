@@ -18,8 +18,6 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
-  const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [signupMode, setSignupMode] = useState<'email' | 'phone'>('email');
@@ -42,78 +40,64 @@ export default function SignupPage() {
     setIsLoading(true);
     setMessage(null);
 
-    // Validate invite code first
-    if (!inviteCode.trim()) {
-      setMessage({ type: 'error', text: language === 'en' ? 'Invite code is required' : '请输入邀请码' });
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate invite code with server
-    setIsValidatingCode(true);
-    try {
-      const validateRes = await fetch('/api/auth/validate-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: inviteCode.trim() }),
-      });
-      const validateData = await validateRes.json();
-      if (!validateData.valid) {
-        setMessage({ type: 'error', text: language === 'en' ? (validateData.error || 'Invalid invite code') : '邀请码无效或已过期' });
-        setIsLoading(false);
-        setIsValidatingCode(false);
-        return;
-      }
-    } catch {
-      setMessage({ type: 'error', text: language === 'en' ? 'Failed to validate invite code' : '验证邀请码失败' });
-      setIsLoading(false);
-      setIsValidatingCode(false);
-      return;
-    }
-    setIsValidatingCode(false);
-
+    // 验证密码匹配
     if (password !== confirmPassword) {
       setMessage({ type: 'error', text: t('signup.passwordMismatch') });
       setIsLoading(false);
       return;
     }
+
+    // 验证密码长度
     if (password.length < 8) {
       setMessage({ type: 'error', text: t('signup.passwordTooShort') });
       setIsLoading(false);
       return;
     }
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email, password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: { skip_confirmation: true, invite_code_used: inviteCode.trim().toUpperCase() }
-        },
-      });
-      if (error) { setMessage({ type: 'error', text: error.message }); setIsLoading(false); return; }
-      if (data.user) {
-        // Mark invite code as used
-        try {
-          await fetch('/api/auth/use-invite', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: inviteCode.trim() }),
-          });
-        } catch {
-          console.error('Failed to mark invite code as used');
-        }
 
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) {
-          setMessage({ type: 'success', text: t('signup.success') });
-        } else {
-          setMessage({ type: 'success', text: language === 'en' ? 'Registration successful, redirecting...' : '注册成功，正在跳转...' });
-          setTimeout(() => { router.push('/unlearn/app'); router.refresh(); }, 1500);
+    try {
+      // 使用直接注册 API（绕过邮件验证）
+      const signupRes = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: email.trim(), 
+          password
+        }),
+      });
+      
+      const signupData = await signupRes.json();
+      
+      if (!signupRes.ok || !signupData.success) {
+        const errorMsg = signupData.error || 'Registration failed';
+        // 翻译常见错误
+        let displayError = errorMsg;
+        if (language === 'zh') {
+          if (errorMsg.includes('already registered') || errorMsg.includes('already exists')) {
+            displayError = '该邮箱已被注册';
+          }
         }
+        setMessage({ type: 'error', text: displayError });
+        setIsLoading(false);
+        return;
+      }
+
+      // 注册成功，直接登录
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (signInError) {
+        // 登录失败但账号已创建
+        setMessage({ type: 'success', text: language === 'en' ? 'Account created! Please log in.' : '账号创建成功！请登录。' });
+        setTimeout(() => { router.push('/login'); }, 1500);
+      } else {
+        // 登录成功，跳转到 onboarding
+        setMessage({ type: 'success', text: language === 'en' ? 'Registration successful, redirecting...' : '注册成功，正在跳转...' });
+        setTimeout(() => { router.push('/onboarding'); router.refresh(); }, 1500);
       }
     } catch {
       setMessage({ type: 'error', text: t('error.unknown') });
-    } finally { setIsLoading(false); }
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   const handleSendPhoneOtp = async (event: FormEvent<HTMLFormElement> | MouseEvent<HTMLButtonElement>) => {
@@ -209,19 +193,6 @@ export default function SignupPage() {
 
           {signupMode === 'email' ? (
             <form onSubmit={handleSignup} className="space-y-6 rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
-              {/* Invite Code Field */}
-              <div>
-                <label htmlFor="inviteCode" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">
-                  {language === 'en' ? 'Invite Code' : '邀请码'}
-                  <span className="text-[#D4AF37] ml-1">*</span>
-                </label>
-                <input id="inviteCode" name="inviteCode" type="text" required value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  className="mt-1 block w-full rounded-md border border-[#D4AF37]/30 dark:border-[#D4AF37]/30 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]/50 tracking-widest uppercase"
-                  placeholder={language === 'en' ? 'Enter your invite code' : '输入你的邀请码'} />
-                <p className="mt-1 text-xs text-[#0B3D2E]/60 dark:text-neutral-500">
-                  {language === 'en' ? 'Join our waitlist at the welcome page if you don\'t have one.' : '如果没有邀请码，请在欢迎页面加入等候名单。'}
-                </p>
-              </div>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('login.email')}</label>
                 <input id="email" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)}
@@ -240,9 +211,9 @@ export default function SignupPage() {
                   className="mt-1 block w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 focus:border-[#0B3D2E]/30 dark:focus:border-neutral-600"
                   placeholder={t('signup.confirmPlaceholder')} minLength={8} />
               </div>
-              <button type="submit" disabled={isLoading || isValidatingCode}
+              <button type="submit" disabled={isLoading}
                 className="w-full rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 dark:focus:ring-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-50">
-                {isValidatingCode ? (language === 'en' ? 'Validating...' : '验证中...') : isLoading ? t('signup.processing') : t('signup.submit')}
+                {isLoading ? t('signup.processing') : t('signup.submit')}
               </button>
             </form>
           ) : (

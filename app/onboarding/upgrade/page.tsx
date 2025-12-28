@@ -46,48 +46,48 @@ export default function UpgradePage() {
 
   const features = [
     {
-      id: 'active_ai',
-      icon: Zap,
-      title: language === 'en' ? 'Active AI Care' : '主动式 AI 诊疗',
-      desc: language === 'en'
-        ? 'The world\'s most attentive health assistant. It doesn\'t wait for you to ask—it proactively reaches out when it detects data anomalies.'
-        : '世界上最了解你的医疗助理。它不会等你开口，而是通过数据异常主动发起关怀，像私人医生一样敏锐。',
-      color: "from-purple-500 to-indigo-600",
-    },
-    {
-      id: 'science',
+      id: 'bio_memory',
       icon: Brain,
-      title: language === 'en' ? 'Precision Science' : '精准科研情报',
+      title: language === 'en' ? 'Full Bio-Memory' : '全周期记忆',
       desc: language === 'en'
-        ? 'Filters 99% of noise. Based on your health profile, pushes only clinical research and guidelines relevant to your symptoms.'
-        : '为你过滤 99% 的噪音。基于你的健康画像，只推送与你当前症状高度相关的科研论文与临床指南。',
-      color: "from-blue-500 to-cyan-600",
+        ? 'Unlock 1-year trend analysis. See patterns you never knew existed in your health data.'
+        : '解锁 1 年数据趋势分析。发现你从未注意到的健康数据规律。',
+      color: "from-purple-500 to-indigo-600",
     },
     {
       id: 'bayesian',
       icon: Activity,
-      title: language === 'en' ? 'Bayesian Engine' : '贝叶斯推理引擎',
+      title: language === 'en' ? 'Bayesian Engine' : '贝叶斯引擎',
       desc: language === 'en'
-        ? 'Not a vague search. Uses Bayesian probability to transform fuzzy feelings into precise medical hypotheses.'
-        : '不再是百度的模糊搜索。基于贝叶斯概率模型，将模糊的身体感受转化为精准的医疗假设。',
+        ? 'Active intervention with dynamic plans. Not a vague search—precise medical hypotheses based on probability.'
+        : '主动干预，动态调整计划。不再是模糊搜索，而是基于概率的精准医疗假设。',
       color: "from-emerald-500 to-teal-600",
     },
     {
-      id: 'calibration',
-      icon: Sun,
-      title: language === 'en' ? 'Daily Calibration' : '身心每日校准',
+      id: 'deep_rag',
+      icon: Zap,
+      title: language === 'en' ? 'Deep RAG' : '深度 RAG',
       desc: language === 'en'
-        ? '1-minute rapid scan. Logs not just data, but faint signals to build your personal bio-model.'
-        : '1分钟快速扫描追踪。记录的不只是数据，更是你身体的微弱信号，建立你的个人生物模型。',
+        ? 'Access Nature/Lancet-level literature. Get answers backed by the world\'s top medical research.'
+        : 'Nature/Lancet 级文献库调用。获取世界顶级医学研究支持的答案。',
+      color: "from-blue-500 to-cyan-600",
+    },
+    {
+      id: 'digital_twin',
+      icon: Sun,
+      title: language === 'en' ? 'Digital Twin Report' : '数字孪生报告',
+      desc: language === 'en'
+        ? 'Annual deep PDF health analysis. Your personal bio-model, visualized and explained.'
+        : '年度深度 PDF 体检报告。你的个人生物模型，可视化呈现。',
       color: "from-amber-500 to-orange-600",
     },
     {
-      id: 'ecosystem',
+      id: 'inner_circle',
       icon: Watch,
-      title: language === 'en' ? 'Full Ecosystem' : '全生态设备支持',
+      title: language === 'en' ? 'Inner Circle' : '核心社区',
       desc: language === 'en'
-        ? 'No need to buy new hardware. Compatible with Apple Watch, Huawei, Xiaomi, Fitbit and more.'
-        : '不需要为了使用软件买新手表。支持 Apple Watch、华为、小米、Fitbit 等主流设备。',
+        ? 'Direct founder access + DAO voting rights. Shape the future of health optimization together.'
+        : '创始人直连 + DAO 功能投票权。共同塑造健康优化的未来。',
       color: "from-pink-500 to-rose-600",
     },
   ];
@@ -95,56 +95,62 @@ export default function UpgradePage() {
   const plans = [
     {
       id: 'free',
-      name: language === 'en' ? 'Free' : '免费版',
+      name: language === 'en' ? 'Free' : 'Free',
       price: '¥0',
       priceEn: '$0',
-      period: language === 'en' ? '/forever' : '/永久',
-      desc: language === 'en' ? 'Get started with basics' : '体验核心功能',
+      period: '',
+      desc: language === 'en' ? 'A minimal daily status mirror to build data habits' : '极简的每日状态镜子，建立数据习惯',
       features: [
-        language === 'en' ? 'Clinical assessment (GAD-7, PHQ-9, ISI)' : '临床量表评估 (GAD-7, PHQ-9, ISI)',
-        language === 'en' ? 'Basic health insights' : '基础健康洞察',
-        language === 'en' ? 'Community support' : '社区支持',
+        language === 'en' ? 'Daily Snapshot: HRV & cortisol status (today only)' : '每日快照：当日 HRV、皮质醇状态评分',
+        language === 'en' ? 'Hardware Sync: Apple Health / Oura integration' : '硬件同步：Apple Health / Oura 数据接入',
+        language === 'en' ? '7-Day Memory: Review past week only' : '7 天短期记忆：仅回顾过去一周数据',
+        language === 'en' ? 'Basic RAG: Limited daily AI queries' : '基础 RAG：每日有限 AI 问询额度',
       ],
-      cta: language === 'en' ? 'Current Plan' : '当前方案',
+      cta: language === 'en' ? 'Start Free' : '免费开始',
       popular: false,
-      color: 'border-gray-200 dark:border-gray-700',
+      color: 'border-[#9CAF88]',
+      tierColor: '#9CAF88',
     },
     {
       id: 'pro',
-      name: language === 'en' ? 'Pro' : '专业版',
-      price: '¥29',
-      priceEn: '$4.99',
-      period: language === 'en' ? '/month' : '/月',
-      desc: language === 'en' ? 'Unlock all 5 core features' : '解锁全部5项核心功能',
+      name: language === 'en' ? 'Pro' : 'Pro',
+      price: '¥19',
+      priceEn: '$9',
+      period: language === 'en' ? '/mo' : '/月',
+      desc: language === 'en' ? 'For those who optimize life through data' : '为想通过数据优化生活的精英打造',
       features: [
-        language === 'en' ? '✦ Active AI Care - proactive health alerts' : '✦ 主动式 AI 诊疗 - 数据异常主动关怀',
-        language === 'en' ? '✦ Precision Science - personalized research' : '✦ 精准科研情报 - 个性化论文推送',
-        language === 'en' ? '✦ Bayesian Engine - precise diagnostics' : '✦ 贝叶斯推理引擎 - 精准医疗假设',
-        language === 'en' ? '✦ Daily Calibration - 1-min scan' : '✦ 身心每日校准 - 1分钟快速扫描',
-        language === 'en' ? '✦ Full Ecosystem - all devices' : '✦ 全生态设备支持 - 主流设备同步',
-        language === 'en' ? '✦ Priority Max AI support' : '✦ Max AI 优先响应',
+        language === 'en' ? '✦ Everything in Free' : '✦ 包含 Free 全部权益',
+        language === 'en' ? 'Full Bio-Memory: 1-year trend analysis' : '全周期记忆：解锁 1 年数据趋势分析',
+        language === 'en' ? 'Bayesian Engine: Active intervention & dynamic plans' : '贝叶斯引擎：主动干预，动态调整计划',
+        language === 'en' ? 'Deep RAG: Nature/Lancet-level literature access' : '深度 RAG：Nature/Lancet 级文献库调用',
+        language === 'en' ? 'Verified Bio-Hacker black badge' : 'Verified Bio-Hacker 黑色徽章',
+        language === 'en' ? 'Priority support + OTA updates' : '优先客服 + OTA 更新优先推送',
       ],
-      cta: language === 'en' ? 'Upgrade to Pro' : '升级专业版',
+      cta: language === 'en' ? 'Subscribe Now' : '立即订阅',
       popular: true,
       color: 'border-[#D4AF37] ring-2 ring-[#D4AF37]/20',
+      tierColor: '#D4AF37',
     },
     {
-      id: 'enterprise',
-      name: language === 'en' ? 'Enterprise' : '企业版',
-      price: language === 'en' ? 'Custom' : '定制',
-      priceEn: 'Custom',
-      period: '',
-      desc: language === 'en' ? 'For teams and organizations' : '企业/团队定制',
+      id: 'founding',
+      name: language === 'en' ? 'Founding' : 'Founding',
+      price: '¥499',
+      priceEn: '$199',
+      originalPrice: language === 'en' ? '$499' : '¥999',
+      period: language === 'en' ? 'One-time · Lifetime' : '一次性 · 终身',
+      desc: language === 'en' ? 'Limited to 500 seats for early co-creators' : '限量 500 席，为早期共建用户保留',
       features: [
-        language === 'en' ? 'Everything in Pro' : '包含专业版所有功能',
-        language === 'en' ? 'Team health dashboard' : '团队健康仪表盘',
-        language === 'en' ? 'API access' : 'API 接入',
-        language === 'en' ? 'Dedicated account manager' : '专属客户经理',
-        language === 'en' ? 'Custom integrations' : '定制集成方案',
+        language === 'en' ? '✦ All Pro benefits · Lifetime' : '✦ 包含 Pro 全部权益 · 终身有效',
+        language === 'en' ? 'Annual Digital Twin Report: Deep PDF analysis' : '年度数字孪生报告：深度 PDF 体检报告',
+        language === 'en' ? 'Inner Circle: Core community + founder access' : 'Inner Circle：核心社区 + 创始人直连',
+        language === 'en' ? 'OG Badge: Golden "Since 2025" glow' : 'OG 元老徽章："Since 2025" 金色发光',
+        language === 'en' ? 'Beta Access: AI therapy & experimental features' : 'Beta 功能优先体验（AI 心理咨询等）',
       ],
-      cta: language === 'en' ? 'Contact Sales' : '联系销售',
+      cta: language === 'en' ? 'Claim Your Seat' : '锁定席位',
       popular: false,
-      color: 'border-gray-200 dark:border-gray-700',
+      color: 'border-[#C4A77D]',
+      tierColor: '#C4A77D',
+      badge: language === 'en' ? '500 Only' : '限量 500',
     },
   ];
 
@@ -222,29 +228,45 @@ export default function UpgradePage() {
               transition={{ delay: 0.3 + idx * 0.1 }}
               whileHover={{ y: -5 }}
               className={`relative p-6 rounded-2xl bg-white dark:bg-[#2C2C2C] border-2 ${plan.color} transition-shadow duration-300 hover:shadow-xl flex flex-col h-full`}
-              style={plan.popular ? { boxShadow: '0 0 40px rgba(212, 175, 55, 0.4)' } : {}}
+              style={plan.popular ? { boxShadow: '0 0 40px rgba(212, 175, 55, 0.4)' } : { borderTopWidth: '3px', borderTopColor: plan.tierColor }}
             >
               {/* Popular badge */}
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-white text-xs font-bold rounded-full shadow-lg">
-                  {language === 'en' ? '🔥 MOST POPULAR' : '🔥 最受欢迎'}
+                  {language === 'en' ? '🔥 POPULAR' : '🔥 推荐'}
+                </div>
+              )}
+              
+              {/* Limited badge for founding */}
+              {plan.badge && (
+                <div className="absolute -top-3 right-6 px-4 py-1 text-xs font-bold" style={{ backgroundColor: plan.tierColor, color: '#0B3D2E' }}>
+                  {plan.badge}
                 </div>
               )}
 
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-4xl font-bold">{language === 'en' ? plan.priceEn : plan.price}</span>
-                  <span className="text-sm text-[#1A1A1A]/60 dark:text-white/60">{plan.period}</span>
+                <h3 className="text-xl font-bold mb-2 font-serif">{plan.name}</h3>
+                <div className="flex items-baseline justify-center gap-2">
+                  {plan.originalPrice && (
+                    <span className="text-lg line-through text-[#1A1A1A]/40 dark:text-white/40">
+                      {plan.originalPrice}
+                    </span>
+                  )}
+                  <span className="text-4xl font-bold font-serif">{language === 'en' ? plan.priceEn : plan.price}</span>
+                  {plan.period && (
+                    <span className="text-sm text-[#1A1A1A]/60 dark:text-white/60">{plan.period}</span>
+                  )}
                 </div>
-                <p className="text-sm text-[#1A1A1A]/60 dark:text-white/60 mt-2">{plan.desc}</p>
+                <p className="text-sm text-[#1A1A1A]/60 dark:text-white/60 mt-2 font-serif">{plan.desc}</p>
               </div>
 
               <ul className="space-y-3 flex-grow">
                 {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <span>{feature}</span>
+                  <li key={i} className="flex items-start gap-2 text-sm font-serif">
+                    {!feature.startsWith('✦') && (
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: plan.tierColor }} />
+                    )}
+                    <span className={feature.startsWith('✦') ? 'font-medium' : ''}>{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -252,7 +274,7 @@ export default function UpgradePage() {
               <button
                 onClick={() => plan.id === 'free' ? handleSkip() : handleSubscribe(plan.id)}
                 disabled={isSkipping}
-                className={`w-full py-3 rounded-xl font-semibold transition-all mt-6 ${plan.popular
+                className={`w-full py-3 rounded-xl font-semibold transition-all mt-6 font-serif ${plan.popular
                   ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-white hover:shadow-lg hover:scale-105'
                   : plan.id === 'free'
                     ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'

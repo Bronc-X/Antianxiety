@@ -31,11 +31,32 @@ function writeLanguageCookie(language: Language) {
   document.cookie = `${LANGUAGE_COOKIE_KEY}=${encodeURIComponent(language)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
 }
 
+function getBrowserLanguage(): Language {
+  if (typeof navigator === 'undefined') return 'en';
+  
+  // Check navigator.language first (e.g., "zh-CN", "en-US")
+  const browserLang = navigator.language || (navigator as { userLanguage?: string }).userLanguage || '';
+  
+  // If starts with 'zh', return Chinese
+  if (browserLang.toLowerCase().startsWith('zh')) {
+    return 'zh';
+  }
+  
+  // Default to English for all other languages
+  return 'en';
+}
+
 function normalizeClientLanguage(): Language {
+  // 1. Check cookie first (user's explicit choice)
   const cookieLanguage = readLanguageCookie();
   if (cookieLanguage) return cookieLanguage;
+  
+  // 2. Check localStorage (previous session)
   const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  return isLanguage(stored) ? stored : 'zh';
+  if (isLanguage(stored)) return stored;
+  
+  // 3. Detect from browser language
+  return getBrowserLanguage();
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {

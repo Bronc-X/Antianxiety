@@ -75,7 +75,7 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
 
   const currentStageData = THINKING_STAGES[currentStage];
 
-  // 生成阶段：显示 No More Anxious 呼吸效果
+  // 生成阶段：显示 AntiAnxiety 呼吸效果
   if (isGenerating) {
     return (
       <div className={`${sizeClasses[size]} mx-auto py-3`}>
@@ -169,14 +169,14 @@ function AntiAnxietyBreathing() {
           ease: 'easeInOut',
         }}
       >
-        {/* Logo 圆点 */}
+        {/* Logo 圆点 - 翡翠绿 */}
         <motion.span
-          className="w-2 h-2 rounded-full bg-[#0B3D2E]"
+          className="w-2 h-2 rounded-full bg-emerald-500"
           animate={{
             boxShadow: [
-              '0 0 0 0 rgba(11, 61, 46, 0)',
-              '0 0 8px 2px rgba(11, 61, 46, 0.4)',
-              '0 0 0 0 rgba(11, 61, 46, 0)',
+              '0 0 0 0 rgba(16, 185, 129, 0)',
+              '0 0 8px 2px rgba(16, 185, 129, 0.4)',
+              '0 0 0 0 rgba(16, 185, 129, 0)',
             ],
           }}
           transition={{
@@ -186,8 +186,8 @@ function AntiAnxietyBreathing() {
           }}
         />
         {/* 品牌文字 */}
-        <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
-          AntiAnxiety
+        <span className="text-sm font-bold tracking-tight text-[#0B3D2E]">
+          AntiAnxiety™
         </span>
       </motion.div>
 

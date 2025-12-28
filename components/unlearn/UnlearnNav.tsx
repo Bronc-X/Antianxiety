@@ -98,11 +98,9 @@ export default function UnlearnNav({
             >
                 {/* Logo */}
                 <Link href={isLoggedIn ? '/unlearn/app' : '/'} className="flex items-center gap-2 shrink-0">
-                    <div className="w-8 h-8 bg-[#0B3D2E] flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">A</span>
-                    </div>
-                    <span className="font-semibold text-[#1A1A1A] hidden sm:block">
-                        Antianxiety
+                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                    <span className="font-bold text-[#1A1A1A] hidden sm:block tracking-tight">
+                        AntiAnxiety<sup className="text-[8px]">™</sup>
                     </span>
                 </Link>
 

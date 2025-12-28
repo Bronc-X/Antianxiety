@@ -26,8 +26,7 @@ export default function UnlearnAppLayoutClient({
                         { label: '洞察', href: '/unlearn/app/insights' },
                         { label: '设置', href: '/unlearn/app/settings' },
                     ]}
-                ctaLabel={language === 'en' ? 'New Check-in' : '新的校准'}
-                ctaHref="/unlearn/app/calibration"
+                isAppNav={true}
             />
 
             {children}

@@ -5,6 +5,7 @@ import { motion, useInView } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { Heart, Moon, Activity, TrendingUp, Loader2 } from 'lucide-react';
 import { useRef } from 'react';
+import ParticipantDigitalTwin from './ParticipantDigitalTwin';
 
 interface HRVData {
     value: number;
@@ -113,29 +114,8 @@ export default function HRVDashboard() {
     }
 
     if (!hrv && !sleep && !activity) {
-        return (
-            <section className="py-16 px-6" style={{ backgroundColor: '#0B3D2E' }}>
-                <div className="max-w-[900px] mx-auto text-center text-white/70">
-                    <h3 className="text-2xl font-semibold text-white mb-3">
-                        {language === 'en' ? 'No wearable data yet' : '暂无穿戴数据'}
-                    </h3>
-                    <p className="text-white/50 mb-6">
-                        {language === 'en'
-                            ? 'Connect HealthKit or Health Connect to start syncing HRV, sleep, and activity.'
-                            : '连接 HealthKit 或 Health Connect，开始同步 HRV、睡眠与活动。'}
-                    </p>
-                    {errorMessage && (
-                        <p className="text-sm text-red-300 mb-4">{errorMessage}</p>
-                    )}
-                    <a
-                        href="/unlearn/app/settings"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#D4AF37] text-[#0B3D2E] font-medium hover:bg-[#E5C158] transition-colors"
-                    >
-                        {language === 'en' ? 'Connect devices' : '连接设备'}
-                    </a>
-                </div>
-            </section>
-        );
+        // Show Digital Twin visualization when no wearable data is available
+        return <ParticipantDigitalTwin />;
     }
 
     return (

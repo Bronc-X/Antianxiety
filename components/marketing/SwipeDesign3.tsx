@@ -18,8 +18,8 @@ export const SwipeDesign3 = () => {
                 {/* Minimal Nav */}
                 <div className="flex justify-between items-end mb-12">
                     <div className="flex items-center gap-2">
-                        <img src="/marketing/logo.png" alt="Logo" className="w-8 h-8 mix-blend-darken" />
-                        <h3 className="text-2xl font-black tracking-tighter">AA®</h3>
+                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                        <span className="text-sm font-bold tracking-tight text-slate-900">AntiAnxiety™</span>
                     </div>
                     <span className="text-[10px] font-mono text-slate-400">V.2.0.24</span>
                 </div>

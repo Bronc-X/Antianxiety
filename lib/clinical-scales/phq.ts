@@ -110,7 +110,7 @@ export const PHQ9: ScaleDefinition = {
         },
         {
             id: 'phq9_q9',
-            text: '有不如死掉或用某种方式伤害自己的念头',
+            text: '有自残的念头来对抗痛苦',
             textEn: 'Thoughts that you would be better off dead or of hurting yourself in some way',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },

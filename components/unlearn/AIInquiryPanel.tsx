@@ -157,12 +157,12 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
                                     key={option.value}
                                     onClick={() => handleResponse(option.value)}
                                     disabled={responding}
-                                    className="flex items-center justify-between p-4 bg-white/5 border border-white/10 text-white hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/30 transition-all group disabled:opacity-50"
+                                    className="flex items-center justify-between p-4 bg-white/10 border border-white/20 text-white font-medium hover:bg-[#D4AF37]/20 hover:border-[#D4AF37]/50 transition-all group disabled:opacity-50"
                                     whileHover={{ x: 5 }}
                                     whileTap={{ scale: 0.98 }}
                                 >
-                                    <span>{option.label}</span>
-                                    <ChevronRight className="w-5 h-5 text-white/40 group-hover:text-[#D4AF37]" />
+                                    <span className="text-white">{option.label}</span>
+                                    <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-[#D4AF37]" />
                                 </motion.button>
                             ))}
                         </div>

@@ -24,6 +24,7 @@ export const AI_MODELS = {
   CLAUDE_SONNET_THINKING: 'claude-sonnet-4-5-20250929-thinking',
 
   // Gemini 系列
+  GEMINI_FLASH: 'gemini-3-flash-preview', // 🚀 最快的模型
   GEMINI_PRO_THINKING: 'gemini-3-pro-preview-11-2025-thinking',
 
   // DeepSeek 系列
@@ -65,6 +66,7 @@ export const REASONING_MODEL_PRIORITY: AIModelName[] = [
  * 快速响应模型优先级
  */
 export const FAST_MODEL_PRIORITY: AIModelName[] = [
+  AI_MODELS.GEMINI_FLASH, // 🚀 最快
   AI_MODELS.DEEPSEEK_V3_EXP,
   AI_MODELS.CLAUDE_SONNET,
   AI_MODELS.DEEPSEEK_V3_THINKING,

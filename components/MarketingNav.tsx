@@ -53,10 +53,10 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/landing" className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-[#0B3D2E] dark:bg-white" />
-              <span className="text-sm font-semibold tracking-wide text-[#0B3D2E] dark:text-white">
-                AntiAnxiety™
+            <Link href="/landing" className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-emerald-500" />
+              <span className="text-sm font-bold tracking-tight text-[#0B3D2E] dark:text-white">
+                AntiAnxiety<sup className="text-[8px]">™</sup>
               </span>
             </Link>
           </div>
