@@ -37,27 +37,9 @@ export default function HRVDashboard() {
     const [activity, setActivity] = useState<ActivityData | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchHealthData();
-    }, [language]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetchHealthData();
-        }, 60000);
-
-        const handleFocus = () => fetchHealthData();
-        window.addEventListener('focus', handleFocus);
-
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener('focus', handleFocus);
-        };
-    }, [language]);
-
-    const fetchHealthData = async () => {
+    const fetchHealthData = async (showLoading = true) => {
         try {
-            setLoading(true);
+            if (showLoading) setLoading(true);
             setErrorMessage(null);
             // Try to fetch from wearables sync endpoint
             const res = await fetch('/api/wearables/sync', { method: 'GET' });
@@ -82,6 +64,24 @@ export default function HRVDashboard() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchHealthData(true);
+    }, []);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchHealthData(false); // Don't show loading on background refresh
+        }, 60000);
+
+        const handleFocus = () => fetchHealthData(false);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, []);
 
     const getStatusColor = (status: string) => {
         switch (status) {

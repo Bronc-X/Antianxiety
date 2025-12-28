@@ -246,6 +246,9 @@ export default function ParticipantDigitalTwin() {
     
     // Prevent multiple fetches
     const hasFetchedRef = useRef(false);
+    
+    // Toast for no data hint
+    const [showNoDataHint, setShowNoDataHint] = useState(false);
 
     // Fetch dashboard data
     const fetchDashboard = useCallback(async (isRetry = false) => {
@@ -390,7 +393,14 @@ export default function ParticipantDigitalTwin() {
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={isInView ? { opacity: 1, x: 0 } : {}}
                                     transition={{ duration: 0.4, delay: 0.2 + i * 0.1 }}
-                                    onClick={() => setActiveView(option.id)}
+                                    onClick={() => {
+                                        if (!dashboardData) {
+                                            setShowNoDataHint(true);
+                                            setTimeout(() => setShowNoDataHint(false), 2000);
+                                            return;
+                                        }
+                                        setActiveView(option.id);
+                                    }}
                                     className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-all duration-300 cursor-pointer ${
                                         activeView === option.id
                                             ? 'bg-[#D4AF37]/20 border-l-2 border-[#D4AF37] text-[#D4AF37]'
@@ -402,6 +412,22 @@ export default function ParticipantDigitalTwin() {
                                 </motion.button>
                             ))}
                         </div>
+                        
+                        {/* No Data Hint Toast */}
+                        <AnimatePresence>
+                            {showNoDataHint && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="mt-3 px-3 py-2 bg-white/10 border border-white/20 text-white/80 text-xs rounded"
+                                >
+                                    {language === 'en' 
+                                        ? '📊 Complete data collection first to unlock this view'
+                                        : '📊 请先完成数据收集以解锁此视图'}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         <div className="pt-8">
                             <h2 className="text-white font-bold leading-[1.1] mb-4" style={{ fontSize: 'clamp(24px, 3vw, 36px)' }}>
