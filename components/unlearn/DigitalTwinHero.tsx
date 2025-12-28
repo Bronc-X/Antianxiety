@@ -23,7 +23,6 @@ export default function DigitalTwinHero({
     const containerRef = useRef<HTMLElement>(null);
     const isInView = useInView(containerRef, { once: true });
 
-    // Default texts based on language
     const defaultHeadline = language === 'en'
         ? 'Meet your digital twin. Understand yourself like never before.'
         : '遇见你的数字孪生体，前所未有地了解自己。';
@@ -34,90 +33,72 @@ export default function DigitalTwinHero({
     const scrollText = language === 'en' ? 'Scroll to explore' : '向下滚动探索';
 
     return (
-        <section
-            ref={containerRef}
-            className="relative min-h-screen flex items-center overflow-hidden"
-            style={{ backgroundColor: '#0B3D2E' }}
-        >
-            {/* Split Background - Cream on left, Green on right */}
-            <div className="absolute inset-0 flex">
-                <div className="w-1/2 bg-[#FAF6EF]" />
-                <div className="w-1/2 bg-[#0B3D2E]" />
-            </div>
-
-            {/* Digital Twin Portrait - Face to face */}
-            <div className="absolute inset-0 flex items-center justify-center pb-48">
+        <section ref={containerRef} className="relative">
+            {/* Image Section with Overlay Text */}
+            <div className="relative w-full pt-14">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.98 }}
                     animate={isInView ? { opacity: 1, scale: 1 } : {}}
                     transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-                    className="relative w-full h-full max-w-[1400px]"
+                    className="relative max-w-[1200px] mx-auto"
                 >
                     <Image
                         src="/digital-twin-facing.png"
                         alt="You and Your Digital Twin"
-                        fill
-                        className="object-contain object-center"
+                        width={1920}
+                        height={1080}
+                        className="w-full h-auto"
                         priority
                     />
+                    
+                    {/* Overlay Text - Center Right */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={isInView ? { opacity: 1, x: 0 } : {}}
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                        className="absolute top-1/2 right-[5%] -translate-y-1/2 max-w-[40%] text-right"
+                    >
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 border border-white/30 bg-white/10 backdrop-blur-sm">
+                            <span className="w-1.5 h-1.5 bg-[#D4AF37] animate-pulse" />
+                            <span className="text-[clamp(10px,1.2vw,12px)] uppercase tracking-widest font-medium text-white/90 font-serif">
+                                {language === 'en' ? 'Digital Twin Technology' : '数字孪生技术'}
+                            </span>
+                        </div>
+
+                        <h1
+                            className="text-white font-bold leading-[1.1] tracking-[-0.02em] font-serif drop-shadow-lg"
+                            style={{ fontSize: 'clamp(18px, 3vw, 36px)' }}
+                        >
+                            {language === 'en' 
+                                ? <>Meet your <em className="italic">digital twin</em>. Understand yourself like <em className="italic">never before</em>.</>
+                                : <>遇见你的<em className="italic">数字孪生体</em>，<em className="italic">前所未有</em>地了解自己。</>
+                            }
+                        </h1>
+                    </motion.div>
                 </motion.div>
             </div>
 
-            {/* Gradient overlay on right side for text readability */}
-            <div
-                className="absolute top-0 right-0 w-1/2 h-full pointer-events-none"
-                style={{
-                    background: 'linear-gradient(to left, rgba(11,61,46,0.95) 20%, rgba(11,61,46,0.7) 60%, transparent 100%)',
-                }}
-            />
-
-            {/* Content - Below the image */}
-            <div className="absolute bottom-0 left-0 right-0 z-10 py-12 px-6" style={{ backgroundColor: '#0B3D2E' }}>
-                <div className="max-w-[1400px] mx-auto">
-                    <div className="grid md:grid-cols-2 gap-8 items-center">
-                        {/* Left side - Headline */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
+            {/* Content Section - Below the image */}
+            <div className="py-12 px-6" style={{ backgroundColor: '#0B3D2E' }}>
+                <div className="max-w-[1200px] mx-auto">
+                    <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+                        {/* Subheadline */}
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
                             animate={isInView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.8, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                            transition={{ duration: 0.8, delay: 0.6 }}
+                            className="text-[#FAF6EF]/80 max-w-lg leading-relaxed font-serif"
+                            style={{ fontSize: 'clamp(14px, 1.8vw, 18px)' }}
                         >
-                            {/* Badge */}
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={isInView ? { opacity: 1, x: 0 } : {}}
-                                transition={{ duration: 0.5, delay: 0.2 }}
-                                className="inline-flex items-center gap-2 px-4 py-2 mb-6 border border-[#D4AF37]/30 bg-[#D4AF37]/10"
-                            >
-                                <span className="w-2 h-2 bg-[#D4AF37] animate-pulse" />
-                                <span className="text-xs uppercase tracking-widest font-medium text-[#D4AF37] font-serif">
-                                    {language === 'en' ? 'Digital Twin Technology' : '数字孪生技术'}
-                                </span>
-                            </motion.div>
+                            {subheadline || defaultSubheadline}
+                        </motion.p>
 
-                            {/* Headline - White text for contrast */}
-                            <h1
-                                className="text-white font-bold leading-[1.05] tracking-[-0.02em] mb-6 font-serif"
-                                style={{ fontSize: 'clamp(32px, 5vw, 48px)' }}
-                            >
-                                {headline || defaultHeadline}
-                            </h1>
-                        </motion.div>
-
-                        {/* Right side - Subheadline and CTA */}
+                        {/* CTA */}
                         <motion.div
-                            initial={{ opacity: 0, y: 30 }}
+                            initial={{ opacity: 0, y: 20 }}
                             animate={isInView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.8, delay: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                            transition={{ duration: 0.8, delay: 0.8 }}
                         >
-                            {/* Subheadline - Cream/light color for contrast */}
-                            <p
-                                className="text-[#FAF6EF]/80 max-w-md mb-8 leading-relaxed font-serif"
-                                style={{ fontSize: 'clamp(16px, 2vw, 18px)' }}
-                            >
-                                {subheadline || defaultSubheadline}
-                            </p>
-
-                            {/* CTA Button */}
                             <Link
                                 href={ctaHref}
                                 className="
@@ -129,31 +110,32 @@ export default function DigitalTwinHero({
                                     transition-all duration-300
                                     hover:-translate-y-1
                                     hover:shadow-[0_8px_30px_rgba(212,175,55,0.4)]
+                                    whitespace-nowrap
                                 "
                             >
                                 {ctaLabel || defaultCtaLabel}
                             </Link>
                         </motion.div>
                     </div>
+
+                    {/* Scroll indicator */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={isInView ? { opacity: 1 } : {}}
+                        transition={{ duration: 0.5, delay: 1.2 }}
+                        className="mt-12 flex items-center gap-3 text-white/70"
+                    >
+                        <div className="w-6 h-10 border-2 border-white/40 flex justify-center pt-2">
+                            <motion.div
+                                animate={{ y: [0, 8, 0] }}
+                                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                                className="w-1.5 h-1.5 bg-[#D4AF37]"
+                            />
+                        </div>
+                        <span className="text-xs uppercase tracking-widest font-serif">{scrollText}</span>
+                    </motion.div>
                 </div>
             </div>
-
-            {/* Scroll indicator */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={isInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.5, delay: 1.2 }}
-                className="absolute bottom-32 left-8 flex items-center gap-3 text-white/70 z-20"
-            >
-                <div className="w-6 h-10 border-2 border-white/40 flex justify-center pt-2">
-                    <motion.div
-                        animate={{ y: [0, 8, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                        className="w-1.5 h-1.5 bg-[#D4AF37]"
-                    />
-                </div>
-                <span className="text-xs uppercase tracking-widest font-serif">{scrollText}</span>
-            </motion.div>
         </section>
     );
 }

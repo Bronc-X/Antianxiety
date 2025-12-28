@@ -30,12 +30,14 @@ export default function UnlearnNav({
     const fallbackLinks: NavLink[] = language === 'en'
         ? [
             { label: 'Product', href: '#product' },
+            { label: 'Max', href: '#max' },
             { label: 'Science', href: '#science' },
             { label: 'About', href: '#about' },
             { label: 'News', href: '#news' },
         ]
         : [
             { label: '产品', href: '#product' },
+            { label: 'Max', href: '#max' },
             { label: '科学', href: '#science' },
             { label: '关于', href: '#about' },
             { label: '资讯', href: '#news' },
@@ -57,9 +59,9 @@ export default function UnlearnNav({
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
                 className={`
-          fixed top-4 left-1/2 -translate-x-1/2 z-50
+          fixed top-2 left-1/2 -translate-x-1/2 z-50
           flex items-center justify-between gap-8
-          px-6 py-3
+          px-6 py-2.5
           bg-[#FAF6EF]/95 backdrop-blur-md
           border border-[#1A1A1A]/10
           transition-all duration-300

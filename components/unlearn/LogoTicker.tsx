@@ -73,7 +73,7 @@ export default function LogoTicker() {
         <section className="py-8 overflow-hidden relative" style={{ backgroundColor: '#0B3D2E' }}>
             <div className="max-w-[1400px] mx-auto px-6 mb-4">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/40 text-center">
-                    {language === 'en' ? 'Backed by research from' : '基于以下顶级期刊的研究成果'}
+                    {language === 'en' ? 'Backed by research from' : '基于以下顶级期刊研究成果和高质量自媒体最新洞察'}
                 </p>
             </div>
 

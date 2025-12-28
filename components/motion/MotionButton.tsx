@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 export const MOTION_BUTTON_TAP_SCALE = 0.95;
 
 // 创建一个 motion 版本的 Shadcn Button
-const MotionBtn = motion(Button);
+const MotionBtn = motion.create(Button);
 
 export interface MotionButtonProps extends React.ComponentProps<typeof Button> {
   hapticFeedback?: boolean;

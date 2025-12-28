@@ -53,6 +53,14 @@ export default function RootLayout({
   return (
     <html lang="zh" suppressHydrationWarning>
       <head>
+        {/* React Grab - Dev Mode Element Selector */}
+        {process.env.NODE_ENV === 'development' && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
         {/* 强制浅色模式 - 清除所有可能的深色模式设置 */}
         <script
           dangerouslySetInnerHTML={{

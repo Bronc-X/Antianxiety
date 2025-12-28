@@ -5,18 +5,17 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 /**
- * Homepage - English Version
- * Redirects to Brutalist landing page
+ * Homepage - Redirects to Unlearn App
  */
 export default async function Home() {
   const session = await getServerSession();
 
-  // If user is logged in, redirect to dashboard
+  // If user is logged in, redirect to unlearn app dashboard
   if (session) {
-    return redirect('/brutalist/dashboard');
+    return redirect('/unlearn/app');
   }
 
-  // If not logged in, redirect to Brutalist landing
-  return redirect('/brutalist');
+  // If not logged in, redirect to Unlearn landing
+  return redirect('/unlearn');
 }
 

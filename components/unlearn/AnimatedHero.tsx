@@ -17,8 +17,8 @@ export default function AnimatedHero({ onGetStarted }: AnimatedHeroProps) {
     const [showDemo, setShowDemo] = useState(false);
 
     const images = [
-        '/images/woman_meditation.png',
-        '/images/woman_portrait.png',
+        '/images/70C6708DB5AA54379EFE89B78CC21A0A.jpg',
+        '/images/B6FCE81D3927336342DDDFCA70992896.jpg',
     ];
 
     // Auto-rotate images
@@ -269,10 +269,10 @@ export default function AnimatedHero({ onGetStarted }: AnimatedHeroProps) {
                                 transition={{ delay: 1.2 }}
                             >
                                 <p className="text-[#0B3D2E] font-serif font-semibold">
-                                    {language === 'en' ? 'Trusted by 10,000+' : '超过一万人信赖'}
+                                    {language === 'en' ? 'Build in Public' : '公开构建中'}
                                 </p>
                                 <p className="text-[#1A1A1A]/60 text-sm font-serif">
-                                    {language === 'en' ? 'wellness seekers' : '健康追求者'}
+                                    {language === 'en' ? '5,000+ users embracing change' : '5000+ 用户共同见证改变'}
                                 </p>
                             </motion.div>
                         </motion.div>

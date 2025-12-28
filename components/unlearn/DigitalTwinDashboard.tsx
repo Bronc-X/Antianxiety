@@ -4,29 +4,85 @@ import { useRef, useState, useEffect } from 'react';
 import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Settings, User } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import LogoTicker from './LogoTicker';
 
-// Mock patient data
-const patients = [
-    { id: 1, name: 'Sarah M.', age: 34, status: 'active' },
-    { id: 2, name: 'James L.', age: 42, status: 'active' },
-    { id: 3, name: 'Maria G.', age: 28, status: 'active' },
-    { id: 4, name: 'Robert K.', age: 51, status: 'active' },
-    { id: 5, name: 'Emily R.', age: 39, status: 'active' },
-    { id: 6, name: 'Michael T.', age: 45, status: 'active' },
-    { id: 7, name: 'Lisa W.', age: 33, status: 'active' },
-    { id: 8, name: 'David H.', age: 48, status: 'active' },
-];
-
-// Chart data points
-const chartData = [
-    { month: '3m', prediction: 0.5, actual: 0.3 },
-    { month: '6m', prediction: 0.9, actual: 0.8 },
-    { month: '9m', prediction: 0.8, actual: 0.9 },
-    { month: '12m', prediction: 1.8, actual: 1.5 },
-    { month: '15m', prediction: 2.8, actual: 2.5 },
-    { month: '18m', prediction: 3.0, actual: 2.8 },
-    { month: '21m', prediction: 3.5, actual: 3.2 },
-    { month: '24m', prediction: 3.8, actual: 3.5 },
+// 5 users with different chart data and stats
+const users = [
+    {
+        id: 1,
+        name: 'A.W.',
+        chartData: [
+            { month: '3m', prediction: 0.5, actual: 0.3 },
+            { month: '6m', prediction: 0.9, actual: 0.8 },
+            { month: '9m', prediction: 1.5, actual: 1.4 },
+            { month: '12m', prediction: 2.2, actual: 2.0 },
+            { month: '15m', prediction: 2.8, actual: 2.6 },
+            { month: '18m', prediction: 3.2, actual: 3.0 },
+            { month: '21m', prediction: 3.6, actual: 3.4 },
+            { month: '24m', prediction: 3.9, actual: 3.7 },
+        ],
+        stats: { accuracy: 94, improvement: 47, days: 12 },
+    },
+    {
+        id: 2,
+        name: 'B.L.',
+        chartData: [
+            { month: '3m', prediction: 0.8, actual: 0.6 },
+            { month: '6m', prediction: 1.2, actual: 1.0 },
+            { month: '9m', prediction: 1.8, actual: 1.9 },
+            { month: '12m', prediction: 2.5, actual: 2.3 },
+            { month: '15m', prediction: 3.0, actual: 2.8 },
+            { month: '18m', prediction: 3.4, actual: 3.5 },
+            { month: '21m', prediction: 3.7, actual: 3.6 },
+            { month: '24m', prediction: 3.9, actual: 3.8 },
+        ],
+        stats: { accuracy: 91, improvement: 52, days: 10 },
+    },
+    {
+        id: 3,
+        name: 'C.Z.',
+        chartData: [
+            { month: '3m', prediction: 0.3, actual: 0.4 },
+            { month: '6m', prediction: 0.7, actual: 0.6 },
+            { month: '9m', prediction: 1.2, actual: 1.1 },
+            { month: '12m', prediction: 1.8, actual: 1.6 },
+            { month: '15m', prediction: 2.4, actual: 2.2 },
+            { month: '18m', prediction: 2.9, actual: 2.7 },
+            { month: '21m', prediction: 3.3, actual: 3.1 },
+            { month: '24m', prediction: 3.6, actual: 3.4 },
+        ],
+        stats: { accuracy: 89, improvement: 41, days: 15 },
+    },
+    {
+        id: 4,
+        name: 'D.C.',
+        chartData: [
+            { month: '3m', prediction: 0.6, actual: 0.5 },
+            { month: '6m', prediction: 1.1, actual: 1.2 },
+            { month: '9m', prediction: 1.6, actual: 1.5 },
+            { month: '12m', prediction: 2.3, actual: 2.4 },
+            { month: '15m', prediction: 2.9, actual: 2.7 },
+            { month: '18m', prediction: 3.3, actual: 3.2 },
+            { month: '21m', prediction: 3.6, actual: 3.5 },
+            { month: '24m', prediction: 3.8, actual: 3.7 },
+        ],
+        stats: { accuracy: 96, improvement: 55, days: 8 },
+    },
+    {
+        id: 5,
+        name: 'E.L.',
+        chartData: [
+            { month: '3m', prediction: 0.4, actual: 0.3 },
+            { month: '6m', prediction: 0.8, actual: 0.9 },
+            { month: '9m', prediction: 1.4, actual: 1.3 },
+            { month: '12m', prediction: 2.0, actual: 1.8 },
+            { month: '15m', prediction: 2.6, actual: 2.5 },
+            { month: '18m', prediction: 3.1, actual: 2.9 },
+            { month: '21m', prediction: 3.5, actual: 3.3 },
+            { month: '24m', prediction: 3.8, actual: 3.6 },
+        ],
+        stats: { accuracy: 92, improvement: 44, days: 14 },
+    },
 ];
 
 // Animated number component
@@ -56,9 +112,11 @@ export default function DigitalTwinDashboard() {
     const { language } = useI18n();
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { once: true, margin: '-100px' });
-    const [selectedPatient, setSelectedPatient] = useState(patients[0]);
+    const [selectedUser, setSelectedUser] = useState(users[0]);
     const [animationComplete, setAnimationComplete] = useState(false);
     const monthLabel = (month: string) => (language === 'en' ? month : month.replace('m', '个月'));
+
+    const chartData = selectedUser.chartData;
 
     useEffect(() => {
         if (isInView) {
@@ -90,7 +148,17 @@ export default function DigitalTwinDashboard() {
                     >
                         {language === 'en' ? 'Predict outcomes before they happen' : '在结果发生前完成预测'}
                     </h2>
+                    <p className="text-white/60 text-sm md:text-base max-w-2xl leading-relaxed font-serif">
+                        {language === 'en' 
+                            ? 'We query peer-reviewed journals via Semantic Scholar API, filter noise through relevance scoring, and use AI to adapt recommendations to your unique physiological patterns.'
+                            : '通过 Semantic Scholar API 检索同行评审期刊，基于相关性评分过滤噪音，AI 根据你独特的生理模式自适应调整健康计划。'}
+                    </p>
                 </motion.div>
+
+                {/* Logo Ticker - Research Sources */}
+                <div className="mb-12 -mx-6">
+                    <LogoTicker />
+                </div>
 
                 {/* Dashboard Card */}
                 <motion.div
@@ -126,36 +194,25 @@ export default function DigitalTwinDashboard() {
                         </div>
                     </div>
 
-                    {/* Patient Avatars */}
-                    <div className="px-6 py-4">
-                        <div className="flex flex-wrap gap-3">
-                            {patients.map((patient, i) => (
-                                <motion.button
-                                    key={patient.id}
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                                    transition={{ duration: 0.3, delay: 0.3 + i * 0.05 }}
-                                    onClick={() => setSelectedPatient(patient)}
-                                    className={`
-                    relative w-12 h-12 overflow-hidden
-                    transition-all duration-300
-                    ${selectedPatient.id === patient.id
-                                            ? 'ring-2 ring-[#D4AF37] ring-offset-2 ring-offset-[#0B3D2E]'
-                                            : 'opacity-60 hover:opacity-100'
-                                        }
-                  `}
-                                    style={{
-                                        background: `linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)`,
-                                    }}
+                    {/* User Selector */}
+                    <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.15)' }}>
+                        <p className="text-xs text-white/40 mb-3 font-serif">
+                            {language === 'en' ? 'Select participant to view data:' : '选择参与者查看数据：'}
+                        </p>
+                        <div className="flex gap-3">
+                            {users.map((user) => (
+                                <button
+                                    key={user.id}
+                                    onClick={() => setSelectedUser(user)}
+                                    className={`px-4 py-2 text-sm font-serif transition-all ${
+                                        selectedUser.id === user.id
+                                            ? 'bg-[#D4AF37] text-[#0B3D2E]'
+                                            : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                                    }`}
                                 >
-                                    <div className="absolute inset-0 flex items-center justify-center text-[#0B3D2E] font-medium text-sm">
-                                        {patient.name.split(' ')[0][0]}{patient.name.split(' ')[1]?.[0] || ''}
-                                    </div>
-                                </motion.button>
+                                    {user.name}
+                                </button>
                             ))}
-                            <div className="w-12 h-12 border border-dashed border-white/20 flex items-center justify-center text-white/30 text-xl">
-                                +
-                            </div>
                         </div>
                     </div>
 
@@ -165,14 +222,23 @@ export default function DigitalTwinDashboard() {
                             className="p-6"
                             style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
                         >
-                            <h3 className="text-white font-medium mb-6">
+                            <h3 className="text-white font-medium mb-6 font-serif">
                                 {language === 'en'
                                     ? 'Digital Twin Prediction vs. Actual Outcomes'
                                     : '数字孪生预测 vs. 实际结果'}
                             </h3>
 
                             {/* Animated SVG Chart */}
-                            <div className="relative h-[200px]">
+                            <div className="relative h-[200px] ml-10">
+                                {/* Y-axis labels */}
+                                <div className="absolute -left-10 top-0 bottom-6 flex flex-col justify-between text-xs text-white/40">
+                                    <span>4.0</span>
+                                    <span>3.0</span>
+                                    <span>2.0</span>
+                                    <span>1.0</span>
+                                    <span>0</span>
+                                </div>
+                                
                                 <svg
                                     viewBox="0 0 400 150"
                                     className="w-full h-full"
@@ -288,6 +354,7 @@ export default function DigitalTwinDashboard() {
                             {/* Animated Stats */}
                             {animationComplete && (
                                 <motion.div
+                                    key={selectedUser.id}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.5 }}
@@ -295,26 +362,26 @@ export default function DigitalTwinDashboard() {
                                 >
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-[#D4AF37]">
-                                            <AnimatedNumber value={94} />%
+                                            <AnimatedNumber value={selectedUser.stats.accuracy} />%
                                         </div>
-                                        <div className="text-xs text-white/50 mt-1">
+                                        <div className="text-xs text-white/50 mt-1 font-serif">
                                             {language === 'en' ? 'Prediction Accuracy' : '预测准确率'}
                                         </div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-white">
-                                            <AnimatedNumber value={47} />%
+                                            <AnimatedNumber value={selectedUser.stats.improvement} />%
                                         </div>
-                                        <div className="text-xs text-white/50 mt-1">
+                                        <div className="text-xs text-white/50 mt-1 font-serif">
                                             {language === 'en' ? 'Improvement Rate' : '改善幅度'}
                                         </div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-[#D4AF37]">
-                                            <AnimatedNumber value={12} />
+                                            <AnimatedNumber value={selectedUser.stats.days} />
                                         </div>
-                                        <div className="text-xs text-white/50 mt-1">
-                                            {language === 'en' ? 'Days to Results' : '平均见效天数'}
+                                        <div className="text-xs text-white/50 mt-1 font-serif">
+                                            {language === 'en' ? 'Days to Results' : '见效天数'}
                                         </div>
                                     </div>
                                 </motion.div>
