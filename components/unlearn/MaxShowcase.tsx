@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
+import { useRouter } from 'next/navigation';
+import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { Sparkles, MessageCircle, Brain, Heart, Star, ArrowRight, X } from 'lucide-react';
 
 interface MaxShowcaseProps {
@@ -11,7 +13,27 @@ interface MaxShowcaseProps {
 
 export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
     const { language } = useI18n();
+    const router = useRouter();
+    const supabase = createClientSupabaseClient();
     const [activeFeature, setActiveFeature] = useState(0);
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+    // Check login status
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setIsLoggedIn(!!user);
+        };
+        checkAuth();
+    }, [supabase.auth]);
+
+    const handleChatClick = () => {
+        if (!isLoggedIn) {
+            router.push('/login');
+            return;
+        }
+        onOpenChat?.();
+    };
 
     const features = language === 'en' ? [
         {
@@ -60,7 +82,7 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
     ];
 
     return (
-        <section className="py-24 px-6 relative overflow-hidden" style={{ backgroundColor: '#0B3D2E' }}>
+        <section id="max" className="py-24 px-6 relative overflow-hidden scroll-mt-24" style={{ backgroundColor: '#0B3D2E' }}>
             {/* Background Gradient */}
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#D4AF37]/5 rounded-full blur-[150px] pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#D4AF37]/3 rounded-full blur-[120px] pointer-events-none" />
@@ -81,12 +103,12 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
                     </div>
                     <h2 className="text-4xl md:text-5xl font-serif text-white leading-tight mb-6">
                         {language === 'en' ? (
-                            <>Your AI Health Coach That <span className="italic text-[#D4AF37]">Actually Cares</span></>
+                            <>Your Personal Health Agent That <span className="italic text-[#D4AF37]">Actually Cares</span></>
                         ) : (
-                            <>你的人工智能健康教练，<span className="italic text-[#D4AF37]">真正关心你</span></>
+                            <>你的个人健康智能体，<span className="italic text-[#D4AF37]">真正关心你</span></>
                         )}
                     </h2>
-                    <p className="text-xl text-white/60 max-w-2xl mx-auto font-serif">
+                    <p className="text-xl text-white/80 max-w-2xl mx-auto font-serif">
                         {language === 'en'
                             ? 'Max combines clinical expertise with emotional intelligence to guide you toward lasting calm.'
                             : 'Max 将临床专业知识与情感智能相结合，引导你走向持久的平静。'}
@@ -103,21 +125,21 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
                         transition={{ delay: 0.2 }}
                         className="relative"
                     >
-                        <div className="p-6 bg-white/5 border border-white/10 backdrop-blur-sm">
+                        <div className="p-6 bg-white rounded-lg shadow-xl">
                             {/* Chat Header */}
-                            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-white/10">
-                                <div className="w-12 h-12 bg-[#D4AF37] flex items-center justify-center">
-                                    <Sparkles className="w-6 h-6 text-[#0B3D2E]" />
+                            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-100">
+                                <div className="w-12 h-12 bg-[#0B3D2E] rounded-full flex items-center justify-center">
+                                    <Sparkles className="w-6 h-6 text-[#D4AF37]" />
                                 </div>
                                 <div>
-                                    <h4 className="text-white font-semibold font-serif">Max</h4>
-                                    <p className="text-white/50 text-sm">
-                                        {language === 'en' ? 'Your AI Health Coach' : '你的人工智能健康教练'}
+                                    <h4 className="text-[#1A1A1A] font-semibold font-serif">Max</h4>
+                                    <p className="text-[#1A1A1A]/60 text-sm">
+                                        {language === 'en' ? 'Your Personal Health Agent' : '你的个人健康智能体'}
                                     </p>
                                 </div>
                                 <div className="ml-auto flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                                    <span className="text-emerald-400 text-xs">{language === 'en' ? 'Online' : '在线'}</span>
+                                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                                    <span className="text-emerald-600 text-xs">{language === 'en' ? 'Online' : '在线'}</span>
                                 </div>
                             </div>
 
@@ -132,10 +154,15 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
                                         transition={{ delay: 0.3 + i * 0.2 }}
                                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
+                                        {msg.role === 'max' && (
+                                            <div className="w-8 h-8 bg-[#0B3D2E] rounded-full flex items-center justify-center mr-3 shrink-0">
+                                                <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                                            </div>
+                                        )}
                                         <div
-                                            className={`max-w-[80%] p-4 font-serif ${msg.role === 'user'
-                                                    ? 'bg-white/10 text-white'
-                                                    : 'bg-[#D4AF37]/10 text-white border-l-2 border-[#D4AF37]'
+                                            className={`max-w-[75%] p-4 font-serif rounded-lg ${msg.role === 'user'
+                                                    ? 'text-[#1A1A1A]'
+                                                    : 'bg-[#0B3D2E]/5 text-[#1A1A1A]'
                                                 }`}
                                         >
                                             {msg.text}
@@ -146,11 +173,11 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
 
                             {/* CTA */}
                             <button
-                                onClick={onOpenChat}
-                                className="w-full flex items-center justify-center gap-2 py-4 bg-[#D4AF37] text-[#0B3D2E] font-semibold hover:bg-[#E5C158] transition-colors"
+                                onClick={handleChatClick}
+                                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#0B3D2E] text-white font-semibold hover:bg-[#0B3D2E]/90 transition-colors text-sm rounded-lg"
                             >
-                                <MessageCircle className="w-5 h-5" />
-                                {language === 'en' ? 'Start Talking to Max' : '开始与 Max 对话'}
+                                <MessageCircle className="w-4 h-4" />
+                                {language === 'en' ? 'Talk to Max' : '和 Max 聊聊'}
                             </button>
                         </div>
                     </motion.div>
@@ -179,26 +206,11 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
                                     </div>
                                     <div>
                                         <h4 className="text-white font-semibold font-serif text-lg mb-2">{feature.title}</h4>
-                                        <p className="text-white/60 font-serif">{feature.description}</p>
+                                        <p className="text-white/80 font-serif">{feature.description}</p>
                                     </div>
                                 </div>
                             </motion.div>
                         ))}
-
-                        {/* Trust Badge */}
-                        <div className="flex items-center gap-4 pt-6 border-t border-white/10">
-                            <div className="flex -space-x-2">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div
-                                        key={i}
-                                        className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D4AF37]/30 to-[#D4AF37]/10 border-2 border-[#0B3D2E]"
-                                    />
-                                ))}
-                            </div>
-                            <p className="text-white/60 text-sm font-serif">
-                                {language === 'en' ? 'Trusted by 10,000+ users worldwide' : '全球超过一万名用户信赖'}
-                            </p>
-                        </div>
                     </motion.div>
                 </div>
             </div>

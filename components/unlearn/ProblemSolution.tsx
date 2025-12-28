@@ -87,6 +87,59 @@ export default function ProblemSolution() {
                                             </div>
                                         </div>
 
+                                        {/* Apple Health Style Activity Rings */}
+                                        <div className="bg-black/40 border border-white/10 rounded-xl p-3 mb-2">
+                                            <div className="flex items-center gap-3">
+                                                {/* Rings */}
+                                                <div className="relative w-16 h-16 flex-shrink-0">
+                                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                                                        {/* Move Ring (Red) - Background */}
+                                                        <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,59,48,0.3)" strokeWidth="5" />
+                                                        {/* Move Ring (Red) - Progress 35% */}
+                                                        <circle cx="32" cy="32" r="28" fill="none" stroke="#FF3B30" strokeWidth="5" strokeLinecap="round"
+                                                            strokeDasharray="176" strokeDashoffset="114" />
+                                                        
+                                                        {/* Exercise Ring (Green) - Background */}
+                                                        <circle cx="32" cy="32" r="21" fill="none" stroke="rgba(48,209,88,0.3)" strokeWidth="5" />
+                                                        {/* Exercise Ring (Green) - Progress 20% */}
+                                                        <circle cx="32" cy="32" r="21" fill="none" stroke="#30D158" strokeWidth="5" strokeLinecap="round"
+                                                            strokeDasharray="132" strokeDashoffset="106" />
+                                                        
+                                                        {/* Stand Ring (Blue) - Background */}
+                                                        <circle cx="32" cy="32" r="14" fill="none" stroke="rgba(10,132,255,0.3)" strokeWidth="5" />
+                                                        {/* Stand Ring (Blue) - Progress 50% */}
+                                                        <circle cx="32" cy="32" r="14" fill="none" stroke="#0A84FF" strokeWidth="5" strokeLinecap="round"
+                                                            strokeDasharray="88" strokeDashoffset="44" />
+                                                    </svg>
+                                                </div>
+                                                
+                                                {/* Ring Labels */}
+                                                <div className="flex-1 space-y-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="w-2 h-2 rounded-full bg-[#FF3B30]" />
+                                                            <span className="text-[9px] text-white/70">{language === 'en' ? 'Move' : '活动'}</span>
+                                                        </div>
+                                                        <span className="text-[9px] text-red-400">35%</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="w-2 h-2 rounded-full bg-[#30D158]" />
+                                                            <span className="text-[9px] text-white/70">{language === 'en' ? 'Exercise' : '锻炼'}</span>
+                                                        </div>
+                                                        <span className="text-[9px] text-green-400">20%</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="w-2 h-2 rounded-full bg-[#0A84FF]" />
+                                                            <span className="text-[9px] text-white/70">{language === 'en' ? 'Stand' : '站立'}</span>
+                                                        </div>
+                                                        <span className="text-[9px] text-blue-400">50%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         {/* Workout Suggestion */}
                                         <div className="bg-white/5 border border-white/10 rounded-xl p-3 mb-2">
                                             <div className="flex items-center gap-1.5 mb-2">
@@ -172,29 +225,27 @@ export default function ProblemSolution() {
                                 viewport={{ once: true }}
                                 className="mb-8"
                             >
-                                <span className="text-xs font-bold tracking-[0.2em] text-red-500 uppercase">
-                                    {language === 'en' ? 'The Problem' : '这个时代的病症'}
+                                <span className="text-xs font-bold tracking-[0.2em] text-[#C4A77D] uppercase font-serif">
+                                    {language === 'en' ? 'The Problem' : '为什么很难坚持运动'}
                                 </span>
                             </motion.div>
 
                             <motion.blockquote
-                                className="text-3xl md:text-4xl font-heading font-medium text-[#1A1A1A] leading-tight mb-10"
+                                className="text-3xl md:text-4xl font-serif font-medium text-[#1A1A1A] leading-tight mb-10"
                                 initial={{ opacity: 0, x: 50 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.8 }}
                             >
                                 <span className="text-[#1A1A1A]/20 mr-2">"</span>
-                                {language === 'en' ? "Your other apps aren't helping." : "你的那些打卡App，"}
-                                <br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-700 font-bold">
-                                    {language === 'en' ? "Don't seem to understand your fatigue." : "似乎根本不懂你的疲惫。"}
-                                </span>
+                                {language === 'en' 
+                                    ? <>Your health apps don&apos;t seem<br />to understand your <em className="italic text-[#C4A77D]">fatigue</em>.</>
+                                    : <>现在的健康App，<br />似乎不太懂你的<em className="italic text-[#C4A77D]">疲惫</em>。</>}
                                 <span className="text-[#1A1A1A]/20 ml-2">"</span>
                             </motion.blockquote>
 
                             <motion.div
-                                className="space-y-4 text-lg text-[#1A1A1A]/60"
+                                className="space-y-4 text-lg text-[#1A1A1A]/60 font-serif"
                                 initial={{ opacity: 0, x: 50 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
@@ -212,9 +263,9 @@ export default function ProblemSolution() {
                                     </div>
                                     <p>{language === 'en' ? "They sell anxiety disguised as discipline." : "它们贩卖的不是自律，而是包装精美的焦虑。"}</p>
                                 </div>
-                                <div className="pl-4 border-l-2 border-red-500/30">
-                                    <p className="text-[#1A1A1A] font-medium text-xl">
-                                        {language === 'en' ? "Data without context is cruelty." : "没有上下文的数据，就是一种暴政。"}
+                                <div className="pl-4 border-l-2 border-[#C4A77D]/30">
+                                    <p className="text-[#1A1A1A] font-medium text-xl font-serif">
+                                        {language === 'en' ? "Data without context is cruelty." : "没有上下文的数据，就是一种敷衍。"}
                                     </p>
                                 </div>
                             </motion.div>
@@ -264,7 +315,7 @@ export default function ProblemSolution() {
                                 </p>
                                 <div className="flex items-center gap-3 opacity-50">
                                     <Activity className="w-4 h-4 text-white" />
-                                    <span className="text-xs tracking-widest uppercase text-white">AI Health Coach Analysis</span>
+                                    <span className="text-xs tracking-widest uppercase text-white">— Max, {language === 'en' ? 'Your Personal Health Agent' : '你的个人健康智能体'}</span>
                                 </div>
                             </div>
 
@@ -289,17 +340,17 @@ export default function ProblemSolution() {
 
                                     {/* Active arc */}
                                     <motion.circle
-                                        cx="100" cy="100" r="80" fill="none" stroke="#D4AF37" strokeWidth="8" strokeLinecap="round"
+                                        cx="100" cy="100" r="80" fill="none" stroke="#EAB308" strokeWidth="8" strokeLinecap="round"
                                         strokeDasharray="502"
                                         initial={{ strokeDashoffset: 502 }}
-                                        whileInView={{ strokeDashoffset: 100 }}
+                                        whileInView={{ strokeDashoffset: 350 }}
                                         transition={{ duration: 2, ease: "easeOut" }}
                                     />
                                 </svg>
 
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-6xl font-heading text-white">58</span>
-                                    <span className="text-xs tracking-[0.2em] text-[#D4AF37] mt-2 font-bold">HRV GOOD</span>
+                                    <span className="text-6xl font-heading text-white">41</span>
+                                    <span className="text-xs tracking-[0.2em] text-yellow-500 mt-2 font-bold">HRV LOW</span>
                                     <div className="flex items-center gap-3 mt-4">
                                         <div className="flex items-center gap-1.5">
                                             <span className="w-2 h-2 rounded-full bg-red-500"></span>
@@ -310,7 +361,7 @@ export default function ProblemSolution() {
                                             <span className="text-[10px] text-white/50">40-55</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-full bg-[#D4AF37]"></span>
+                                            <span className="w-2 h-2 rounded-full bg-[#30D158]"></span>
                                             <span className="text-[10px] text-white/50">&gt;55</span>
                                         </div>
                                     </div>

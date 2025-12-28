@@ -112,7 +112,7 @@ export default function ProfileSetupPage() {
 
       // 保存成功，跳转到主页
       console.log('✅ 个人资料保存成功，用户完成 onboarding');
-      router.push('/landing');
+      router.push('/unlearn/app');
       router.refresh();
     } catch (error) {
       console.error('保存个人资料时出错:', error);

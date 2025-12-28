@@ -31,7 +31,7 @@ function LoginFormContent() {
     const checkExistingSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        const redirectTo = searchParams.get('redirectedFrom') || '/landing';
+        const redirectTo = searchParams.get('redirectedFrom') || '/onboarding';
         window.location.href = redirectTo;
       }
     };
@@ -72,7 +72,7 @@ function LoginFormContent() {
         await new Promise(resolve => setTimeout(resolve, 500));
         const { data: { user }, error } = await supabase.auth.getUser();
         if (user && !error) {
-          const redirectedFrom = searchParams.get('redirectedFrom') || '/landing';
+          const redirectedFrom = searchParams.get('redirectedFrom') || '/onboarding';
           window.location.href = redirectedFrom;
         } else {
           setMessage({ type: 'error', text: t('error.auth') });
@@ -95,7 +95,7 @@ function LoginFormContent() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider as 'twitter' | 'github',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/landing`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
           skipBrowserRedirect: false,
         },
       });
@@ -146,7 +146,7 @@ function LoginFormContent() {
         setMessage({ type: 'success', text: t('login.success') });
         isEmailLoginRedirectingRef.current = true;
         setIsLoading(false);
-        window.location.href = '/landing';
+        window.location.href = '/onboarding';
         return;
       } else if (data.user) {
         setMessage({ type: 'success', text: t('login.sessionSetting') });
@@ -256,7 +256,7 @@ function LoginFormContent() {
               {appRegion === 'zh' ? (
                 /* Chinese Version: WeChat Only */
                 <WeChatQRLogin
-                  onSuccess={() => window.location.href = '/landing'}
+                  onSuccess={() => window.location.href = '/onboarding'}
                   onError={(err) => setMessage({ type: 'error', text: err })}
                 />
               ) : (

@@ -25,8 +25,8 @@ export default async function OnboardingPage() {
 
   // 如果用户已经完成了 onboarding（metabolic_profile 不为空），重定向到主页
   if (profile?.metabolic_profile && Object.keys(profile.metabolic_profile).length > 0) {
-    console.log('用户已完成问卷，重定向到landing');
-    redirect('/landing');
+    console.log('用户已完成问卷，重定向到 /unlearn/app');
+    redirect('/unlearn/app');
   }
 
   console.log('用户进入问卷页面');

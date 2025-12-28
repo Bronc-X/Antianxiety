@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { MessageCircle, X, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { createClientSupabaseClient } from '@/lib/supabase-client';
 import MaxChatPanel from './MaxChatPanel';
 
 interface MaxFloatingButtonProps {
@@ -13,11 +15,23 @@ interface MaxFloatingButtonProps {
 
 export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange }: MaxFloatingButtonProps) {
     const { language } = useI18n();
+    const router = useRouter();
+    const supabase = createClientSupabaseClient();
     const isControlled = typeof controlledOpen === 'boolean';
     const [internalOpen, setInternalOpen] = useState(false);
     const isOpen = isControlled ? controlledOpen : internalOpen;
     const [showTooltip, setShowTooltip] = useState(false);
     const [hasInteracted, setHasInteracted] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+    // Check login status
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setIsLoggedIn(!!user);
+        };
+        checkAuth();
+    }, [supabase.auth]);
 
     // Show tooltip after 3 seconds if user hasn't interacted
     useEffect(() => {
@@ -44,6 +58,12 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
     };
 
     const handleClick = () => {
+        // If not logged in, redirect to login
+        if (!isLoggedIn) {
+            router.push('/login');
+            return;
+        }
+        
         setOpen(!isOpen);
         setHasInteracted(true);
         setShowTooltip(false);
@@ -65,8 +85,8 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
                                 <p className="font-medium">
                                     {language === 'en' ? 'Need help? Talk to Max!' : '需要帮助？和 Max 聊聊！'}
                                 </p>
-                                <p className="text-[#1A1A1A]/60 text-xs mt-1">
-                                    {language === 'en' ? 'Your AI health coach is here' : '你的人工智能健康教练在这里'}
+                                <p className="text-[#1A1A1A]/80 text-xs mt-1">
+                                    {language === 'en' ? 'Your personal health agent is here' : '你的个人健康智能体在这里'}
                                 </p>
                                 {/* Arrow */}
                                 <div className="absolute bottom-0 right-8 translate-y-full">

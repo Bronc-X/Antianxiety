@@ -11,22 +11,22 @@ export default function AboutStory() {
         {
             icon: Shield,
             title: language === 'en' ? 'Data Trust' : '数据信任',
-            desc: language === 'en' ? 'Your biological data is encrypted and used only for your health calibration.' : '你的生理数据经过严格加密，仅用于你的身心校准，绝不妥协。'
+            desc: language === 'en' ? 'Your biological data is encrypted and used only for your health calibration.' : '你的生理数据全程加密，仅用于身心校准，不作他用。'
         },
         {
             icon: Target,
             title: language === 'en' ? 'Evidence Based' : '循证医学',
-            desc: language === 'en' ? 'Every suggestion is backed by clinical research and real-time biometric analysis.' : '每一项建议都基于临床研究与实时生物识别分析，拒绝鸡汤。'
+            desc: language === 'en' ? 'Every suggestion is backed by clinical research and real-time biometric analysis.' : '每条建议基于临床研究与实时生物指标分析，拒绝鸡汤。'
         },
         {
             icon: Heart,
             title: language === 'en' ? 'Human Centered' : '以人为本',
-            desc: language === 'en' ? 'We care about your fatigue level more than your completion rate.' : '相比于完成率，我们更在意你的疲惫程度和真实感受。'
+            desc: language === 'en' ? 'We care about your fatigue level more than your completion rate.' : '我们不以完成率评判你，更在意疲惫程度与真实感受。'
         }
     ];
 
     return (
-        <section className="py-24 px-6 md:px-12 overflow-hidden relative" style={{ backgroundColor: '#FAF6EF' }}>
+        <section className="py-24 px-6 md:px-12 overflow-hidden relative unlearn-section--light" style={{ backgroundColor: '#FAF6EF' }}>
             {/* Background Gradient */}
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-[#D4AF37]/5 to-transparent blur-[120px] pointer-events-none -z-10" />
 
@@ -51,17 +51,17 @@ export default function AboutStory() {
                             </span>
                         </motion.div>
 
-                        <h2 className="font-heading text-4xl md:text-5xl text-[#1A1A1A] leading-[1.1] mb-8 tracking-tight">
+                        <h2 className="font-serif text-4xl md:text-5xl leading-[1.1] mb-8 tracking-tight" style={{ color: '#1A1A1A' }}>
                             {language === 'en' ? (
-                                <>A <span className="font-serif italic text-[#0B3D2E] relative inline-block">Bio-Rhythm
-                                    <svg className="absolute -bottom-2 w-full h-3 text-[#D4AF37]/30" viewBox="0 0 100 10" preserveAspectRatio="none">
-                                        <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="2" fill="none" />
+                                <>A <span className="italic relative inline-block" style={{ color: '#D4AF37' }}>Bio-Rhythm
+                                    <svg className="absolute -bottom-2 w-full h-3" viewBox="0 0 100 10" preserveAspectRatio="none">
+                                        <path d="M0 5 Q 50 10 100 5" stroke="#0B3D2E" strokeOpacity="0.4" strokeWidth="2" fill="none" />
                                     </svg>
                                 </span> New Paradigm.</>
                             ) : (
-                                <>我们致力于开启一场<span className="font-serif italic text-[#0B3D2E] text-3xl md:text-4xl relative inline-block mx-2">生理节律
-                                    <svg className="absolute -bottom-2 w-full h-3 text-[#D4AF37]/30" viewBox="0 0 100 10" preserveAspectRatio="none">
-                                        <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="2" fill="none" />
+                                <>我们致力于开启一场<span className="italic text-3xl md:text-4xl relative inline-block mx-2" style={{ color: '#D4AF37' }}>生理节律
+                                    <svg className="absolute -bottom-2 w-full h-3" viewBox="0 0 100 10" preserveAspectRatio="none">
+                                        <path d="M0 5 Q 50 10 100 5" stroke="#0B3D2E" strokeOpacity="0.4" strokeWidth="2" fill="none" />
                                     </svg>
                                 </span>的新范式。</>
                             )}
@@ -85,17 +85,27 @@ export default function AboutStory() {
                             viewport={{ once: true }}
                             transition={{ delay: 0.4, duration: 0.6 }}
                             whileHover={{ scale: 1.02 }}
-                            className="flex items-center gap-5 p-6 bg-white border border-[#D4AF37]/20 shadow-lg shadow-[#D4AF37]/5 relative overflow-hidden group"
+                            className="flex items-center gap-5 p-6 bg-white border border-[#D4AF37]/30 shadow-lg shadow-[#D4AF37]/5 relative overflow-hidden group"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-[#D4AF37]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                             <div className="w-12 h-12 bg-[#0B3D2E] flex items-center justify-center shrink-0">
                                 <Sparkles className="w-6 h-6 text-[#D4AF37]" />
                             </div>
-                            <p className="text-sm md:text-base font-medium text-[#1A1A1A] leading-relaxed relative z-10">
-                                {language === 'en'
-                                    ? 'Our promise: We will never guilt-trip you into a workout when your body needs sleep.'
-                                    : '我们的承诺：当你的身体需要睡眠时，我们绝不会用"自律"来道德绑架你。'}
-                            </p>
+                            <div className="relative z-10">
+                                <p className="text-xs uppercase tracking-widest text-[#D4AF37] font-medium mb-2">
+                                    {language === 'en' ? 'Our Promise' : '我们的承诺'}
+                                </p>
+                                <p className="text-sm md:text-base font-medium text-[#1A1A1A] leading-relaxed">
+                                    {language === 'en'
+                                        ? '✦ Never guilt-trip you when your body needs rest'
+                                        : '✦ 身体需要休息时，绝不道德绑架'}
+                                </p>
+                                <p className="text-sm md:text-base font-medium text-[#1A1A1A] leading-relaxed mt-1">
+                                    {language === 'en'
+                                        ? '✦ End-to-end encryption, data never sold or shared'
+                                        : '✦ 端到端加密，数据绝不出售或分享'}
+                                </p>
+                            </div>
                         </motion.div>
                     </motion.div>
 
@@ -108,7 +118,7 @@ export default function AboutStory() {
                                 viewport={{ once: true }}
                                 transition={{ delay: i * 0.15, duration: 0.8, ease: "easeOut" }}
                                 whileHover={{ x: -10, backgroundColor: 'rgba(11, 61, 46, 0.03)' }}
-                                className="flex gap-6 p-8 bg-white border border-transparent hover:border-[#0B3D2E]/20 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-[#0B3D2E]/5 group cursor-default"
+                                className="flex gap-6 p-8 bg-white border border-[#1A1A1A]/10 hover:border-[#0B3D2E]/20 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-[#0B3D2E]/5 group cursor-default"
                             >
                                 <div className="w-14 h-14 bg-[#0B3D2E] flex items-center justify-center text-white shrink-0 group-hover:bg-[#D4AF37] transition-all duration-300 shadow-lg group-hover:shadow-[#D4AF37]/30 group-hover:rotate-6">
                                     <v.icon className="w-7 h-7" />

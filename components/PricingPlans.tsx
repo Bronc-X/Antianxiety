@@ -2,75 +2,93 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { X, Check, Sparkles } from 'lucide-react';
+import { X, Check, Sparkles, Eye, Zap, Crown } from 'lucide-react';
 import { tr, useI18n } from '@/lib/i18n';
 
 type LocalizedText = { zh: string; en: string; 'zh-TW'?: string };
 
 interface PricingPlan {
   name: LocalizedText;
+  subtitle: LocalizedText;
   price: LocalizedText;
   priceNote?: LocalizedText;
   description: LocalizedText;
-  features: LocalizedText[];
+  features: { text: LocalizedText; highlight?: boolean }[];
   ctaText: LocalizedText;
   ctaLink: string;
   highlighted?: boolean;
   badge?: LocalizedText;
+  icon: React.ReactNode;
+  tierColor: string;
 }
 
 const pricingPlans: PricingPlan[] = [
   {
-    name: { zh: 'Free 版', en: 'Free' },
+    name: { zh: 'Free', en: 'Free' },
+    subtitle: { zh: 'The Observer · 观察者', en: 'The Observer' },
     price: { zh: '¥0', en: '$0' },
-    description: { zh: '有限 AI 助理使用次数', en: 'Limited AI assistant usage' },
+    description: { 
+      zh: '极简的每日状态镜子，建立数据习惯', 
+      en: 'A minimal daily status mirror to build data habits' 
+    },
+    icon: <Eye className="w-6 h-6" />,
+    tierColor: '#9CAF88',
     features: [
-      { zh: '每日状态速记（睡眠/压力/情绪 3 项）', en: 'Daily quick log (sleep / stress / mood)' },
-      { zh: '7 日历史回顾', en: '7-day history review' },
-      { zh: 'Web 端访问', en: 'Web access' },
-      { zh: '公开社区内容浏览', en: 'Browse public community content' },
+      { text: { zh: '每日快照：当日 HRV、皮质醇状态评分', en: 'Daily Snapshot: HRV & cortisol status (today only)' } },
+      { text: { zh: '硬件同步：Apple Health / Oura 数据接入', en: 'Hardware Sync: Apple Health / Oura integration' } },
+      { text: { zh: '7 天短期记忆：仅回顾过去一周数据', en: '7-Day Memory: Review past week only' } },
+      { text: { zh: '基础 RAG：每日有限 AI 问询额度', en: 'Basic RAG: Limited daily AI queries' } },
+      { text: { zh: '无身份标识', en: 'No badge' } },
     ],
-    ctaText: { zh: '免费使用', en: 'Start Free' },
+    ctaText: { zh: '免费开始', en: 'Start Free' },
     ctaLink: '/signup',
   },
   {
-    name: { zh: '先行版', en: 'Early Access' },
-    price: { zh: '¥99', en: '$99' },
-    priceNote: { zh: '一次性 · 永久使用', en: 'One-time · Lifetime' },
-    description: {
-      zh: '为早期支持者保留的终身版本，所有月付版功能永久解锁',
-      en: 'A lifetime version for early supporters. Unlocks all Pro features forever.',
+    name: { zh: 'Pro', en: 'Pro' },
+    subtitle: { zh: 'The Optimizer · 优化者', en: 'The Optimizer' },
+    price: { zh: '¥29', en: '$4.99' },
+    priceNote: { zh: '/月', en: '/mo' },
+    description: { 
+      zh: '为想通过数据优化生活的精英打造', 
+      en: 'For those who optimize life through data' 
     },
-    features: [
-      { zh: 'Pro 全部权益', en: 'All Pro benefits' },
-      { zh: '深度生理信号分析（皮质醇 / 节律）', en: 'Deep physiological analysis (cortisol / rhythm)' },
-      { zh: '个性化信息推送（相关性 > 4.5/5）', en: 'Personalized feed (relevance > 4.5/5)' },
-      { zh: 'AI 助理极速记忆系统', en: 'Fast AI memory system' },
-      { zh: '智能提醒（最小阻力习惯）', en: 'Smart nudges (minimum-resistance habits)' },
-      { zh: '专家级数据分析与洞察', en: 'Expert-level insights' },
-      { zh: 'Beta 功能优先体验', en: 'Priority access to beta features' },
-      { zh: '专属 Onboarding 支持', en: 'Dedicated onboarding support' },
-    ],
-    ctaText: { zh: '锁定先行版', en: 'Get Lifetime' },
-    ctaLink: '/pricing?plan=lifetime',
+    icon: <Zap className="w-6 h-6" />,
+    tierColor: '#D4AF37',
     highlighted: true,
-    badge: { zh: '限时', en: 'Limited' },
+    badge: { zh: '推荐', en: 'Popular' },
+    features: [
+      { text: { zh: '✦ 包含 Free 全部权益', en: '✦ Everything in Free' }, highlight: true },
+      { text: { zh: '全周期记忆：解锁 1 年数据趋势分析', en: 'Full Bio-Memory: 1-year trend analysis' } },
+      { text: { zh: '贝叶斯引擎：主动干预，动态调整计划', en: 'Bayesian Engine: Active intervention & dynamic plans' } },
+      { text: { zh: '深度 RAG：Nature/Lancet 级文献库调用', en: 'Deep RAG: Nature/Lancet-level literature access' } },
+      { text: { zh: 'Verified Bio-Hacker 黑色徽章', en: 'Verified Bio-Hacker black badge' } },
+      { text: { zh: '优先客服 + OTA 更新优先推送', en: 'Priority support + OTA updates' } },
+    ],
+    ctaText: { zh: '立即订阅', en: 'Subscribe Now' },
+    ctaLink: '/pricing?plan=pro',
   },
   {
-    name: { zh: 'Pro 版', en: 'Pro' },
-    price: { zh: '¥15/月', en: '$15/mo' },
-    description: { zh: '按月订阅，随时取消，持续获得 AI 助理的陪伴', en: 'Monthly subscription. Cancel anytime.' },
+    name: { zh: 'Founding', en: 'Founding' },
+    subtitle: { zh: 'The Stoic · 斯多葛先行者', en: 'The Stoic' },
+    price: { zh: '¥499', en: '$69' },
+    priceNote: { zh: '一次性 · 终身', en: 'One-time · Lifetime' },
+    description: { 
+      zh: '限量 500 席，为早期信仰者保留', 
+      en: 'Limited to 500 seats for early believers' 
+    },
+    icon: <Crown className="w-6 h-6" />,
+    tierColor: '#C4A77D',
+    badge: { zh: '限量 500', en: '500 Only' },
     features: [
-      { zh: 'Free 权益全部开放', en: 'Everything in Free' },
-      { zh: 'AI 助理对话 + 贝叶斯信念曲线', en: 'AI chat + Bayesian confidence curve' },
-      { zh: '智能提醒（最小阻力习惯）', en: 'Smart nudges (minimum-resistance habits)' },
-      { zh: '个性化信息推送', en: 'Personalized feed' },
-      { zh: '深度生理信号分析（节律）', en: 'Deep physiology analysis (rhythm)' },
-      { zh: '数据分析与洞察', en: 'Insights & analytics' },
-      { zh: '优先客服支持', en: 'Priority support' },
+      { text: { zh: '✦ 包含 Pro 全部权益 · 终身有效', en: '✦ All Pro benefits · Lifetime' }, highlight: true },
+      { text: { zh: '年度数字孪生报告：深度 PDF 体检报告', en: 'Annual Digital Twin Report: Deep PDF analysis' } },
+      { text: { zh: 'Inner Circle：核心社区 + 创始人直连', en: 'Inner Circle: Core community + founder access' } },
+      { text: { zh: 'OG 元老徽章："Since 2025" 金色发光', en: 'OG Badge: Golden "Since 2025" glow' } },
+      { text: { zh: 'Beta 功能优先体验（AI 心理咨询等）', en: 'Beta Access: AI therapy & experimental features' } },
+      { text: { zh: 'DAO 功能投票权 + 产品共创', en: 'DAO voting rights + product co-creation' } },
     ],
-    ctaText: { zh: '立即订阅', en: 'Subscribe' },
-    ctaLink: '/pricing?plan=pro',
+    ctaText: { zh: '锁定席位', en: 'Claim Your Seat' },
+    ctaLink: '/pricing?plan=founding',
   },
 ];
 
@@ -82,7 +100,6 @@ export default function PricingPlans() {
   const handleSubscribe = async () => {
     if (!selectedPlan) return;
     setIsProcessing(true);
-    // TODO: Integrate with payment processor (Stripe, etc.)
     await new Promise(resolve => setTimeout(resolve, 1500));
     alert(language === 'en' ? 'Payment integration coming soon!' : '支付功能即将上线！');
     setIsProcessing(false);
@@ -90,81 +107,156 @@ export default function PricingPlans() {
   };
 
   return (
-    <div className="bg-[#FAF6EF] py-16 px-4">
+    <div className="bg-[#0B3D2E] py-20 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-[#0B3D2E] mb-4">
-            {tr(language, { zh: '选择适合你的方案', en: 'Choose Your Plan' })}
+        {/* Header */}
+        <div className="text-center mb-16">
+          <p className="text-sm uppercase tracking-widest font-medium mb-4 text-[#D4AF37] font-serif">
+            {tr(language, { zh: '会员体系', en: 'Membership' })}
+          </p>
+          <h2 
+            className="font-bold text-white leading-[1.1] tracking-[-0.02em] mb-4 font-serif"
+            style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}
+          >
+            {tr(language, { zh: '选择你的身份', en: 'Choose Your Identity' })}
           </h2>
-          <p className="text-lg text-[#0B3D2E]/70 max-w-2xl mx-auto">
+          <p className="text-white/60 max-w-2xl mx-auto font-serif">
             {tr(language, {
-              zh: '基于第一性原理的科学方法，帮助你真正接受生理变化，对抗焦虑',
-              en: 'First-principles, evidence-based guidance to accept physiological change and reduce anxiety.',
+              zh: '从观察者到优化者，再到先行者。每一步都是对自我认知的升级。',
+              en: 'From Observer to Optimizer to Stoic. Each step is an upgrade in self-awareness.',
             })}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+        {/* Pricing Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           {pricingPlans.map((plan, index) => (
             <div
               key={index}
-              className={`relative rounded-2xl border-2 bg-white p-8 shadow-lg transition-all hover:shadow-xl ${plan.highlighted ? 'border-[#0B3D2E] scale-105' : 'border-[#E7E1D6]'
-                }`}
+              className={`relative p-8 transition-all duration-300 ${
+                plan.highlighted 
+                  ? 'bg-[#FAF6EF] scale-105 shadow-2xl' 
+                  : 'bg-white/5 border border-white/10 hover:border-[#D4AF37]/30'
+              }`}
+              style={{ 
+                borderTop: `3px solid ${plan.tierColor}`,
+              }}
             >
+              {/* Badge */}
               {plan.badge && (
-                <div className="absolute -top-4 right-6">
-                  <span className="bg-[#0B3D2E] text-white px-4 py-1 rounded-full text-sm font-semibold">
+                <div className="absolute -top-3 right-6">
+                  <span 
+                    className="px-4 py-1 text-xs font-bold tracking-wide"
+                    style={{ 
+                      backgroundColor: plan.tierColor,
+                      color: plan.highlighted ? '#0B3D2E' : '#FAF6EF'
+                    }}
+                  >
                     {tr(language, plan.badge)}
                   </span>
                 </div>
               )}
 
+              {/* Icon & Name */}
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-[#0B3D2E] mb-2">
+                <div 
+                  className="w-12 h-12 flex items-center justify-center mb-4"
+                  style={{ 
+                    backgroundColor: plan.highlighted ? plan.tierColor : 'rgba(255,255,255,0.1)',
+                    color: plan.highlighted ? '#0B3D2E' : plan.tierColor
+                  }}
+                >
+                  {plan.icon}
+                </div>
+                <h3 
+                  className={`text-2xl font-bold mb-1 font-serif ${
+                    plan.highlighted ? 'text-[#0B3D2E]' : 'text-white'
+                  }`}
+                >
                   {tr(language, plan.name)}
                 </h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-[#0B3D2E]">
+                <p 
+                  className={`text-sm font-serif ${
+                    plan.highlighted ? 'text-[#0B3D2E]/60' : 'text-white/40'
+                  }`}
+                >
+                  {tr(language, plan.subtitle)}
+                </p>
+              </div>
+
+              {/* Price */}
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
+                  <span 
+                    className={`text-4xl font-bold font-serif ${
+                      plan.highlighted ? 'text-[#0B3D2E]' : 'text-white'
+                    }`}
+                  >
                     {tr(language, plan.price)}
                   </span>
                   {plan.priceNote && (
-                    <span className="text-sm text-[#0B3D2E]/60">
+                    <span 
+                      className={`text-sm ${
+                        plan.highlighted ? 'text-[#0B3D2E]/60' : 'text-white/40'
+                      }`}
+                    >
                       {tr(language, plan.priceNote)}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-[#0B3D2E]/70 mt-2">
+                <p 
+                  className={`text-sm mt-2 font-serif ${
+                    plan.highlighted ? 'text-[#0B3D2E]/70' : 'text-white/50'
+                  }`}
+                >
                   {tr(language, plan.description)}
                 </p>
               </div>
 
-              <ul className="space-y-4 mb-8 min-h-[400px]">
+              {/* Features */}
+              <ul className="space-y-3 mb-8 min-h-[220px]">
                 {plan.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-[#0B3D2E] mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-[#0B3D2E]/80">{tr(language, feature)}</span>
+                  <li 
+                    key={featureIndex} 
+                    className={`flex items-start gap-3 text-sm font-serif ${
+                      feature.highlight 
+                        ? (plan.highlighted ? 'text-[#0B3D2E] font-medium' : 'text-[#D4AF37] font-medium')
+                        : (plan.highlighted ? 'text-[#0B3D2E]/70' : 'text-white/60')
+                    }`}
+                  >
+                    {!feature.highlight && (
+                      <Check 
+                        className="w-4 h-4 mt-0.5 flex-shrink-0" 
+                        style={{ color: plan.tierColor }}
+                      />
+                    )}
+                    <span className={feature.highlight ? 'ml-0' : ''}>
+                      {tr(language, feature.text)}
+                    </span>
                   </li>
                 ))}
               </ul>
 
-              {/* CTA Button - Free version links to signup, paid versions open modal */}
+              {/* CTA */}
               {plan.ctaLink === '/signup' ? (
                 <Link
                   href={plan.ctaLink}
-                  className={`block w-full text-center py-3 px-6 rounded-lg font-semibold transition-all ${plan.highlighted
-                    ? 'bg-[#0B3D2E] text-white hover:bg-[#0a3427] shadow-md'
-                    : 'bg-[#FAF6EF] text-[#0B3D2E] border-2 border-[#0B3D2E] hover:bg-[#0B3D2E] hover:text-white'
-                    }`}
+                  className={`block w-full text-center py-3 px-6 font-semibold transition-all font-serif ${
+                    plan.highlighted
+                      ? 'bg-[#0B3D2E] text-white hover:bg-[#0a3427]'
+                      : 'border border-white/20 text-white hover:bg-white/10'
+                  }`}
                 >
                   {tr(language, plan.ctaText)}
                 </Link>
               ) : (
                 <button
                   onClick={() => setSelectedPlan(plan)}
-                  className={`block w-full text-center py-3 px-6 rounded-lg font-semibold transition-all ${plan.highlighted
-                    ? 'bg-[#0B3D2E] text-white hover:bg-[#0a3427] shadow-md'
-                    : 'bg-[#FAF6EF] text-[#0B3D2E] border-2 border-[#0B3D2E] hover:bg-[#0B3D2E] hover:text-white'
-                    }`}
+                  className={`block w-full text-center py-3 px-6 font-semibold transition-all font-serif ${
+                    plan.highlighted
+                      ? 'bg-[#0B3D2E] text-white hover:bg-[#0a3427]'
+                      : 'border border-white/20 text-white hover:bg-white/10'
+                  }`}
                 >
                   {tr(language, plan.ctaText)}
                 </button>
@@ -173,18 +265,17 @@ export default function PricingPlans() {
           ))}
         </div>
 
-        <div className="mt-12 text-center">
-          <p className="text-sm text-[#0B3D2E]/60 mb-4">
-            💡 <strong>{tr(language, { zh: '先行永久版说明：', en: 'Lifetime plan:' })}</strong>
+        {/* Footer Notes */}
+        <div className="mt-16 text-center space-y-4">
+          <div className="flex items-center justify-center gap-8 text-sm text-white/40 font-serif">
+            <span>🔒 {tr(language, { zh: '端到端加密', en: 'End-to-end encrypted' })}</span>
+            <span>📋 {tr(language, { zh: 'GDPR 合规', en: 'GDPR compliant' })}</span>
+            <span>🚫 {tr(language, { zh: '数据绝不出售', en: 'Data never sold' })}</span>
+          </div>
+          <p className="text-xs text-white/30 font-serif">
             {tr(language, {
-              zh: '限时提供，适合早期支持者。购买后永久享受所有 Pro 功能，无需续费。',
-              en: 'Limited-time offer for early supporters. Pay once and keep all Pro features forever.',
-            })}
-          </p>
-          <p className="text-sm text-[#0B3D2E]/60">
-            {tr(language, {
-              zh: '数据安全加密存储 | 符合 GDPR 标准 | 隐私政策',
-              en: 'Encrypted data storage | GDPR-aligned | Privacy first',
+              zh: 'Founding Member 席位售罄后将不再开放，届时仅提供 Pro 月付方案',
+              en: 'Founding Member seats will not reopen once sold out. Only Pro monthly will remain.',
             })}
           </p>
         </div>
@@ -192,19 +283,32 @@ export default function PricingPlans() {
 
       {/* Subscription Modal */}
       {selectedPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#FAF6EF] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-[#E7E1D6]">
+            <div 
+              className="flex items-center justify-between p-6"
+              style={{ borderBottom: `2px solid ${selectedPlan.tierColor}` }}
+            >
               <div className="flex items-center gap-3">
-                <Sparkles className="w-6 h-6 text-[#D4AF37]" />
-                <h3 className="text-xl font-bold text-[#0B3D2E]">
-                  {tr(language, { zh: '开通会员', en: 'Subscribe Now' })}
-                </h3>
+                <div 
+                  className="w-10 h-10 flex items-center justify-center"
+                  style={{ backgroundColor: selectedPlan.tierColor, color: '#0B3D2E' }}
+                >
+                  {selectedPlan.icon}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#0B3D2E] font-serif">
+                    {tr(language, selectedPlan.name)}
+                  </h3>
+                  <p className="text-sm text-[#0B3D2E]/60 font-serif">
+                    {tr(language, selectedPlan.subtitle)}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedPlan(null)}
-                className="p-2 hover:bg-[#FAF6EF] rounded-full transition-colors"
+                className="p-2 hover:bg-[#0B3D2E]/10 transition-colors"
               >
                 <X className="w-5 h-5 text-[#0B3D2E]/60" />
               </button>
@@ -212,52 +316,55 @@ export default function PricingPlans() {
 
             {/* Modal Content */}
             <div className="p-6">
-              {/* Selected Plan Summary */}
-              <div className="bg-[#FAF6EF] rounded-xl p-4 mb-6">
+              {/* Price Summary */}
+              <div className="bg-[#0B3D2E] p-4 mb-6">
                 <div className="flex justify-between items-center">
-                  <div>
-                    <h4 className="font-semibold text-[#0B3D2E]">{tr(language, selectedPlan.name)}</h4>
-                    <p className="text-sm text-[#0B3D2E]/60">{tr(language, selectedPlan.description)}</p>
-                  </div>
+                  <span className="text-white/60 font-serif">
+                    {tr(language, { zh: '订阅费用', en: 'Subscription' })}
+                  </span>
                   <div className="text-right">
-                    <span className="text-2xl font-bold text-[#0B3D2E]">{tr(language, selectedPlan.price)}</span>
+                    <span className="text-2xl font-bold text-white font-serif">
+                      {tr(language, selectedPlan.price)}
+                    </span>
                     {selectedPlan.priceNote && (
-                      <p className="text-xs text-[#0B3D2E]/60">{tr(language, selectedPlan.priceNote)}</p>
+                      <span className="text-white/60 text-sm font-serif">
+                        {tr(language, selectedPlan.priceNote)}
+                      </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Membership Features */}
+              {/* Features */}
               <div className="mb-6">
-                <h4 className="font-semibold text-[#0B3D2E] mb-3">
-                  {tr(language, { zh: '会员权益', en: 'Membership Benefits' })}
+                <h4 className="font-semibold text-[#0B3D2E] mb-3 font-serif">
+                  {tr(language, { zh: '会员权益', en: 'Benefits' })}
                 </h4>
                 <ul className="space-y-2">
                   {selectedPlan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-[#0B3D2E]/80">
-                      <Check className="w-4 h-4 text-[#9CAF88]" />
-                      {tr(language, feature)}
+                    <li key={i} className="flex items-center gap-2 text-sm text-[#0B3D2E]/80 font-serif">
+                      <Check className="w-4 h-4" style={{ color: selectedPlan.tierColor }} />
+                      {tr(language, feature.text)}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Payment Methods Placeholder */}
+              {/* Payment Methods */}
               <div className="mb-6">
-                <h4 className="font-semibold text-[#0B3D2E] mb-3">
-                  {tr(language, { zh: '支付方式', en: 'Payment Method' })}
+                <h4 className="font-semibold text-[#0B3D2E] mb-3 font-serif">
+                  {tr(language, { zh: '支付方式', en: 'Payment' })}
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="p-4 border-2 border-[#E7E1D6] rounded-xl text-center hover:border-[#0B3D2E] transition-colors">
+                  <button className="p-4 border border-[#0B3D2E]/20 text-center hover:border-[#0B3D2E] transition-colors">
                     <span className="text-2xl">💳</span>
-                    <p className="text-sm text-[#0B3D2E] mt-1">
-                      {tr(language, { zh: '信用卡', en: 'Credit Card' })}
+                    <p className="text-sm text-[#0B3D2E] mt-1 font-serif">
+                      {tr(language, { zh: '信用卡', en: 'Card' })}
                     </p>
                   </button>
-                  <button className="p-4 border-2 border-[#E7E1D6] rounded-xl text-center hover:border-[#0B3D2E] transition-colors">
+                  <button className="p-4 border border-[#0B3D2E]/20 text-center hover:border-[#0B3D2E] transition-colors">
                     <span className="text-2xl">📱</span>
-                    <p className="text-sm text-[#0B3D2E] mt-1">
+                    <p className="text-sm text-[#0B3D2E] mt-1 font-serif">
                       {tr(language, { zh: '支付宝/微信', en: 'Alipay/WeChat' })}
                     </p>
                   </button>
@@ -268,18 +375,17 @@ export default function PricingPlans() {
               <button
                 onClick={handleSubscribe}
                 disabled={isProcessing}
-                className="w-full py-4 bg-[#0B3D2E] text-white rounded-xl font-semibold hover:bg-[#0a3427] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 bg-[#0B3D2E] text-white font-semibold hover:bg-[#0a3427] transition-colors disabled:opacity-50 font-serif"
               >
                 {isProcessing
                   ? tr(language, { zh: '处理中...', en: 'Processing...' })
-                  : tr(language, { zh: '确认订阅', en: 'Confirm Subscription' })}
+                  : tr(language, { zh: '确认订阅', en: 'Confirm' })}
               </button>
 
-              {/* Terms */}
-              <p className="text-xs text-[#0B3D2E]/50 mt-4 text-center">
+              <p className="text-xs text-[#0B3D2E]/50 mt-4 text-center font-serif">
                 {tr(language, {
-                  zh: '点击确认即表示同意我们的服务条款和隐私政策',
-                  en: 'By subscribing, you agree to our Terms of Service and Privacy Policy',
+                  zh: '点击确认即表示同意服务条款和隐私政策',
+                  en: 'By confirming, you agree to our Terms and Privacy Policy',
                 })}
               </p>
             </div>

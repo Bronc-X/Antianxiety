@@ -20,6 +20,7 @@ export { default as LogoTicker } from './LogoTicker';
 export { default as ProblemSolution } from './ProblemSolution';
 export { default as AboutStory } from './AboutStory';
 export { default as AnimatedHero } from './AnimatedHero';
+export { default as TestimonialsCarousel } from './TestimonialsCarousel';
 
 // AI Intelligent Agent Components
 export { default as AIInquiryPanel } from './AIInquiryPanel';

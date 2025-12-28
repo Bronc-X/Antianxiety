@@ -68,6 +68,22 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Force ALL elements to inherit serif font */
+.unlearn-theme *,
+.unlearn-theme *::before,
+.unlearn-theme *::after {
+    font-family: inherit;
+}
+
+/* Ensure buttons, inputs, and other form elements also use serif */
+.unlearn-theme button,
+.unlearn-theme input,
+.unlearn-theme select,
+.unlearn-theme textarea,
+.unlearn-theme a {
+    font-family: var(--twin-font-primary);
+}
+
 /* CRITICAL: Override global heading styles for unlearn theme */
 /* Must use !important to override globals.css !important rules */
 .unlearn-theme h1,
@@ -97,6 +113,14 @@
 .unlearn-theme section[style*="0B3D2E"] h3 {
     color: #FFFFFF !important;
     -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Force dark text on sections with light backgrounds */
+.unlearn-theme section[style*="FAF6EF"] h1,
+.unlearn-theme section[style*="FAF6EF"] h2,
+.unlearn-theme section[style*="FAF6EF"] h3 {
+    color: #1A1A1A !important;
+    -webkit-text-fill-color: #1A1A1A !important;
 }
 
 /* Typography Utilities */
@@ -139,6 +163,15 @@
 .unlearn-section--light {
     background-color: var(--twin-surface-light);
     color: var(--twin-text-on-light);
+}
+
+/* Force dark text on light sections */
+.unlearn-theme .unlearn-section--light h1,
+.unlearn-theme .unlearn-section--light h2,
+.unlearn-theme .unlearn-section--light h3,
+.unlearn-theme .unlearn-section--light h4 {
+    color: #1A1A1A !important;
+    -webkit-text-fill-color: #1A1A1A !important;
 }
 
 .unlearn-container {

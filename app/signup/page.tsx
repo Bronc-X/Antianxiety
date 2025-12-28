@@ -108,7 +108,7 @@ export default function SignupPage() {
           setMessage({ type: 'success', text: t('signup.success') });
         } else {
           setMessage({ type: 'success', text: language === 'en' ? 'Registration successful, redirecting...' : '注册成功，正在跳转...' });
-          setTimeout(() => { router.push('/landing'); router.refresh(); }, 1500);
+          setTimeout(() => { router.push('/unlearn/app'); router.refresh(); }, 1500);
         }
       }
     } catch {
