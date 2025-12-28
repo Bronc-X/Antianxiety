@@ -86,14 +86,23 @@
 
 /* CRITICAL: Override global heading styles for unlearn theme */
 /* Must use !important to override globals.css !important rules */
+/* But allow inline styles to work by not using inherit */
 .unlearn-theme h1,
 .unlearn-theme h2,
 .unlearn-theme h3,
 .unlearn-theme h4,
 .unlearn-theme h5,
 .unlearn-theme h6 {
-    color: inherit !important;
-    -webkit-text-fill-color: inherit !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+
+/* Allow inline style colors to take precedence */
+.unlearn-theme h1[style*="color"],
+.unlearn-theme h2[style*="color"],
+.unlearn-theme h3[style*="color"],
+.unlearn-theme h4[style*="color"] {
+    color: unset !important;
+    -webkit-text-fill-color: unset !important;
 }
 
 /* Explicit white text for dark sections */
@@ -118,9 +127,12 @@
 /* Force dark text on sections with light backgrounds */
 .unlearn-theme section[style*="FAF6EF"] h1,
 .unlearn-theme section[style*="FAF6EF"] h2,
-.unlearn-theme section[style*="FAF6EF"] h3 {
-    color: #1A1A1A !important;
-    -webkit-text-fill-color: #1A1A1A !important;
+.unlearn-theme section[style*="FAF6EF"] h3,
+.unlearn-theme section.bg-white h1,
+.unlearn-theme section.bg-white h2,
+.unlearn-theme section.bg-white h3 {
+    color: #0B3D2E !important;
+    -webkit-text-fill-color: #0B3D2E !important;
 }
 
 /* Typography Utilities */
@@ -170,8 +182,8 @@
 .unlearn-theme .unlearn-section--light h2,
 .unlearn-theme .unlearn-section--light h3,
 .unlearn-theme .unlearn-section--light h4 {
-    color: #1A1A1A !important;
-    -webkit-text-fill-color: #1A1A1A !important;
+    color: #0B3D2E !important;
+    -webkit-text-fill-color: #0B3D2E !important;
 }
 
 .unlearn-container {

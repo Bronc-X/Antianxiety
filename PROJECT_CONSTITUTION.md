@@ -154,6 +154,31 @@ Whitespace: #FAFAFA / #FFFFFF
 - Use Lottie animations for loading states (`BrainLoader`)
 - Always include haptic feedback on mobile interactions
 
+### Unlearn Theme 样式规则 (2025-12-28 新增)
+
+**背景与文字颜色自适应原则：**
+
+| 背景类型 | 背景色 | 标题颜色 | 正文颜色 |
+|----------|--------|----------|----------|
+| 深色背景 | `#0B3D2E` | `text-white` | `text-white/60` |
+| 浅色背景 | `#FAF6EF` 或 `bg-white` | `text-[#0B3D2E]` 或内联 `color: '#0B3D2E'` | `text-[#0B3D2E]/60` |
+
+**CSS 覆盖问题解决方案：**
+- `styles/unlearn-theme.css` 中的 `!important` 规则会覆盖内联样式
+- 当需要在浅色背景上显示深色文字时，必须：
+  1. 给 section 添加 `unlearn-section--light` class，或
+  2. 使用内联样式 `style={{ backgroundColor: '#FAF6EF' }}`
+- CSS 会自动将浅色背景 section 内的标题设为绿色 `#0B3D2E`
+
+**禁止：**
+- ❌ 在 `.unlearn-theme` 内使用 `text-[#1A1A1A]` 作为标题颜色（应使用 `#0B3D2E`）
+- ❌ 假设 Tailwind class 会覆盖 CSS `!important` 规则
+
+**正确做法：**
+- ✅ 浅色背景 section 使用 `className="unlearn-section--light"` + `style={{ backgroundColor: '#FAF6EF' }}`
+- ✅ 标题使用内联样式 `style={{ color: '#0B3D2E' }}` 确保生效
+- ✅ Logo/图标在浅色背景上使用 `text-[#0B3D2E]`，深色背景上使用 `text-white`
+
 ---
 
 ## IX. Documentation Workflow Rules

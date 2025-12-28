@@ -31,14 +31,26 @@ export default function UnlearnFeatures() {
     const features: Feature[] = language === 'en'
         ? [
             {
-                icon: Brain,
-                title: 'AI Digital Twin',
-                description: 'Your personal AI model that learns and evolves with you.',
+                icon: Sparkles,
+                title: 'Personal Health Agent',
+                description: 'Your AI digital twin that learns, evolves, and serves only you.',
                 details: [
-                    'Learns your unique behavioral patterns',
-                    'Predicts energy levels and anxiety triggers',
-                    'Continuously improves with each interaction',
-                    'Privacy-first: your data stays yours',
+                    'Learns your unique behavioral patterns and preferences',
+                    'Predicts energy levels and anxiety triggers before they hit',
+                    'Tesla-like OTA updates: gets smarter with every interaction',
+                    'More knowledgeable than a personal trainer, yet more affordable',
+                    'Privacy-first: your data stays yours, always',
+                ],
+            },
+            {
+                icon: Brain,
+                title: 'Bayesian Loop',
+                description: 'Continuous learning that refines predictions with every data point.',
+                details: [
+                    'Updates beliefs based on new evidence in real-time',
+                    'Reduces uncertainty with each interaction',
+                    'Personalized probability models for your health patterns',
+                    'Self-correcting system that learns from outcomes',
                 ],
             },
             {
@@ -65,17 +77,6 @@ export default function UnlearnFeatures() {
                 ],
             },
             {
-                icon: Sparkles,
-                title: 'Personal Health Agent',
-                description: 'Max adapts to your unique needs.',
-                details: [
-                    'Dynamic recommendation engine',
-                    'Learns your preferences over time',
-                    'Context-aware suggestions',
-                    'Available 24/7 when you need support',
-                ],
-            },
-            {
                 icon: Zap,
                 title: 'Instant Interventions',
                 description: 'Quick relief when you need it most.',
@@ -89,14 +90,26 @@ export default function UnlearnFeatures() {
         ]
         : [
             {
-                icon: Brain,
-                title: 'AI 数字孪生',
-                description: '与你一起学习和进化的个人 AI 模型。',
+                icon: Sparkles,
+                title: '个人健康智能体',
+                description: '只为你服务的 AI 数字孪生，与你一起学习和进化。',
                 details: [
-                    '学习你独特的行为模式',
-                    '预测能量水平和焦虑触发点',
-                    '每次互动都在持续改进',
-                    '隐私优先：你的数据归你所有',
+                    '学习你独特的行为模式和偏好',
+                    '在焦虑发作前预测能量水平和触发点',
+                    '特斯拉式 OTA 更新：每次互动都变得更智能',
+                    '比私人教练更博学专业，却更实惠',
+                    '隐私优先：你的数据永远归你所有',
+                ],
+            },
+            {
+                icon: Brain,
+                title: '贝叶斯循环',
+                description: '持续学习，每一个数据点都在优化预测精度。',
+                details: [
+                    '基于新证据实时更新认知模型',
+                    '每次互动都在减少不确定性',
+                    '为你的健康模式建立个性化概率模型',
+                    '自我修正系统，从结果中学习',
                 ],
             },
             {
@@ -120,17 +133,6 @@ export default function UnlearnFeatures() {
                     'PubMed 和 Semantic Scholar 实时研究更新',
                     '精选高质量健康自媒体内容',
                     '透明方法论，所有建议附带来源引用',
-                ],
-            },
-            {
-                icon: Sparkles,
-                title: '个人健康智能体',
-                description: 'Max 适应你的独特需求。',
-                details: [
-                    '动态推荐引擎',
-                    '随时间学习你的偏好',
-                    '情境感知建议',
-                    '全天候支持',
                 ],
             },
             {

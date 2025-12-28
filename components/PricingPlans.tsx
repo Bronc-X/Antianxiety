@@ -2,15 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { X, Check, Sparkles, Eye, Zap, Crown } from 'lucide-react';
+import { X, Check, Eye, Zap, Crown } from 'lucide-react';
 import { tr, useI18n } from '@/lib/i18n';
 
 type LocalizedText = { zh: string; en: string; 'zh-TW'?: string };
 
 interface PricingPlan {
   name: LocalizedText;
-  subtitle: LocalizedText;
   price: LocalizedText;
+  originalPrice?: LocalizedText;
   priceNote?: LocalizedText;
   description: LocalizedText;
   features: { text: LocalizedText; highlight?: boolean }[];
@@ -25,7 +25,6 @@ interface PricingPlan {
 const pricingPlans: PricingPlan[] = [
   {
     name: { zh: 'Free', en: 'Free' },
-    subtitle: { zh: 'The Observer · 观察者', en: 'The Observer' },
     price: { zh: '¥0', en: '$0' },
     description: { 
       zh: '极简的每日状态镜子，建立数据习惯', 
@@ -45,8 +44,7 @@ const pricingPlans: PricingPlan[] = [
   },
   {
     name: { zh: 'Pro', en: 'Pro' },
-    subtitle: { zh: 'The Optimizer · 优化者', en: 'The Optimizer' },
-    price: { zh: '¥29', en: '$4.99' },
+    price: { zh: '¥19', en: '$9' },
     priceNote: { zh: '/月', en: '/mo' },
     description: { 
       zh: '为想通过数据优化生活的精英打造', 
@@ -69,12 +67,12 @@ const pricingPlans: PricingPlan[] = [
   },
   {
     name: { zh: 'Founding', en: 'Founding' },
-    subtitle: { zh: 'The Stoic · 斯多葛先行者', en: 'The Stoic' },
-    price: { zh: '¥499', en: '$69' },
+    price: { zh: '¥499', en: '$199' },
+    originalPrice: { zh: '¥999', en: '$499' },
     priceNote: { zh: '一次性 · 终身', en: 'One-time · Lifetime' },
     description: { 
-      zh: '限量 500 席，为早期信仰者保留', 
-      en: 'Limited to 500 seats for early believers' 
+      zh: '限量 500 席，为早期 Build in Public 共建用户而保留', 
+      en: 'Limited to 500 seats for early Build in Public co-creators' 
     },
     icon: <Crown className="w-6 h-6" />,
     tierColor: '#C4A77D',
@@ -133,10 +131,10 @@ export default function PricingPlans() {
           {pricingPlans.map((plan, index) => (
             <div
               key={index}
-              className={`relative p-8 transition-all duration-300 ${
+              className={`relative p-8 transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-2xl ${
                 plan.highlighted 
-                  ? 'bg-[#FAF6EF] scale-105 shadow-2xl' 
-                  : 'bg-white/5 border border-white/10 hover:border-[#D4AF37]/30'
+                  ? 'bg-[#FAF6EF] scale-105 shadow-2xl hover:scale-110' 
+                  : 'bg-white/5 border border-white/10 hover:border-[#D4AF37]/30 hover:bg-white/10'
               }`}
               style={{ 
                 borderTop: `3px solid ${plan.tierColor}`,
@@ -175,18 +173,20 @@ export default function PricingPlans() {
                 >
                   {tr(language, plan.name)}
                 </h3>
-                <p 
-                  className={`text-sm font-serif ${
-                    plan.highlighted ? 'text-[#0B3D2E]/60' : 'text-white/40'
-                  }`}
-                >
-                  {tr(language, plan.subtitle)}
-                </p>
               </div>
 
               {/* Price */}
               <div className="mb-6">
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-baseline gap-2">
+                  {plan.originalPrice && (
+                    <span 
+                      className={`text-xl line-through ${
+                        plan.highlighted ? 'text-[#0B3D2E]/40' : 'text-white/30'
+                      }`}
+                    >
+                      {tr(language, plan.originalPrice)}
+                    </span>
+                  )}
                   <span 
                     className={`text-4xl font-bold font-serif ${
                       plan.highlighted ? 'text-[#0B3D2E]' : 'text-white'
@@ -274,8 +274,8 @@ export default function PricingPlans() {
           </div>
           <p className="text-xs text-white/30 font-serif">
             {tr(language, {
-              zh: 'Founding Member 席位售罄后将不再开放，届时仅提供 Pro 月付方案',
-              en: 'Founding Member seats will not reopen once sold out. Only Pro monthly will remain.',
+              zh: 'Founding Member 席位售罄后将不再开放，届时仅提供 Pro 月付及年付方案',
+              en: 'Founding Member seats will not reopen once sold out. Only Pro monthly and annual plans will remain.',
             })}
           </p>
         </div>
@@ -301,9 +301,6 @@ export default function PricingPlans() {
                   <h3 className="text-xl font-bold text-[#0B3D2E] font-serif">
                     {tr(language, selectedPlan.name)}
                   </h3>
-                  <p className="text-sm text-[#0B3D2E]/60 font-serif">
-                    {tr(language, selectedPlan.subtitle)}
-                  </p>
                 </div>
               </div>
               <button

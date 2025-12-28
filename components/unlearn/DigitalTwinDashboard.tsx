@@ -128,8 +128,8 @@ export default function DigitalTwinDashboard() {
     return (
         <section
             ref={containerRef}
-            className="relative py-24"
-            style={{ backgroundColor: '#0B3D2E' }}
+            className="relative py-24 unlearn-section--light"
+            style={{ backgroundColor: '#FAF6EF' }}
         >
             <div className="max-w-[1280px] mx-auto px-6">
                 {/* Section Header */}
@@ -143,12 +143,12 @@ export default function DigitalTwinDashboard() {
                         {language === 'en' ? 'Digital Twin Technology' : '数字孪生技术'}
                     </p>
                     <h2
-                        className="text-white font-bold leading-[1.1] tracking-[-0.02em] mb-4"
-                        style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}
+                        className="font-bold leading-[1.1] tracking-[-0.02em] mb-4"
+                        style={{ fontSize: 'clamp(28px, 4vw, 40px)', color: '#1A1A1A' }}
                     >
                         {language === 'en' ? 'Predict outcomes before they happen' : '在结果发生前完成预测'}
                     </h2>
-                    <p className="text-white/60 text-sm md:text-base max-w-2xl leading-relaxed font-serif">
+                    <p className="text-[#1A1A1A]/60 text-sm md:text-base max-w-2xl leading-relaxed font-serif">
                         {language === 'en' 
                             ? 'We query peer-reviewed journals via Semantic Scholar API, filter noise through relevance scoring, and use AI to adapt recommendations to your unique physiological patterns.'
                             : '通过 Semantic Scholar API 检索同行评审期刊，基于相关性评分过滤噪音，AI 根据你独特的生理模式自适应调整健康计划。'}
@@ -165,9 +165,8 @@ export default function DigitalTwinDashboard() {
                     initial={{ opacity: 0, y: 40 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.8, delay: 0.2 }}
-                    className="overflow-hidden"
+                    className="overflow-hidden bg-[#0B3D2E]"
                     style={{
-                        backgroundColor: 'rgba(11, 61, 46, 0.8)',
                         border: '1px solid rgba(212, 175, 55, 0.2)',
                     }}
                 >
