@@ -12,6 +12,7 @@ export { default as UnlearnCTA } from './UnlearnCTA';
 
 // Digital Twin Components
 export { default as DigitalTwinHero } from './DigitalTwinHero';
+export { default as GlobalScienceHero } from './GlobalScienceHero';
 export { default as DigitalTwinDashboard } from './DigitalTwinDashboard';
 export { default as ParticipantDigitalTwin } from './ParticipantDigitalTwin';
 

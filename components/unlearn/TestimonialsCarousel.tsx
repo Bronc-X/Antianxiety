@@ -114,8 +114,12 @@ export default function TestimonialsCarousel() {
                         {language === 'en' ? 'Testimonials' : '用户评价'}
                     </p>
                     <h2
-                        className="font-bold leading-[1.1] tracking-[-0.02em] max-w-2xl mx-auto font-serif"
-                        style={{ fontSize: 'clamp(28px, 4vw, 40px)', color: '#1A1A1A' }}
+                        className="font-bold leading-[1.1] tracking-[-0.02em] max-w-2xl mx-auto font-serif text-[#0B3D2E]"
+                        style={{ 
+                            fontSize: 'clamp(28px, 4vw, 40px)', 
+                            color: '#0B3D2E',
+                            WebkitTextFillColor: '#0B3D2E'
+                        }}
                     >
                         {language === 'en' ? 'Trusted by thousands' : '数千人信赖的心理健康管理工具'}
                     </h2>

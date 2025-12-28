@@ -4,6 +4,7 @@ import { useState } from 'react';
 import {
     UnlearnNav,
     DigitalTwinHero,
+    GlobalScienceHero,
     ProblemSolution,
     AnimatedHero,
     UnlearnFeatures,
@@ -44,7 +45,10 @@ export default function UnlearnPage() {
                 ctaHref="/signup"
             />
 
-            {/* Original Digital Twin Hero - Woman Facing Her Twin (RESTORED) */}
+            {/* Global Science Hero - Data Particles Converging (FIRST) */}
+            <GlobalScienceHero />
+
+            {/* Digital Twin Hero - Woman Facing Her Twin */}
             <DigitalTwinHero
                 headline={language === 'en'
                     ? "Meet your digital twin. Understand yourself like never before."
