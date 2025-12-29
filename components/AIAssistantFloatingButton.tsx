@@ -96,8 +96,11 @@ export default function AIAssistantFloatingButton() {
     }
   }, [isChatOpen, supabase]);
 
-  // 如果未登录且不在欢迎页，或者在营销页面，不渲染按钮
-  if (isMarketingPage || (!isAuthenticated && !isWelcomePage)) {
+  // Check for mobile routes
+  const isMobileRoute = pathname?.startsWith('/mobile');
+
+  // 如果未登录且不在欢迎页，或者在营销页面，或者是移动端路由，不渲染按钮
+  if (isMarketingPage || isMobileRoute || (!isAuthenticated && !isWelcomePage)) {
     return null;
   }
 
