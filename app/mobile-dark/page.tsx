@@ -2,17 +2,13 @@
 
 import { useI18n } from '@/lib/i18n';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { Bell, User, Heart, CloudSun, ChevronRight, Activity, Flame } from 'lucide-react';
-import { MetricBars, MetricCard, StressBarChart, StressLineChart } from "@/components/mobile-dark/DarkComponents";
+import { ChevronRight, Activity } from 'lucide-react';
+import { MetricCard, StressLineChart, BioArc, StressBarcode, GlassDockDark } from "@/components/mobile-dark/DarkComponents";
 import { ElasticHeader } from "@/components/mobile-dark/ElasticHeader";
 import { Zap } from "lucide-react";
-import DarkBottomNav from '@/components/mobile-dark/DarkBottomNav';
 
 export default function DarkDashboard() {
     const { language } = useI18n();
-    const date = new Date();
-    const dateString = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
     // Mock Data
     const metrics = {
@@ -29,20 +25,23 @@ export default function DarkDashboard() {
             {/* Main Content - Relative z-20 to pull up over the header tail if needed, or just flow normal */}
             <div className="relative z-20 px-4 -mt-20 pb-32 flex flex-col gap-6">
 
-                {/* 1. Daily Snapshot (Soft Card) */}
+                {/* 1. Daily Snapshot (Bio-Arc) */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-[#111111] rounded-[32px] p-6 border border-[#222]"
                 >
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-white font-medium text-sm">Daily Metrics</h2>
+                    <div className="flex justify-between items-center mb-0">
+                        <h2 className="text-[#666] text-xs font-mono uppercase tracking-widest">Daily Resilience</h2>
                         <button className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-[#666]">
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-6">
+                    {/* The New Bio-Arc (Replaces MetricBars) */}
+                    <BioArc />
+
+                    <div className="grid grid-cols-2 gap-4 mt-6">
                         <MetricCard
                             icon={<Zap className="w-5 h-5" />}
                             label="VOLTAGE"
@@ -52,17 +51,16 @@ export default function DarkDashboard() {
                         />
                         <MetricCard
                             icon={<Activity className="w-5 h-5" />}
-                            label="RECOVERY"
-                            value="82%"
+                            label="HRV"
+                            value="42"
+                            subValue="MS"
                             color="#007AFF"
                         />
                     </div>
-
-                    <MetricBars recovery={82} strain={45} sleep={88} />
                 </motion.div>
 
 
-                {/* 2. Stress Monitor (Soft Card + Gradient Chart) */}
+                {/* 2. Stress Monitor (Soft Card + Gradient Chart + Barcode) */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -81,9 +79,10 @@ export default function DarkDashboard() {
 
                     <StressLineChart />
 
-                    <div className="mt-6 pt-6 border-t border-[#222]">
-                        <h4 className="text-[10px] text-[#666] font-mono mb-4 uppercase tracking-widest">STRESS OVERVIEW</h4>
-                        <StressBarChart />
+                    <div className="mt-8 pt-6 border-t border-[#222]">
+                        <h4 className="text-[10px] text-[#666] font-mono mb-4 uppercase tracking-widest">24H DYNAMICS</h4>
+                        {/* The New Stress Barcode (Replaces StressBarChart) */}
+                        <StressBarcode />
                     </div>
                 </motion.div>
 
@@ -97,7 +96,7 @@ export default function DarkDashboard() {
 
             </div>
 
-            <DarkBottomNav />
+            <GlassDockDark />
         </div>
     );
 }
