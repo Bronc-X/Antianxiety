@@ -3,78 +3,35 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Clock, Check, ChevronRight, Sparkles } from 'lucide-react';
-import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
-import { InsightCard } from '@/components/mobile-dark/DarkComponents';
+import { Clock, Check, Plus, Minus, ExternalLink } from 'lucide-react';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
-// Tab component
-function TabButton({
-    active,
-    onClick,
-    children
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) {
+// Tab component - Industrial Toggle
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
     return (
-        <motion.button
-            whileTap={{ scale: 0.95 }}
+        <button
             onClick={onClick}
-            className="flex-1 py-3 text-[10px] font-mono uppercase tracking-wider transition-all"
-            style={{
-                background: active ? '#00FF94' : 'transparent',
-                color: active ? '#000000' : '#555555',
-                border: active ? '1px solid #00FF94' : '1px solid #222222',
-            }}
+            className={`flex-1 py-4 text-[10px] font-mono font-bold uppercase tracking-widest transition-all relative ${active ? 'text-black bg-white' : 'text-[#666666] hover:text-white'
+                }`}
         >
             {children}
-        </motion.button>
+            {active && <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#00FF94]" />}
+        </button>
     );
 }
 
-// Feed Item
-interface FeedItem {
-    id: string;
-    source: string;
-    title: string;
-    readTime: number;
-}
-
-const feedItems: FeedItem[] = [
-    {
-        id: '1',
-        source: 'NATURE MEDICINE',
-        title: 'HRV patterns predict stress episodes 24 hours in advance',
-        readTime: 5,
-    },
-    {
-        id: '2',
-        source: 'JAMA PSYCHIATRY',
-        title: 'Chronic stress reduces vagal tone by 15% over 3 months',
-        readTime: 7,
-    },
-    {
-        id: '3',
-        source: 'SLEEP JOURNAL',
-        title: 'Deep sleep optimization through temperature regulation',
-        readTime: 4,
-    },
+const feedItems = [
+    { id: '1', source: 'NATURE', title: 'HRV & Stress Prediction Models', time: '5 MIN' },
+    { id: '2', source: 'LANCET', title: 'Vagal Tone Optimization', time: '7 MIN' },
+    { id: '3', source: 'JAMA', title: 'Circadian Entrainment Protocols', time: '4 MIN' },
+    { id: '4', source: 'CELL', title: 'Mitochondrial Function in Anxiety', time: '6 MIN' },
 ];
 
-// Plan Step
-interface PlanStep {
-    id: string;
-    title: string;
-    time?: string;
-    completed: boolean;
-}
-
-const initialSteps: PlanStep[] = [
-    { id: '1', title: 'Morning breath work', time: '07:00', completed: true },
-    { id: '2', title: 'Midday walk', time: '12:30', completed: true },
-    { id: '3', title: 'Evening wind-down', time: '21:00', completed: false },
-    { id: '4', title: 'Sleep optimization', time: '22:30', completed: false },
+const initialSteps = [
+    { id: '1', title: 'MORNING PROTOCOL', time: '0700', completed: true },
+    { id: '2', title: 'SUNLIGHT EXPOSURE', time: '0730', completed: true },
+    { id: '3', title: 'NON-SLEEP DEEP REST', time: '1400', completed: false },
+    { id: '4', title: 'EVENING WIND-DOWN', time: '2100', completed: false },
 ];
 
 export default function DarkDiscover() {
@@ -82,227 +39,84 @@ export default function DarkDiscover() {
     const [activeTab, setActiveTab] = useState<'feed' | 'plan'>('feed');
     const [steps, setSteps] = useState(initialSteps);
 
-    const toggleStep = async (stepId: string) => {
-        try {
-            await Haptics.impact({ style: ImpactStyle.Medium });
-        } catch { }
-
-        const step = steps.find(s => s.id === stepId);
-        if (step && !step.completed) {
-            try {
-                await Haptics.notification({ type: NotificationType.Success });
-            } catch { }
-        }
-
-        setSteps(prev => prev.map(s =>
-            s.id === stepId ? { ...s, completed: !s.completed } : s
-        ));
+    const toggleStep = (id: string) => {
+        setSteps(prev => prev.map(s => s.id === id ? { ...s, completed: !s.completed } : s));
+        Haptics.impact({ style: ImpactStyle.Light });
     };
 
-    const completedCount = steps.filter(s => s.completed).length;
-    const progress = Math.round((completedCount / steps.length) * 100);
-
     return (
-        <div
-            className="min-h-screen pb-8"
-            style={{ background: '#000000' }}
-        >
+        <div className="min-h-screen bg-black flex flex-col pt-12 pb-20">
             {/* Header */}
-            <div className="px-5 pt-4 pb-4">
-                <motion.h1
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-xl font-mono uppercase tracking-tight mb-4"
-                    style={{ color: '#FFFFFF' }}
-                >
-                    {language === 'en' ? 'DISCOVER' : '发现'}
-                </motion.h1>
-
-                {/* Tabs */}
-                <div className="flex gap-[1px]" style={{ background: '#1A1A1A' }}>
-                    <TabButton
-                        active={activeTab === 'feed'}
-                        onClick={async () => {
-                            try { await Haptics.impact({ style: ImpactStyle.Light }); } catch { }
-                            setActiveTab('feed');
-                        }}
-                    >
-                        {language === 'en' ? 'RESEARCH' : '研究'}
-                    </TabButton>
-                    <TabButton
-                        active={activeTab === 'plan'}
-                        onClick={async () => {
-                            try { await Haptics.impact({ style: ImpactStyle.Light }); } catch { }
-                            setActiveTab('plan');
-                        }}
-                    >
-                        {language === 'en' ? 'PROTOCOL' : '方案'}
-                    </TabButton>
-                </div>
+            <div className="px-5 pb-6 border-b border-[#222222]">
+                <h1 className="text-3xl font-sans font-bold tracking-tighter text-white">INTEL</h1>
             </div>
 
-            {/* Content */}
-            <div className="px-5">
-                <AnimatePresence mode="wait">
-                    {activeTab === 'feed' ? (
-                        <motion.div
-                            key="feed"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            className="space-y-[1px]"
-                            style={{ background: '#1A1A1A' }}
-                        >
-                            {feedItems.map((item, i) => (
-                                <motion.div
-                                    key={item.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.1 }}
-                                    whileTap={{ scale: 0.99 }}
-                                    onClick={async () => {
-                                        try {
-                                            await Haptics.impact({ style: ImpactStyle.Light });
-                                        } catch { }
-                                    }}
-                                    className="p-4 flex items-start justify-between"
-                                    style={{ background: '#0A0A0A' }}
-                                >
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-1 h-3" style={{ background: '#00FF94' }} />
-                                            <span
-                                                className="text-[9px] font-mono uppercase tracking-wider"
-                                                style={{ color: '#555555' }}
-                                            >
-                                                {item.source}
-                                            </span>
-                                        </div>
-                                        <p
-                                            className="text-sm font-medium leading-snug mb-2"
-                                            style={{ color: '#CCCCCC' }}
-                                        >
-                                            {item.title}
-                                        </p>
-                                        <span
-                                            className="text-[10px] font-mono flex items-center gap-1"
-                                            style={{ color: '#444444' }}
-                                        >
-                                            <Clock className="w-3 h-3" />
-                                            {item.readTime} MIN
-                                        </span>
-                                    </div>
-                                    <ChevronRight className="w-4 h-4 mt-1" style={{ color: '#333333' }} />
-                                </motion.div>
-                            ))}
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="plan"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="space-y-4"
-                        >
-                            {/* Plan Header */}
+            {/* Tabs */}
+            <div className="flex border-b border-[#222222]">
+                <TabButton active={activeTab === 'feed'} onClick={() => setActiveTab('feed')}>
+                    DATABASE
+                </TabButton>
+                <TabButton active={activeTab === 'plan'} onClick={() => setActiveTab('plan')}>
+                    PROTOCOL
+                </TabButton>
+            </div>
+
+            {/* Content list */}
+            <div className="flex-1 overflow-y-auto">
+                {activeTab === 'feed' ? (
+                    <div className="divide-y divide-[#111111]">
+                        {feedItems.map((item, i) => (
                             <motion.div
+                                key={item.id}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="p-4"
-                                style={{
-                                    background: '#0A0A0A',
-                                    border: '1px solid #007AFF40',
-                                }}
+                                transition={{ delay: i * 0.05 }}
+                                className="p-5 hover:bg-[#0A0A0A] group"
                             >
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div
-                                        className="w-10 h-10 flex items-center justify-center"
-                                        style={{
-                                            background: '#007AFF20',
-                                            border: '1px solid #007AFF50',
-                                        }}
-                                    >
-                                        <Sparkles className="w-5 h-5" style={{ color: '#007AFF' }} />
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-[9px] font-mono text-[#00FF94] tracking-widest uppercase border border-[#00FF94] px-1">
+                                        {item.source}
+                                    </span>
+                                    <ExternalLink className="w-3 h-3 text-[#444444] group-hover:text-white" />
+                                </div>
+                                <h3 className="text-base font-bold text-[#E5E5E5] leading-tight mb-2 tracking-tight">
+                                    {item.title}
+                                </h3>
+                                <span className="text-[10px] font-mono text-[#555555] flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> READ TIME: {item.time}
+                                </span>
+                            </motion.div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="divide-y divide-[#111111]">
+                        <div className="p-5 bg-[#007AFF10] border-l-2 border-[#007AFF]">
+                            <h4 className="text-[10px] font-mono text-[#007AFF] tracking-widest mb-1">CURRENT STATUS</h4>
+                            <p className="text-xl font-bold text-white tracking-tighter">PHASE 2: OPTIMIZATION</p>
+                        </div>
+                        {steps.map((step, i) => (
+                            <button
+                                key={step.id}
+                                onClick={() => toggleStep(step.id)}
+                                className={`w-full p-5 flex items-center justify-between group transition-colors ${step.completed ? 'bg-[#050505]' : 'bg-black hover:bg-[#0A0A0A]'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-4 h-4 border flex items-center justify-center transition-colors ${step.completed ? 'bg-[#007AFF] border-[#007AFF]' : 'border-[#444444] group-hover:border-white'}`}>
+                                        {step.completed && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                                     </div>
-                                    <div>
-                                        <h3
-                                            className="font-mono uppercase tracking-wider text-sm"
-                                            style={{ color: '#FFFFFF' }}
-                                        >
-                                            {language === 'en' ? 'RECOVERY PROTOCOL' : '恢复方案'}
-                                        </h3>
-                                        <p
-                                            className="text-[10px] font-mono"
-                                            style={{ color: '#007AFF' }}
-                                        >
-                                            {progress}% COMPLETE
+                                    <div className="text-left">
+                                        <p className={`text-sm font-mono uppercase tracking-wide transition-colors ${step.completed ? 'text-[#444444] line-through' : 'text-[#CCCCCC]'}`}>
+                                            {step.title}
                                         </p>
                                     </div>
                                 </div>
-
-                                {/* Progress Bar */}
-                                <div className="h-[2px]" style={{ background: '#1A1A1A' }}>
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${progress}%` }}
-                                        className="h-full"
-                                        style={{ background: '#007AFF' }}
-                                    />
-                                </div>
-                            </motion.div>
-
-                            {/* Steps */}
-                            <div className="space-y-[1px]" style={{ background: '#1A1A1A' }}>
-                                {steps.map((step, i) => (
-                                    <motion.div
-                                        key={step.id}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: i * 0.1 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => toggleStep(step.id)}
-                                        className="p-4 flex items-center gap-4"
-                                        style={{
-                                            background: '#0A0A0A',
-                                            opacity: step.completed ? 0.5 : 1,
-                                        }}
-                                    >
-                                        <div
-                                            className="w-5 h-5 flex items-center justify-center"
-                                            style={{
-                                                background: step.completed ? '#00FF94' : 'transparent',
-                                                border: `1px solid ${step.completed ? '#00FF94' : '#333333'}`,
-                                            }}
-                                        >
-                                            {step.completed && (
-                                                <Check className="w-3 h-3" style={{ color: '#000000' }} />
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p
-                                                className="text-sm font-mono uppercase tracking-wide"
-                                                style={{
-                                                    color: step.completed ? '#666666' : '#CCCCCC',
-                                                    textDecoration: step.completed ? 'line-through' : 'none',
-                                                }}
-                                            >
-                                                {step.title}
-                                            </p>
-                                        </div>
-                                        {step.time && (
-                                            <span
-                                                className="text-[10px] font-mono"
-                                                style={{ color: '#444444' }}
-                                            >
-                                                {step.time}
-                                            </span>
-                                        )}
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                <span className="text-[10px] font-mono text-[#444444] tracking-widest">
+                                    {step.time}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
