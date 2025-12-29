@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { PlanDashboard, UnlearnFooter, MaxFloatingButton } from '@/components/unlearn';
+import { PlanDashboard, UnlearnFooter } from '@/components/unlearn';
 
 export default function PlansPage() {
     const { language } = useI18n();
@@ -40,8 +40,6 @@ export default function PlansPage() {
                     youtube: 'https://youtube.com/@antianxiety',
                 }}
             />
-
-            <MaxFloatingButton />
         </main>
     );
 }

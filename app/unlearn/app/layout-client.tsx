@@ -1,6 +1,7 @@
 'use client';
 
-import { UnlearnNav } from '@/components/unlearn';
+import { useState } from 'react';
+import { UnlearnNav, MaxChatPanel } from '@/components/unlearn';
 import { useI18n } from '@/lib/i18n';
 import AppBottomNav from '@/components/unlearn/AppBottomNav';
 
@@ -10,6 +11,8 @@ export default function UnlearnAppLayoutClient({
     children: React.ReactNode;
 }) {
     const { language } = useI18n();
+    const [chatOpen, setChatOpen] = useState(false);
+
     return (
         <div className="min-h-screen pb-safe" style={{ backgroundColor: '#FAF6EF' }}>
             {/* App Navigation - Desktop only */}
@@ -41,8 +44,11 @@ export default function UnlearnAppLayoutClient({
 
             {children}
 
-            {/* Mobile Bottom Navigation */}
-            <AppBottomNav />
+            {/* Mobile Bottom Navigation with Max callback */}
+            <AppBottomNav onMaxClick={() => setChatOpen(true)} />
+
+            {/* Max Chat Panel */}
+            <MaxChatPanel isOpen={chatOpen} onClose={() => setChatOpen(false)} />
         </div>
     );
 }

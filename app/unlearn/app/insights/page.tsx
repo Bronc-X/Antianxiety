@@ -7,7 +7,6 @@ import {
     FeedbackLoop,
     ScienceFeed,
     UnlearnFooter,
-    MaxFloatingButton,
 } from '@/components/unlearn';
 
 export default function InsightsPage() {
@@ -48,8 +47,6 @@ export default function InsightsPage() {
                     youtube: 'https://youtube.com/@antianxiety',
                 }}
             />
-
-            <MaxFloatingButton />
         </main>
     );
 }
