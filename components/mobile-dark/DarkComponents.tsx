@@ -88,16 +88,33 @@ export function MetricCard({ icon, label, value, subValue, color }: MetricCardPr
         <motion.div
             whileTap={{ scale: 0.98 }}
             className="flex items-center gap-4 p-4 rounded-xl relative overflow-hidden group"
-            style={{ background: COLORS.CARD_BG, border: `1px solid ${COLORS.BORDER}` }}
+            style={{
+                background: COLORS.CARD_BG,
+                boxShadow: `
+                    inset 1px 1px 2px rgba(255,255,255,0.03), 
+                    inset -2px -2px 4px rgba(0,0,0,0.4),
+                    0 4px 12px rgba(0,0,0,0.2)
+                `
+            }}
         >
+            {/* Air Gloss */}
+            <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/5 to-transparent opacity-50 pointer-events-none" />
+
             {/* Glow Effect on Hover/Active */}
             <div
                 className="absolute -right-4 -top-4 w-20 h-20 bg-white opacity-0 group-hover:opacity-5 transition-opacity blur-2xl rounded-full pointer-events-none"
             />
 
             <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg"
-                style={{ background: color, boxShadow: `0 4px 12px ${color}40` }}
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white relative z-10"
+                style={{
+                    background: color,
+                    boxShadow: `
+                        inset -2px -2px 4px rgba(0,0,0,0.2),
+                        inset 2px 2px 4px rgba(255,255,255,0.3),
+                        0 4px 12px ${color}40
+                    `
+                }}
             >
                 {icon}
             </div>

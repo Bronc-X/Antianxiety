@@ -54,13 +54,19 @@ export default function DarkBottomNav() {
     return (
         <div className="fixed bottom-6 left-0 right-0 z-[9999] px-12 flex justify-center">
             <nav
-                className="flex items-center justify-between w-full max-w-[320px] px-2 py-2 rounded-full backdrop-blur-xl"
+                className="flex items-center justify-between w-full max-w-[320px] px-2 py-2 rounded-full backdrop-blur-xl relative overflow-hidden"
                 style={{
                     background: 'rgba(20, 20, 20, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)'
+                    boxShadow: `
+                        inset 2px 2px 4px rgba(255,255,255,0.05),
+                        inset -2px -2px 6px rgba(0,0,0,0.6),
+                        0 8px 32px rgba(0,0,0,0.5)
+                    `
                 }}
             >
+                {/* Gloss Overlay */}
+                <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-full pointer-events-none" />
+
                 {navItems.map((item) => {
                     const active = isActive(item.href);
                     return (
