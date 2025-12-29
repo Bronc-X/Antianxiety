@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Heart, CloudSun, ChevronRight, LayoutGrid, Calendar, User } from 'lucide-react';
+import { Heart, CloudSun, ChevronRight, LayoutGrid, Calendar, User, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 // ----------------------------------------------------------------------
@@ -76,6 +76,9 @@ function LightBottomNav() {
             >
                 <Link href="/mobile-light" className="p-3 bg-black rounded-full text-white shadow-md">
                     <LayoutGrid className="w-5 h-5" />
+                </Link>
+                <Link href="/mobile-light/max" className="p-3 text-gray-400 hover:text-black transition-colors">
+                    <Zap className="w-5 h-5" />
                 </Link>
                 <Link href="/mobile-light/discover" className="p-3 text-gray-400 hover:text-black transition-colors">
                     <Calendar className="w-5 h-5" />
