@@ -56,9 +56,10 @@ export default function DarkBottomNav() {
             <nav
                 className="flex items-center justify-between w-full max-w-[320px] px-2 py-2 rounded-full backdrop-blur-xl"
                 style={{
-                    background: 'rgba(20, 20, 20, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)'
+                    background: 'rgba(20, 20, 20, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(20px)'
                 }}
             >
                 {navItems.map((item) => {

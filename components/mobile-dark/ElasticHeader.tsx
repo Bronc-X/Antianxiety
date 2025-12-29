@@ -108,6 +108,27 @@ export function ElasticHeader() {
                 style={{ touchAction: "none" }}
             />
 
+            {/* INTERACTIVE ELEMENT: BIO-ORB */}
+            <motion.div
+                className="absolute z-40 pointer-events-none flex items-center justify-center p-4"
+                style={{
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    y: useTransform(dragY, (y) => y + dimensions.height - 40), // Stick to the bottom curve tip
+                    opacity: useTransform(dragY, [0, 50], [0, 1]), // Fade in
+                    scale: useTransform(dragY, [0, 150], [0.5, 1.2]) // Grow
+                }}
+            >
+                {/* Core Orb */}
+                <div className="w-12 h-12 relative flex items-center justify-center">
+                    <div className="absolute inset-0 bg-[#00FF94] rounded-full blur-xl opacity-50 animate-pulse" />
+                    <div className="w-full h-full bg-black/50 rounded-full border border-[#00FF94] flex items-center justify-center shadow-[0_0_20px_#00FF9440]">
+                        <div className="w-4 h-4 bg-[#00FF94] rounded-full" />
+                    </div>
+                </div>
+            </motion.div>
+
             {/* Header Content */}
             <motion.div
                 className="relative z-10 p-8 pt-16 flex flex-col items-center justify-start h-full pointer-events-none"
