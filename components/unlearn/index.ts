@@ -43,3 +43,6 @@ export { default as DailyCalibration } from './DailyCalibration';
 
 // Mobile Navigation
 export { default as AppBottomNav } from './AppBottomNav';
+
+// Branding
+export { default as Logo } from './Logo';
