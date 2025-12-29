@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Calendar, Sparkles, BookOpen, Target } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
+import { Home, Sparkles, Compass, Settings } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 interface NavItem {
@@ -25,13 +24,6 @@ const navItems: NavItem[] = [
         href: '/mobile',
     },
     {
-        id: 'calibration',
-        labelEn: 'Calibrate',
-        labelZh: '校准',
-        icon: <Calendar className="w-6 h-6" />,
-        href: '/mobile/calibration',
-    },
-    {
         id: 'max',
         labelEn: 'Max',
         labelZh: 'Max',
@@ -39,18 +31,18 @@ const navItems: NavItem[] = [
         href: '/mobile/max',
     },
     {
-        id: 'feed',
-        labelEn: 'Feed',
-        labelZh: '资讯',
-        icon: <BookOpen className="w-6 h-6" />,
-        href: '/mobile/feed',
+        id: 'discover',
+        labelEn: 'Discover',
+        labelZh: '发现',
+        icon: <Compass className="w-6 h-6" />,
+        href: '/mobile/discover',
     },
     {
-        id: 'plans',
-        labelEn: 'Plans',
-        labelZh: '计划',
-        icon: <Target className="w-6 h-6" />,
-        href: '/mobile/plans',
+        id: 'settings',
+        labelEn: 'Settings',
+        labelZh: '设置',
+        icon: <Settings className="w-6 h-6" />,
+        href: '/mobile/settings',
     },
 ];
 
@@ -76,26 +68,32 @@ export default function MobileBottomNav() {
     return (
         <>
             {/* Spacer */}
-            <div className="h-24" />
+            <div className="h-28" />
 
-            {/* Bottom Navigation */}
+            {/* Bottom Navigation - Glass Effect */}
             <nav
                 className="fixed bottom-0 left-0 right-0 z-[9999]"
                 style={{
                     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
                 }}
             >
-                {/* Top border */}
-                <div className="absolute top-0 left-0 right-0 h-px bg-black/5" />
+                {/* Glass Background */}
+                <div
+                    className="absolute inset-0"
+                    style={{
+                        background: 'rgba(255, 255, 255, 0.85)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.5)',
+                    }}
+                />
 
                 {/* Nav Container */}
-                <div className="flex justify-around items-center px-2 py-2">
+                <div className="relative flex justify-around items-center px-4 py-3">
                     {navItems.map((item) => {
                         const active = isActive(item);
                         const label = language === 'en' ? item.labelEn : item.labelZh;
+                        const isMax = item.id === 'max';
 
                         return (
                             <Link
@@ -104,37 +102,52 @@ export default function MobileBottomNav() {
                                 onClick={() => {
                                     if (!active) triggerHaptic();
                                 }}
-                                className="relative flex-1 flex flex-col items-center justify-center py-2"
+                                className="relative flex-1 flex flex-col items-center justify-center"
                             >
-                                {/* Active Indicator */}
-                                {active && (
-                                    <motion.div
-                                        layoutId="mobileNavActive"
-                                        className="absolute -top-1 w-8 h-1 rounded-full bg-[#0B3D2E]"
-                                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                                    />
-                                )}
-
-                                {/* Icon */}
+                                {/* Floating Icon Container */}
                                 <motion.div
                                     animate={{
-                                        scale: active ? 1.1 : 1,
-                                        y: active ? -2 : 0,
+                                        y: active ? -8 : 0,
+                                        scale: active ? 1.15 : 1,
                                     }}
+                                    whileTap={{ scale: 0.9 }}
                                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                                    className={`transition-colors ${active
-                                            ? item.id === 'max' ? 'text-[#D4AF37]' : 'text-[#0B3D2E]'
-                                            : 'text-gray-400'
+                                    className={`relative p-3 rounded-2xl transition-all duration-300 ${active
+                                            ? isMax
+                                                ? 'bg-gradient-to-br from-[#D4AF37] to-[#B8860B] shadow-lg shadow-[#D4AF37]/30'
+                                                : 'bg-gradient-to-br from-[#0B3D2E] to-[#1a5c47] shadow-lg shadow-[#0B3D2E]/30'
+                                            : ''
                                         }`}
                                 >
-                                    {item.icon}
+                                    <div className={`${active
+                                            ? 'text-white'
+                                            : isMax
+                                                ? 'text-[#D4AF37]'
+                                                : 'text-gray-400'
+                                        }`}>
+                                        {item.icon}
+                                    </div>
+
+                                    {/* Active Glow Ring */}
+                                    {active && (
+                                        <motion.div
+                                            initial={{ scale: 0.8, opacity: 0 }}
+                                            animate={{ scale: 1.3, opacity: 0 }}
+                                            transition={{ duration: 0.6, repeat: Infinity }}
+                                            className={`absolute inset-0 rounded-2xl ${isMax ? 'bg-[#D4AF37]' : 'bg-[#0B3D2E]'
+                                                }`}
+                                        />
+                                    )}
                                 </motion.div>
 
                                 {/* Label */}
                                 <motion.span
-                                    animate={{ opacity: active ? 1 : 0.6 }}
-                                    className={`text-[10px] font-medium mt-1 ${active
-                                            ? item.id === 'max' ? 'text-[#D4AF37]' : 'text-[#0B3D2E]'
+                                    animate={{
+                                        opacity: active ? 1 : 0.6,
+                                        y: active ? 4 : 0,
+                                    }}
+                                    className={`text-[11px] font-semibold mt-1 ${active
+                                            ? isMax ? 'text-[#D4AF37]' : 'text-[#0B3D2E]'
                                             : 'text-gray-400'
                                         }`}
                                 >
