@@ -1,27 +1,49 @@
 /**
- * Domain Hooks (The Bridge)
+ * Domain Hooks Barrel Export
  * 
- * This directory contains domain-specific hooks that:
- * - Call Server Actions for data operations
- * - Manage loading, error, and offline states
- * - Provide a typed interface for presentational components
- * 
- * Rules:
- * - NO UI-specific code (no JSX, no styling)
- * - NO platform-specific logic
- * - All hooks must return DomainHookReturn pattern
- * 
- * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6
+ * Central export point for all MVVM domain hooks.
+ * These hooks form "The Bridge" layer of the MVVM architecture.
  */
 
-// Export domain hooks
+// Dashboard
 export { useDashboard } from './useDashboard';
-// export { useCalibration } from './useCalibration';
-// export { usePlans } from './usePlans';
 
-// Re-export types for convenience
-export type {
-  DomainHookReturn,
-  OptimisticHookReturn,
-  UseDashboardReturn,
-} from '@/types/architecture';
+// Plans
+export { usePlans } from './usePlans';
+export type { UsePlansReturn, PlanData, CreatePlanInput } from './usePlans';
+
+// Goals
+export { useGoals } from './useGoals';
+export type { UseGoalsReturn, PhaseGoal, CreateGoalInput } from './useGoals';
+
+// Settings
+export { useSettings } from './useSettings';
+export type { UseSettingsReturn, SettingsData } from './useSettings';
+
+// Max (AI Chat)
+export { useMax } from './useMax';
+export type { UseMaxReturn, ChatMessage, Conversation, LocalMessage } from './useMax';
+
+// Calibration
+export { useCalibration } from './useCalibration';
+export type { UseCalibrationReturn, CalibrationData, CalibrationInput } from './useCalibration';
+
+// Feed
+export { useFeed } from './useFeed';
+export type { UseFeedReturn, FeedItem, FeedFilters } from './useFeed';
+
+// Onboarding
+export { useOnboarding } from './useOnboarding';
+export type { UseOnboardingReturn, OnboardingProgress, OnboardingData } from './useOnboarding';
+
+// Assessment
+export { useAssessment } from './useAssessment';
+export type { UseAssessmentReturn, AssessmentType, AssessmentQuestion, AssessmentResult, AssessmentResponse } from './useAssessment';
+
+// Analysis
+export { useAnalysis } from './useAnalysis';
+export type { UseAnalysisReturn, AnalysisReport, TrendData } from './useAnalysis';
+
+// Profile
+export { useProfile } from './useProfile';
+export type { UseProfileReturn, UserProfile, UpdateProfileInput } from './useProfile';
