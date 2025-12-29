@@ -63,7 +63,7 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
             router.push('/login');
             return;
         }
-        
+
         setOpen(!isOpen);
         setHasInteracted(true);
         setShowTooltip(false);
@@ -81,8 +81,20 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
                             exit={{ opacity: 0, x: 20, scale: 0.9 }}
                             className="absolute bottom-full right-0 mb-3 whitespace-nowrap"
                         >
-                            <div className="px-4 py-3 bg-white text-[#1A1A1A] shadow-lg font-serif text-sm">
-                                <p className="font-medium">
+                            <div className="relative px-4 py-3 bg-white text-[#1A1A1A] shadow-lg font-serif text-sm">
+                                {/* Close button */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowTooltip(false);
+                                        setHasInteracted(true);
+                                    }}
+                                    className="absolute top-1 right-1 p-1 text-[#1A1A1A]/40 hover:text-[#1A1A1A] transition-colors"
+                                    aria-label="Close tooltip"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                                <p className="font-medium pr-4">
                                     {language === 'en' ? 'Need help? Talk to Max!' : '需要帮助？和 Max 聊聊！'}
                                 </p>
                                 <p className="text-[#1A1A1A]/80 text-xs mt-1">

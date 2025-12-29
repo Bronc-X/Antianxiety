@@ -75,7 +75,8 @@ export function middleware(req: NextRequest) {
   const { pathname, hostname } = req.nextUrl;
 
   // Language-based redirect for root domain
-  // Root domain (antianxiety.app) redirects to language-specific subdomain
+  // REMOVED: Single domain strategy. Language is handled by client-side i18n.
+  /*
   if (hostname === 'antianxiety.app' || hostname === 'www.antianxiety.app') {
     const acceptLang = req.headers.get('accept-language') || '';
     const isZh = acceptLang.toLowerCase().includes('zh');
@@ -86,6 +87,7 @@ export function middleware(req: NextRequest) {
 
     return NextResponse.redirect(redirectUrl, 302);
   }
+  */
 
   // Only apply rate limiting to API routes
   if (pathname.startsWith('/api/')) {

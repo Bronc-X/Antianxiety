@@ -114,7 +114,7 @@ export async function fetchRedditUserInfo(
 export function getRedditConfig(): RedditConfig {
     const clientId = process.env.REDDIT_CLIENT_ID;
     const clientSecret = process.env.REDDIT_CLIENT_SECRET;
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://en.antianxiety.app';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://antianxiety.app';
 
     if (!clientId || !clientSecret) {
         throw new Error('Reddit credentials not configured. Set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET.');

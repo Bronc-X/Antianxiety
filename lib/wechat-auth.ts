@@ -117,7 +117,7 @@ export async function fetchWeChatUserInfo(
 export function getWeChatConfig(): WeChatConfig {
     const appId = process.env.WECHAT_APP_ID;
     const appSecret = process.env.WECHAT_APP_SECRET;
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zh.antianxiety.app';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://antianxiety.app';
 
     if (!appId || !appSecret) {
         throw new Error('WeChat credentials not configured. Set WECHAT_APP_ID and WECHAT_APP_SECRET.');
