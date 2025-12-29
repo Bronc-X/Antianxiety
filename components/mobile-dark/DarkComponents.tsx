@@ -113,7 +113,47 @@ export function MetricCard({ icon, label, value, subValue, color }: MetricCardPr
 }
 
 // ----------------------------------------------------------------------
-// 3. Stress Overview (Horizontal Bar Chart)
+// 3. Stress Line Chart (Gradient + Grid)
+// ----------------------------------------------------------------------
+
+export function StressLineChart() {
+    return (
+        <div className="w-full h-[180px] relative mt-4">
+            {/* Grid Lines */}
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-full h-[1px] bg-[#222] border-t border-dashed border-[#333]" />)}
+            </div>
+
+            {/* The Gradient Line */}
+            <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="lineScroll" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#FFAA00" />  {/* High Stress (Orange) */}
+                        <stop offset="50%" stopColor="#FF4400" />
+                        <stop offset="100%" stopColor="#00A2FF" /> {/* Low Stress (Blue) */}
+                    </linearGradient>
+                </defs>
+                <motion.path
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 2, ease: "easeInOut" }}
+                    d="M0,80 C20,70 40,90 60,60 C80,30 100,50 120,80 C140,110 160,100 180,120 C200,140 220,130 240,150 C260,170 280,140 300,120"
+                    fill="none"
+                    stroke="url(#lineScroll)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    className="drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"
+                />
+            </svg>
+
+            <div className="absolute bottom-2 left-2 text-[10px] text-[#666]">06:30 AM</div>
+            <div className="absolute bottom-2 right-2 text-[10px] text-[#666]">07:30 AM</div>
+        </div>
+    );
+}
+
+// ----------------------------------------------------------------------
+// 4. Stress Overview (Horizontal Bar Chart)
 // ----------------------------------------------------------------------
 
 interface StressLevelProps {
