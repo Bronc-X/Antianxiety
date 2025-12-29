@@ -6,13 +6,13 @@ import { useI18n } from '@/lib/i18n';
 import { ChevronLeft, Check } from 'lucide-react';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import Link from 'next/link';
+import { Trophy3D } from '@/components/mobile/Icons3D';
 
 interface Question {
     id: string;
     titleEn: string;
     titleZh: string;
-    type: 'scale' | 'select';
-    options?: { labelEn: string; labelZh: string; value: number; emoji?: string }[];
+    options: { labelEn: string; labelZh: string; value: number; emoji: string }[];
 }
 
 const questions: Question[] = [
@@ -20,7 +20,6 @@ const questions: Question[] = [
         id: 'stress',
         titleEn: 'How stressed do you feel right now?',
         titleZh: '你现在感觉压力有多大？',
-        type: 'scale',
         options: [
             { labelEn: 'Very relaxed', labelZh: '非常放松', value: 1, emoji: '😌' },
             { labelEn: 'Slightly tense', labelZh: '有点紧张', value: 2, emoji: '😐' },
@@ -33,7 +32,6 @@ const questions: Question[] = [
         id: 'sleep',
         titleEn: 'How was your sleep last night?',
         titleZh: '昨晚睡得怎么样？',
-        type: 'scale',
         options: [
             { labelEn: 'Excellent', labelZh: '非常好', value: 5, emoji: '😴' },
             { labelEn: 'Good', labelZh: '不错', value: 4, emoji: '🙂' },
@@ -46,7 +44,6 @@ const questions: Question[] = [
         id: 'energy',
         titleEn: 'What is your energy level?',
         titleZh: '你的精力水平如何？',
-        type: 'scale',
         options: [
             { labelEn: 'Full of energy', labelZh: '精力充沛', value: 5, emoji: '⚡' },
             { labelEn: 'Good', labelZh: '状态不错', value: 4, emoji: '💪' },
@@ -73,7 +70,6 @@ export default function MobileCalibration() {
 
         setAnswers({ ...answers, [currentQuestion.id]: value });
 
-        // Auto-advance after short delay
         setTimeout(async () => {
             if (currentIndex < questions.length - 1) {
                 setCurrentIndex(currentIndex + 1);
@@ -88,71 +84,111 @@ export default function MobileCalibration() {
 
     if (completed) {
         return (
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center min-h-screen px-6"
+            <div
+                className="min-h-screen flex flex-col items-center justify-center px-6"
+                style={{
+                    background: 'linear-gradient(180deg, #B8D4E8 0%, #E8EEF2 50%, #FFFFFF 100%)',
+                }}
             >
                 <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
+                    initial={{ scale: 0, rotate: -10 }}
+                    animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                    className="w-24 h-24 bg-[#0B3D2E] rounded-full flex items-center justify-center mb-6"
+                    className="mb-6"
                 >
-                    <Check className="w-12 h-12 text-white" />
+                    <Trophy3D size={120} />
                 </motion.div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+
+                <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-2xl font-bold text-gray-900 mb-2 text-center"
+                >
                     {language === 'en' ? 'Calibration Complete!' : '校准完成！'}
-                </h1>
-                <p className="text-gray-500 text-center mb-8">
+                </motion.h1>
+
+                <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-gray-500 text-center mb-8"
+                >
                     {language === 'en'
-                        ? 'Your digital twin has been updated with today\'s data.'
+                        ? "Your digital twin has been updated with today's data."
                         : '你的数字孪生已更新今日数据。'
                     }
-                </p>
-                <Link href="/mobile">
-                    <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        className="px-8 py-4 bg-[#0B3D2E] text-white font-semibold rounded-2xl"
-                    >
-                        {language === 'en' ? 'Back to Dashboard' : '返回仪表盘'}
-                    </motion.button>
-                </Link>
-            </motion.div>
+                </motion.p>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                >
+                    <Link href="/mobile">
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            className="px-8 py-4 rounded-2xl text-white font-bold"
+                            style={{
+                                background: 'linear-gradient(135deg, #0B3D2E 0%, #1a5c47 100%)',
+                                boxShadow: '0 12px 32px rgba(11, 61, 46, 0.3)',
+                            }}
+                        >
+                            {language === 'en' ? 'Back to Dashboard' : '返回仪表盘'}
+                        </motion.button>
+                    </Link>
+                </motion.div>
+            </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div
+            className="min-h-screen flex flex-col"
+            style={{
+                background: 'linear-gradient(180deg, #B8D4E8 0%, #E8EEF2 50%, #FFFFFF 100%)',
+            }}
+        >
             {/* Header */}
-            <div className="px-4 pt-4">
+            <div className="px-5 pt-4">
                 <div className="flex items-center justify-between mb-4">
                     <Link href="/mobile">
                         <motion.button
                             whileTap={{ scale: 0.9 }}
-                            className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center"
+                            className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.8)',
+                                backdropFilter: 'blur(10px)',
+                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
+                            }}
                         >
                             <ChevronLeft className="w-5 h-5 text-gray-600" />
                         </motion.button>
                     </Link>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm font-semibold text-gray-500">
                         {currentIndex + 1} / {questions.length}
                     </span>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                    className="h-1.5 rounded-full overflow-hidden"
+                    style={{ background: 'rgba(0, 0, 0, 0.05)' }}
+                >
                     <motion.div
-                        className="h-full bg-[#0B3D2E]"
+                        className="h-full rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        style={{
+                            background: 'linear-gradient(90deg, #0B3D2E 0%, #1a5c47 100%)',
+                        }}
                     />
                 </div>
             </div>
 
             {/* Question Content */}
-            <div className="flex-1 flex flex-col px-6 pt-12">
+            <div className="flex-1 flex flex-col px-5 pt-12">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentQuestion.id}
@@ -161,39 +197,56 @@ export default function MobileCalibration() {
                         exit={{ opacity: 0, x: -50 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     >
-                        <h1 className="text-2xl font-bold text-gray-900 mb-8">
+                        <h1 className="text-2xl font-bold text-gray-900 mb-8 leading-tight">
                             {language === 'en' ? currentQuestion.titleEn : currentQuestion.titleZh}
                         </h1>
 
                         <div className="space-y-3">
-                            {currentQuestion.options?.map((option, index) => (
-                                <motion.button
-                                    key={option.value}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => handleSelect(option.value)}
-                                    className={`w-full p-4 rounded-2xl border-2 flex items-center gap-4 transition-colors ${answers[currentQuestion.id] === option.value
-                                            ? 'border-[#0B3D2E] bg-[#0B3D2E]/5'
-                                            : 'border-gray-200 bg-white'
-                                        }`}
-                                >
-                                    <span className="text-2xl">{option.emoji}</span>
-                                    <span className="font-medium text-gray-900">
-                                        {language === 'en' ? option.labelEn : option.labelZh}
-                                    </span>
-                                    {answers[currentQuestion.id] === option.value && (
-                                        <motion.div
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            className="ml-auto w-6 h-6 bg-[#0B3D2E] rounded-full flex items-center justify-center"
-                                        >
-                                            <Check className="w-4 h-4 text-white" />
-                                        </motion.div>
-                                    )}
-                                </motion.button>
-                            ))}
+                            {currentQuestion.options.map((option, index) => {
+                                const isSelected = answers[currentQuestion.id] === option.value;
+
+                                return (
+                                    <motion.button
+                                        key={option.value}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.08 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => handleSelect(option.value)}
+                                        className="w-full p-4 rounded-[20px] flex items-center gap-4 transition-all"
+                                        style={{
+                                            background: isSelected
+                                                ? 'rgba(11, 61, 46, 0.08)'
+                                                : 'rgba(255, 255, 255, 0.9)',
+                                            backdropFilter: 'blur(10px)',
+                                            border: isSelected
+                                                ? '2px solid #0B3D2E'
+                                                : '1px solid rgba(255, 255, 255, 0.5)',
+                                            boxShadow: isSelected
+                                                ? '0 4px 20px rgba(11, 61, 46, 0.15)'
+                                                : '0 4px 20px rgba(0, 0, 0, 0.04)',
+                                        }}
+                                    >
+                                        <span className="text-3xl">{option.emoji}</span>
+                                        <span className={`font-medium flex-1 text-left ${isSelected ? 'text-[#0B3D2E]' : 'text-gray-900'
+                                            }`}>
+                                            {language === 'en' ? option.labelEn : option.labelZh}
+                                        </span>
+                                        {isSelected && (
+                                            <motion.div
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                className="w-7 h-7 rounded-full flex items-center justify-center"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, #0B3D2E 0%, #1a5c47 100%)',
+                                                }}
+                                            >
+                                                <Check className="w-4 h-4 text-white" />
+                                            </motion.div>
+                                        )}
+                                    </motion.button>
+                                );
+                            })}
                         </div>
                     </motion.div>
                 </AnimatePresence>

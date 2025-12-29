@@ -30,7 +30,6 @@ export default function MobileMax() {
     const [loading, setLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,7 +70,7 @@ export default function MobileMax() {
                 const assistantMessage: Message = {
                     id: (Date.now() + 1).toString(),
                     role: 'assistant',
-                    content: data.reply || data.message || 'I\'m here to help.',
+                    content: data.reply || data.message || "I'm here to help.",
                     timestamp: new Date(),
                 };
                 setMessages(prev => [...prev, assistantMessage]);
@@ -88,54 +87,82 @@ export default function MobileMax() {
             await Haptics.impact({ style: ImpactStyle.Light });
         } catch { }
         setIsListening(!isListening);
-        // Voice recognition would be implemented here
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-b from-[#0B3D2E] to-[#1a5c47]">
+        <div
+            className="flex flex-col h-screen"
+            style={{
+                background: 'linear-gradient(180deg, #0B3D2E 0%, #1a5c47 40%, #1a5c47 100%)',
+            }}
+        >
             {/* Header */}
-            <div
-                className="flex items-center gap-4 px-4 py-4"
-                style={{ paddingTop: 'calc(env(safe-area-inset-top) + 16px)' }}
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-4 px-5 py-4"
+                style={{
+                    paddingTop: 'calc(env(safe-area-inset-top) + 16px)',
+                    background: 'rgba(11, 61, 46, 0.8)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                }}
             >
                 <Link href="/mobile">
                     <motion.button
                         whileTap={{ scale: 0.9 }}
-                        className="w-10 h-10 bg-white/10 backdrop-blur rounded-full flex items-center justify-center"
+                        className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
                     >
                         <ChevronLeft className="w-5 h-5 text-white" />
                     </motion.button>
                 </Link>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#D4AF37] rounded-full flex items-center justify-center">
-                        <Sparkles className="w-5 h-5 text-white" />
-                    </div>
+                    <motion.div
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                        style={{
+                            background: 'linear-gradient(135deg, #D4AF37 0%, #B8860B 100%)',
+                            boxShadow: '0 8px 24px rgba(212, 175, 55, 0.3)',
+                        }}
+                    >
+                        <Sparkles className="w-6 h-6 text-white" />
+                    </motion.div>
                     <div>
-                        <h1 className="text-white font-semibold">Max</h1>
-                        <p className="text-white/60 text-xs">
+                        <h1 className="text-white font-bold text-lg">Max</h1>
+                        <p className="text-white/50 text-xs">
                             {language === 'en' ? 'Your Health Agent' : '你的健康智能体'}
                         </p>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-5 py-4">
                 <AnimatePresence>
                     {messages.map((message, index) => (
                         <motion.div
                             key={message.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ delay: index * 0.1, type: 'spring', stiffness: 300 }}
                             className={`flex gap-3 mb-4 ${message.role === 'user' ? 'flex-row-reverse' : ''
                                 }`}
                         >
                             <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${message.role === 'assistant'
-                                        ? 'bg-[#D4AF37]'
-                                        : 'bg-white/20'
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${message.role === 'assistant'
+                                        ? ''
+                                        : ''
                                     }`}
+                                style={{
+                                    background: message.role === 'assistant'
+                                        ? 'linear-gradient(135deg, #D4AF37 0%, #B8860B 100%)'
+                                        : 'rgba(255, 255, 255, 0.15)',
+                                }}
                             >
                                 {message.role === 'assistant'
                                     ? <Sparkles className="w-4 h-4 text-white" />
@@ -143,12 +170,27 @@ export default function MobileMax() {
                                 }
                             </div>
                             <div
-                                className={`max-w-[75%] px-4 py-3 rounded-2xl ${message.role === 'assistant'
-                                        ? 'bg-white/10 backdrop-blur text-white'
-                                        : 'bg-white text-gray-900'
+                                className={`max-w-[75%] px-4 py-3 rounded-[20px] ${message.role === 'assistant'
+                                        ? ''
+                                        : ''
                                     }`}
+                                style={{
+                                    background: message.role === 'assistant'
+                                        ? 'rgba(255, 255, 255, 0.1)'
+                                        : 'rgba(255, 255, 255, 0.95)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: message.role === 'assistant'
+                                        ? '1px solid rgba(255, 255, 255, 0.1)'
+                                        : 'none',
+                                    boxShadow: message.role === 'user'
+                                        ? '0 4px 20px rgba(0, 0, 0, 0.1)'
+                                        : 'none',
+                                }}
                             >
-                                <p className="text-sm leading-relaxed">{message.content}</p>
+                                <p className={`text-sm leading-relaxed ${message.role === 'assistant' ? 'text-white' : 'text-gray-900'
+                                    }`}>
+                                    {message.content}
+                                </p>
                             </div>
                         </motion.div>
                     ))}
@@ -156,24 +198,36 @@ export default function MobileMax() {
 
                 {loading && (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
                         className="flex gap-3 mb-4"
                     >
-                        <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
+                        <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center"
+                            style={{
+                                background: 'linear-gradient(135deg, #D4AF37 0%, #B8860B 100%)',
+                            }}
+                        >
                             <Sparkles className="w-4 h-4 text-white" />
                         </div>
-                        <div className="bg-white/10 backdrop-blur px-4 py-3 rounded-2xl">
-                            <div className="flex gap-1">
+                        <div
+                            className="px-4 py-3 rounded-[20px]"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                            }}
+                        >
+                            <div className="flex gap-1.5">
                                 {[0, 1, 2].map((i) => (
                                     <motion.div
                                         key={i}
                                         className="w-2 h-2 bg-white/60 rounded-full"
-                                        animate={{ y: [0, -5, 0] }}
+                                        animate={{ y: [0, -6, 0] }}
                                         transition={{
                                             duration: 0.6,
                                             repeat: Infinity,
-                                            delay: i * 0.2,
+                                            delay: i * 0.15,
                                         }}
                                     />
                                 ))}
@@ -186,45 +240,68 @@ export default function MobileMax() {
             </div>
 
             {/* Input Area */}
-            <div
-                className="px-4 py-4 bg-white/10 backdrop-blur"
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-5 py-4"
+                style={{
+                    paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
+                    background: 'rgba(11, 61, 46, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                }}
             >
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                     <motion.button
                         whileTap={{ scale: 0.9 }}
                         onClick={toggleListening}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isListening
-                                ? 'bg-red-500'
-                                : 'bg-white/20'
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isListening ? '' : ''
                             }`}
+                        style={{
+                            background: isListening
+                                ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
+                                : 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            boxShadow: isListening ? '0 8px 24px rgba(239, 68, 68, 0.3)' : 'none',
+                        }}
                     >
                         {isListening
                             ? <MicOff className="w-5 h-5 text-white" />
-                            : <Mic className="w-5 h-5 text-white" />
+                            : <Mic className="w-5 h-5 text-white/80" />
                         }
                     </motion.button>
 
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                        placeholder={language === 'en' ? 'Ask Max anything...' : '问 Max 任何问题...'}
-                        className="flex-1 px-4 py-3 bg-white/20 backdrop-blur rounded-full text-white placeholder-white/50 focus:outline-none focus:bg-white/30 transition-colors"
-                    />
+                    <div
+                        className="flex-1 flex items-center px-4 rounded-2xl"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                        }}
+                    >
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                            placeholder={language === 'en' ? 'Ask Max anything...' : '问 Max 任何问题...'}
+                            className="flex-1 bg-transparent text-white placeholder-white/40 focus:outline-none py-3"
+                        />
+                    </div>
 
                     <motion.button
                         whileTap={{ scale: 0.9 }}
                         onClick={sendMessage}
                         disabled={!input.trim() || loading}
-                        className="w-12 h-12 bg-[#D4AF37] rounded-full flex items-center justify-center disabled:opacity-50"
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center disabled:opacity-50"
+                        style={{
+                            background: 'linear-gradient(135deg, #D4AF37 0%, #B8860B 100%)',
+                            boxShadow: '0 8px 24px rgba(212, 175, 55, 0.3)',
+                        }}
                     >
                         <Send className="w-5 h-5 text-white" />
                     </motion.button>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 }
