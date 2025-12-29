@@ -2,272 +2,187 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { Activity, Moon, Zap, Flame } from 'lucide-react';
 
-interface BioGaugeProps {
-    value: number;
-    max?: number;
-    label: string;
-    status: string;
-    color?: 'green' | 'blue' | 'red' | 'yellow';
-}
+// Color Constants
+const COLORS = {
+    BLACK: '#000000',
+    CARD_BG: '#0A0A0A',
+    BORDER: '#1A1A1A',
 
-const colorMap = {
-    green: '#00FF94',
-    blue: '#007AFF',
-    red: '#FF3B30',
-    yellow: '#FFCC00',
+    // Accents
+    RECOVERY: '#00FF94', // Green
+    STRAIN: '#007AFF',   // Blue
+    SLEEP: '#B388FF',    // Purple/Lavender
+
+    // Stress
+    STRESS_HIGH: '#FF3B30',
+    STRESS_MED: '#FF9500',
+    STRESS_LOW: '#007AFF', // Or Cyan/Green depending on preference
+
+    TEXT_MAIN: '#FFFFFF',
+    TEXT_DIM: '#666666',
 };
 
-export function BioGauge({ value, max = 100, label, status, color = 'green' }: BioGaugeProps) {
-    const [animatedValue, setAnimatedValue] = useState(0);
-    const size = 220;
-    const strokeWidth = 6;
-    const radius = (size - strokeWidth * 2) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const progress = (animatedValue / max) * 100;
-    const offset = circumference - (progress / 100) * circumference;
-    const accentColor = colorMap[color];
+// ----------------------------------------------------------------------
+// 1. Concentric Rings (Today's Snapshot)
+// ----------------------------------------------------------------------
 
-    useEffect(() => {
-        const timer = setTimeout(() => setAnimatedValue(value), 100);
-        return () => clearTimeout(timer);
-    }, [value]);
+interface ConcentricRingsProps {
+    recovery: number; // 0-100
+    strain: number;   // 0-100
+    sleep: number;    // 0-100
+}
+
+export function ConcentricRings({ recovery, strain, sleep }: ConcentricRingsProps) {
+    const size = 160;
+    const center = size / 2;
+    const strokeWidth = 8;
+    const gap = 10;
+
+    // Radii
+    const r1 = 60; // Outer (Recovery)
+    const r2 = 45; // Middle (Strain)
+    const r3 = 30; // Inner (Sleep)
+
+    const Ring = ({ r, value, color, delay }: { r: number, value: number, color: string, delay: number }) => {
+        const c = 2 * Math.PI * r;
+        const offset = c - ((value / 100) * c);
+
+        return (
+            <>
+                {/* Track */}
+                <circle cx={center} cy={center} r={r} fill="none" stroke="#222222" strokeWidth={strokeWidth} strokeLinecap="round" />
+                {/* Value */}
+                <motion.circle
+                    cx={center} cy={center} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round"
+                    strokeDasharray={c}
+                    initial={{ strokeDashoffset: c }}
+                    animate={{ strokeDashoffset: offset }}
+                    transition={{ duration: 1.5, ease: "easeOut", delay }}
+                    className="transform -rotate-90 origin-center"
+                    style={{ filter: `drop-shadow(0 0 4px ${color}40)` }}
+                />
+            </>
+        );
+    };
 
     return (
         <div className="relative" style={{ width: size, height: size }}>
-            {/* Outer glow ring */}
-            <div
-                className="absolute inset-0 rounded-full blur-xl opacity-20"
-                style={{ background: accentColor }}
-            />
-
-            {/* SVG Gauge */}
-            <svg width={size} height={size} className="transform -rotate-90">
-                {/* Background track */}
-                <circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    fill="none"
-                    stroke="#1A1A1A"
-                    strokeWidth={strokeWidth}
-                />
-
-                {/* Progress arc */}
-                <motion.circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    fill="none"
-                    stroke={accentColor}
-                    strokeWidth={strokeWidth}
-                    strokeLinecap="butt"
-                    strokeDasharray={circumference}
-                    initial={{ strokeDashoffset: circumference }}
-                    animate={{ strokeDashoffset: offset }}
-                    transition={{ duration: 1.5, ease: 'easeOut' }}
-                />
-
-                {/* Tick marks */}
-                {Array.from({ length: 12 }).map((_, i) => {
-                    const angle = (i / 12) * 360 - 90;
-                    const x1 = size / 2 + (radius - 10) * Math.cos((angle * Math.PI) / 180);
-                    const y1 = size / 2 + (radius - 10) * Math.sin((angle * Math.PI) / 180);
-                    const x2 = size / 2 + (radius - 18) * Math.cos((angle * Math.PI) / 180);
-                    const y2 = size / 2 + (radius - 18) * Math.sin((angle * Math.PI) / 180);
-
-                    return (
-                        <line
-                            key={i}
-                            x1={x1}
-                            y1={y1}
-                            x2={x2}
-                            y2={y2}
-                            stroke="#333333"
-                            strokeWidth={1}
-                        />
-                    );
-                })}
+            <svg width={size} height={size}>
+                <Ring r={r1} value={recovery} color={COLORS.RECOVERY} delay={0.2} />
+                <Ring r={r2} value={strain} color={COLORS.STRAIN} delay={0.4} />
+                <Ring r={r3} value={sleep} color={COLORS.SLEEP} delay={0.6} />
             </svg>
 
-            {/* Center content */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <motion.span
-                    className="text-5xl font-mono font-bold tracking-tight"
-                    style={{ color: '#FFFFFF' }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                >
-                    {animatedValue}
-                </motion.span>
-                <span
-                    className="text-[10px] font-mono uppercase tracking-[0.2em] mt-1"
-                    style={{ color: accentColor }}
-                >
-                    {label}
-                </span>
-            </div>
-
-            {/* Status badge */}
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="absolute -bottom-6 left-1/2 -translate-x-1/2 px-3 py-1"
-                style={{
-                    background: '#111111',
-                    border: `1px solid ${accentColor}40`,
-                }}
-            >
-                <span
-                    className="text-[9px] font-mono uppercase tracking-[0.15em]"
-                    style={{ color: accentColor }}
-                >
-                    {status}
-                </span>
-            </motion.div>
+            {/* Legend / Metrics List to the right usually, but here we just render the graphic. 
+                External layout handles the legend. */}
         </div>
     );
 }
 
-// Mini stat block for grid display
-interface StatBlockProps {
+
+// ----------------------------------------------------------------------
+// 2. Metric Card (Top Row: Health Score, etc.)
+// ----------------------------------------------------------------------
+
+interface MetricCardProps {
+    icon: React.ReactNode;
     label: string;
     value: string;
-    unit?: string;
-    trend?: 'up' | 'down' | 'neutral';
-    color?: 'green' | 'blue' | 'red' | 'yellow';
-    delay?: number;
+    subValue?: string;
+    color: string;
 }
 
-export function StatBlock({ label, value, unit, trend, color = 'green', delay = 0 }: StatBlockProps) {
-    const accentColor = colorMap[color];
-    const trendSymbol = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '—';
-    const trendColor = trend === 'up' ? '#00FF94' : trend === 'down' ? '#FF3B30' : '#666666';
-
+export function MetricCard({ icon, label, value, subValue, color }: MetricCardProps) {
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
-            className="p-4"
-            style={{
-                background: '#0A0A0A',
-                border: '1px solid #1A1A1A',
-            }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-4 p-4 rounded-xl"
+            style={{ background: COLORS.CARD_BG, border: `1px solid ${COLORS.BORDER}` }}
         >
-            <div className="flex items-center justify-between mb-2">
-                <span
-                    className="text-[9px] font-mono uppercase tracking-[0.15em]"
-                    style={{ color: '#555555' }}
-                >
-                    {label}
-                </span>
-                <span
-                    className="text-[10px] font-mono"
-                    style={{ color: trendColor }}
-                >
-                    {trendSymbol}
-                </span>
+            <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
+                style={{ background: color }}
+            >
+                {icon}
             </div>
-            <div className="flex items-baseline gap-1">
-                <span
-                    className="text-2xl font-mono font-bold"
-                    style={{ color: '#FFFFFF' }}
-                >
-                    {value}
-                </span>
-                {unit && (
-                    <span
-                        className="text-xs font-mono"
-                        style={{ color: '#444444' }}
-                    >
-                        {unit}
-                    </span>
-                )}
+            <div>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[#666666] mb-0.5">{label}</p>
+                <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-bold text-white leading-none">{value}</span>
+                    {subValue && <span className="text-[10px] text-[#888888]">{subValue}</span>}
+                </div>
             </div>
         </motion.div>
     );
 }
 
-// RAG Insight Card (Swiss Style)
-interface InsightCardProps {
-    source: string;
-    conclusion: string;
-    detail?: string;
-    delay?: number;
+// ----------------------------------------------------------------------
+// 3. Stress Overview (Horizontal Bar Chart)
+// ----------------------------------------------------------------------
+
+interface StressLevelProps {
+    label: string;
+    duration: string; // e.g. "0:56:00"
+    percentage: number;
+    color: string;
 }
 
-export function InsightCard({ source, conclusion, detail, delay = 0 }: InsightCardProps) {
-    const [expanded, setExpanded] = useState(false);
+export function StressBarChart() {
+    const Row = ({ label, duration, percentage, color }: StressLevelProps) => (
+        <div className="flex items-center text-[10px] font-mono mb-3 last:mb-0">
+            <span className="w-8 text-[#666666] tracking-wide">{label}</span>
+            <div className="flex-1 mx-3 h-8 relative flex items-center">
+                {/* Bar Array */}
+                <div className="flex gap-[2px] h-full w-full">
+                    {Array.from({ length: 30 }).map((_, i) => (
+                        <div
+                            key={i}
+                            className="w-[2px] h-4 rounded-full"
+                            style={{
+                                background: i / 30 < percentage / 100 ? color : '#1A1A1A',
+                                opacity: i / 30 < percentage / 100 ? 1 : 0.5
+                            }}
+                        />
+                    ))}
+                </div>
+            </div>
+            <div className="text-right w-16">
+                <div className="text-white">{percentage}%</div>
+                <div className="text-[#444444] text-[8px]">{duration}</div>
+            </div>
+        </div>
+    );
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
-            className="p-5"
-            style={{
-                background: '#0A0A0A',
-                border: '1px solid #222222',
-            }}
-            onClick={() => setExpanded(!expanded)}
-        >
-            {/* Source citation */}
-            <div className="flex items-center gap-2 mb-4">
-                <div
-                    className="w-1 h-4"
-                    style={{ background: '#00FF94' }}
-                />
-                <span
-                    className="text-[10px] font-mono uppercase tracking-[0.1em]"
-                    style={{ color: '#555555' }}
-                >
-                    {source}
-                </span>
+        <div className="w-full">
+            <Row label="HIGH" duration="0:56:00" percentage={5} color={COLORS.STRESS_HIGH} />
+            <Row label="MED" duration="0:56:00" percentage={36} color={COLORS.STRESS_MED} />
+            <Row label="LOW" duration="0:56:00" percentage={59} color={COLORS.STRESS_LOW} />
+        </div>
+    );
+}
+
+// ----------------------------------------------------------------------
+// 4. Snapshot Legend (Helper for Concentric Rings)
+// ----------------------------------------------------------------------
+
+export function SnapshotLegend({ recovery, strain, sleep }: { recovery: number, strain: number, sleep: number }) {
+    return (
+        <div className="flex flex-col justify-center gap-4">
+            <div className="flex items-center justify-between gap-6">
+                <span className="text-[10px] font-mono tracking-wider text-[#CCCCCC]">RECOVERY</span>
+                <span className="text-lg font-bold" style={{ color: COLORS.RECOVERY }}>{recovery}%</span>
             </div>
-
-            {/* Main conclusion */}
-            <p
-                className="text-lg font-medium leading-snug mb-3"
-                style={{
-                    color: '#FFFFFF',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                }}
-            >
-                {conclusion}
-            </p>
-
-            {/* Expandable detail */}
-            {detail && (
-                <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{
-                        height: expanded ? 'auto' : 0,
-                        opacity: expanded ? 1 : 0
-                    }}
-                    className="overflow-hidden"
-                >
-                    <p
-                        className="text-sm leading-relaxed pt-3 border-t"
-                        style={{
-                            color: '#666666',
-                            borderColor: '#222222',
-                        }}
-                    >
-                        {detail}
-                    </p>
-                </motion.div>
-            )}
-
-            {/* Expand indicator */}
-            <div
-                className="text-[9px] font-mono uppercase tracking-wider mt-3"
-                style={{ color: '#333333' }}
-            >
-                {expanded ? '— COLLAPSE' : '+ EXPAND'}
+            <div className="flex items-center justify-between gap-6">
+                <span className="text-[10px] font-mono tracking-wider text-[#CCCCCC]">STRAIN</span>
+                <span className="text-lg font-bold" style={{ color: COLORS.STRAIN }}>{strain}%</span>
             </div>
-        </motion.div>
+            <div className="flex items-center justify-between gap-6">
+                <span className="text-[10px] font-mono tracking-wider text-[#CCCCCC]">SLEEP</span>
+                <span className="text-lg font-bold" style={{ color: COLORS.SLEEP }}>{sleep}%</span>
+            </div>
+        </div>
     );
 }

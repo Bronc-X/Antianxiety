@@ -4,13 +4,12 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Activity, Sparkles, Compass, Settings } from 'lucide-react';
+import { LayoutGrid, Calendar, User, Zap } from 'lucide-react'; // Icons matching screenshot roughly
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 interface NavItem {
     id: string;
-    labelEn: string;
-    labelZh: string;
+    label: string;
     icon: React.ReactNode;
     href: string;
 }
@@ -18,115 +17,71 @@ interface NavItem {
 const navItems: NavItem[] = [
     {
         id: 'home',
-        labelEn: 'STATUS',
-        labelZh: '状态',
-        icon: <Activity className="w-5 h-5" strokeWidth={1.5} />,
+        label: 'Home',
+        icon: <LayoutGrid className="w-5 h-5" />,
         href: '/mobile-dark',
     },
     {
-        id: 'max',
-        labelEn: 'MAX',
-        labelZh: 'MAX',
-        icon: <Sparkles className="w-5 h-5" strokeWidth={1.5} />,
-        href: '/mobile-dark/max',
-    },
-    {
-        id: 'discover',
-        labelEn: 'FEED',
-        labelZh: '资讯',
-        icon: <Compass className="w-5 h-5" strokeWidth={1.5} />,
+        id: 'diary',
+        label: 'Diary',
+        icon: <Calendar className="w-5 h-5" />,
         href: '/mobile-dark/discover',
     },
     {
-        id: 'settings',
-        labelEn: 'SYS',
-        labelZh: '系统',
-        icon: <Settings className="w-5 h-5" strokeWidth={1.5} />,
+        id: 'profile',
+        label: 'Profile',
+        icon: <User className="w-5 h-5" />,
         href: '/mobile-dark/settings',
     },
 ];
 
-async function triggerHaptic() {
-    try {
-        await Haptics.impact({ style: ImpactStyle.Light });
-    } catch { }
-}
-
 export default function DarkBottomNav() {
     const pathname = usePathname();
-    const { language } = useI18n();
 
-    const isActive = (item: NavItem) => {
-        if (item.id === 'home') {
+    const isActive = (href: string) => {
+        if (href === '/mobile-dark') {
             return pathname === '/mobile-dark' || pathname === '/mobile-dark/';
         }
-        return pathname?.startsWith(item.href);
+        return pathname?.startsWith(href);
     };
 
     return (
-        <>
-            {/* Spacer */}
-            <div className="h-24" />
-
-            {/* Bottom Navigation - Minimal Dark */}
+        <div className="fixed bottom-6 left-0 right-0 z-[9999] px-12 flex justify-center">
             <nav
-                className="fixed bottom-0 left-0 right-0 z-[9999]"
+                className="flex items-center justify-between w-full max-w-[320px] px-2 py-2 rounded-full backdrop-blur-xl"
                 style={{
-                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                    background: '#000000',
-                    borderTop: '1px solid #222222',
+                    background: 'rgba(20, 20, 20, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)'
                 }}
             >
-                {/* Nav Container */}
-                <div className="flex justify-around items-center px-2 py-3">
-                    {navItems.map((item) => {
-                        const active = isActive(item);
-                        const label = language === 'en' ? item.labelEn : item.labelZh;
-                        const isMax = item.id === 'max';
-
-                        return (
-                            <Link
-                                key={item.id}
-                                href={item.href}
-                                onClick={() => {
-                                    if (!active) triggerHaptic();
-                                }}
-                                className="relative flex-1 flex flex-col items-center justify-center py-1"
-                            >
-                                {/* Active Indicator - Neon line */}
-                                {active && (
-                                    <motion.div
-                                        layoutId="darkNavActive"
-                                        className="absolute -top-3 w-8 h-[2px]"
-                                        style={{ background: isMax ? '#007AFF' : '#00FF94' }}
-                                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                                    />
-                                )}
-
-                                {/* Icon */}
+                {navItems.map((item) => {
+                    const active = isActive(item.href);
+                    return (
+                        <Link
+                            key={item.id}
+                            href={item.href}
+                            onClick={() => Haptics.impact({ style: ImpactStyle.Light })}
+                            className="relative w-12 h-12 flex items-center justify-center rounded-full transition-all"
+                        >
+                            {active && (
                                 <motion.div
-                                    animate={{ opacity: active ? 1 : 0.4 }}
-                                    className="transition-colors"
-                                    style={{ color: active ? (isMax ? '#007AFF' : '#00FF94') : '#666666' }}
-                                >
-                                    {item.icon}
-                                </motion.div>
+                                    layoutId="navBlob"
+                                    className="absolute inset-0 bg-black rounded-full"
+                                    style={{ border: '1px solid rgba(255,255,255,0.2)' }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                />
+                            )}
 
-                                {/* Label - Mono font */}
-                                <span
-                                    className="text-[9px] font-mono tracking-wider mt-1.5"
-                                    style={{
-                                        color: active ? (isMax ? '#007AFF' : '#00FF94') : '#444444',
-                                        letterSpacing: '0.1em',
-                                    }}
-                                >
-                                    {label}
-                                </span>
-                            </Link>
-                        );
-                    })}
-                </div>
+                            <div className="relative z-10" style={{ color: active ? '#FFFFFF' : '#666666' }}>
+                                {item.icon}
+                            </div>
+
+                            {/* Label? Screenshot doesn't show text, just icons for main items usually. keeping simple. */}
+                        </Link>
+                    );
+                })}
             </nav>
-        </>
+        </div>
     );
 }
