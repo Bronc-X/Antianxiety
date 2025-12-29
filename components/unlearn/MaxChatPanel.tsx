@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Sparkles, Loader2, User, Bot } from 'lucide-react';
+import { Send, X, Sparkles, Loader2, User, Bot, Mic, MicOff } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface Message {
@@ -22,14 +22,56 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [speechSupported, setSpeechSupported] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
 
     useEffect(() => {
         if (isOpen && inputRef.current) {
             inputRef.current.focus();
         }
     }, [isOpen]);
+
+    // Check for Speech Recognition support
+    useEffect(() => {
+        const SpeechRecognition = (window as typeof window & { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition ||
+            (window as typeof window & { webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            setSpeechSupported(true);
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+            recognitionRef.current.lang = language === 'en' ? 'en-US' : 'zh-CN';
+
+            recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+                const transcript = event.results[0][0].transcript;
+                setInput(prev => prev + transcript);
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onerror = () => {
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+            };
+        }
+    }, [language]);
+
+    const toggleListening = () => {
+        if (!recognitionRef.current) return;
+
+        if (isListening) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+        } else {
+            recognitionRef.current.start();
+            setIsListening(true);
+        }
+    };
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,7 +146,7 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                    className="fixed bottom-24 right-6 w-[400px] h-[600px] z-50 flex flex-col overflow-hidden shadow-2xl rounded-lg"
+                    className="fixed bottom-0 right-0 w-full h-[100dvh] md:bottom-24 md:right-6 md:w-[400px] md:h-[600px] z-50 flex flex-col overflow-hidden shadow-2xl md:rounded-lg"
                     style={{
                         backgroundColor: '#FFFFFF',
                         border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -149,8 +191,8 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                                 )}
                                 <div
                                     className={`max-w-[80%] p-3 rounded-lg ${msg.role === 'user'
-                                            ? 'text-[#1A1A1A]'
-                                            : 'bg-[#0B3D2E]/5 text-[#1A1A1A]'
+                                        ? 'text-[#1A1A1A]'
+                                        : 'bg-[#0B3D2E]/5 text-[#1A1A1A]'
                                         }`}
                                 >
                                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -176,7 +218,7 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                     </div>
 
                     {/* Input */}
-                    <div className="p-4 border-t border-gray-100 bg-white">
+                    <div className="p-4 border-t border-gray-100 bg-white pb-safe">
                         <div className="flex gap-2">
                             <input
                                 ref={inputRef}
@@ -187,6 +229,18 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                                 placeholder={language === 'en' ? 'Ask Max anything...' : '问 Max 任何问题...'}
                                 className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 text-[#1A1A1A] placeholder-[#1A1A1A]/40 rounded-lg focus:outline-none focus:border-[#0B3D2E] transition-colors"
                             />
+                            {speechSupported && (
+                                <button
+                                    onClick={toggleListening}
+                                    className={`px-4 py-3 rounded-lg transition-colors ${isListening
+                                            ? 'bg-red-500 text-white animate-pulse'
+                                            : 'bg-gray-100 text-[#1A1A1A]/60 hover:bg-gray-200'
+                                        }`}
+                                    title={language === 'en' ? 'Voice input' : '语音输入'}
+                                >
+                                    {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                                </button>
+                            )}
                             <button
                                 onClick={sendMessage}
                                 disabled={!input.trim() || loading}

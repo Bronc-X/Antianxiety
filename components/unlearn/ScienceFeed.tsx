@@ -40,7 +40,7 @@ function PlatformLogo({ sourceType }: { sourceType: string }) {
     const platform = logoMap[sourceType] || logoMap.default;
 
     return (
-        <div 
+        <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
             style={{ backgroundColor: `${platform.color}20`, color: platform.color }}
         >
@@ -73,13 +73,13 @@ function MatchBadge({ percentage }: { percentage: number }) {
 // Feed Card Component
 // ============================================
 
-function FeedCard({ 
-    item, 
-    index, 
+function FeedCard({
+    item,
+    index,
     language,
-    onFeedback 
-}: { 
-    item: EnrichedFeedItem; 
+    onFeedback
+}: {
+    item: EnrichedFeedItem;
     index: number;
     language: string;
     onFeedback: (id: string | number, isPositive: boolean) => void;
@@ -147,7 +147,7 @@ function FeedCard({
             {item.tags && item.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                     {item.tags.map((tag, i) => (
-                        <span 
+                        <span
                             key={i}
                             className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${tagClass}`}
                         >
@@ -207,7 +207,7 @@ function generateLoadingMessages(language: string): string[] {
     const matched = randomBetween(15, 45);
     const duplicates = randomBetween(80, 250);
     const journals = randomBetween(12, 35);
-    
+
     if (language === 'en') {
         return [
             'Connecting to academic databases...',
@@ -232,7 +232,7 @@ function generateLoadingMessages(language: string): string[] {
             'Almost ready to present...',
         ];
     }
-    
+
     return [
         '正在连接学术数据库...',
         '扫描 PubMed 最新研究...',
@@ -260,15 +260,15 @@ function generateLoadingMessages(language: string): string[] {
 function AILoadingState({ language }: { language: string }) {
     const [messageIndex, setMessageIndex] = useState(0);
     const [messages, setMessages] = useState<string[]>([]);
-    
+
     useEffect(() => {
         // 组件挂载时生成随机消息
         const generatedMessages = generateLoadingMessages(language);
         setMessages(generatedMessages);
-        
+
         // 随机起始位置
         setMessageIndex(Math.floor(Math.random() * generatedMessages.length));
-        
+
         const interval = setInterval(() => {
             setMessageIndex(prev => {
                 // 随机跳跃 1-3 条消息，让它看起来更自然
@@ -276,12 +276,12 @@ function AILoadingState({ language }: { language: string }) {
                 return (prev + jump) % generatedMessages.length;
             });
         }, 2800); // 约 3 秒切换一次
-        
+
         return () => clearInterval(interval);
     }, [language]);
-    
+
     if (messages.length === 0) return null;
-    
+
     return (
         <section className="py-16 px-6" style={{ backgroundColor: '#0B3D2E' }}>
             <div className="max-w-[900px] mx-auto flex flex-col items-center justify-center py-20">
@@ -290,7 +290,7 @@ function AILoadingState({ language }: { language: string }) {
                     <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
                     <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-[#D4AF37]/20 animate-ping" />
                 </div>
-                
+
                 {/* 动态消息 */}
                 <motion.p
                     key={messageIndex}
@@ -302,7 +302,7 @@ function AILoadingState({ language }: { language: string }) {
                 >
                     {messages[messageIndex]}
                 </motion.p>
-                
+
                 {/* 进度条效果 */}
                 <div className="mt-6 w-48 h-1 bg-white/10 rounded-full overflow-hidden">
                     <motion.div
@@ -312,7 +312,7 @@ function AILoadingState({ language }: { language: string }) {
                         transition={{ duration: 25, ease: 'linear' }}
                     />
                 </div>
-                
+
                 <p className="text-white/40 text-xs mt-3">
                     {language === 'en' ? 'This may take 10-20 seconds' : '这可能需要 10-20 秒'}
                 </p>
@@ -345,19 +345,19 @@ export default function ScienceFeed() {
             setLoading(true);
             setErrorMessage(null);
             setIsUnauthorized(false);
-            
+
             const res = await fetch(`/api/feed?limit=5&lang=${language}`, { cache: 'no-store' });
-            
+
             if (res.status === 401) {
                 setItems([]);
                 setIsUnauthorized(true);
                 return;
             }
-            
+
             if (!res.ok) {
                 throw new Error('Failed to fetch feed');
             }
-            
+
             const data = await res.json();
 
             if (data.items && data.items.length > 0) {
@@ -388,8 +388,8 @@ export default function ScienceFeed() {
                     feedbackType: isPositive ? 'like' : 'dislike',
                 }),
             });
-            fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => {});
-            fetch('/api/user/refresh', { method: 'POST' }).catch(() => {});
+            fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
+            fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
         } catch (error) {
             console.error('Failed to submit feedback:', error);
         }
@@ -406,7 +406,7 @@ export default function ScienceFeed() {
 
     // 获取今日日期
     const today = new Date();
-    const dateStr = language === 'en' 
+    const dateStr = language === 'en'
         ? today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         : `${today.getMonth() + 1}月${today.getDate()}日`;
 
@@ -431,8 +431,8 @@ export default function ScienceFeed() {
                     </p>
                     <p className="text-white/40 text-xs">
                         {language === 'en'
-                            ? '📅 New recommendations every day at 2:00 PM'
-                            : '📅 每天下午 2:00 更新推荐'}
+                            ? '📅 New recommendations every day at 10:00 AM'
+                            : '📅 每天上午 10:00 更新推荐'}
                     </p>
                 </div>
 

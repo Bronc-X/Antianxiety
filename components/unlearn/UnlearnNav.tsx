@@ -66,7 +66,7 @@ export default function UnlearnNav({
     // 检查登录状态并获取用户信息
     useEffect(() => {
         const supabase = createClientSupabaseClient();
-        
+
         const fetchUserData = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
@@ -77,7 +77,7 @@ export default function UnlearnNav({
                     .select('avatar_url, display_name, full_name')
                     .eq('id', session.user.id)
                     .single();
-                
+
                 if (profile) {
                     setUserAvatar(profile.avatar_url);
                     setUserName(profile.display_name || profile.full_name || session.user.email?.split('@')[0] || null);
@@ -90,7 +90,7 @@ export default function UnlearnNav({
                 setIsLoggedIn(false);
             }
         };
-        
+
         fetchUserData();
     }, [isAppNav]);
 
@@ -121,9 +121,9 @@ export default function UnlearnNav({
                 style={{ width: 'min(90vw, 900px)' }}
             >
                 {/* Logo */}
-                <Link href={isLoggedIn ? '/unlearn/app' : '/'} className="flex items-center gap-2 shrink-0">
+                <Link href={isLoggedIn ? '/unlearn/app' : '/unlearn'} className="flex items-center gap-2 shrink-0">
                     <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="font-bold text-[#1A1A1A] hidden sm:block tracking-tight">
+                    <span className="font-serif font-bold text-[#1A1A1A] hidden sm:block tracking-tight">
                         AntiAnxiety<sup className="text-[8px]">™</sup>
                     </span>
                 </Link>
@@ -146,7 +146,7 @@ export default function UnlearnNav({
                     <div className="hidden md:flex items-center">
                         <LanguageSwitcher />
                     </div>
-                    
+
                     {isLoggedIn ? (
                         /* 已登录状态 - 显示用户菜单 */
                         <div className="relative">
@@ -180,12 +180,12 @@ export default function UnlearnNav({
                                         {t('userMenu.settings')}
                                     </Link>
 
-                                    <Link 
-                                        href="/onboarding/upgrade?from=menu" 
-                                        className="block px-4 py-3 text-sm text-[#1A1A1A] hover:bg-[#FAF6EF] transition-colors" 
-                                        onClick={() => setShowUserMenu(false)} 
-                                    > 
-                                        {t('userMenu.upgrade')} 
+                                    <Link
+                                        href="/onboarding/upgrade?from=menu"
+                                        className="block px-4 py-3 text-sm text-[#1A1A1A] hover:bg-[#FAF6EF] transition-colors"
+                                        onClick={() => setShowUserMenu(false)}
+                                    >
+                                        {t('userMenu.upgrade')}
                                     </Link>
                                     <button
                                         onClick={handleLogout}
@@ -206,7 +206,7 @@ export default function UnlearnNav({
                             {loginLabel}
                         </Link>
                     )}
-                    
+
                     {/* CTA 按钮 - 只在未登录或有特定 CTA 时显示 */}
                     {(!isLoggedIn || (ctaHref && ctaHref !== '/unlearn/app/calibration')) && (
                         <Link

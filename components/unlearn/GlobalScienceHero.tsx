@@ -37,12 +37,12 @@ export default function GlobalScienceHero({
   useEffect(() => {
     const particleCount = 200;
     const newParticles: Particle[] = [];
-    
+
     for (let i = 0; i < particleCount; i++) {
       // Start particles from edges
       const edge = Math.floor(Math.random() * 4);
       let x, y;
-      
+
       switch (edge) {
         case 0: // top
           x = Math.random() * window.innerWidth;
@@ -60,7 +60,7 @@ export default function GlobalScienceHero({
           x = -50;
           y = Math.random() * window.innerHeight;
       }
-      
+
       newParticles.push({
         id: i,
         x,
@@ -71,7 +71,7 @@ export default function GlobalScienceHero({
         opacity: Math.random() * 0.5 + 0.3,
       });
     }
-    
+
     setParticles(newParticles);
   }, []);
 
@@ -79,7 +79,7 @@ export default function GlobalScienceHero({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -87,7 +87,7 @@ export default function GlobalScienceHero({
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
-    
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
@@ -96,14 +96,14 @@ export default function GlobalScienceHero({
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
+
       // Draw converging particles
       particles.forEach((particle, index) => {
         // Calculate direction to center
         const dx = centerX - particle.x;
         const dy = centerY - particle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         // Move towards center
         if (distance > 50) {
           particle.x += (dx / distance) * particle.speed * 2;
@@ -129,14 +129,14 @@ export default function GlobalScienceHero({
               particle.y = Math.random() * canvas.height;
           }
         }
-        
+
         // Draw particle with gradient based on distance
         const alpha = Math.min(particle.opacity, distance / 300);
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.fill();
-        
+
         // Draw connection lines to nearby particles
         particles.slice(index + 1).forEach((other) => {
           const d = Math.sqrt(
@@ -151,7 +151,7 @@ export default function GlobalScienceHero({
           }
         });
       });
-      
+
       // Draw center glow
       const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 100);
       gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
@@ -161,7 +161,7 @@ export default function GlobalScienceHero({
       ctx.arc(centerX, centerY, 100, 0, Math.PI * 2);
       ctx.fillStyle = gradient;
       ctx.fill();
-      
+
       // Pulsing center point
       const pulseSize = 8 + Math.sin(Date.now() / 500) * 3;
       const centerGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, pulseSize);
@@ -172,12 +172,12 @@ export default function GlobalScienceHero({
       ctx.arc(centerX, centerY, pulseSize, 0, Math.PI * 2);
       ctx.fillStyle = centerGradient;
       ctx.fill();
-      
+
       animationRef.current = requestAnimationFrame(animate);
     };
-    
+
     animate();
-    
+
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       if (animationRef.current) {
@@ -198,9 +198,9 @@ export default function GlobalScienceHero({
         className="absolute inset-0 z-0"
         style={{ opacity: 0.8 }}
       />
-      
+
       {/* Gradient Overlay */}
-      <div 
+      <div
         className="absolute inset-0 z-[1]"
         style={{
           background: 'radial-gradient(circle at center, transparent 0%, rgba(11,61,46,0.4) 70%)',
@@ -301,28 +301,11 @@ export default function GlobalScienceHero({
           </Link>
         </motion.div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.5, delay: 1 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        >
-          <span className="text-white/40 text-xs uppercase tracking-widest">
-            {language === 'en' ? 'Scroll' : '滚动'}
-          </span>
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-            className="w-5 h-8 border border-white/30 rounded-full flex justify-center pt-1.5"
-          >
-            <div className="w-1 h-1 bg-white/60 rounded-full" />
-          </motion.div>
-        </motion.div>
+
       </div>
 
       {/* Bottom Gradient Transition */}
-      <div 
+      <div
         className="absolute bottom-0 left-0 right-0 h-32 z-[2]"
         style={{
           background: 'linear-gradient(to bottom, transparent 0%, #0B3D2E 100%)',

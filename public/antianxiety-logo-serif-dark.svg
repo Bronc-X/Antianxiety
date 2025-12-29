@@ -1,0 +1,12 @@
+<svg width="220" height="40" viewBox="0 0 220 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&amp;display=swap');
+  </style>
+  <!-- Emerald Dot (Unchanged) -->
+  <circle cx="10" cy="22" r="4" fill="#10b981"/>
+  
+  <!-- Text (Black for Light Mode) -->
+  <text x="24" y="26" font-family="'Playfair Display', serif" font-weight="700" font-style="italic" font-size="20" fill="black" letter-spacing="-0.02em">
+    AntiAnxiety™
+  </text>
+</svg>

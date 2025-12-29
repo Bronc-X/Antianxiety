@@ -1,5 +1,7 @@
 'use client';
 
+
+
 import { useRef, useState, useEffect } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -35,13 +37,13 @@ export default function DigitalTwinHero({
 
     // Rotating statements
     const statements = language === 'en' ? [
-        { verb: 'Digest', text: 'global research. To serve one purpose:', highlight: 'You.' },
-        { verb: 'Filter', text: 'world noise. To find one truth:', highlight: 'You.' },
-        { verb: 'Compute', text: 'millions of papers. To make one decision:', highlight: 'You.' },
+        { verb: 'Digest', prefix: 'global research. To serve one ', keyword: 'purpose', suffix: ':', highlight: 'You.' },
+        { verb: 'Filter', prefix: 'world noise. To find one ', keyword: 'truth', suffix: ':', highlight: 'You.' },
+        { verb: 'Compute', prefix: 'millions of papers. To make one ', keyword: 'decision', suffix: ':', highlight: 'You.' },
     ] : [
-        { verb: '汲取', text: '全球研究，只为一个目的：', highlight: '你。' },
-        { verb: '过滤', text: '世界噪音，只为一个真相：', highlight: '你。' },
-        { verb: '计算', text: '千万论文，只为一个决策：', highlight: '你。' },
+        { verb: '汲取', prefix: '全球研究，只为一个', keyword: '目的', suffix: '：', highlight: '你。' },
+        { verb: '过滤', prefix: '世界噪音，只为一个', keyword: '真相', suffix: '：', highlight: '你。' },
+        { verb: '计算', prefix: '千万论文，只为一个', keyword: '决策', suffix: '：', highlight: '你。' },
     ];
 
     useEffect(() => {
@@ -72,7 +74,7 @@ export default function DigitalTwinHero({
                             priority
                         />
                         {/* Gradient Fade to Left */}
-                        <div 
+                        <div
                             className="absolute inset-0"
                             style={{
                                 background: 'linear-gradient(to right, #0B3D2E 0%, transparent 30%)',
@@ -109,15 +111,19 @@ export default function DigitalTwinHero({
                                     exit={{ opacity: 0, y: -30 }}
                                     transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
                                 >
-                                    <h2 
+                                    <h2
                                         className="font-serif font-bold text-white leading-[1.1] tracking-[-0.02em] mb-4"
                                         style={{ fontSize: 'clamp(32px, 5vw, 56px)' }}
                                     >
                                         <span className="text-[#D4AF37]">{statements[currentIndex].verb}</span>
                                         <br />
-                                        <span className="text-white/90">{statements[currentIndex].text}</span>
+                                        <span className="text-white">
+                                            {statements[currentIndex].prefix}
+                                            <span className="text-[#D4AF37]">{statements[currentIndex].keyword}</span>
+                                            {statements[currentIndex].suffix}
+                                        </span>
                                     </h2>
-                                    <p 
+                                    <p
                                         className="font-serif italic text-[#D4AF37]"
                                         style={{ fontSize: 'clamp(28px, 4vw, 48px)' }}
                                     >
@@ -141,9 +147,8 @@ export default function DigitalTwinHero({
                                     className="group relative h-[2px] transition-all duration-500"
                                     style={{ width: idx === currentIndex ? '48px' : '24px' }}
                                 >
-                                    <div className={`absolute inset-0 transition-colors duration-300 ${
-                                        idx === currentIndex ? 'bg-[#D4AF37]' : 'bg-white/20 group-hover:bg-white/40'
-                                    }`} />
+                                    <div className={`absolute inset-0 transition-colors duration-300 ${idx === currentIndex ? 'bg-[#D4AF37]' : 'bg-white/20 group-hover:bg-white/40'
+                                        }`} />
                                     {idx === currentIndex && (
                                         <motion.div
                                             className="absolute inset-0 bg-[#D4AF37]"

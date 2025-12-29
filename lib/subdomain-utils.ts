@@ -17,25 +17,29 @@ export type AppRegion = 'zh' | 'en';
 export function getAppRegion(hostname?: string): AppRegion {
     const host = hostname || (typeof window !== 'undefined' ? window.location.hostname : '');
 
-    // Check for zh subdomain
+    // 1. Subdomain Check (Highest Priority)
+    // If the user explicitly visits zh.antianxiety.app, they want Chinese.
     if (host.startsWith('zh.') || host.includes('zh.localhost')) {
         return 'zh';
     }
-
-    // Check for en subdomain
     if (host.startsWith('en.') || host.includes('en.localhost')) {
         return 'en';
     }
 
-    // Default: check browser language for localhost development
-    if (host === 'localhost' || host === '127.0.0.1') {
-        if (typeof navigator !== 'undefined') {
-            const lang = navigator.language.toLowerCase();
-            return lang.startsWith('zh') ? 'zh' : 'en';
-        }
+    // 2. Client-side: Check cookie (User Preference)
+    if (typeof document !== 'undefined') {
+        const match = document.cookie.match(new RegExp('(?:^|; )NEXT_LOCALE=([^;]*)'));
+        const cookieVal = match ? decodeURIComponent(match[1]) : null;
+        if (cookieVal === 'zh' || cookieVal === 'en') return cookieVal;
     }
 
-    // Default to en for unknown hosts
+    // 3. Default: check browser language
+    if (typeof navigator !== 'undefined') {
+        const lang = navigator.language.toLowerCase();
+        return lang.startsWith('zh') ? 'zh' : 'en';
+    }
+
+    // 4. Server-side / Fallback
     return 'en';
 }
 

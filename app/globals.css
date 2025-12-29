@@ -1594,3 +1594,78 @@ select {
   background: linear-gradient(90deg, transparent, var(--signal-green), transparent);
   animation: h-line-scroll 3s ease-in-out infinite;
 }
+
+/* ==========================================
+   MOBILE-ONLY STYLES (DO NOT AFFECT DESKTOP)
+   ========================================== */
+
+@media (max-width: 768px) {
+  /* Mobile text shadow for better readability on dark backgrounds */
+  .unlearn-theme h1,
+  .unlearn-theme h2,
+  .unlearn-theme h3 {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+  
+  .unlearn-theme .text-white,
+  .unlearn-theme [class*="text-white/"] {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Stronger text shadow for hero sections */
+  .unlearn-theme section[style*="background"] h1,
+  .unlearn-theme section[style*="background"] h2,
+  .unlearn-theme section[style*="background"] p {
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Touch feedback for interactive elements */
+  .unlearn-theme button:active,
+  .unlearn-theme a:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Mobile card entrance animation */
+  .mobile-fade-in {
+    animation: mobileFadeIn 0.4s ease-out;
+  }
+  
+  @keyframes mobileFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Pulse animation for mobile CTAs */
+  .mobile-pulse {
+    animation: mobilePulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes mobilePulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
+    }
+  }
+  
+  /* Better mobile tap targets */
+  .unlearn-theme button,
+  .unlearn-theme a[href] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve mobile input contrast */
+  .unlearn-theme input,
+  .unlearn-theme textarea {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+  }
+}
