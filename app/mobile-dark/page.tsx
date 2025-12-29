@@ -4,7 +4,7 @@ import { useI18n } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Bell, User, Heart, CloudSun, ChevronRight, Activity, Flame } from 'lucide-react';
-import { ConcentricRings, MetricCard, StressBarChart, SnapshotLegend } from '@/components/mobile-dark/DarkComponents';
+import { MetricBars, MetricCard, StressBarChart } from '@/components/mobile-dark/DarkComponents';
 import DarkBottomNav from '@/components/mobile-dark/DarkBottomNav';
 
 export default function DarkDashboard() {
@@ -62,7 +62,7 @@ export default function DarkDashboard() {
                         color="#FF9500" // Sun color
                         label="WEATHER"
                         value="26°"
-                        subValue="Bali" // Mock loc
+                        subValue="Bali"
                     />
                 </div>
 
@@ -78,28 +78,17 @@ export default function DarkDashboard() {
                         <ChevronRight className="w-4 h-4 text-[#444444]" />
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        {/* Rings Graphic */}
-                        <div className="flex-shrink-0">
-                            <ConcentricRings
-                                recovery={metrics.recovery}
-                                strain={metrics.strain}
-                                sleep={metrics.sleep}
-                            />
-                        </div>
-
-                        {/* Legend */}
-                        <div className="flex-1 pl-8">
-                            <SnapshotLegend
-                                recovery={metrics.recovery}
-                                strain={metrics.strain}
-                                sleep={metrics.sleep}
-                            />
-                        </div>
+                    {/* New Metric Bars Layout */}
+                    <div className="mb-6">
+                        <MetricBars
+                            recovery={metrics.recovery}
+                            strain={metrics.strain}
+                            sleep={metrics.sleep}
+                        />
                     </div>
 
                     {/* Insight Text */}
-                    <div className="mt-6 p-4 rounded-xl bg-[#111111] border border-[#222222]">
+                    <div className="p-4 rounded-xl bg-[#111111] border border-[#222222]">
                         <h3 className="text-sm font-bold text-white mb-1">Your body is in a balanced zone</h3>
                         <p className="text-xs text-[#888888] leading-relaxed">
                             Consider a light-to-moderate workout in the afternoon to maintain momentum.
@@ -123,13 +112,9 @@ export default function DarkDashboard() {
                         <ChevronRight className="w-4 h-4 text-[#444444]" />
                     </div>
 
-                    {/* Gauge + Stats Layout (Inspired by Screenshot 4/5) */}
                     <div className="flex flex-col gap-6">
-                        {/* We'll use the Bar Chart logic here as per plan, though screenshot 4 is a line chart. 
-                             Screenshot 1 has a 'Stress Overview' with High/Med/Low bars. */}
                         <StressBarChart />
 
-                        {/* Bottom Stats Grid */}
                         <div className="grid grid-cols-3 gap-2 pt-4 border-t border-[#1A1A1A]">
                             <div className="text-center">
                                 <p className="text-[9px] font-mono text-[#555555] uppercase mb-1">Highest</p>
