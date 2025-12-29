@@ -110,8 +110,8 @@ export function MobileMaxChat() {
                     >
                         <div
                             className={`max-w-[85%] p-3 rounded-lg border ${msg.role === 'user'
-                                ? 'bg-[#00FF94]/10 border-[#00FF94]/30 text-[#00FF94] shadow-[0_0_10px_rgba(0,255,148,0.1)]' // Green for User
-                                : 'bg-[#111111] border-[#333333] text-[#CCCCCC]' // Dark Gray/White for AI
+                                    ? 'bg-[#00FF94]/10 border-[#00FF94]/30 text-[#00FF94] shadow-[0_0_10px_rgba(0,255,148,0.1)]' // Green for User
+                                    : 'bg-[#111111] border-[#333333] text-[#CCCCCC]' // Dark Gray/White for AI
                                 }`}
                         >
                             {msg.role === 'assistant' && (
@@ -139,20 +139,8 @@ export function MobileMaxChat() {
             </div>
 
             {/* Input Area */}
-            <div className="fixed bottom-[100px] left-0 right-0 z-50 px-4">
-                <div
-                    className="flex items-center gap-2 max-w-[320px] mx-auto bg-[#0A0A0A] p-2 rounded-full backdrop-blur-md relative overflow-hidden"
-                    style={{
-                        boxShadow: `
-                           inset 1px 1px 2px rgba(255,255,255,0.05),
-                           inset -2px -2px 6px rgba(0,0,0,0.5),
-                           0 10px 30px rgba(0,0,0,0.4)
-                        `
-                    }}
-                >
-                    {/* Gloss Overlay */}
-                    <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-full pointer-events-none" />
-
+            <div className="fixed bottom-[80px] left-0 right-0 z-50 px-4">
+                <div className="flex items-center gap-2 max-w-[320px] mx-auto bg-[#0A0A0A] border border-[#222222] p-1.5 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md">
                     <input
                         className="flex-1 bg-transparent border-none outline-none text-white px-3 py-2 placeholder:text-[#444444]"
                         placeholder="INPUT_COMMAND..."
