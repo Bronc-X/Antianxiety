@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
+import Logo from './Logo';
 
 interface FooterLink {
     label: string;
@@ -89,12 +90,9 @@ export default function UnlearnFooter({
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
                     {/* Brand Column */}
                     <div className="col-span-2">
-                        <Link href="/" className="flex items-center gap-2 mb-4">
-                            <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                            <span className="font-bold text-white text-xl tracking-tight">
-                                AntiAnxiety<sup className="text-xs">™</sup>
-                            </span>
-                        </Link>
+                        <div className="mb-4">
+                            <Logo variant="light" size="lg" href="/unlearn" />
+                        </div>
                         <p className="text-white/60 text-sm leading-relaxed max-w-xs mb-6">
                             {language === 'en'
                                 ? 'Redefining mental health through the power of AI and personalized care.'

@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
+import Logo from './Logo';
 
 interface NavLink {
     label: string;
@@ -121,12 +122,10 @@ export default function UnlearnNav({
                 style={{ width: 'min(90vw, 900px)' }}
             >
                 {/* Logo */}
-                <Link href={isLoggedIn ? '/unlearn/app' : '/unlearn'} className="flex items-center gap-2 shrink-0">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="font-serif font-bold text-[#1A1A1A] hidden sm:block tracking-tight">
-                        AntiAnxiety<sup className="text-[8px]">™</sup>
-                    </span>
-                </Link>
+                <Logo
+                    variant="dark"
+                    href={isLoggedIn ? '/unlearn/app' : '/unlearn'}
+                />
 
                 {/* Desktop Links */}
                 <div className="hidden md:flex items-center gap-6">
