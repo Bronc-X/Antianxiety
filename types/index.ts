@@ -5,6 +5,29 @@
  */
 
 // ============================================
+// MVVM Architecture Types
+// ============================================
+
+export type {
+  ActionResult,
+  ActionData,
+  DomainHookReturn,
+  OptimisticHookReturn,
+  PresentationalProps,
+  DeviceType,
+  DeviceRoutingProps,
+  JSONSerializable,
+  EnsureSerializable,
+  UnifiedProfile,
+  WellnessLog,
+  HardwareDataPoint,
+  HardwareData,
+  DashboardData,
+  DashboardActions,
+  UseDashboardReturn,
+} from './architecture';
+
+// ============================================
 // Existing Application Types
 // ============================================
 
