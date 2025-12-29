@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Zap, Terminal } from 'lucide-react';
+import { Send, Zap, Terminal, Sparkles } from 'lucide-react';
 import { createClientSupabaseClient } from '@/lib/supabase-client';
 
 interface Message {
@@ -39,10 +39,9 @@ export function MobileMaxChat() {
         if (data) {
             setMessages(data.map((m: any) => ({ role: m.role, content: m.content })));
         } else {
-            // Initial Welcome if no history
             setMessages([{
                 role: 'assistant',
-                content: `Systems nominal. Max initialized.\nReady to process bio-data and optimize performance.`
+                content: `Systems nominal. Max initialized.\nReady to process bio-data.`
             }]);
         }
     };
@@ -56,10 +55,8 @@ export function MobileMaxChat() {
         setIsLoading(true);
 
         try {
-            // Optimistic update
             const { data: { user } } = await supabase.auth.getUser();
 
-            // Save user msg
             if (user) {
                 await supabase.from('ai_conversations').insert({
                     user_id: user.id,
@@ -84,7 +81,6 @@ export function MobileMaxChat() {
             const aiMsg = { role: 'assistant' as const, content: aiContent };
             setMessages(prev => [...prev, aiMsg]);
 
-            // Save AI msg
             if (user) {
                 await supabase.from('ai_conversations').insert({
                     user_id: user.id,
@@ -95,8 +91,7 @@ export function MobileMaxChat() {
             }
 
         } catch (e) {
-            console.error(e);
-            setMessages(prev => [...prev, { role: 'system', content: 'Error: Link failure.' }]);
+            setMessages(prev => [...prev, { role: 'system', content: 'Link failure.' }]);
         } finally {
             setIsLoading(false);
         }
@@ -115,12 +110,12 @@ export function MobileMaxChat() {
                     >
                         <div
                             className={`max-w-[85%] p-3 rounded-lg border ${msg.role === 'user'
-                                    ? 'bg-[#111111] border-[#333333] text-[#CCCCCC]'
-                                    : 'bg-[#007AFF]/10 border-[#007AFF]/30 text-[#007AFF]'
+                                    ? 'bg-[#00FF94]/10 border-[#00FF94]/30 text-[#00FF94] shadow-[0_0_10px_rgba(0,255,148,0.1)]' // Green for User
+                                    : 'bg-[#111111] border-[#333333] text-[#CCCCCC]' // Dark Gray/White for AI
                                 }`}
                         >
                             {msg.role === 'assistant' && (
-                                <div className="flex items-center gap-1 mb-1 text-[10px] opacity-50 uppercase tracking-widest">
+                                <div className="flex items-center gap-1 mb-1 text-[10px] opacity-50 uppercase tracking-widest text-emerald-400">
                                     <Terminal className="w-3 h-3" />
                                     <span>Max_Core</span>
                                 </div>
@@ -133,10 +128,10 @@ export function MobileMaxChat() {
                 ))}
                 {isLoading && (
                     <div className="flex justify-start">
-                        <div className="bg-[#007AFF]/5 border border-[#007AFF]/20 p-3 rounded-lg flex gap-1 items-center">
-                            <span className="w-1.5 h-1.5 bg-[#007AFF] animate-pulse" />
-                            <span className="w-1.5 h-1.5 bg-[#007AFF] animate-pulse delay-75" />
-                            <span className="w-1.5 h-1.5 bg-[#007AFF] animate-pulse delay-150" />
+                        <div className="bg-[#111111] border border-[#333333] p-3 rounded-lg flex gap-1 items-center">
+                            <span className="w-1.5 h-1.5 bg-[#00FF94] animate-pulse" />
+                            <span className="w-1.5 h-1.5 bg-[#00FF94] animate-pulse delay-75" />
+                            <span className="w-1.5 h-1.5 bg-[#00FF94] animate-pulse delay-150" />
                         </div>
                     </div>
                 )}
@@ -144,11 +139,11 @@ export function MobileMaxChat() {
             </div>
 
             {/* Input Area */}
-            <div className="fixed bottom-[80px] left-0 right-0 px-4">
-                <div className="flex items-center gap-2 max-w-[320px] mx-auto bg-[#0A0A0A] border border-[#333333] p-1.5 rounded-full shadow-2xl">
+            <div className="fixed bottom-[80px] left-0 right-0 z-50 px-4">
+                <div className="flex items-center gap-2 max-w-[320px] mx-auto bg-[#0A0A0A] border border-[#222222] p-1.5 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md">
                     <input
                         className="flex-1 bg-transparent border-none outline-none text-white px-3 py-2 placeholder:text-[#444444]"
-                        placeholder="Enter command..."
+                        placeholder="INPUT_COMMAND..."
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && sendMessage()}
@@ -156,9 +151,9 @@ export function MobileMaxChat() {
                     <button
                         onClick={sendMessage}
                         disabled={isLoading || !input.trim()}
-                        className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center text-white disabled:opacity-50"
+                        className="w-8 h-8 rounded-full bg-[#00FF94] flex items-center justify-center text-black disabled:opacity-50 hover:bg-[#00CC76] transition-colors"
                     >
-                        {isLoading ? <Zap className="w-4 h-4 animate-pulse" /> : <Send className="w-4 h-4" />}
+                        {isLoading ? <Sparkles className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
                 </div>
             </div>
