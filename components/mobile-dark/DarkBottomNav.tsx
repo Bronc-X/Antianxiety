@@ -32,14 +32,14 @@ const navItems: NavItem[] = [
     },
     {
         id: 'discover',
-        labelEn: 'INTEL',
-        labelZh: '情报',
+        labelEn: 'FEED',
+        labelZh: '资讯',
         icon: <Compass className="w-5 h-5" strokeWidth={1.5} />,
         href: '/mobile-dark/discover',
     },
     {
         id: 'settings',
-        labelEn: 'SYSTEM',
+        labelEn: 'SYS',
         labelZh: '系统',
         icon: <Settings className="w-5 h-5" strokeWidth={1.5} />,
         href: '/mobile-dark/settings',
@@ -64,51 +64,69 @@ export default function DarkBottomNav() {
     };
 
     return (
-        <nav
-            className="fixed bottom-0 left-0 right-0 z-[9999] bg-black border-t border-[#222222]"
-            style={{
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-            }}
-        >
-            <div className="flex items-stretch h-16">
-                {navItems.map((item) => {
-                    const active = isActive(item);
-                    return (
-                        <Link
-                            key={item.id}
-                            href={item.href}
-                            onClick={() => {
-                                if (!active) triggerHaptic();
-                            }}
-                            className="flex-1 flex flex-col items-center justify-center relative group"
-                        >
-                            {/* Active Indicator - Top Line */}
-                            {active && (
-                                <motion.div
-                                    layoutId="navIndicator"
-                                    className="absolute top-0 left-0 right-0 h-[2px] bg-[#00FF94]"
-                                />
-                            )}
+        <>
+            {/* Spacer */}
+            <div className="h-24" />
 
-                            {/* Icon */}
-                            <div style={{ color: active ? '#FFFFFF' : '#444444' }}>
-                                {item.icon}
-                            </div>
+            {/* Bottom Navigation - Minimal Dark */}
+            <nav
+                className="fixed bottom-0 left-0 right-0 z-[9999]"
+                style={{
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                    background: '#000000',
+                    borderTop: '1px solid #222222',
+                }}
+            >
+                {/* Nav Container */}
+                <div className="flex justify-around items-center px-2 py-3">
+                    {navItems.map((item) => {
+                        const active = isActive(item);
+                        const label = language === 'en' ? item.labelEn : item.labelZh;
+                        const isMax = item.id === 'max';
 
-                            {/* Label */}
-                            <span
-                                className="text-[9px] font-mono mt-1 tracking-widest uppercase"
-                                style={{ color: active ? '#00FF94' : '#444444' }}
+                        return (
+                            <Link
+                                key={item.id}
+                                href={item.href}
+                                onClick={() => {
+                                    if (!active) triggerHaptic();
+                                }}
+                                className="relative flex-1 flex flex-col items-center justify-center py-1"
                             >
-                                {language === 'en' ? item.labelEn : item.labelZh}
-                            </span>
+                                {/* Active Indicator - Neon line */}
+                                {active && (
+                                    <motion.div
+                                        layoutId="darkNavActive"
+                                        className="absolute -top-3 w-8 h-[2px]"
+                                        style={{ background: isMax ? '#007AFF' : '#00FF94' }}
+                                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                    />
+                                )}
 
-                            {/* Separator */}
-                            <div className="absolute right-0 top-4 bottom-4 w-[1px] bg-[#111111] last:hidden" />
-                        </Link>
-                    );
-                })}
-            </div>
-        </nav>
+                                {/* Icon */}
+                                <motion.div
+                                    animate={{ opacity: active ? 1 : 0.4 }}
+                                    className="transition-colors"
+                                    style={{ color: active ? (isMax ? '#007AFF' : '#00FF94') : '#666666' }}
+                                >
+                                    {item.icon}
+                                </motion.div>
+
+                                {/* Label - Mono font */}
+                                <span
+                                    className="text-[9px] font-mono tracking-wider mt-1.5"
+                                    style={{
+                                        color: active ? (isMax ? '#007AFF' : '#00FF94') : '#444444',
+                                        letterSpacing: '0.1em',
+                                    }}
+                                >
+                                    {label}
+                                </span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </nav>
+        </>
     );
 }
