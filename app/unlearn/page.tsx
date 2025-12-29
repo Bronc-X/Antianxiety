@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import {
     UnlearnNav,
-    DigitalTwinHero,
-    GlobalScienceHero,
     ProblemSolution,
     AnimatedHero,
     UnlearnFeatures,
@@ -17,6 +15,8 @@ import {
     MaxFloatingButton,
     TestimonialsCarousel,
 } from '@/components/unlearn';
+import PremiumUnlearnHero from '@/components/unlearn/PremiumUnlearnHero';
+import PremiumSectionWrapper from '@/components/unlearn/PremiumSectionWrapper';
 import PricingPlans from '@/components/PricingPlans';
 import { useI18n } from '@/lib/i18n';
 
@@ -25,7 +25,11 @@ export default function UnlearnPage() {
     const [chatOpen, setChatOpen] = useState(false);
 
     return (
-        <main className="unlearn-theme font-serif">
+        <main className="unlearn-theme font-serif relative overflow-hidden">
+            {/* Global Background Effects for Premium Feel */}
+            <div className="fixed inset-0 z-[-1] bg-background pointer-events-none" />
+            <div className="fixed inset-0 z-0 bg-noise opacity-[0.2] pointer-events-none mix-blend-multiply" />
+
             {/* Navigation - Fixed at top */}
             <UnlearnNav
                 links={language === 'en' ? [
@@ -45,54 +49,60 @@ export default function UnlearnPage() {
                 ctaHref="/signup"
             />
 
-            {/* Global Science Hero - Data Particles Converging (FIRST) */}
-            <GlobalScienceHero />
-
-            {/* Digital Twin Hero - Woman Facing Her Twin */}
-            <DigitalTwinHero
-                headline={language === 'en'
-                    ? "Meet your digital twin. Understand yourself like never before."
-                    : "遇见你的数字孪生体，前所未有地了解自己。"}
-                subheadline={language === 'en'
-                    ? "Your AI-powered health companion learns your unique patterns and guides you toward lasting calm."
-                    : "你的人工智能健康伙伴学习你独特的模式，引导你走向持久的平静。"}
-                ctaLabel={language === 'en' ? 'Start Your Journey' : '开始你的旅程'}
-                ctaHref="/signup"
-            />
+            {/* Premium Hero Section (Replaces GlobalScienceHero & DigitalTwinHero) */}
+            <PremiumUnlearnHero />
 
             {/* Problem & Solution Sections */}
-            <ProblemSolution />
+            <PremiumSectionWrapper delay={0.2}>
+                <ProblemSolution />
+            </PremiumSectionWrapper>
 
             {/* Features Grid */}
             <section id="features" className="scroll-mt-24">
-                <UnlearnFeatures />
+                <PremiumSectionWrapper>
+                    <UnlearnFeatures />
+                </PremiumSectionWrapper>
             </section>
 
             {/* Max Showcase Section */}
-            <MaxShowcase onOpenChat={() => setChatOpen(true)} />
+            <PremiumSectionWrapper>
+                <MaxShowcase onOpenChat={() => setChatOpen(true)} />
+            </PremiumSectionWrapper>
 
-            {/* Woman Portrait Carousel (Moved Down) */}
-            <AnimatedHero onGetStarted={() => window.location.href = '/signup'} />
+            {/* Woman Portrait Carousel */}
+            <PremiumSectionWrapper>
+                <AnimatedHero onGetStarted={() => window.location.href = '/signup'} />
+            </PremiumSectionWrapper>
 
             {/* Digital Twin Dashboard */}
             <section id="dashboard" className="scroll-mt-24">
-                <DigitalTwinDashboard />
+                <PremiumSectionWrapper>
+                    <DigitalTwinDashboard />
+                </PremiumSectionWrapper>
             </section>
 
             {/* Participant Data Table */}
-            <ParticipantDigitalTwin />
+            <PremiumSectionWrapper>
+                <ParticipantDigitalTwin />
+            </PremiumSectionWrapper>
 
             {/* About Section */}
             <section id="about" className="scroll-mt-24">
-                <AboutStory />
+                <PremiumSectionWrapper>
+                    <AboutStory />
+                </PremiumSectionWrapper>
             </section>
 
             {/* Testimonials Carousel */}
-            <TestimonialsCarousel />
+            <PremiumSectionWrapper>
+                <TestimonialsCarousel />
+            </PremiumSectionWrapper>
 
             {/* Pricing Section */}
             <section id="pricing" className="scroll-mt-24">
-                <PricingPlans />
+                <PremiumSectionWrapper>
+                    <PricingPlans />
+                </PremiumSectionWrapper>
             </section>
 
             {/* CTA Section */}

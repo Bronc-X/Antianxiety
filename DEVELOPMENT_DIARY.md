@@ -1,3 +1,84 @@
+## 2025-12-30 - MVVM 架构全模块扩展完成 (MVVM Architecture Extension) 🏗️
+
+### 🎯 核心更新
+
+#### 1. 六大模块完整实现 ✅
+
+| 模块 | Server Action | Domain Hook | Desktop UI | Mobile UI |
+|------|---------------|-------------|------------|-----------|
+| Dashboard | ✅ `dashboard.ts` | ✅ `useDashboard.ts` | ✅ | ✅ |
+| Plans | ✅ `plans.ts` | ✅ `usePlans.ts` | ✅ | ✅ |
+| Goals | ✅ `goals.ts` | ✅ `useGoals.ts` | ✅ | ✅ |
+| Settings | ✅ `settings.ts` | ✅ `useSettings.ts` | - | - |
+| Max Chat | ✅ `chat.ts` | ✅ `useMax.ts` | - | - |
+| Calibration | ✅ `calibration.ts` | ✅ `useCalibration.ts` | - | - |
+
+#### 2. Server Actions (The Brain) - 6 个文件
+- ✅ `app/actions/dashboard.ts` - getDashboardData, syncProfile
+- ✅ `app/actions/plans.ts` - getPlans, createPlan, updatePlanStatus, deletePlan
+- ✅ `app/actions/goals.ts` - getGoals, createGoal, toggleGoalComplete, deleteGoal
+- ✅ `app/actions/settings.ts` - updateSettings (已存在)
+- ✅ `app/actions/chat.ts` - getConversations, getChatHistory, createConversation, deleteConversation
+- ✅ `app/actions/calibration.ts` - getTodayCalibration, saveCalibration, getCalibrationHistory
+
+#### 3. Domain Hooks (The Bridge) - 6 个文件
+- ✅ `hooks/domain/useDashboard.ts` - 缓存 + 去重 + 离线支持
+- ✅ `hooks/domain/usePlans.ts` - 乐观更新 + CRUD 操作
+- ✅ `hooks/domain/useGoals.ts` - 乐观更新 + toggle/delete
+- ✅ `hooks/domain/useSettings.ts` - 乐观更新 + 回滚
+- ✅ `hooks/domain/useMax.ts` - 消息流 + 对话管理
+- ✅ `hooks/domain/useCalibration.ts` - 今日数据 + 历史记录
+
+#### 4. Presentational Components (The Skin) - 4 对
+- ✅ `components/desktop/Dashboard.tsx` + `components/mobile/Dashboard.tsx`
+- ✅ `components/desktop/Plans.tsx` + `components/mobile/Plans.tsx`
+- ✅ `components/desktop/Goals.tsx` + `components/mobile/Goals.tsx`
+
+#### 5. 设备路由分流 ✅
+- ✅ `app/plans/page.tsx` - 重构为 Server Component
+- ✅ `app/plans/PlansClient.tsx` - 设备路由
+- ✅ `app/goals/page.tsx` - 重构为 Server Component  
+- ✅ `app/goals/GoalsClient.tsx` - 设备路由
+
+### 📊 代码统计
+- **新增文件**: 18+ 个核心文件
+- **Server Actions**: 6 个模块，20+ 个函数
+- **Domain Hooks**: 6 个 hooks
+- **Presentational Components**: 8 个 (4 Desktop + 4 Mobile)
+
+### 🎯 MVVM 架构模式
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Page (Server Component)                 │
+│         Device Detection → isMobile prop → Client           │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  Client Component (Router)                  │
+│              useDomain() → Desktop/Mobile UI                │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                Domain Hook (The Bridge)                     │
+│    State + Cache + Network + Actions → Presentational       │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│               Server Actions (The Brain)                    │
+│              Supabase Queries → ActionResult<T>             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 🚀 下一步计划
+- [ ] 为 Settings 和 Max 模块添加 Desktop/Mobile UI
+- [ ] 为 Calibration 模块添加 Desktop/Mobile UI
+- [ ] 真机测试所有 Mobile 组件
+
+---
 
 ## 2025-12-28 - 域名统一与部署上线准备 (Domain Unification & Deployment) 🚀
 
