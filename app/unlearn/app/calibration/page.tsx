@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { DailyCalibration, UnlearnFooter, MaxFloatingButton } from '@/components/unlearn';
+import { DailyCalibration, UnlearnFooter } from '@/components/unlearn';
 
 export default function CalibrationPage() {
     const { language } = useI18n();
@@ -20,7 +20,7 @@ export default function CalibrationPage() {
                             {language === 'en' ? 'Daily Calibration' : '每日校准'}
                         </p>
                         <h1 className="text-3xl md:text-4xl font-bold mb-3">
-                            {language === 'en' ? 'Log today’s signals' : '记录今天的状态'}
+                            {language === 'en' ? "Log today's signals" : '记录今天的状态'}
                         </h1>
                         <p className="text-white/60">
                             {language === 'en'
@@ -40,8 +40,6 @@ export default function CalibrationPage() {
                     youtube: 'https://youtube.com/@antianxiety',
                 }}
             />
-
-            <MaxFloatingButton />
         </main>
     );
 }

@@ -13,7 +13,6 @@ import {
     ScienceFeed,
     DailyCalibration,
     UnlearnFooter,
-    MaxFloatingButton,
 } from '@/components/unlearn';
 
 export default function AppDashboard() {
@@ -261,9 +260,6 @@ export default function AppDashboard() {
                     youtube: 'https://youtube.com/@antianxiety',
                 }}
             />
-
-            {/* Floating Max Button */}
-            <MaxFloatingButton />
         </main>
     );
 }
