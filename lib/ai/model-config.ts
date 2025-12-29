@@ -45,6 +45,7 @@ export type AIModelName = (typeof AI_MODELS)[keyof typeof AI_MODELS];
  * 聊天/对话模型优先级（平行选择，都可用）
  */
 export const CHAT_MODEL_PRIORITY: AIModelName[] = [
+  AI_MODELS.GEMINI_FLASH, // 🚀 首选稳定且快
   AI_MODELS.DEEPSEEK_V3_EXP,
   AI_MODELS.CLAUDE_SONNET,
   AI_MODELS.GEMINI_PRO_THINKING,
@@ -56,8 +57,9 @@ export const CHAT_MODEL_PRIORITY: AIModelName[] = [
  * 🔑 症状评估等场景：优先用 deepseek，速度快
  */
 export const REASONING_MODEL_PRIORITY: AIModelName[] = [
-  AI_MODELS.DEEPSEEK_V3_EXP, // 首选，最快
-  AI_MODELS.CLAUDE_SONNET, // 备选
+  AI_MODELS.GEMINI_FLASH, // 暂用 Flash 保证稳定性，若需深度推理可切回
+  AI_MODELS.DEEPSEEK_V3_EXP,
+  AI_MODELS.CLAUDE_SONNET,
   AI_MODELS.DEEPSEEK_V3_THINKING,
   AI_MODELS.CLAUDE_SONNET_THINKING,
 ];
