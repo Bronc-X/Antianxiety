@@ -22,6 +22,12 @@ const navItems: NavItem[] = [
         href: '/mobile-dark',
     },
     {
+        id: 'max',
+        label: 'Max',
+        icon: <Zap className="w-5 h-5" />, // Using Zap/Sparkles for AI
+        href: '/mobile-dark/max',
+    },
+    {
         id: 'diary',
         label: 'Diary',
         icon: <Calendar className="w-5 h-5" />,
