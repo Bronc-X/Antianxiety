@@ -4,8 +4,8 @@
   "installCommand": "npm install --legacy-peer-deps",
   "crons": [
     {
-      "path": "/api/ingest-content",
-      "schedule": "0 2 * * *"
+      "path": "/api/cron/crawl-content",
+      "schedule": "0 6 * * *"
     }
   ]
 }

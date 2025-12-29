@@ -431,8 +431,8 @@ export default function ScienceFeed() {
                     </p>
                     <p className="text-white/40 text-xs">
                         {language === 'en'
-                            ? '📅 New recommendations every day at 10:00 AM'
-                            : '📅 每天上午 10:00 更新推荐'}
+                            ? '📅 New recommendations every day at 2:00 PM (UTC+8)'
+                            : '📅 每天下午 2:00（UTC+8）更新推荐'}
                     </p>
                 </div>
 
