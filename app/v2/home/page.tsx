@@ -3,13 +3,12 @@
  * 
  * 路由分流层：使用 MVVM 架构
  * - Brain: app/actions/dashboard.ts
- * - Bridge: hooks/domain/useDashboard.ts
- * - Skin: components/mobile/Dashboard.tsx
+ * - Bridge: hooks/domain/useDashboard.ts (called in V2DashboardClient)
+ * - Skin: components/mobile/Dashboard.tsx | components/desktop/Dashboard.tsx
  */
 
 import { headers } from 'next/headers';
-import { MobileDashboard } from '@/components/mobile';
-import { DesktopDashboard } from '@/components/desktop';
+import { V2DashboardClient } from './V2DashboardClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,11 +25,7 @@ export default async function V2HomePage() {
     const capacitorPlatform = headersList.get('x-capacitor-platform');
 
     // Capacitor detection is authoritative
-    const isMobile = capacitorPlatform || isMobileDevice(userAgent);
+    const isMobile = !!(capacitorPlatform || isMobileDevice(userAgent));
 
-    if (isMobile) {
-        return <MobileDashboard />;
-    }
-
-    return <DesktopDashboard />;
+    return <V2DashboardClient isMobile={isMobile} />;
 }

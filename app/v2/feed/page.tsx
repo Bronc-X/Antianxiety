@@ -1,15 +1,5 @@
-/**
- * V2 Feed Page - 期刊推荐
- * 
- * 路由分流层：使用 MVVM 架构
- * - Brain: app/actions/feed.ts
- * - Bridge: hooks/domain/useFeed.ts
- * - Skin: components/mobile/Feed.tsx | components/desktop/Feed.tsx
- */
-
 import { headers } from 'next/headers';
-import { MobileFeed } from '@/components/mobile';
-import { DesktopFeed } from '@/components/desktop';
+import { V2FeedClient } from './V2FeedClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,11 +14,7 @@ export default async function V2FeedPage() {
     const userAgent = headersList.get('user-agent') || '';
     const capacitorPlatform = headersList.get('x-capacitor-platform');
 
-    const isMobile = capacitorPlatform || isMobileDevice(userAgent);
+    const isMobile = !!(capacitorPlatform || isMobileDevice(userAgent));
 
-    if (isMobile) {
-        return <MobileFeed />;
-    }
-
-    return <DesktopFeed />;
+    return <V2FeedClient isMobile={isMobile} />;
 }
