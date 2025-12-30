@@ -17,10 +17,10 @@ interface ProfileRecord {
   [key: string]: unknown;
 }
 
-export default async function AssistantPage({ 
-  searchParams 
-}: { 
-  searchParams?: Promise<{ edit?: string, panel?: string }> 
+export default async function AssistantPage({
+  searchParams
+}: {
+  searchParams?: Promise<{ edit?: string, panel?: string }>
 }) {
   const params = await searchParams;
   const language = await getServerLanguage();
@@ -41,13 +41,13 @@ export default async function AssistantPage({
         <nav className="border-b border-[#E7E1D6] bg-[#FAF6EF]/90 backdrop-blur sticky top-0 z-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="h-14 flex items-center justify-between">
-              <Link href="/landing" className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80">{tr(language, { zh: '返回主页', en: 'Back to Home' })}</Link>
+              <Link href="/unlearn/app" className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80">{tr(language, { zh: '返回主页', en: 'Back to Home' })}</Link>
               <h1 className="text-lg font-semibold text-[#0B3D2E]">{tr(language, { zh: '记录今日状态', en: "Log Today's State" })}</h1>
               <div className="w-16"></div>
             </div>
           </div>
         </nav>
-        <UnifiedDailyCalibration 
+        <UnifiedDailyCalibration
           userId={user.id}
           userName={profileData?.full_name}
         />
@@ -71,7 +71,7 @@ export default async function AssistantPage({
   // 如果用户未完成资料收集，显示表单
   if (!profile || !profile.ai_profile_completed) {
     return (
-      <AssistantPageClient 
+      <AssistantPageClient
         userId={user.id}
         profile={profile}
         showForm={true}
@@ -91,7 +91,7 @@ export default async function AssistantPage({
   }
 
   return (
-    <AssistantPageClient 
+    <AssistantPageClient
       userId={user.id}
       profile={profile}
       showForm={false}

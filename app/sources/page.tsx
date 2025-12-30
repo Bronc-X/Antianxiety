@@ -21,7 +21,7 @@ export default function SourcesPage() {
       <nav className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur border-b border-[#E7E1D6]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <Link href="/landing" className="flex items-center gap-2 group">
+            <Link href="/unlearn/app" className="flex items-center gap-2 group">
               <ArrowLeft className="w-4 h-4 text-[#0B3D2E]/60 group-hover:text-[#0B3D2E] transition-colors" />
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />

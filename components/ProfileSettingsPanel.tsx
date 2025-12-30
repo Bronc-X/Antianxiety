@@ -65,7 +65,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
 
       const metadata = (user.user_metadata || {}) as { username?: string };
       const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
-      
+
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert(
@@ -80,9 +80,9 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
             notification_enabled: formData.notification_enabled,
             notification_email: formData.notification_email || null,
           },
-          { 
+          {
             onConflict: 'id',
-            ignoreDuplicates: false 
+            ignoreDuplicates: false
           }
         );
 
@@ -92,7 +92,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
         return;
       }
 
-      router.push('/landing');
+      router.push('/unlearn/app');
       router.refresh();
     } catch (err) {
       console.error('保存设置时出错:', err);
@@ -219,7 +219,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
-              onClick={() => router.push('/landing')}
+              onClick={() => router.push('/unlearn/app')}
               className="px-4 py-2 rounded-md border border-[#E7E1D6] bg-white text-[#0B3D2E] text-sm font-medium hover:bg-[#FAF6EF] transition-colors"
             >
               取消

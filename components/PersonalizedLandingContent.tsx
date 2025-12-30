@@ -25,7 +25,7 @@ import { useRouter } from 'next/navigation';
 
 // 扩展Window接口以支持requestIdleCallback（如果不存在）
 if (typeof window !== 'undefined' && !window.requestIdleCallback) {
-  (window as unknown as { requestIdleCallback: typeof requestIdleCallback }).requestIdleCallback = function(
+  (window as unknown as { requestIdleCallback: typeof requestIdleCallback }).requestIdleCallback = function (
     callback: IdleRequestCallback
   ) {
     const start = Date.now();
@@ -38,8 +38,8 @@ if (typeof window !== 'undefined' && !window.requestIdleCallback) {
       });
     }, 1) as unknown as number;
   };
-  
-  (window as unknown as { cancelIdleCallback: typeof cancelIdleCallback }).cancelIdleCallback = function(handle: number) {
+
+  (window as unknown as { cancelIdleCallback: typeof cancelIdleCallback }).cancelIdleCallback = function (handle: number) {
     clearTimeout(handle);
   };
 }
@@ -232,25 +232,23 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
                 {aiAutoMode ? '✨ AI Auto-Pilot is Active' : 'AI Auto-Pilot'}
               </p>
               <p className="text-xs text-[#0B3D2E]/60">
-                {aiAutoMode 
-                  ? '根据你的实时疲劳水平，智能推送最优行动' 
+                {aiAutoMode
+                  ? '根据你的实时疲劳水平，智能推送最优行动'
                   : '点击启用，让AI为你选择最佳干预时机'}
               </p>
             </div>
             <button
               type="button"
               onClick={handleEnableAIAuto}
-              className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:ring-offset-2 ${
-                aiAutoMode ? 'bg-[#0B3D2E]' : 'bg-[#E7E1D6]'
-              }`}
+              className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 focus:ring-offset-2 ${aiAutoMode ? 'bg-[#0B3D2E]' : 'bg-[#E7E1D6]'
+                }`}
               role="switch"
               aria-checked={aiAutoMode}
             >
               <span
                 aria-hidden="true"
-                className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  aiAutoMode ? 'translate-x-6' : 'translate-x-0'
-                }`}
+                className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${aiAutoMode ? 'translate-x-6' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>
@@ -275,11 +273,10 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
 
         {/* Save Message */}
         {saveMessage && (
-          <div className={`rounded-lg px-4 py-3 text-sm ${
-            saveMessage.includes('成功') 
-              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' 
+          <div className={`rounded-lg px-4 py-3 text-sm ${saveMessage.includes('成功')
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
               : 'bg-amber-50 border border-amber-200 text-amber-800'
-          }`}>
+            }`}>
             {saveMessage}
           </div>
         )}
@@ -471,10 +468,10 @@ export default function PersonalizedLandingContent({
     let cancelled = false;
     const loadCsv = async () => {
       try {
-        // 仅在 /landing 页面尝试加载 CSV
+        // 仅在 /unlearn/app 页面尝试加载 CSV
         if (typeof window !== 'undefined') {
           const path = window.location?.pathname || '';
-          if (!path.startsWith('/landing')) {
+          if (!path.startsWith('/unlearn/app')) {
             return;
           }
         }
@@ -697,7 +694,7 @@ export default function PersonalizedLandingContent({
     const availableTopics = combinedTopics.filter(
       (topic) => !excludeIds.has(topic.id) && !currentDisplayedIds.has(topic.id)
     );
-    
+
     const scored = availableTopics
       .map((topic) => {
         const overlapTags = topic.tags.filter((tag) => focusSet.has(tag));
@@ -725,7 +722,7 @@ export default function PersonalizedLandingContent({
         };
       })
       .sort((a, b) => b.matchScore - a.matchScore);
-    
+
     return scored;
   }, [focusTopics, dailyStats.averageStress, dailyStats.averageSleepHours, bodyFunctionScore, combinedTopics]);
 
@@ -860,7 +857,7 @@ export default function PersonalizedLandingContent({
                       return logDate >= sevenDaysAgo;
                     });
 
-                    const sleepGoalDays = lastSevenLogs.filter(log => 
+                    const sleepGoalDays = lastSevenLogs.filter(log =>
                       log.sleep_duration_minutes && log.sleep_duration_minutes / 60 >= 7
                     ).length;
 
@@ -868,7 +865,7 @@ export default function PersonalizedLandingContent({
                       return `本周高光：连续${sleepGoalDays}天达成睡眠目标！`;
                     }
 
-                    const lowStressDays = lastSevenLogs.filter(log => 
+                    const lowStressDays = lastSevenLogs.filter(log =>
                       log.stress_level && log.stress_level < 5
                     ).length;
 
@@ -876,7 +873,7 @@ export default function PersonalizedLandingContent({
                       return `本周高光：${lowStressDays}天保持低压力状态！`;
                     }
 
-                    const exerciseDays = lastSevenLogs.filter(log => 
+                    const exerciseDays = lastSevenLogs.filter(log =>
                       log.exercise_duration_minutes && log.exercise_duration_minutes >= 20
                     ).length;
 
@@ -910,7 +907,7 @@ export default function PersonalizedLandingContent({
                       return logDate >= sevenDaysAgo;
                     });
 
-                    const stressSum = lastSevenLogs.reduce((sum, log) => 
+                    const stressSum = lastSevenLogs.reduce((sum, log) =>
                       log.stress_level ? sum + log.stress_level : sum, 0);
                     const stressCount = lastSevenLogs.filter(log => log.stress_level).length;
                     const avgStress = stressCount > 0 ? stressSum / stressCount : null;
@@ -919,7 +916,7 @@ export default function PersonalizedLandingContent({
                       return '优化建议：压力水平上升，可能是因为咖啡因摄入过晚？';
                     }
 
-                    const sleepSum = lastSevenLogs.reduce((sum, log) => 
+                    const sleepSum = lastSevenLogs.reduce((sum, log) =>
                       log.sleep_duration_minutes ? sum + (log.sleep_duration_minutes / 60) : sum, 0);
                     const sleepCount = lastSevenLogs.filter(log => log.sleep_duration_minutes).length;
                     const avgSleep = sleepCount > 0 ? sleepSum / sleepCount : null;
@@ -1030,9 +1027,9 @@ export default function PersonalizedLandingContent({
       </AnimatedSection>
 
       {/* 个人习惯记录曲线 */}
-        <AnimatedSection inView variant="fadeUp" className="mt-8">
-          <BeliefScoreChart data={chartData} />
-        </AnimatedSection>
+      <AnimatedSection inView variant="fadeUp" className="mt-8">
+        <BeliefScoreChart data={chartData} />
+      </AnimatedSection>
 
       {/* 个性化建议 - AI助理对话感 */}
       {personalizedAdvice.length > 0 && (
@@ -1042,7 +1039,7 @@ export default function PersonalizedLandingContent({
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-[#0B3D2E] mb-2">为你定制的建议</h3>
                 <div className="space-y-4">
-              {personalizedAdvice.map((item, index) => (
+                  {personalizedAdvice.map((item, index) => (
                     <div key={index} className="relative pl-4 border-l-2 border-[#0B3D2E]/20">
                       <p className="text-sm leading-relaxed text-[#0B3D2E]/90">
                         {index === 0 && personalizedAdvice.length > 1 ? (
@@ -1054,7 +1051,7 @@ export default function PersonalizedLandingContent({
                         )}
                       </p>
                     </div>
-              ))}
+                  ))}
                 </div>
               </div>
             </div>
@@ -1073,7 +1070,7 @@ export default function PersonalizedLandingContent({
                 </p>
               </div>
               <div className="flex items-center gap-3">
-              <div className="rounded-full border border-[#0B3D2E]/20 bg-[#FAF6EF] px-4 py-1.5 text-xs uppercase tracking-widest text-[#0B3D2E]/60">
+                <div className="rounded-full border border-[#0B3D2E]/20 bg-[#FAF6EF] px-4 py-1.5 text-xs uppercase tracking-widest text-[#0B3D2E]/60">
                   匹配度 ＞ 4.6 星
                 </div>
                 <button
@@ -1095,17 +1092,17 @@ export default function PersonalizedLandingContent({
                       const newHiddenIds = new Set(hiddenTopicIds);
                       newHiddenIds.add(topic.id);
                       setHiddenTopicIds(newHiddenIds);
-                      
+
                       // 从当前显示的帖子中移除
                       // 从剩余帖子中选择新的替换（排除已隐藏和当前显示的）
                       const currentIds = new Set(topics.map(t => t.id));
                       currentIds.delete(topic.id);
                       const availableTopics = calculateMatchedTopics(newHiddenIds, currentIds);
                       const replacement = availableTopics.slice(0, 1);
-                      
+
                       if (replacement.length > 0) {
                         // 替换当前帖子，保持至少4条
-                        const updatedTopics = topics.map(t => 
+                        const updatedTopics = topics.map(t =>
                           t.id === topic.id ? replacement[0] : t
                         );
                         setTopics(updatedTopics);
@@ -1114,7 +1111,7 @@ export default function PersonalizedLandingContent({
                         const allAvailable = calculateMatchedTopics(newHiddenIds, new Set());
                         const alternative = allAvailable.find(t => !currentIds.has(t.id));
                         if (alternative) {
-                          const updatedTopics = topics.map(t => 
+                          const updatedTopics = topics.map(t =>
                             t.id === topic.id ? alternative : t
                           );
                           setTopics(updatedTopics);
@@ -1180,17 +1177,17 @@ export default function PersonalizedLandingContent({
                         const newHiddenIds = new Set(hiddenTopicIds);
                         newHiddenIds.add(topic.id);
                         setHiddenTopicIds(newHiddenIds);
-                        
+
                         // 从当前显示的帖子中移除
                         const currentIds = new Set(topics.map(t => t.id));
                         currentIds.delete(topic.id);
                         // 从剩余帖子中选择新的替换（排除已隐藏和当前显示的）
                         const availableTopics = calculateMatchedTopics(newHiddenIds, currentIds);
                         const replacement = availableTopics.slice(0, 1);
-                        
+
                         if (replacement.length > 0) {
                           // 替换当前帖子，保持至少4条
-                          const updatedTopics = topics.map(t => 
+                          const updatedTopics = topics.map(t =>
                             t.id === topic.id ? replacement[0] : t
                           );
                           setTopics(updatedTopics);
@@ -1199,7 +1196,7 @@ export default function PersonalizedLandingContent({
                           const allAvailable = calculateMatchedTopics(newHiddenIds, new Set());
                           const alternative = allAvailable.find(t => !currentIds.has(t.id));
                           if (alternative) {
-                            const updatedTopics = topics.map(t => 
+                            const updatedTopics = topics.map(t =>
                               t.id === topic.id ? alternative : t
                             );
                             setTopics(updatedTopics);

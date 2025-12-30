@@ -95,7 +95,7 @@ function LoginFormContent() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider as 'twitter' | 'github',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/unlearn/app`,
           skipBrowserRedirect: false,
         },
       });

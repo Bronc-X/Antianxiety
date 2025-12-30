@@ -207,7 +207,7 @@ export default function HealthInfoPanel({ initialProfile }: HealthInfoPanelProps
       <div className="flex justify-end gap-3 pt-4">
         <button
           type="button"
-          onClick={() => router.push('/landing')}
+          onClick={() => router.push('/unlearn/app')}
           className="px-4 py-2 rounded-md border border-[#E7E1D6] bg-white text-[#0B3D2E] text-sm font-medium hover:bg-[#FAF6EF] transition-colors"
         >
           取消

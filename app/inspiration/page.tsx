@@ -33,7 +33,7 @@ export default async function InspirationPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
-              <a href="/landing" className="flex items-center gap-3">
+              <a href="/unlearn/app" className="flex items-center gap-3">
                 <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />
                 <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
                   AntiAnxiety™
@@ -44,7 +44,7 @@ export default async function InspirationPage() {
             </div>
             <div className="flex items-center gap-4">
               <a
-                href="/landing"
+                href="/unlearn/app"
                 className="text-sm text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
                 {tr(language, { zh: '返回主页', en: 'Back to Home' })}

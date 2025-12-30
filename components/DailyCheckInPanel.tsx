@@ -218,7 +218,7 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
 
     // 保存成功后返回首页
     setTimeout(() => {
-      router.push('/landing');
+      router.push('/unlearn/app');
     }, 1500);
   };
 

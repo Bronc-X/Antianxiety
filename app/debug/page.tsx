@@ -27,7 +27,7 @@ export default function DebugPage() {
           console.error('客户端 session 获取失败:', error);
         } else {
           setClientSession(session);
-          
+
           // 如果有session，获取profile数据
           if (session?.user?.id) {
             const { data: profile, error: profileError } = await supabase
@@ -35,7 +35,7 @@ export default function DebugPage() {
               .select('*')
               .eq('id', session.user.id)
               .single();
-            
+
             if (profileError) {
               console.error('获取profile失败:', profileError);
               setError(`Profile error: ${profileError.message}`);
@@ -96,7 +96,7 @@ export default function DebugPage() {
           <h1 className="text-3xl font-bold text-[#0B3D2E] mb-2">🔍 Database Verification (DEV ONLY)</h1>
           <p className="text-[#0B3D2E]/60 text-sm">Raw database contents for current user</p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* 客户端 Session */}
           <div className="bg-white rounded-lg p-6 shadow-sm border border-[#E7E1D6]">
@@ -149,7 +149,7 @@ export default function DebugPage() {
         {profileData && (
           <div className="mt-8 bg-white rounded-lg p-6 shadow-sm border-2 border-[#0B3D2E]">
             <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">📊 Profile Table (Raw Data)</h2>
-            
+
             {/* 关键字段快速查看 */}
             <div className="mb-6 grid grid-cols-2 gap-4">
               <div className="p-4 bg-[#FAF6EF] rounded-lg">
@@ -180,7 +180,7 @@ export default function DebugPage() {
                 ▶ View Full Profile JSON (Click to expand)
               </summary>
               <pre className="mt-4 p-4 bg-[#0B3D2E] text-[#FAF6EF] rounded-lg overflow-x-auto text-xs font-mono leading-relaxed">
-{JSON.stringify(profileData, null, 2)}
+                {JSON.stringify(profileData, null, 2)}
               </pre>
             </details>
 
@@ -189,7 +189,7 @@ export default function DebugPage() {
               <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <h3 className="font-semibold text-green-800 mb-3">✅ Metabolic Profile Data:</h3>
                 <pre className="text-xs font-mono text-green-900 overflow-x-auto">
-{JSON.stringify(profileData.metabolic_profile, null, 2)}
+                  {JSON.stringify(profileData.metabolic_profile, null, 2)}
                 </pre>
               </div>
             )}
@@ -199,7 +199,7 @@ export default function DebugPage() {
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <h3 className="font-semibold text-blue-800 mb-3">🧠 AI Persona Context:</h3>
                 <pre className="text-xs font-mono text-blue-900 whitespace-pre-wrap">
-{profileData.ai_persona_context}
+                  {profileData.ai_persona_context}
                 </pre>
               </div>
             )}
@@ -227,7 +227,7 @@ export default function DebugPage() {
             完成问卷
           </a>
           <a
-            href="/landing"
+            href="/unlearn/app"
             className="inline-flex items-center rounded-md border border-[#0B3D2E] px-4 py-2 text-sm text-[#0B3D2E] hover:bg-[#FAF6EF] transition-colors"
           >
             前往首页

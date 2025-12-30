@@ -26,8 +26,8 @@ export default async function EnergyBreakdownPage() {
       <nav className="border-b border-[#E7E1D6] bg-[#FAF6EF]/90 backdrop-blur sticky top-0 z-10">
         <div className="mx-auto max-w-3xl px-4">
           <div className="h-14 flex items-center justify-between">
-            <Link 
-              href="/landing" 
+            <Link
+              href="/unlearn/app"
               className="text-sm text-[#0B3D2E] hover:text-[#0B3D2E]/80 flex items-center gap-1"
             >
               {tr(language, { zh: '← 返回主页', en: '← Back to Home' })}
@@ -39,7 +39,7 @@ export default async function EnergyBreakdownPage() {
           </div>
         </div>
       </nav>
-      
+
       <EnergyBreakdownClient latestLog={latestLog} />
     </div>
   );

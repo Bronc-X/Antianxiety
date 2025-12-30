@@ -107,7 +107,7 @@ export default function BayesianDashboardPage() {
       <header className="sticky top-0 z-40 bg-[#FAF6EF]/90 dark:bg-neutral-950/90 backdrop-blur-xl border-b border-[#E7E1D6] dark:border-neutral-800">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/landing" className="text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white">
+            <Link href="/unlearn/app" className="text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white">
               <ChevronLeft className="w-5 h-5" />
             </Link>
             <div>

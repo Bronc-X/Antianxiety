@@ -27,9 +27,9 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
 
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (pathname !== '/landing') {
-      e.preventDefault();
-      window.location.href = `/landing${href}`;
+    if (pathname !== '/unlearn/app') {
+      // 如果不在主页，跳转到主页相应部分
+      window.location.href = `/unlearn/app${href}`;
       return;
     }
 
@@ -53,7 +53,7 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/landing" className="flex items-center gap-2">
+            <Link href="/unlearn/app" className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full bg-emerald-500" />
               <span className="text-sm font-bold tracking-tight text-[#0B3D2E] dark:text-white">
                 AntiAnxiety<sup className="text-[8px]">™</sup>

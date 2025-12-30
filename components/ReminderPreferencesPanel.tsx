@@ -110,14 +110,14 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert(
-          { 
-            id: user.id, 
+          {
+            id: user.id,
             username: fallbackUsername,
-            reminder_preferences: todayReminders 
+            reminder_preferences: todayReminders
           },
-          { 
+          {
             onConflict: 'id',
-            ignoreDuplicates: false 
+            ignoreDuplicates: false
           }
         );
 
@@ -128,7 +128,7 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
       }
 
       // 保存成功后返回首页
-      router.push('/landing');
+      router.push('/unlearn/app');
     } catch (err) {
       console.error('保存提醒偏好时出错:', err);
       setError('保存时发生错误，请稍后重试');
@@ -149,11 +149,10 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
           <button
             type="button"
             onClick={handleEnableAIAuto}
-            className={`w-full px-4 py-3 rounded-md border text-sm font-medium transition-colors ${
-              aiAutoMode
+            className={`w-full px-4 py-3 rounded-md border text-sm font-medium transition-colors ${aiAutoMode
                 ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
                 : 'border-[#0B3D2E]/30 bg-white text-[#0B3D2E] hover:border-[#0B3D2E] hover:bg-[#FAF6EF]'
-            }`}
+              }`}
           >
             {aiAutoMode ? '✓ AI自动提醒已启用' : '🤖 启用AI自动提醒（自适应，无需选择）'}
           </button>
@@ -226,7 +225,7 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
-              onClick={() => router.push('/landing')}
+              onClick={() => router.push('/unlearn/app')}
               className="px-4 py-2 rounded-md border border-[#E7E1D6] bg-white text-[#0B3D2E] text-sm font-medium hover:bg-[#FAF6EF] transition-colors"
             >
               取消
