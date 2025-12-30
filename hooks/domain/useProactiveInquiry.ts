@@ -1,0 +1,225 @@
+'use client';
+
+/**
+ * useProactiveInquiry Domain Hook
+ * 
+ * 管理 Max AI 主动问询功能（40分钟间隔）
+ * 
+ * 核心功能：
+ * 1. 定时检查数据缺口
+ * 2. 生成个性化问询问题
+ * 3. 触发问询弹窗
+ * 4. 记录用户回答
+ */
+
+import { useState, useCallback, useEffect, useRef } from 'react';
+import {
+    identifyDataGaps,
+    generateInquiryQuestion,
+    type DataGap,
+} from '@/lib/inquiry-engine';
+import type { InquiryQuestion } from '@/types/adaptive-interaction';
+
+// ============================================
+// Constants
+// ============================================
+
+const INQUIRY_INTERVAL_MS = 40 * 60 * 1000; // 40 minutes
+const QUIET_HOURS_START = 22; // 10 PM
+const QUIET_HOURS_END = 8; // 8 AM
+const STORAGE_KEY = 'proactive_inquiry_last_time';
+
+// ============================================
+// Types
+// ============================================
+
+export interface UseProactiveInquiryReturn {
+    // Current inquiry state
+    currentInquiry: InquiryQuestion | null;
+    isInquiryVisible: boolean;
+
+    // Data gaps
+    dataGaps: DataGap[];
+
+    // Actions
+    showInquiry: () => void;
+    dismissInquiry: () => void;
+    submitAnswer: (answer: string) => Promise<void>;
+
+    // Timer info
+    nextInquiryIn: number | null; // ms until next inquiry
+    isPaused: boolean;
+    pause: () => void;
+    resume: () => void;
+}
+
+// ============================================
+// Helper Functions
+// ============================================
+
+function isQuietHours(): boolean {
+    const hour = new Date().getHours();
+    return hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END;
+}
+
+function getLastInquiryTime(): number {
+    if (typeof window === 'undefined') return 0;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+}
+
+function setLastInquiryTime(time: number): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, time.toString());
+}
+
+// ============================================
+// Hook Implementation
+// ============================================
+
+export function useProactiveInquiry(
+    recentData: Record<string, { value: string; timestamp: string }> = {},
+    language: 'zh' | 'en' = 'zh',
+    enabled: boolean = true
+): UseProactiveInquiryReturn {
+    const [currentInquiry, setCurrentInquiry] = useState<InquiryQuestion | null>(null);
+    const [isInquiryVisible, setIsInquiryVisible] = useState(false);
+    const [dataGaps, setDataGaps] = useState<DataGap[]>([]);
+    const [nextInquiryIn, setNextInquiryIn] = useState<number | null>(null);
+    const [isPaused, setIsPaused] = useState(false);
+
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const countdownRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Check for data gaps and generate inquiry
+    const checkAndGenerateInquiry = useCallback(() => {
+        // Don't trigger during quiet hours
+        if (isQuietHours()) {
+            console.log('[ProactiveInquiry] Quiet hours, skipping');
+            return false;
+        }
+
+        // Identify data gaps
+        const gaps = identifyDataGaps(recentData, 24); // 24 hour staleness threshold
+        setDataGaps(gaps);
+
+        if (gaps.length === 0) {
+            console.log('[ProactiveInquiry] No data gaps found');
+            return false;
+        }
+
+        // Generate inquiry question
+        const question = generateInquiryQuestion(gaps, [], language);
+        if (!question) {
+            console.log('[ProactiveInquiry] Could not generate question');
+            return false;
+        }
+
+        setCurrentInquiry(question);
+        setIsInquiryVisible(true);
+        setLastInquiryTime(Date.now());
+
+        console.log('[ProactiveInquiry] Generated inquiry:', question.id);
+        return true;
+    }, [recentData, language]);
+
+    // Show inquiry manually
+    const showInquiry = useCallback(() => {
+        checkAndGenerateInquiry();
+    }, [checkAndGenerateInquiry]);
+
+    // Dismiss inquiry
+    const dismissInquiry = useCallback(() => {
+        setIsInquiryVisible(false);
+        // Don't clear currentInquiry immediately for animation
+        setTimeout(() => setCurrentInquiry(null), 300);
+    }, []);
+
+    // Submit answer
+    const submitAnswer = useCallback(async (answer: string) => {
+        if (!currentInquiry) return;
+
+        console.log('[ProactiveInquiry] Answer submitted:', currentInquiry.id, answer);
+
+        // TODO: Save answer to database via server action
+        // This would typically update the recentData which triggers re-evaluation
+
+        dismissInquiry();
+        setLastInquiryTime(Date.now());
+    }, [currentInquiry, dismissInquiry]);
+
+    // Pause/Resume timer
+    const pause = useCallback(() => {
+        setIsPaused(true);
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+    }, []);
+
+    const resume = useCallback(() => {
+        setIsPaused(false);
+    }, []);
+
+    // Setup interval timer
+    useEffect(() => {
+        if (!enabled || isPaused) {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+            return;
+        }
+
+        // Calculate time until next inquiry
+        const lastTime = getLastInquiryTime();
+        const timeSinceLast = Date.now() - lastTime;
+        const timeUntilNext = Math.max(0, INQUIRY_INTERVAL_MS - timeSinceLast);
+
+        // Set initial countdown
+        setNextInquiryIn(timeUntilNext);
+
+        // First trigger after remaining time
+        const firstTrigger = setTimeout(() => {
+            checkAndGenerateInquiry();
+
+            // Then set up regular interval
+            timerRef.current = setInterval(() => {
+                checkAndGenerateInquiry();
+            }, INQUIRY_INTERVAL_MS);
+        }, timeUntilNext);
+
+        // Update countdown every second
+        countdownRef.current = setInterval(() => {
+            setNextInquiryIn(prev => {
+                if (prev === null) return null;
+                const newValue = prev - 1000;
+                if (newValue <= 0) {
+                    return INQUIRY_INTERVAL_MS;
+                }
+                return newValue;
+            });
+        }, 1000);
+
+        return () => {
+            clearTimeout(firstTrigger);
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (countdownRef.current) clearInterval(countdownRef.current);
+        };
+    }, [enabled, isPaused, checkAndGenerateInquiry]);
+
+    return {
+        currentInquiry,
+        isInquiryVisible,
+        dataGaps,
+        showInquiry,
+        dismissInquiry,
+        submitAnswer,
+        nextInquiryIn,
+        isPaused,
+        pause,
+        resume,
+    };
+}
+
+export type { InquiryQuestion, DataGap };
