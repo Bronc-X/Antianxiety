@@ -47,3 +47,7 @@ export type { UseAnalysisReturn, AnalysisReport, TrendData } from './useAnalysis
 // Profile
 export { useProfile } from './useProfile';
 export type { UseProfileReturn, UserProfile, UpdateProfileInput } from './useProfile';
+
+// Auth
+export { useAuth } from './useAuth';
+export type { UseAuthReturn } from './useAuth';
