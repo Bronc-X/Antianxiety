@@ -13,11 +13,13 @@ import {
     ScienceFeed,
     DailyCalibration,
     UnlearnFooter,
+    MaxFloatingButton,
 } from '@/components/unlearn';
 
 export default function AppDashboard() {
     const { language } = useI18n();
     const [showCalibration, setShowCalibration] = useState(false);
+    const [showMax, setShowMax] = useState(false);
     const [weather, setWeather] = useState<{
         temperature: number;
         high?: number;
@@ -260,6 +262,9 @@ export default function AppDashboard() {
                     youtube: 'https://youtube.com/@antianxiety',
                 }}
             />
+
+            {/* Max AI Chat */}
+            <MaxFloatingButton isOpen={showMax} onOpenChange={setShowMax} />
         </main>
     );
 }
