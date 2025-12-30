@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useAuth } from '@/hooks/domain/useAuth';
 import { Sparkles, MessageCircle, Brain, Heart, Star, ArrowRight, X } from 'lucide-react';
 
 interface MaxShowcaseProps {
@@ -14,21 +14,13 @@ interface MaxShowcaseProps {
 export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
     const { language } = useI18n();
     const router = useRouter();
-    const supabase = createClientSupabaseClient();
-    const [activeFeature, setActiveFeature] = useState(0);
-    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+    // Use Domain Hook
+    const { isAuthenticated } = useAuth();
 
-    // Check login status
-    useEffect(() => {
-        const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setIsLoggedIn(!!user);
-        };
-        checkAuth();
-    }, [supabase.auth]);
+    const [activeFeature, setActiveFeature] = useState(0);
 
     const handleChatClick = () => {
-        if (!isLoggedIn) {
+        if (!isAuthenticated) {
             router.push('/login');
             return;
         }
@@ -161,8 +153,8 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
                                         )}
                                         <div
                                             className={`max-w-[75%] p-4 font-serif rounded-lg ${msg.role === 'user'
-                                                    ? 'text-[#1A1A1A]'
-                                                    : 'bg-[#0B3D2E]/5 text-[#1A1A1A]'
+                                                ? 'text-[#1A1A1A]'
+                                                : 'bg-[#0B3D2E]/5 text-[#1A1A1A]'
                                                 }`}
                                         >
                                             {msg.text}
@@ -195,8 +187,8 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
                                 key={i}
                                 onMouseEnter={() => setActiveFeature(i)}
                                 className={`p-6 cursor-pointer transition-all ${activeFeature === i
-                                        ? 'bg-[#D4AF37]/10 border-l-4 border-[#D4AF37]'
-                                        : 'bg-white/5 border-l-4 border-transparent hover:bg-white/10'
+                                    ? 'bg-[#D4AF37]/10 border-l-4 border-[#D4AF37]'
+                                    : 'bg-white/5 border-l-4 border-transparent hover:bg-white/10'
                                     }`}
                             >
                                 <div className="flex items-start gap-4">

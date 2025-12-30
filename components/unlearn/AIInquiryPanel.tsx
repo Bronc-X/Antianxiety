@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Sparkles, ChevronRight, X, Brain } from 'lucide-react';
+import { MessageCircle, Sparkles, ChevronRight, X, Brain, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface InquiryOption {
@@ -28,6 +28,7 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
     const [inquiry, setInquiry] = useState<InquiryData | null>(null);
     const [loading, setLoading] = useState(true);
     const [responding, setResponding] = useState(false);
+    const [selectedOption, setSelectedOption] = useState<string | null>(null); // New state
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
@@ -71,6 +72,7 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
     const handleResponse = async (response: string) => {
         if (!inquiry) return;
 
+        setSelectedOption(response); // Track clicked option
         setResponding(true);
         try {
             await fetch('/api/inquiry/respond', {
@@ -88,6 +90,7 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
             console.error('Failed to submit response:', error);
         } finally {
             setResponding(false);
+            setSelectedOption(null);
         }
     };
 
@@ -157,12 +160,18 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
                                     key={option.value}
                                     onClick={() => handleResponse(option.value)}
                                     disabled={responding}
-                                    className="flex items-center justify-between p-4 bg-white/10 border border-white/20 text-white font-medium hover:bg-[#D4AF37]/20 hover:border-[#D4AF37]/50 transition-all group disabled:opacity-50"
-                                    whileHover={{ x: 5 }}
-                                    whileTap={{ scale: 0.98 }}
+                                    className="flex items-center justify-between p-4 bg-white/10 border border-white/20 text-white font-medium hover:bg-[#D4AF37]/20 hover:border-[#D4AF37]/50 transition-all group disabled:opacity-50 disabled:cursor-wait"
+                                    whileHover={{ x: responding ? 0 : 5 }}
+                                    whileTap={{ scale: responding ? 1 : 0.98 }}
                                 >
-                                    <span className="text-white">{option.label}</span>
-                                    <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-[#D4AF37]" />
+                                    <span className="text-white">
+                                        {responding && selectedOption === option.value ? '提交中...' : option.label}
+                                    </span>
+                                    {responding && selectedOption === option.value ? (
+                                        <Loader2 className="w-5 h-5 text-[#D4AF37] animate-spin" />
+                                    ) : (
+                                        <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-[#D4AF37]" />
+                                    )}
                                 </motion.button>
                             ))}
                         </div>

@@ -14,10 +14,12 @@ import {
     UnlearnFooter,
     MaxFloatingButton,
     TestimonialsCarousel,
+    ScrollToTop,
 } from '@/components/unlearn';
 import PremiumUnlearnHero from '@/components/unlearn/PremiumUnlearnHero';
 import PremiumSectionWrapper from '@/components/unlearn/PremiumSectionWrapper';
 import PricingPlans from '@/components/PricingPlans';
+import ProactiveInquiryManager from '@/components/max/ProactiveInquiryManager';
 import { useI18n } from '@/lib/i18n';
 
 export default function UnlearnPage() {
@@ -117,8 +119,10 @@ export default function UnlearnPage() {
                 }}
             />
 
-            {/* Floating Max Button */}
             <MaxFloatingButton isOpen={chatOpen} onOpenChange={setChatOpen} />
+            <ProactiveInquiryManager />
+
+            <ScrollToTop />
         </main>
     );
 }

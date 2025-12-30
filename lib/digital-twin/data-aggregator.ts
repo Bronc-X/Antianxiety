@@ -26,7 +26,7 @@ import type {
 // ============================================
 
 /** 触发分析所需的最小校准次数 */
-export const MIN_CALIBRATIONS_FOR_ANALYSIS = 3;
+export const MIN_CALIBRATIONS_FOR_ANALYSIS = 0;
 
 /** 获取校准数据的默认天数 */
 const DEFAULT_CALIBRATION_DAYS = 30;
@@ -139,7 +139,7 @@ async function fetchBaselineData(supabase: any, userId: string): Promise<Baselin
   }
 
   const scores = profile.inferred_scale_scores as Record<string, number>;
-  
+
   // 检查是否有完整的基线数据
   const gad7Score = scores.gad7 ?? scores.GAD7 ?? null;
   const phq9Score = scores.phq9 ?? scores.PHQ9 ?? null;
@@ -244,22 +244,22 @@ async function fetchConversationSummary(
 
   // 简单的情绪趋势分析（基于消息数量变化）
   let emotionalTrend: 'improving' | 'stable' | 'declining' = 'stable';
-  
+
   if (messages && messages.length > 0) {
     // 分析最近消息的情绪标签（如果有）
     const recentEmotions = messages
       .slice(0, 10)
       .map((m: any) => m.emotion_label || m.sentiment)
       .filter(Boolean);
-    
+
     if (recentEmotions.length > 0) {
-      const positiveCount = recentEmotions.filter((e: string) => 
+      const positiveCount = recentEmotions.filter((e: string) =>
         ['positive', 'happy', 'calm', 'hopeful'].includes(e.toLowerCase())
       ).length;
-      const negativeCount = recentEmotions.filter((e: string) => 
+      const negativeCount = recentEmotions.filter((e: string) =>
         ['negative', 'anxious', 'sad', 'stressed'].includes(e.toLowerCase())
       ).length;
-      
+
       if (positiveCount > negativeCount * 1.5) {
         emotionalTrend = 'improving';
       } else if (negativeCount > positiveCount * 1.5) {
@@ -278,12 +278,12 @@ async function fetchConversationSummary(
         topicCounts[topic] = (topicCounts[topic] || 0) + 1;
       }
     });
-    
+
     const sortedTopics = Object.entries(topicCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([topic]) => topic);
-    
+
     frequentTopics.push(...sortedTopics);
   }
 
@@ -344,16 +344,16 @@ export async function getCalibrationTrend(
 
   const calculateTrend = (values: number[]): 'improving' | 'stable' | 'declining' => {
     if (values.length < 2) return 'stable';
-    
+
     const firstHalf = values.slice(0, Math.floor(values.length / 2));
     const secondHalf = values.slice(Math.floor(values.length / 2));
-    
+
     const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-    
+
     const diff = secondAvg - firstAvg;
     const threshold = 0.5; // 0.5 分的变化视为显著
-    
+
     if (diff > threshold) return 'improving';
     if (diff < -threshold) return 'declining';
     return 'stable';
@@ -419,13 +419,14 @@ export async function getDataCollectionStatus(userId: string): Promise<DataColle
     lastCalibrationDate = latestCalibration?.[0]?.date ?? null;
   }
   const requiredCalibrations = MIN_CALIBRATIONS_FOR_ANALYSIS;
-  const isReady = hasBaseline && calibrationCount >= requiredCalibrations;
+  const isReady = calibrationCount >= requiredCalibrations;
 
   // 计算进度
   let progress = 0;
-  if (hasBaseline && requiredCalibrations > 0) {
+  if (requiredCalibrations > 0) {
     progress = Math.min(100, (calibrationCount / requiredCalibrations) * 100);
   }
+
 
   // 生成消息
   let message = '';
@@ -454,5 +455,5 @@ export async function getDataCollectionStatus(userId: string): Promise<DataColle
  * 验证聚合数据是否足够进行分析
  */
 export function isDataSufficientForAnalysis(data: AggregatedUserData): boolean {
-  return data.baseline !== null && data.calibrations.length >= MIN_CALIBRATIONS_FOR_ANALYSIS;
+  return data.calibrations.length >= MIN_CALIBRATIONS_FOR_ANALYSIS;
 }

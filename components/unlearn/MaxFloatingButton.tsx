@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { MessageCircle, X, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useAuth } from '@/hooks/domain/useAuth';
 import MaxChatPanel from './MaxChatPanel';
 
 interface MaxFloatingButtonProps {
@@ -16,22 +16,14 @@ interface MaxFloatingButtonProps {
 export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange }: MaxFloatingButtonProps) {
     const { language } = useI18n();
     const router = useRouter();
-    const supabase = createClientSupabaseClient();
     const isControlled = typeof controlledOpen === 'boolean';
     const [internalOpen, setInternalOpen] = useState(false);
     const isOpen = isControlled ? controlledOpen : internalOpen;
     const [showTooltip, setShowTooltip] = useState(false);
     const [hasInteracted, setHasInteracted] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
-    // Check login status
-    useEffect(() => {
-        const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setIsLoggedIn(!!user);
-        };
-        checkAuth();
-    }, [supabase.auth]);
+    // Use encapsulated hook (Bridge)
+    const { isAuthenticated } = useAuth();
 
     // Show tooltip after 3 seconds if user hasn't interacted
     useEffect(() => {
@@ -59,7 +51,7 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
 
     const handleClick = () => {
         // If not logged in, redirect to login
-        if (!isLoggedIn) {
+        if (!isAuthenticated) {
             router.push('/login');
             return;
         }

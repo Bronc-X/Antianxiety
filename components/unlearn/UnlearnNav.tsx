@@ -206,10 +206,10 @@ export default function UnlearnNav({
                         </Link>
                     )}
 
-                    {/* CTA 按钮 - 只在未登录或有特定 CTA 时显示 */}
-                    {(!isLoggedIn || (ctaHref && ctaHref !== '/unlearn/app/calibration')) && (
+                    {/* CTA 按钮 - 只在未登录且有明确 CTA 时显示 */}
+                    {!isLoggedIn && ctaHref && (
                         <Link
-                            href={isLoggedIn ? '/unlearn/app' : ctaHref}
+                            href={ctaHref}
                             className="
                               flex items-center gap-2
                               px-4 py-2.5
@@ -221,7 +221,7 @@ export default function UnlearnNav({
                               hover:shadow-[0_4px_20px_rgba(11,61,46,0.3)]
                             "
                         >
-                            {isLoggedIn ? (language === 'en' ? 'Dashboard' : '仪表盘') : ctaLabel}
+                            {ctaLabel}
                             <ArrowUpRight className="w-4 h-4" />
                         </Link>
                     )}

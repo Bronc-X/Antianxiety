@@ -46,3 +46,6 @@ export { default as AppBottomNav } from './AppBottomNav';
 
 // Branding
 export { default as Logo } from './Logo';
+
+// Utility
+export { default as ScrollToTop } from './ScrollToTop';

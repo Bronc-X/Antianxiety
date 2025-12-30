@@ -28,7 +28,7 @@ const ANALYSIS_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    
+
     // 验证用户身份
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     // 解析请求
     const body: AnalyzeRequest = await request.json();
     const userId = body.userId || user.id;
     const forceRefresh = body.forceRefresh || false;
-    
+
     // 安全检查：用户只能分析自己的数据
     if (userId !== user.id) {
       return NextResponse.json(
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    
+
     // 检查冷却时间（除非强制刷新）
     if (!forceRefresh) {
       const { data: recentAnalysis } = await supabase
@@ -60,15 +60,15 @@ export async function POST(request: NextRequest) {
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-      
+
       if (recentAnalysis) {
         const lastAnalysisTime = new Date(recentAnalysis.created_at).getTime();
         const timeSinceLastAnalysis = Date.now() - lastAnalysisTime;
-        
+
         if (timeSinceLastAnalysis < ANALYSIS_COOLDOWN_MS) {
           const remainingMinutes = Math.ceil((ANALYSIS_COOLDOWN_MS - timeSinceLastAnalysis) / 60000);
           return NextResponse.json(
-            { 
+            {
               error: `分析冷却中，请 ${remainingMinutes} 分钟后再试`,
               cooldownRemaining: remainingMinutes,
             },
@@ -77,30 +77,30 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-    
+
     // 聚合用户数据
     const userData = await aggregateUserData(userId);
-    
+
     // 检查数据是否足够
     if (!isDataSufficientForAnalysis(userData)) {
       return NextResponse.json(
-        { 
+        {
           error: '数据不足，无法进行分析',
           status: 'collecting_data',
           hasBaseline: userData.baseline !== null,
           calibrationCount: userData.calibrations.length,
-          requiredCalibrations: 3,
+          requiredCalibrations: 0,
         },
         { status: 400 }
       );
     }
-    
+
     // 执行 AI 分析
     const analysisResult = await analyzeWithLLM(userData);
-    
+
     // 生成仪表盘数据
     const dashboardData = generateDashboardData(analysisResult, userData);
-    
+
     // 存储分析结果
     const { data: savedAnalysis, error: saveError } = await supabase
       .from('digital_twin_analyses')
@@ -119,12 +119,12 @@ export async function POST(request: NextRequest) {
       })
       .select('id')
       .single();
-    
+
     if (saveError) {
       console.error('❌ 保存分析结果失败:', saveError);
       // 即使保存失败，也返回分析结果
     }
-    
+
     // 存储历史记录
     if (savedAnalysis) {
       await supabase.from('analysis_history').insert({
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         confidence_score: analysisResult.confidenceScore,
       });
     }
-    
+
     // 构建响应（不包含敏感信息）
     const response: AnalyzeResponse = {
       success: true,
@@ -149,9 +149,9 @@ export async function POST(request: NextRequest) {
       adaptivePlan: analysisResult.adaptivePlan,
       lastAnalyzed: analysisResult.analysisTimestamp,
     };
-    
+
     return NextResponse.json(response);
-    
+
   } catch (error) {
     console.error('❌ 分析 API 错误:', error);
     return NextResponse.json(
