@@ -95,4 +95,45 @@ Whitespace: #FAFAFA / #FFFFFF
 - Use `ConsensusMeter` for scientific backing visualization
 - Use Lottie animations for loading states (`BrainLoader`)
 - Always include haptic feedback on mobile interactions
+
+---
+
+## VIII. 功能完整性保障 (Feature Integrity)
+
+> **核心原则：无论 UI 怎么改，功能都不能丢失**
+
+### 强制规则
+
+1. **每次提交前必须运行功能检查：** `npm run check-features`
+   - Git pre-commit hook 会自动执行
+   - 检查失败则阻止提交
+
+2. **MVVM 架构强制执行：**
+   - Brain (Server Actions): `app/actions/*.ts` - 12 个文件
+   - Bridge (Domain Hooks): `hooks/domain/*.ts` - 13 个文件
+   - Skin (UI Components): 可以随意修改
+
+3. **功能清单（46 项）：**
+   - 12 个 Server Actions
+   - 13 个 Domain Hooks
+   - 9 个 Unlearn 功能组件
+   - 8 个主页面必须导入的组件
+   - 4 个子路由
+
+### 禁止行为
+
+- ❌ 删除任何 Server Action 文件
+- ❌ 删除任何 Domain Hook 文件
+- ❌ 从主页面移除功能组件导入
+- ❌ 跳过功能检查直接提交
+
+### 添加新功能流程
+
+1. 在 `app/actions/` 创建 Server Action
+2. 在 `hooks/domain/` 创建 Domain Hook
+3. 更新 `scripts/check-features.js` 清单
+4. 运行 `npm run check-features` 验证
+
+---
+
 Rule: Whenever a major feature is completed or updated, you MUST proactively update the following documentation: TECH_STACK_AND_WORKFLOW.md, README.md, and DEVELOPMENT_DIARY.md."
