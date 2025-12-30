@@ -100,8 +100,10 @@ export async function createPlan(input: CreatePlanInput): Promise<ActionResult<P
             .from('user_plans')
             .insert({
                 user_id: user.id,
+                title: input.name, // For legacy NOT NULL constraint
                 name: input.name,
                 description: input.description || null,
+                content: { text: input.description || '' }, // content is jsonb type
                 category: input.category,
                 target_date: input.target_date || null,
                 status: 'active',

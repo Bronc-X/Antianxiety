@@ -7,9 +7,10 @@
  * Shared between Desktop and Mobile presentational components.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
 import { updateSettings } from '@/app/actions/settings';
+import { createClientSupabaseClient } from '@/lib/supabase-client';
 
 // ============================================
 // Types
@@ -80,28 +81,84 @@ function setCachedData<T>(key: string, data: T): void {
 
 interface UseSettingsOptions {
     initialData?: SettingsData;
-    userId: string;
+    userId?: string;
 }
 
-export function useSettings({ initialData, userId }: UseSettingsOptions): UseSettingsReturn {
+export function useSettings(options?: UseSettingsOptions): UseSettingsReturn {
     const { isOnline } = useNetwork();
 
     const [settings, setSettings] = useState<SettingsData>(() =>
-        initialData || getCachedData(CACHE_KEY) || {}
+        options?.initialData || getCachedData(CACHE_KEY) || {}
     );
-    const [isLoading, setIsLoading] = useState(false);
+    const [userId, setUserId] = useState<string | null>(options?.userId || null);
+    const [isLoading, setIsLoading] = useState(!options?.userId);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Fetch user ID if not provided
+    useEffect(() => {
+        if (options?.userId) {
+            setUserId(options.userId);
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchUserId = async () => {
+            try {
+                const supabase = createClientSupabaseClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setUserId(user.id);
+
+                    // Also fetch current settings from profile
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('height, weight, age, gender, primary_goal, ai_personality, current_focus, full_name, avatar_url')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profile) {
+                        const settingsData: SettingsData = {
+                            height: profile.height,
+                            weight: profile.weight,
+                            age: profile.age,
+                            gender: profile.gender,
+                            primary_goal: profile.primary_goal,
+                            ai_personality: profile.ai_personality,
+                            current_focus: profile.current_focus,
+                            full_name: profile.full_name,
+                            avatar_url: profile.avatar_url,
+                        };
+                        setSettings(settingsData);
+                        setCachedData(CACHE_KEY, settingsData);
+                    }
+                } else {
+                    setError('请先登录');
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to get user');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchUserId();
+    }, [options?.userId]);
+
     // Cache initial data
     useEffect(() => {
-        if (initialData) {
-            setCachedData(CACHE_KEY, initialData);
+        if (options?.initialData) {
+            setCachedData(CACHE_KEY, options.initialData);
         }
-    }, [initialData]);
+    }, [options?.initialData]);
 
     // Update settings
     const update = useCallback(async (data: Partial<SettingsData>): Promise<boolean> => {
+        if (!userId) {
+            setError('用户未登录');
+            return false;
+        }
+
         setIsSaving(true);
         setError(null);
 
@@ -132,14 +189,41 @@ export function useSettings({ initialData, userId }: UseSettingsOptions): UseSet
         }
     }, [userId, settings]);
 
-    // Refresh (for Settings, this just resets from cache)
+    // Refresh - fetch from database
     const refresh = useCallback(async () => {
-        const cached = getCachedData<SettingsData>(CACHE_KEY);
-        if (cached) {
-            setSettings(cached);
+        if (!userId) return;
+
+        setIsLoading(true);
+        try {
+            const supabase = createClientSupabaseClient();
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('height, weight, age, gender, primary_goal, ai_personality, current_focus, full_name, avatar_url')
+                .eq('id', userId)
+                .single();
+
+            if (profile) {
+                const settingsData: SettingsData = {
+                    height: profile.height,
+                    weight: profile.weight,
+                    age: profile.age,
+                    gender: profile.gender,
+                    primary_goal: profile.primary_goal,
+                    ai_personality: profile.ai_personality,
+                    current_focus: profile.current_focus,
+                    full_name: profile.full_name,
+                    avatar_url: profile.avatar_url,
+                };
+                setSettings(settingsData);
+                setCachedData(CACHE_KEY, settingsData);
+            }
+            setError(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to refresh');
+        } finally {
+            setIsLoading(false);
         }
-        setError(null);
-    }, []);
+    }, [userId]);
 
     return {
         settings,
@@ -151,5 +235,3 @@ export function useSettings({ initialData, userId }: UseSettingsOptions): UseSet
         refresh,
     };
 }
-
-export type { SettingsData };

@@ -61,12 +61,15 @@ export async function getGoals(): Promise<ActionResult<PhaseGoal[]>> {
             return { success: false, error: error.message };
         }
 
+        // Map integer priority to string
+        const priorityReverseMap: Record<number, 'high' | 'medium' | 'low'> = { 1: 'high', 2: 'medium', 3: 'low' };
+
         const goals: PhaseGoal[] = (data || []).map(goal => ({
             id: goal.id,
             user_id: goal.user_id,
             goal_text: goal.goal_text,
             category: goal.category || 'general',
-            priority: goal.priority || 'medium',
+            priority: priorityReverseMap[goal.priority] || 'medium',
             target_date: goal.target_date ? dateToISO(goal.target_date) : null,
             progress: goal.progress || 0,
             is_completed: goal.is_completed || false,
@@ -94,13 +97,19 @@ export async function createGoal(input: CreateGoalInput): Promise<ActionResult<P
             return { success: false, error: 'Please sign in to create a goal' };
         }
 
+        // Convert priority string to integer for database (DB uses integer)
+        const priorityMap: Record<string, number> = { 'high': 1, 'medium': 2, 'low': 3 };
+        const priorityValue = priorityMap[input.priority || 'medium'] || 2;
+
         const { data, error } = await supabase
             .from('phase_goals')
             .insert({
                 user_id: user.id,
                 goal_text: input.goal_text,
+                goal_type: input.category || 'general', // For goal_type NOT NULL constraint
                 category: input.category,
-                priority: input.priority || 'medium',
+                rationale: input.goal_text, // For rationale NOT NULL constraint
+                priority: priorityValue, // Use integer for database
                 target_date: input.target_date || null,
                 progress: 0,
                 is_completed: false,
@@ -108,16 +117,20 @@ export async function createGoal(input: CreateGoalInput): Promise<ActionResult<P
             .select()
             .single();
 
+
         if (error) {
             return { success: false, error: error.message };
         }
+
+        // Map integer priority back to string for return value
+        const priorityReverseMap: Record<number, 'high' | 'medium' | 'low'> = { 1: 'high', 2: 'medium', 3: 'low' };
 
         const goal: PhaseGoal = {
             id: data.id,
             user_id: data.user_id,
             goal_text: data.goal_text,
             category: data.category || 'general',
-            priority: data.priority || 'medium',
+            priority: priorityReverseMap[data.priority] || 'medium',
             target_date: data.target_date ? dateToISO(data.target_date) : null,
             progress: data.progress || 0,
             is_completed: data.is_completed || false,
@@ -174,12 +187,15 @@ export async function toggleGoalComplete(goalId: string): Promise<ActionResult<P
             return { success: false, error: error.message };
         }
 
+        // Map integer priority back to string for return value
+        const priorityReverseMap: Record<number, 'high' | 'medium' | 'low'> = { 1: 'high', 2: 'medium', 3: 'low' };
+
         const goal: PhaseGoal = {
             id: data.id,
             user_id: data.user_id,
             goal_text: data.goal_text,
             category: data.category || 'general',
-            priority: data.priority || 'medium',
+            priority: priorityReverseMap[data.priority] || 'medium',
             target_date: data.target_date ? dateToISO(data.target_date) : null,
             progress: data.progress || 0,
             is_completed: data.is_completed || false,

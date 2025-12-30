@@ -1,21 +1,36 @@
 /**
- * Mobile Presentational Components (The Skin - Mobile)
+ * Mobile Components Barrel Export
  * 
- * This directory contains mobile-optimized UI components that:
- * - Receive all data and callbacks via props
- * - Use Framer Motion for smooth animations
- * - Use Lottie for complex loading states
- * - Include haptic feedback for native feel
- * 
- * Rules:
- * - NO direct Server Action calls
- * - NO direct Supabase imports
- * - All data comes from Domain Hooks via props
- * 
- * Requirements: 3.1, 3.2, 3.3, 3.5
+ * Central export point for all Mobile presentational components.
+ * These components form "The Skin" layer of the MVVM architecture (Mobile).
  */
 
-// Export mobile components
-export { MobileDashboard } from './Dashboard';
-// export { MobileCalibration } from './Calibration';
-// export { MobilePlans } from './Plans';
+// Dashboard
+export { MobileDashboard, default as Dashboard } from './Dashboard';
+
+// Plans
+export { MobilePlans } from './Plans';
+
+// Goals
+export { MobileGoals } from './Goals';
+
+// Settings
+export { MobileSettings } from './Settings';
+
+// Calibration
+export { MobileCalibration } from './Calibration';
+
+// Max Chat
+export { MobileMaxChat } from './MaxChat';
+
+// Feed
+export { MobileFeed } from './Feed';
+
+// Profile
+export { MobileProfile } from './Profile';
+
+// Layout Components
+export { default as MobileLayout } from './MobileLayout';
+export { default as MobileBottomNav } from './MobileBottomNav';
+export { default as SwipeGoBack } from './SwipeGoBack';
+export { Icons3D } from './Icons3D';
