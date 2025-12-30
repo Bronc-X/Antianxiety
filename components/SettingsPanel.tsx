@@ -350,19 +350,19 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
             ? signedCustomRate
             : null,
       };
-      
+
       const fallbackUsername = initialProfile?.username || userId.slice(0, 8);
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert(
-          { 
-            id: userId, 
-            username: fallbackUsername, 
-            ...payload 
+          {
+            id: userId,
+            username: fallbackUsername,
+            ...payload
           },
-          { 
+          {
             onConflict: 'id',
-            ignoreDuplicates: false 
+            ignoreDuplicates: false
           }
         );
 
@@ -373,7 +373,7 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
       }
 
       setBanner({ type: 'success', text: '设置已保存，正在返回首页…' });
-      router.push('/landing');
+      router.push('/unlearn/app');
       router.refresh();
     } catch (err) {
       console.error('保存设置时出错:', err);
@@ -403,11 +403,10 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
               key={option.id}
               type="button"
               onClick={() => setFormData((prev) => ({ ...prev, gender: option.id as GenderOption }))}
-              className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
-                formData.gender === option.id
+              className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${formData.gender === option.id
                   ? 'border-[#0B3D2E] bg-[#0B3D2E]/5 text-[#0B3D2E]'
                   : 'border-[#E7E1D6] text-[#0B3D2E]/70 hover:border-[#0B3D2E]/40'
-              }`}
+                }`}
             >
               {option.label}
             </button>
@@ -536,11 +535,10 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
               onClick={() =>
                 setFormData((prev) => ({ ...prev, activityLevel: item.id as ActivityLevelOption }))
               }
-              className={`rounded-2xl border p-4 text-left transition-all ${
-                formData.activityLevel === item.id
+              className={`rounded-2xl border p-4 text-left transition-all ${formData.activityLevel === item.id
                   ? 'border-[#0B3D2E] bg-[#0B3D2E]/5 shadow-sm'
                   : 'border-[#E7E1D6] hover:border-[#0B3D2E]/40'
-              }`}
+                }`}
             >
               <div className="text-sm font-semibold text-[#0B3D2E]">{item.label}</div>
               <p className="mt-1 text-xs text-[#0B3D2E]/70">{item.description}</p>
@@ -588,11 +586,10 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
               key={option.id}
               type="button"
               onClick={() => handlePrimaryGoalChange(option.id as PrimaryGoalOption)}
-              className={`rounded-2xl border p-4 text-left transition-all ${
-                formData.primaryGoal === option.id
+              className={`rounded-2xl border p-4 text-left transition-all ${formData.primaryGoal === option.id
                   ? 'border-[#0B3D2E] bg-[#0B3D2E]/5 shadow-sm'
                   : 'border-[#E7E1D6] hover:border-[#0B3D2E]/40'
-              }`}
+                }`}
             >
               <div className="text-sm font-semibold text-[#0B3D2E]">{option.label}</div>
               {option.id === 'improve_metric' && (
@@ -670,11 +667,10 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
               {weeklyRateOptions[formData.primaryGoal].map((option) => (
                 <label
                   key={option.id}
-                  className={`flex flex-col rounded-2xl border p-4 text-left text-sm transition-all ${
-                    formData.weeklyGoalRate === option.id
+                  className={`flex flex-col rounded-2xl border p-4 text-left text-sm transition-all ${formData.weeklyGoalRate === option.id
                       ? 'border-[#0B3D2E] bg-[#0B3D2E]/5 shadow-sm'
                       : 'border-[#E7E1D6] hover:border-[#0B3D2E]/40'
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"
@@ -753,18 +749,16 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
               {steps.map((label, index) => (
                 <div key={label} className="flex flex-col items-center">
                   <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold ${
-                      index <= currentStep
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold ${index <= currentStep
                         ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
                         : 'border-[#E7E1D6] text-[#0B3D2E]/50'
-                    }`}
+                      }`}
                   >
                     {index + 1}
                   </div>
                   <span
-                    className={`mt-2 text-[10px] uppercase tracking-[0.2em] ${
-                      currentStep === index ? 'text-[#0B3D2E]' : 'text-[#0B3D2E]/60'
-                    }`}
+                    className={`mt-2 text-[10px] uppercase tracking-[0.2em] ${currentStep === index ? 'text-[#0B3D2E]' : 'text-[#0B3D2E]/60'
+                      }`}
                   >
                     {label}
                   </span>
@@ -782,11 +776,10 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
 
         {banner && (
           <div
-            className={`mt-6 rounded-xl border px-4 py-3 text-sm ${
-              banner.type === 'success'
+            className={`mt-6 rounded-xl border px-4 py-3 text-sm ${banner.type === 'success'
                 ? 'border-[#0B3D2E]/30 bg-[#0B3D2E]/5 text-[#0B3D2E]'
                 : 'border-red-200 bg-red-50 text-red-700'
-            }`}
+              }`}
           >
             {banner.text}
           </div>
@@ -799,7 +792,7 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-[#E7E1D6] pt-6">
           <button
             type="button"
-            onClick={() => router.push('/landing')}
+            onClick={() => router.push('/unlearn/app')}
             className="rounded-full border border-[#E7E1D6] px-4 py-2 text-sm font-medium text-[#0B3D2E] hover:bg-[#FAF6EF]"
           >
             返回主页

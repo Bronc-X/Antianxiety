@@ -29,7 +29,7 @@ export default async function FeedPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/landing" className="flex items-center gap-3">
+              <Link href="/unlearn/app" className="flex items-center gap-3">
                 <span className="h-2 w-2 rounded-full bg-[#0B3D2E]" />
                 <span className="text-sm font-semibold tracking-wide text-[#0B3D2E]">
                   AntiAnxiety™
@@ -38,19 +38,19 @@ export default async function FeedPage() {
             </div>
             <nav className="hidden md:flex items-center gap-4 text-sm">
               <Link
-                href="/landing#how"
+                href="/unlearn/app#how"
                 className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
                 核心洞察
               </Link>
               <Link
-                href="/landing#model"
+                href="/unlearn/app#model"
                 className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
                 模型方法
               </Link>
               <Link
-                href="/landing#authority"
+                href="/unlearn/app#authority"
                 className="text-[#0B3D2E]/80 hover:text-[#0B3D2E] transition-colors"
               >
                 权威来源

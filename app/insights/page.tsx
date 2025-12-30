@@ -59,7 +59,7 @@ export default async function InsightsPage() {
       <nav className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur border-b border-[#E7E1D6]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <Link href="/landing" className="flex items-center gap-3 group">
+            <Link href="/unlearn/app" className="flex items-center gap-3 group">
               <div className="w-8 h-8 bg-[#0B3D2E] rounded-lg flex items-center justify-center text-white group-hover:bg-[#0a3629] transition-colors">
                 <span className="font-serif italic font-bold">I</span>
               </div>

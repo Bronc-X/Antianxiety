@@ -9,16 +9,16 @@ interface SettingsData {
   weight?: string | number;
   age?: string | number;
   gender?: string;
-  
+
   // AI Tuning
   primary_goal?: string;
   ai_personality?: string;
   current_focus?: string;
-  
+
   // MAX Settings
   max_honesty?: number;
   max_humor?: number;
-  
+
   // Account
   full_name?: string;
   avatar_url?: string;
@@ -47,7 +47,7 @@ export async function updateSettings(userId: string, data: SettingsData) {
     if (data.weight !== undefined) updatePayload.weight = parseFloat(String(data.weight)) || null;
     if (data.age !== undefined) updatePayload.age = parseInt(String(data.age), 10) || null;
     if (data.gender !== undefined) updatePayload.gender = data.gender;
-    
+
     // AI tuning fields - CRITICAL for Brain Sync
     if (data.primary_goal !== undefined) {
       updatePayload.primary_goal = data.primary_goal;
@@ -60,7 +60,7 @@ export async function updateSettings(userId: string, data: SettingsData) {
       // 🚨 CRITICAL: current_focus 是最重要的字段，用于告诉 AI 用户的健康问题
       updatePayload.current_focus = data.current_focus;
     }
-    
+
     // Account fields
     if (data.full_name !== undefined) updatePayload.full_name = data.full_name;
     if (data.avatar_url !== undefined) updatePayload.avatar_url = data.avatar_url;
@@ -75,7 +75,7 @@ export async function updateSettings(userId: string, data: SettingsData) {
 
     // === STEP 2: Regenerate AI Persona Context (The "Sync") ===
     // This is the CRITICAL part that connects Settings → AI Behavior
-    
+
     const goalMap: Record<string, string> = {
       lose_weight: '减脂塑形',
       improve_sleep: '改善睡眠质量',
@@ -97,7 +97,7 @@ export async function updateSettings(userId: string, data: SettingsData) {
     // 滑块设置（所有模式通用）
     const maxHonesty = data.max_honesty ?? 90;
     const maxHumor = data.max_humor ?? 65;
-    
+
 
     // Construct AI Context String
     let aiPersonaContext = `
@@ -119,7 +119,7 @@ AI性格设定：${personalityMap[personality] || personality}
       zen_master: '平静哲学，深思熟虑，禅意智慧，引导式对话',
       dr_house: '直接诊断，不绕弯子，医学专家视角，循证分析',
     };
-    
+
     aiPersonaContext += `
 
 AI 引擎配置：
@@ -154,7 +154,7 @@ ${maxHumor >= 100 ? '- 🎉 彩蛋模式激活：可以更加放飞自我，增�
     // === STEP 4: Revalidate Paths ===
     // This ensures the Assistant page and Landing page update immediately
     revalidatePath('/assistant');
-    revalidatePath('/landing');
+    revalidatePath('/unlearn/app');
     revalidatePath('/settings');
 
     return {

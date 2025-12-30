@@ -48,7 +48,7 @@ export default function ProfileSetupPage() {
       // 如果用户已完成设置，直接跳转到主页
       if (profile && profile.height && profile.weight && profile.age) {
         console.log('用户已完成个人资料设置，跳转到主页');
-        router.push('/landing');
+        router.push('/unlearn/app');
         return;
       }
     };

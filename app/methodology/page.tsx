@@ -54,14 +54,14 @@ export default async function MethodologyPage() {
       <nav className="sticky top-0 z-30 bg-[#FAF6EF]/90 backdrop-blur-md border-b border-[#E7E1D6]">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex h-20 items-center justify-between">
-            <Link href="/landing" className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
+            <Link href="/unlearn/app" className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
               <div className="h-3 w-3 rounded-full bg-[#0B3D2E]" />
               <span className="text-sm font-bold tracking-widest text-[#0B3D2E] uppercase">
                 AntiAnxiety™
               </span>
             </Link>
             <Link
-              href="/landing"
+              href="/unlearn/app"
               className="group flex items-center gap-2 text-sm font-medium text-[#0B3D2E] transition-colors"
             >
               <span>{tr(language, { zh: '返回', en: 'Back' })}</span>
@@ -102,7 +102,7 @@ export default async function MethodologyPage() {
               >
                 {/* Header Image Container */}
                 <div className={`h-48 w-full relative overflow-hidden flex items-center justify-center ${card.id === 'agent' ? 'bg-[#E8F3E8]' :
-                    card.id === 'bayesian' ? 'bg-[#FFF8E7]' : 'bg-[#F2EFE9]'
+                  card.id === 'bayesian' ? 'bg-[#FFF8E7]' : 'bg-[#F2EFE9]'
                   }`}>
 
                   <div className="absolute inset-0 opacity-20 bg-[url('/assets/noise.png')] mix-blend-overlay" />

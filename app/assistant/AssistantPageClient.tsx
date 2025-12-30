@@ -54,7 +54,7 @@ export default function AssistantPageClient({
         {/* Floating Navigation Dock */}
         <nav className="sticky top-4 z-10 mx-auto max-w-5xl px-4 text-center">
           <div className="glass-panel inline-flex items-center justify-between rounded-full px-8 py-3 shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl border-white/40 dark:border-white/10 mx-auto">
-            <Link href="/landing" className="flex items-center gap-2 group">
+            <Link href="/unlearn/app" className="flex items-center gap-2 group">
               <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 shadow-sm animate-pulse" />
               <span className="text-sm font-bold tracking-wide text-[#0B3D2E] dark:text-white">
                 AntiAnxiety™
@@ -97,7 +97,7 @@ export default function AssistantPageClient({
       {/* Floating Navigation Dock */}
       <nav className="sticky top-4 z-10 mx-auto max-w-5xl px-4 mb-8">
         <div className="glass-panel rounded-full px-6 py-3 flex items-center justify-between shadow-lg shadow-black/5 dark:shadow-black/20 backdrop-blur-xl border-white/40 dark:border-white/10">
-          <Link href="/landing" className="flex items-center gap-3 group">
+          <Link href="/unlearn/app" className="flex items-center gap-3 group">
             <div className="w-9 h-9 bg-gradient-to-br from-[#0B3D2E] to-[#1a5f4a] dark:from-emerald-600 dark:to-teal-700 rounded-full flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
               <Target className="w-4 h-4" />
             </div>
@@ -111,7 +111,7 @@ export default function AssistantPageClient({
           </Link>
 
           <div className="flex items-center gap-6">
-            <Link href="/landing" className="text-sm font-medium text-[#0B3D2E]/70 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors">
+            <Link href="/unlearn/app" className="text-sm font-medium text-[#0B3D2E]/70 dark:text-neutral-300 hover:text-[#0B3D2E] dark:hover:text-white transition-colors">
               {t('assistant.backToHome')}
             </Link>
             <div className="w-px h-4 bg-[#0B3D2E]/10 dark:bg-white/10" />

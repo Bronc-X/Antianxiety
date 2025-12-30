@@ -26,7 +26,7 @@ export default function UpgradePage() {
     if (returnTo) {
       setReturnPath(returnTo);
     } else if (from === 'landing' || from === 'menu') {
-      setReturnPath('/landing');
+      setReturnPath('/unlearn/app');
     } else if (from === 'settings') {
       setReturnPath('/settings');
     }
@@ -236,7 +236,7 @@ export default function UpgradePage() {
                   {language === 'en' ? '🔥 POPULAR' : '🔥 推荐'}
                 </div>
               )}
-              
+
               {/* Limited badge for founding */}
               {plan.badge && (
                 <div className="absolute -top-3 right-6 px-4 py-1 text-xs font-bold" style={{ backgroundColor: plan.tierColor, color: '#0B3D2E' }}>

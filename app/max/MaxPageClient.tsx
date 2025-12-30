@@ -369,7 +369,7 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
     <div className="flex flex-col h-screen bg-[#FAF6EF] dark:bg-neutral-950">
       {/* 头部 */}
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white safe-area-inset-top">
-        <Link href="/landing" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
+        <Link href="/unlearn/app" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="text-center">
@@ -400,8 +400,8 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
                   {/* 消息气泡 */}
                   <div
                     className={`rounded-2xl px-4 py-3 ${isUser
-                        ? 'bg-[#0B3D2E] text-white rounded-br-md'
-                        : 'bg-white dark:bg-neutral-800 text-[#2C2C2C] dark:text-white rounded-bl-md shadow-sm border border-[#E7E1D6] dark:border-neutral-700'
+                      ? 'bg-[#0B3D2E] text-white rounded-br-md'
+                      : 'bg-white dark:bg-neutral-800 text-[#2C2C2C] dark:text-white rounded-bl-md shadow-sm border border-[#E7E1D6] dark:border-neutral-700'
                       }`}
                   >
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{displayContent}</p>

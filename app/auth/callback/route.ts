@@ -46,7 +46,7 @@ function createClientWithCookies(cookieStore: Awaited<ReturnType<typeof cookies>
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const next = requestUrl.searchParams.get('next') || '/landing';
+  const next = requestUrl.searchParams.get('next') || '/unlearn/app';
 
   try {
     const cookieStore = await cookies();
@@ -57,68 +57,68 @@ export async function GET(request: NextRequest) {
     const tokenHash = requestUrl.searchParams.get('token_hash');
     const type = requestUrl.searchParams.get('type');
     const errorParam = requestUrl.searchParams.get('error');
-    
+
     // 如果 OAuth 提供商返回了错误
     if (errorParam) {
       console.error('OAuth 提供商返回错误:', errorParam);
       return NextResponse.redirect(new URL('/login?error=oauth_error', request.url));
     }
-    
+
     // 处理 PKCE 流程（token_hash + type）
     if (tokenHash && type) {
       console.log('检测到 PKCE 流程，token_hash:', tokenHash.substring(0, 20) + '...', 'type:', type);
-      
+
       // 使用 verifyOtp 来处理 token_hash
       const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
         token_hash: tokenHash,
         type: type as 'signup' | 'magiclink' | 'recovery' | 'invite' | 'email_change' | 'email',
       });
-      
+
       if (verifyError || !verifyData.session) {
         console.error('PKCE 流程验证失败:', verifyError);
         return NextResponse.redirect(new URL('/login?error=pkce_verify_failed', request.url));
       }
-      
+
       console.log('PKCE 验证成功，用户ID:', verifyData.session.user.id);
-      
+
       // 设置 session
       const { error: setSessionError } = await supabase.auth.setSession({
         access_token: verifyData.session.access_token,
         refresh_token: verifyData.session.refresh_token,
       });
-      
+
       if (setSessionError) {
         console.error('设置 session 失败:', setSessionError);
         return NextResponse.redirect(new URL('/login?error=pkce_set_session_failed', request.url));
       }
-      
+
       // 检查用户是否需要完成问卷
       const { data: profile } = await supabase
         .from('profiles')
         .select('metabolic_profile')
         .eq('id', verifyData.session.user.id)
         .single();
-      
+
       if (!profile || !profile.metabolic_profile || Object.keys(profile.metabolic_profile).length === 0) {
         console.log('用户未完成问卷，重定向到 /onboarding');
         return NextResponse.redirect(new URL('/onboarding', request.url));
       }
-      
+
       console.log('用户已完成问卷，重定向到:', next);
       return NextResponse.redirect(new URL(next, request.url));
     }
-    
+
     if (code) {
       // 交换 code 获取 session
       const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-      
+
       if (exchangeError) {
         console.error('交换 code 失败:', {
           message: exchangeError.message,
           status: exchangeError.status,
           name: exchangeError.name,
         });
-        
+
         // 检查是否是OTP过期错误
         const errorMessage = exchangeError.message?.toLowerCase() || '';
         if (errorMessage.includes('expired') || errorMessage.includes('invalid')) {
@@ -128,14 +128,14 @@ export async function GET(request: NextRequest) {
           loginUrl.hash = `error=access_denied&error_code=otp_expired&error_description=${encodeURIComponent('Email link is invalid or has expired')}`;
           return NextResponse.redirect(loginUrl);
         }
-        
+
         return NextResponse.redirect(new URL(`/login?error=invalid_token&details=${encodeURIComponent(exchangeError.message)}`, request.url));
       }
 
       // 如果成功交换到 session，验证 session 是否存在
       if (sessionData?.session) {
         console.log('Session 交换成功，用户ID:', sessionData.session.user.id);
-        
+
         const { error: setSessionError } = await supabase.auth.setSession({
           access_token: sessionData.session.access_token,
           refresh_token: sessionData.session.refresh_token,
@@ -145,11 +145,11 @@ export async function GET(request: NextRequest) {
           console.error('设置 session 到 cookies 失败:', setSessionError);
           return NextResponse.redirect(new URL('/login?error=session_cookie_failed', request.url));
         }
-        
+
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (user && !userError) {
           console.log('Session 验证成功，用户ID:', user.id);
-          
+
           // ========================================
           // CRITICAL: 检查用户是否需要完成问卷
           // ========================================
@@ -158,13 +158,13 @@ export async function GET(request: NextRequest) {
             .select('metabolic_profile')
             .eq('id', user.id)
             .single();
-          
+
           // 如果profile不存在或metabolic_profile为空，重定向到问卷
           if (!profile || !profile.metabolic_profile || Object.keys(profile.metabolic_profile).length === 0) {
             console.log('用户未完成问卷，重定向到 /onboarding');
             return NextResponse.redirect(new URL('/onboarding', request.url));
           }
-          
+
           console.log('用户已完成问卷，重定向到:', next);
           const redirectUrl = new URL(next, request.url);
           return NextResponse.redirect(redirectUrl);
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
 
     if (session) {
       // 已有会话，直接重定向
-    return NextResponse.redirect(new URL(next, request.url));
+      return NextResponse.redirect(new URL(next, request.url));
     } else {
       // 没有 code 也没有 session，重定向到登录页
       console.error('没有 code 参数且没有现有 session');

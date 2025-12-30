@@ -33,8 +33,8 @@ const navItems: NavItem[] = [
     id: 'today',
     label: 'Today',
     icon: <CalendarDays className="w-5 h-5" />,
-    href: '/landing',
-    activeRoutes: ['/landing', '/plans', '/'],
+    href: '/unlearn/app',
+    activeRoutes: ['/unlearn/app', '/plans', '/'],
   },
   {
     id: 'max',

@@ -41,7 +41,7 @@ function UpdatePasswordContent() {
 
             setMessage({ type: 'success', text: '密码修改成功！即将跳转...' });
             setTimeout(() => {
-                router.push('/landing');
+                router.push('/unlearn/app');
             }, 2000);
 
         } catch (err) {

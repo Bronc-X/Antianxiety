@@ -164,7 +164,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
 
       setTimeout(() => {
-        router.push('/landing');
+        router.push('/unlearn/app');
         router.refresh();
       }, 1000);
     } catch (err) {
