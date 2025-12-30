@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultra Poster 03 - Meet Max</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&family=Noto+Serif+SC:wght@300;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background-color: #050505;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #poster {
+            width: 1080px;
+            height: 1920px;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+            color: #fff;
+        }
+
+        #canvas-container {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        .content-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            padding: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .days {
+            font-family: 'Playfair Display', serif;
+            font-size: 80px;
+            line-height: 1;
+            color: #fff;
+            font-style: italic;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+        }
+
+        .days span {
+            font-size: 32px;
+            font-family: 'Inter', sans-serif;
+            font-style: normal;
+            font-weight: 300;
+            color: #888;
+            margin-left: 10px;
+            text-shadow: none;
+        }
+
+        .date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            text-align: right;
+        }
+
+        .terminal-container {
+            text-align: left;
+            position: absolute;
+            top: 42%;
+            left: 15%;
+            width: 70%;
+            font-family: 'JetBrains Mono', monospace;
+            color: #0f0;
+            /* Terminal Green */
+            font-size: 36px;
+            line-height: 1.6;
+            z-index: 20;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
+            transition: all 4s ease-out;
+            /* Extended Fade Out Duration */
+        }
+
+        .terminal-container.fade-out {
+            opacity: 0;
+            transform: scale(1.05);
+            /* Simpler scale */
+            filter: blur(2px);
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 18px;
+            height: 42px;
+            background: #0f0;
+            vertical-align: middle;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .max-reveal {
+            font-family: 'Playfair Display', serif;
+            font-size: 280px;
+            font-weight: 700;
+            font-style: italic;
+            color: #fff;
+            position: absolute;
+            top: 50%;
+            /* Centered */
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            opacity: 0;
+            /* SLOW REVEAL: 3.5s duration */
+            transition: opacity 3.5s ease-in, transform 3.5s ease-out;
+            text-shadow: 0 0 80px rgba(255, 255, 255, 0.8);
+            z-index: 30;
+        }
+
+        .max-reveal.visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .sub-text-container {
+            position: absolute;
+            bottom: 280px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        .sub-text {
+            font-size: 32px;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.9);
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        .highlight {
+            font-size: 1.5em;
+            color: #fff;
+            font-weight: 700;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            margin-left: 5px;
+            vertical-align: middle;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 60px;
+        }
+
+        .footer-center {
+            text-align: center;
+        }
+
+        .max-tag {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 56px;
+            color: #fff;
+            line-height: 1;
+        }
+
+        .footer-desc {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 26px;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 4px;
+            margin-top: 16px;
+        }
+
+        /* Background Grid */
+        .bg-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 50, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 50, 0, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="poster">
+        <div class="bg-grid"></div>
+
+        <div class="content-layer">
+            <div class="header">
+                <div>
+                    <svg width="330" height="60" viewBox="0 0 220 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="10" cy="22" r="4" fill="#0f0" />
+                        <text x="24" y="26" font-family="'Playfair Display', serif" font-weight="700"
+                            font-style="italic" font-size="20" fill="#0f0" letter-spacing="-0.02em">
+                            AntiAnxiety™
+                        </text>
+                    </svg>
+                </div>
+                <div class="countdown">
+                    <div class="date">2026.01.03</div>
+                    <div class="days">01 <span>DAY</span></div>
+                </div>
+            </div>
+
+            <div class="terminal-container" id="terminal"></div>
+
+            <div class="max-reveal" id="maxTitle">Max.</div>
+
+            <div class="sub-text-container">
+                <div class="sub-text">顺应身体的声音，我听得懂 <span class="highlight">你</span></div>
+            </div>
+
+            <div class="footer">
+                <div class="footer-center">
+                    <div class="max-tag">Max.</div>
+                    <div class="footer-desc">全球首个「个人健康智能体」</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+        const maxTitle = document.getElementById('maxTitle');
+
+        const lines = [
+            { text: "> waking_up_digital_twin...", delay: 800 },
+            { text: "> syncing_consciousness...", delay: 800 },
+            { text: "> HELLO WORLD_", delay: 1000 }
+        ];
+
+        async function runTerminal() {
+            const createLine = () => {
+                const div = document.createElement('div');
+                div.className = 'line-content';
+                const span = document.createElement('span');
+                const cursor = document.createElement('span');
+                cursor.className = 'cursor';
+                div.appendChild(span);
+                div.appendChild(cursor);
+                terminal.appendChild(div);
+                return { div, span, cursor };
+            };
+
+            let { span, cursor } = createLine();
+
+            for (let i = 0; i < lines.length; i++) {
+                const txt = lines[i].text;
+                const delay = lines[i].delay;
+
+                for (let c = 0; c < txt.length; c++) {
+                    span.textContent += txt[c];
+                    // Slower typing
+                    await new Promise(r => setTimeout(r, 45 + Math.random() * 45));
+                }
+
+                await new Promise(r => setTimeout(r, delay));
+
+                if (i < lines.length - 1) {
+                    cursor.remove();
+                    const next = createLine();
+                    span = next.span;
+                    cursor = next.cursor;
+                }
+            }
+
+            await new Promise(r => setTimeout(r, 500));
+
+            // Slow Fade Out
+            terminal.classList.add('fade-out');
+
+            // Slow Reveal (3.5s)
+            // Start reveal strictly after fade starts
+            setTimeout(() => {
+                maxTitle.classList.add('visible');
+            }, 500);
+        }
+
+        runTerminal();
+
+        function scalePoster() {
+            const poster = document.getElementById('poster');
+            const scale = Math.min(window.innerWidth / 1080, window.innerHeight / 1920) * 0.95;
+            poster.style.transform = `scale(${scale})`;
+        }
+        window.addEventListener('resize', scalePoster);
+        scalePoster();
+    </script>
+</body>
+
+</html>

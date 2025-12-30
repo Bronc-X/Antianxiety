@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiAnxiety 刷屏稿 04 - Launch Day</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1080px;
+            height: 1920px;
+            background: #000000;
+            font-family: 'Noto Serif SC', 'Playfair Display', serif;
+            color: #FFFFFF;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 动态背景纹理 */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.04;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* 极光背景 */
+        .aurora {
+            position: absolute;
+            width: 1200px;
+            height: 1200px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            filter: blur(80px);
+            z-index: 0;
+            animation: pulse 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+                transform: translateX(-50%) scale(0.95);
+            }
+
+            100% {
+                opacity: 0.8;
+                transform: translateX(-50%) scale(1.05);
+            }
+        }
+
+        .header {
+            padding: 60px 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 28px;
+            font-weight: 700;
+            color: #D4AF37;
+            letter-spacing: 0.05em;
+        }
+
+        .main {
+            padding: 40px 80px;
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            height: 1400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 主Logo/文字 */
+        .launch-title {
+            font-size: 160px;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #FFF 0%, #D4AF37 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .launch-subtitle {
+            font-size: 42px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 80px;
+            font-weight: 300;
+            letter-spacing: 0.2em;
+        }
+
+        /* 核心卖点 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-bottom: 100px;
+            width: 100%;
+        }
+
+        .feature-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: left;
+        }
+
+        .feature-box h3 {
+            font-size: 24px;
+            color: #D4AF37;
+            margin-bottom: 12px;
+        }
+
+        .feature-box p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.5;
+        }
+
+        /* 下载区域 */
+        .download-area {
+            position: relative;
+        }
+
+        .download-btn {
+            display: block;
+            background: #D4AF37;
+            color: #000;
+            font-size: 32px;
+            font-weight: 700;
+            padding: 30px 100px;
+            border-radius: 60px;
+            text-decoration: none;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(212, 175, 55, 0.2);
+        }
+
+        .platforms {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 60px 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 10;
+        }
+
+        .copyright {
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+        }
+
+        /* 粒子装饰 */
+        .particle {
+            position: absolute;
+            background: #D4AF37;
+            border-radius: 50%;
+            opacity: 0.2;
+        }
+
+        .p1 {
+            width: 4px;
+            height: 4px;
+            top: 20%;
+            left: 10%;
+        }
+
+        .p2 {
+            width: 8px;
+            height: 8px;
+            top: 30%;
+            right: 20%;
+            opacity: 0.1;
+        }
+
+        .p3 {
+            width: 3px;
+            height: 3px;
+            bottom: 40%;
+            left: 30%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="aurora"></div>
+    <div class="particle p1"></div>
+    <div class="particle p2"></div>
+    <div class="particle p3"></div>
+
+    <header class="header">
+        <div class="brand">AntiAnxiety™</div>
+        <div style="text-align: right;">
+            <div style="font-family: 'Playfair Display'; font-size: 24px; font-weight: 700; color: #FFF;">2026.01.04
+            </div>
+            <div style="font-size: 12px; color: #D4AF37; margin-top: 4px; letter-spacing: 1px; font-weight: bold;">
+                OFFICIAL LAUNCH</div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="launch-title">NOW<br>LIVE</div>
+        <div class="launch-subtitle">顺应生理节律的自律</div>
+
+        <div class="features-grid">
+            <div class="feature-box">
+                <h3>Design</h3>
+                <p>获得红点奖提名的<br>2.5D 新拟态设计</p>
+            </div>
+            <div class="feature-box">
+                <h3>Intelligence</h3>
+                <p>基于贝叶斯推理的<br>自适应恢复引擎</p>
+            </div>
+        </div>
+
+        <div class="download-area">
+            <a href="#" class="download-btn">立即下载体验</a>
+            <div class="platforms">
+                <span>iOS</span>
+                <span>•</span>
+                <span>Android</span>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="copyright">© 2026 AntiAnxiety Inc.</div>
+        <div style="text-align: right; color: rgba(255,255,255,0.5);">
+            antianxiety.app
+        </div>
+    </footer>
+</body>
+
+</html>
