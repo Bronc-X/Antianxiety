@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { Moon, Activity, TrendingUp, Loader2 } from 'lucide-react';
-import ParticipantDigitalTwin from './ParticipantDigitalTwin';
 
 interface HRVData {
     value: number;
@@ -35,7 +34,7 @@ export default function HRVDashboard() {
     const [sleep, setSleep] = useState<SleepData | null>(null);
     const [activity, setActivity] = useState<ActivityData | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    
+
     // Track if initial fetch has completed to prevent re-fetching on re-renders
     const hasFetchedRef = useRef(false);
 
@@ -43,7 +42,7 @@ export default function HRVDashboard() {
         // Prevent duplicate initial fetches
         if (isInitial && hasFetchedRef.current) return;
         if (isInitial) hasFetchedRef.current = true;
-        
+
         try {
             setErrorMessage(null);
             const res = await fetch('/api/wearables/sync', { method: 'GET' });
@@ -120,8 +119,13 @@ export default function HRVDashboard() {
     }
 
     if (!hrv && !sleep && !activity) {
-        // Show Digital Twin visualization when no wearable data is available
-        return <ParticipantDigitalTwin />;
+        return (
+            <section ref={ref} className="py-16 px-6" style={{ backgroundColor: '#0B3D2E' }}>
+                <div className="max-w-[1000px] mx-auto text-center">
+                    <p className="text-white/50">{language === 'en' ? 'No wearable data available' : '暂无穿戴设备数据'}</p>
+                </div>
+            </section>
+        );
     }
 
     return (

@@ -4,6 +4,8 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { Settings, ChevronLeft, ChevronRight, TrendingUp, Clock, Database, BarChart3, RefreshCw, AlertCircle, Loader2, X, Bell, Shield, Zap, LogIn } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { useDashboard } from '@/hooks/domain/useDashboard';
+import { useAuth } from '@/hooks/domain/useAuth';
 import type { DashboardData, AdaptivePlan, DataCollectionStatus, TreatmentMilestone } from '@/types/digital-twin';
 
 // ============================================
@@ -37,7 +39,7 @@ function NotLoggedInState({ language }: { language: string }) {
                 {language === 'en' ? 'Sign in to view your Digital Twin' : '登录后查看你的数字孪生'}
             </h3>
             <p className="text-white/60 text-sm text-center mb-6 max-w-md">
-                {language === 'en' 
+                {language === 'en'
                     ? 'Your personalized health insights are waiting for you.'
                     : '你的个性化健康洞察正在等待你。'}
             </p>
@@ -87,11 +89,11 @@ function LoadingState({ language }: { language: string }) {
 // Data Collection State Component
 // ============================================
 
-function DataCollectionState({ 
-    status, 
-    language 
-}: { 
-    status: DataCollectionStatus; 
+function DataCollectionState({
+    status,
+    language
+}: {
+    status: DataCollectionStatus;
     language: string;
 }) {
     const calibrationDays = status.calibrationDays ?? status.calibrationCount ?? 0;
@@ -112,7 +114,7 @@ function DataCollectionState({
             <p className="text-white/60 text-sm text-center mb-6 max-w-md">
                 {status.message}
             </p>
-            
+
             {/* Progress Bar */}
             <div className="w-full max-w-xs mb-4">
                 <div className="flex justify-between text-xs text-white/50 mb-2">
@@ -128,7 +130,7 @@ function DataCollectionState({
                     />
                 </div>
             </div>
-            
+
             {/* Collection Details */}
             <div className="grid grid-cols-2 gap-4 text-center mt-4">
                 <div className="p-3 bg-white/5 rounded">
@@ -161,13 +163,13 @@ function DataCollectionState({
 // Error State Component
 // ============================================
 
-function ErrorState({ 
-    message, 
-    onRetry, 
-    language 
-}: { 
-    message: string; 
-    onRetry: () => void; 
+function ErrorState({
+    message,
+    onRetry,
+    language
+}: {
+    message: string;
+    onRetry: () => void;
     language: string;
 }) {
     return (
@@ -194,11 +196,11 @@ function ErrorState({
 // No Analysis State Component
 // ============================================
 
-function NoAnalysisState({ 
-    onTriggerAnalysis, 
+function NoAnalysisState({
+    onTriggerAnalysis,
     isAnalyzing,
-    language 
-}: { 
+    language
+}: {
     onTriggerAnalysis: () => void;
     isAnalyzing: boolean;
     language: string;
@@ -212,7 +214,7 @@ function NoAnalysisState({
                 {language === 'en' ? 'Ready for Analysis' : '准备好进行分析'}
             </h3>
             <p className="text-white/60 text-sm text-center mb-6 max-w-md">
-                {language === 'en' 
+                {language === 'en'
                     ? 'Your data has been collected. Generate your first AI-powered health analysis.'
                     : '你的数据已收集完成。生成你的首次 AI 健康分析。'}
             </p>
@@ -245,119 +247,83 @@ export default function ParticipantDigitalTwin() {
     const { language } = useI18n();
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { once: true, margin: '-100px' });
+    // Use Domain Hook (The Bridge)
+    const {
+        digitalTwin,
+        loadingDigitalTwin,
+        loadDigitalTwin,
+        isOffline,
+        error: dashboardError
+    } = useDashboard();
+
+    // Auth check using useAuth
+    const { isAuthenticated } = useAuth();
+
+    // Local UI state
     const [timeOffset, setTimeOffset] = useState(0);
     const [activeView, setActiveView] = useState<ViewType>('prediction');
-    
-    // API State
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [notLoggedIn, setNotLoggedIn] = useState(false);
-    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-    const [collectionStatus, setCollectionStatus] = useState<DataCollectionStatus | null>(null);
-    const [needsAnalysis, setNeedsAnalysis] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isStale, setIsStale] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [medicalConsent, setMedicalConsent] = useState(false);
     const [analysisFrequency, setAnalysisFrequency] = useState<'auto' | 'daily' | 'weekly'>('auto');
     const [notifications, setNotifications] = useState(true);
-    
-    // Prevent multiple fetches
-    const hasFetchedRef = useRef(false);
-    
+
     // Toast for no data hint - with position
     const [hintPosition, setHintPosition] = useState<{ x: number; y: number } | null>(null);
 
-    // Fetch dashboard data
-    const fetchDashboard = useCallback(async (isRetry = false) => {
-        // Prevent duplicate fetches unless it's a manual retry
-        if (!isRetry && hasFetchedRef.current) {
-            return;
-        }
-        hasFetchedRef.current = true;
-        
-        setLoading(true);
-        setError(null);
-        setNotLoggedIn(false);
-        
-        try {
-            const response = await fetch('/api/digital-twin/dashboard');
-            const data: ApiResponse = await response.json();
-            
-            // Handle 401 - not logged in (don't set error, show login prompt)
-            if (response.status === 401) {
-                setNotLoggedIn(true);
-                setLoading(false);
-                return;
-            }
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to fetch dashboard');
-            }
-            
-            if (data.status === 'collecting_data' && data.collectionStatus) {
-                setCollectionStatus(data.collectionStatus);
-                setDashboardData(null);
-                setNeedsAnalysis(false);
-            } else if (data.status === 'no_analysis') {
-                setNeedsAnalysis(true);
-                setDashboardData(null);
-                setCollectionStatus(null);
-            } else if (data.dashboardData) {
-                setDashboardData(data.dashboardData);
-                setIsStale(data.isStale || false);
-                setCollectionStatus(null);
-                setNeedsAnalysis(false);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Unknown error');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    // Load data on mount
+    useEffect(() => {
+        loadDigitalTwin();
+    }, [loadDigitalTwin]);
+
+    // Listen for calibration to refresh
+    useEffect(() => {
+        const handleCalibration = () => {
+            loadDigitalTwin();
+        };
+        window.addEventListener('daily-calibration:completed', handleCalibration);
+        return () => {
+            window.removeEventListener('daily-calibration:completed', handleCalibration);
+        };
+    }, [loadDigitalTwin]);
+
+    // Derive state from digitalTwin data
+    // TypeScript safe casting or checks
+    const dt = digitalTwin as any;
+    const dashboardData: DashboardData | null = dt?.dashboardData || null;
+    const collectionStatus: DataCollectionStatus | null = dt?.collectionStatus || (dt?.status === 'collecting_data' ? dt : null);
+    const needsAnalysis = dt?.status === 'no_analysis';
+    const isStale = dt?.isStale || false;
+    const loading = loadingDigitalTwin;
+    const error = dashboardError;
+    const notLoggedIn = !isAuthenticated;
 
     // Trigger analysis
     const triggerAnalysis = useCallback(async () => {
         setIsAnalyzing(true);
-        hasFetchedRef.current = false; // Allow refetch after analysis
-        
+
         try {
             const response = await fetch('/api/digital-twin/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ forceRefresh: true }),
             });
-            
+
             if (!response.ok) {
                 const data = await response.json();
                 throw new Error(data.error || 'Analysis failed');
             }
-            
+
             // Refresh dashboard after analysis
-            await fetchDashboard(true);
+            await loadDigitalTwin();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Analysis failed');
+            console.error(err);
         } finally {
             setIsAnalyzing(false);
         }
-    }, [fetchDashboard]);
+    }, [loadDigitalTwin]);
 
-    // Initial fetch - only run once on mount
-    useEffect(() => {
-        fetchDashboard();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
-    useEffect(() => {
-        const handleCalibration = () => {
-            fetchDashboard(true);
-        };
-
-        window.addEventListener('daily-calibration:completed', handleCalibration);
-        return () => {
-            window.removeEventListener('daily-calibration:completed', handleCalibration);
-        };
-    }, [fetchDashboard]);
 
     // View options
     const viewOptions = language === 'en'
@@ -431,11 +397,10 @@ export default function ParticipantDigitalTwin() {
                                         }
                                         setActiveView(option.id);
                                     }}
-                                    className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-all duration-300 cursor-pointer ${
-                                        activeView === option.id
-                                            ? 'bg-[#D4AF37]/20 border-l-2 border-[#D4AF37]'
-                                            : 'bg-white/5 border-l-2 border-transparent hover:bg-white/10'
-                                    } ${!dashboardData ? 'opacity-70' : ''}`}
+                                    className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-all duration-300 cursor-pointer ${activeView === option.id
+                                        ? 'bg-[#D4AF37]/20 border-l-2 border-[#D4AF37]'
+                                        : 'bg-white/5 border-l-2 border-transparent hover:bg-white/10'
+                                        } ${!dashboardData ? 'opacity-70' : ''}`}
                                 >
                                     <option.icon className={`w-4 h-4 ${activeView === option.id ? 'text-[#D4AF37]' : 'text-white/50'}`} />
                                     <span className={activeView === option.id ? 'text-[#D4AF37]' : 'text-white'}>
@@ -444,7 +409,7 @@ export default function ParticipantDigitalTwin() {
                                 </motion.button>
                             ))}
                         </div>
-                        
+
                         {/* No Data Hint - fixed position near click */}
                         <AnimatePresence>
                             {hintPosition && (
@@ -453,15 +418,15 @@ export default function ParticipantDigitalTwin() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.9 }}
                                     className="fixed z-[100] px-3 py-2 bg-[#0B3D2E] border border-[#D4AF37]/50 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none"
-                                    style={{ 
-                                        left: hintPosition.x, 
+                                    style={{
+                                        left: hintPosition.x,
                                         top: hintPosition.y,
                                         transform: 'translateY(-50%)'
                                     }}
                                 >
-                                    {language === 'en' 
-                                        ? 'Complete 3 consecutive days of data first'
-                                        : '请先完成数据累计（连续3天就可以啦）'}
+                                    {language === 'en'
+                                        ? 'Ready for analysis'
+                                        : '随时可以生成分析'}
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -485,7 +450,7 @@ export default function ParticipantDigitalTwin() {
                                 className="flex items-center gap-2 text-sm text-white/60 hover:text-[#D4AF37] transition-colors disabled:opacity-50"
                             >
                                 <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                                {isStale 
+                                {isStale
                                     ? (language === 'en' ? 'Update available' : '有更新可用')
                                     : (language === 'en' ? 'Refresh analysis' : '刷新分析')}
                             </button>
@@ -517,7 +482,7 @@ export default function ParticipantDigitalTwin() {
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button 
+                                <button
                                     onClick={() => setShowSettings(true)}
                                     className="p-2 text-white/50 hover:text-white transition-colors"
                                 >
@@ -532,14 +497,14 @@ export default function ParticipantDigitalTwin() {
                         ) : notLoggedIn ? (
                             <NotLoggedInState language={language} />
                         ) : error ? (
-                            <ErrorState message={error} onRetry={() => fetchDashboard(true)} language={language} />
+                            <ErrorState message={error} onRetry={() => loadDigitalTwin()} language={language} />
                         ) : collectionStatus ? (
                             <DataCollectionState status={collectionStatus} language={language} />
                         ) : needsAnalysis ? (
-                            <NoAnalysisState 
-                                onTriggerAnalysis={triggerAnalysis} 
+                            <NoAnalysisState
+                                onTriggerAnalysis={triggerAnalysis}
                                 isAnalyzing={isAnalyzing}
-                                language={language} 
+                                language={language}
                             />
                         ) : dashboardData ? (
                             <AnimatePresence mode="wait">
@@ -561,18 +526,18 @@ export default function ParticipantDigitalTwin() {
                                 )}
 
                                 {activeView === 'baseline' && (
-                                    <BaselineView 
-                                        assessments={baselineAssessments} 
-                                        vitals={baselineVitals} 
-                                        language={language} 
+                                    <BaselineView
+                                        assessments={baselineAssessments}
+                                        vitals={baselineVitals}
+                                        language={language}
                                     />
                                 )}
 
                                 {activeView === 'endpoints' && (
-                                    <EndpointsView 
-                                        charts={charts} 
-                                        summaryStats={summaryStats} 
-                                        language={language} 
+                                    <EndpointsView
+                                        charts={charts}
+                                        summaryStats={summaryStats}
+                                        language={language}
                                     />
                                 )}
                             </AnimatePresence>
@@ -631,18 +596,17 @@ export default function ParticipantDigitalTwin() {
                                             <button
                                                 key={option.value}
                                                 onClick={() => setAnalysisFrequency(option.value as typeof analysisFrequency)}
-                                                className={`py-2 px-3 text-sm rounded transition-colors ${
-                                                    analysisFrequency === option.value
-                                                        ? 'bg-[#D4AF37] text-[#0B3D2E] font-medium'
-                                                        : 'bg-white/10 text-white/70 hover:bg-white/20'
-                                                }`}
+                                                className={`py-2 px-3 text-sm rounded transition-colors ${analysisFrequency === option.value
+                                                    ? 'bg-[#D4AF37] text-[#0B3D2E] font-medium'
+                                                    : 'bg-white/10 text-white/70 hover:bg-white/20'
+                                                    }`}
                                             >
                                                 {option.label}
                                             </button>
                                         ))}
                                     </div>
                                     <p className="text-white/40 text-xs mt-2">
-                                        {language === 'en' 
+                                        {language === 'en'
                                             ? 'Auto: Analyzes after each daily calibration'
                                             : '自动：每次完成每日校准后分析'}
                                     </p>
@@ -665,7 +629,7 @@ export default function ParticipantDigitalTwin() {
                                                 {language === 'en' ? 'Share Medical History' : '分享医疗历史'}
                                             </div>
                                             <div className="text-white/40 text-xs">
-                                                {language === 'en' 
+                                                {language === 'en'
                                                     ? 'Include detailed health data in analysis'
                                                     : '在分析中包含详细健康数据'}
                                             </div>
@@ -696,7 +660,7 @@ export default function ParticipantDigitalTwin() {
                                                 {language === 'en' ? 'Analysis Updates' : '分析更新'}
                                             </div>
                                             <div className="text-white/40 text-xs">
-                                                {language === 'en' 
+                                                {language === 'en'
                                                     ? 'Get notified when new insights are ready'
                                                     : '新洞察准备好时通知我'}
                                             </div>
@@ -860,7 +824,7 @@ function TimelineView({
             <div className="relative">
                 {/* Timeline line */}
                 <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-white/10" />
-                
+
                 <div className="space-y-6">
                     {timeline.map((milestone, i) => (
                         <motion.div
@@ -871,18 +835,17 @@ function TimelineView({
                             className="relative pl-12"
                         >
                             {/* Dot */}
-                            <div className={`absolute left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                milestone.status === 'completed' ? 'bg-[#D4AF37] border-[#D4AF37]' :
+                            <div className={`absolute left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center ${milestone.status === 'completed' ? 'bg-[#D4AF37] border-[#D4AF37]' :
                                 milestone.status === 'current' ? 'bg-[#0B3D2E] border-[#D4AF37] animate-pulse' :
-                                'bg-[#0B3D2E] border-white/30'
-                            }`}>
+                                    'bg-[#0B3D2E] border-white/30'
+                                }`}>
                                 {milestone.status === 'completed' && (
                                     <svg className="w-3 h-3 text-[#0B3D2E]" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
                                 )}
                             </div>
-                            
+
                             <div className={`p-4 ${milestone.status === 'current' ? 'bg-[#D4AF37]/10 border border-[#D4AF37]/30' : 'bg-white/5'}`}>
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-white font-medium">{milestone.event}</span>
@@ -970,16 +933,15 @@ function BaselineView({
                                     <span className="text-white/70 text-sm">{item.name}</span>
                                     <span className="text-white font-bold">{item.value}</span>
                                 </div>
-                                <span className={`text-xs ${
-                                    item.trend === 'normal' || item.trend === 'at_target' ? 'text-green-400' : 
+                                <span className={`text-xs ${item.trend === 'normal' || item.trend === 'at_target' ? 'text-green-400' :
                                     item.trend === 'above_target' ? 'text-blue-400' : 'text-amber-400'
-                                }`}>
-                                    {language === 'en' 
+                                    }`}>
+                                    {language === 'en'
                                         ? item.trend.replace('_', ' ')
-                                        : item.trend === 'normal' ? '正常' 
-                                        : item.trend === 'at_target' ? '达标'
-                                        : item.trend === 'above_target' ? '高于目标'
-                                        : '低于目标'}
+                                        : item.trend === 'normal' ? '正常'
+                                            : item.trend === 'at_target' ? '达标'
+                                                : item.trend === 'above_target' ? '高于目标'
+                                                    : '低于目标'}
                                 </span>
                             </motion.div>
                         ))}
@@ -1010,17 +972,17 @@ function EndpointsView({
     const energyTrend = charts?.energyTrend || [4, 5, 5.5, 6, 6.5, 7];
 
     // Calculate improvements
-    const anxietyImprovement = anxietyTrend.length > 1 
-        ? Math.round((1 - anxietyTrend[anxietyTrend.length - 1] / anxietyTrend[0]) * 100) 
+    const anxietyImprovement = anxietyTrend.length > 1
+        ? Math.round((1 - anxietyTrend[anxietyTrend.length - 1] / anxietyTrend[0]) * 100)
         : 0;
-    const sleepImprovement = sleepTrend.length > 1 
-        ? Math.round((sleepTrend[sleepTrend.length - 1] / sleepTrend[0] - 1) * 100) 
+    const sleepImprovement = sleepTrend.length > 1
+        ? Math.round((sleepTrend[sleepTrend.length - 1] / sleepTrend[0] - 1) * 100)
         : 0;
-    const hrvImprovement = hrvTrend.length > 1 
-        ? Math.round((hrvTrend[hrvTrend.length - 1] / hrvTrend[0] - 1) * 100) 
+    const hrvImprovement = hrvTrend.length > 1
+        ? Math.round((hrvTrend[hrvTrend.length - 1] / hrvTrend[0] - 1) * 100)
         : 0;
-    const energyImprovement = energyTrend.length > 1 
-        ? Math.round((energyTrend[energyTrend.length - 1] / energyTrend[0] - 1) * 100) 
+    const energyImprovement = energyTrend.length > 1
+        ? Math.round((energyTrend[energyTrend.length - 1] / energyTrend[0] - 1) * 100)
         : 0;
 
     return (
@@ -1033,7 +995,7 @@ function EndpointsView({
             className="p-6"
         >
             <h3 className="text-white font-semibold mb-6">{language === 'en' ? 'Metric Endpoints Over Time' : '指标终点变化趋势'}</h3>
-            
+
             {/* Chart Grid */}
             <div className="grid md:grid-cols-2 gap-6">
                 {/* Anxiety Score Chart */}

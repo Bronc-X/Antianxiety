@@ -2,15 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Sparkles, Loader2, User, Bot, Mic, MicOff } from 'lucide-react';
+import { Send, X, Sparkles, Loader2, Mic, MicOff } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-
-interface Message {
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: Date;
-}
+import { useMax, type LocalMessage } from '@/hooks/domain/useMax';
 
 interface MaxChatPanelProps {
     isOpen: boolean;
@@ -19,20 +13,36 @@ interface MaxChatPanelProps {
 
 export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
     const { language } = useI18n();
-    const [messages, setMessages] = useState<Message[]>([]);
+
+    // Use the domain hook (The Bridge)
+    const {
+        messages,
+        addMessage,
+        updateLastMessage,
+        isLoading: historyLoading,
+        isSending,
+        newConversation,
+        currentConversationId
+    } = useMax();
+
     const [input, setInput] = useState('');
-    const [loading, setLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [speechSupported, setSpeechSupported] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
 
+    // Initial Setup
     useEffect(() => {
-        if (isOpen && inputRef.current) {
-            inputRef.current.focus();
+        if (isOpen) {
+            // Ensure we have a conversation context
+            newConversation();
+
+            if (inputRef.current) {
+                inputRef.current.focus();
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, newConversation]);
 
     // Check for Speech Recognition support
     useEffect(() => {
@@ -73,69 +83,72 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
         }
     };
 
+    // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, isSending]);
 
-    // Add welcome message when opened
+    // Add welcome message if empty
     useEffect(() => {
         if (isOpen && messages.length === 0) {
-            setMessages([{
+            const welcomeMsg: LocalMessage = {
                 id: 'welcome',
                 role: 'assistant',
                 content: language === 'en'
                     ? "Hi! I'm Max, your personal health agent. I can help you understand your anxiety patterns, suggest personalized interventions, and track your progress. What's on your mind?"
                     : "嗨！我是 Max，你的个人健康智能体。我可以帮助你理解焦虑模式、建议个性化干预措施、并追踪你的进展。今天有什么想聊的吗？",
-                timestamp: new Date(),
-            }]);
+                created_at: new Date().toISOString(),
+                conversation_id: currentConversationId || 'temp',
+            };
+            addMessage(welcomeMsg);
         }
-    }, [isOpen, language]);
+    }, [isOpen, language, messages.length, addMessage, currentConversationId]);
 
     const sendMessage = async () => {
-        if (!input.trim() || loading) return;
+        if (!input.trim() || isSending) return;
 
-        const userMessage: Message = {
+        const userContent = input;
+        const userMessage: LocalMessage = {
             id: Date.now().toString(),
             role: 'user',
-            content: input,
-            timestamp: new Date(),
+            content: userContent,
+            created_at: new Date().toISOString(),
+            conversation_id: currentConversationId || 'temp',
         };
 
-        setMessages(prev => [...prev, userMessage]);
+        addMessage(userMessage);
         setInput('');
-        setLoading(true);
 
         try {
+            // Add placeholder assistant message
+            const placeholderId = (Date.now() + 1).toString();
+            const placeholderMessage: LocalMessage = {
+                id: placeholderId,
+                role: 'assistant',
+                content: '',
+                isStreaming: true,
+                created_at: new Date().toISOString(),
+                conversation_id: currentConversationId || 'temp',
+            };
+            addMessage(placeholderMessage);
+
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    message: input,
-                    stream: false,
+                    message: userContent,
+                    stream: false, // Currently using non-streaming per original component
                     language,
                 }),
             });
 
             const data = await res.json();
+            const reply = data.response || data.reply || data.message || (language === 'en' ? 'I understand.' : '我明白了。');
 
-            const assistantMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: data.response || data.reply || data.message || (language === 'en' ? 'I understand. Let me think about that.' : '我明白了，让我思考一下。'),
-                timestamp: new Date(),
-            };
-
-            setMessages(prev => [...prev, assistantMessage]);
+            updateLastMessage(reply, true);
         } catch (error) {
             console.error('Chat error:', error);
-            setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: language === 'en' ? 'Sorry, I had trouble connecting. Please try again.' : '抱歉，连接出现问题。请重试。',
-                timestamp: new Date(),
-            }]);
-        } finally {
-            setLoading(false);
+            updateLastMessage(language === 'en' ? 'Sorry, connection error.' : '抱歉，连接错误。', true);
         }
     };
 
@@ -153,9 +166,7 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                     }}
                 >
                     {/* Header */}
-                    <div
-                        className="flex items-center justify-between p-4 border-b border-gray-100"
-                    >
+                    <div className="flex items-center justify-between p-4 border-b border-gray-100">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-[#0B3D2E] rounded-full flex items-center justify-center">
                                 <Sparkles className="w-5 h-5 text-[#D4AF37]" />
@@ -196,11 +207,12 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                                         }`}
                                 >
                                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                    {msg.isStreaming && <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-[#0B3D2E] animate-pulse" />}
                                 </div>
                             </motion.div>
                         ))}
 
-                        {loading && (
+                        {isSending && messages[messages.length - 1]?.role === 'user' && (
                             <div className="flex gap-3">
                                 <div className="w-8 h-8 bg-[#0B3D2E] rounded-full flex items-center justify-center">
                                     <Sparkles className="w-4 h-4 text-[#D4AF37]" />
@@ -233,8 +245,8 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                                 <button
                                     onClick={toggleListening}
                                     className={`px-4 py-3 rounded-lg transition-colors ${isListening
-                                            ? 'bg-red-500 text-white animate-pulse'
-                                            : 'bg-gray-100 text-[#1A1A1A]/60 hover:bg-gray-200'
+                                        ? 'bg-red-500 text-white animate-pulse'
+                                        : 'bg-gray-100 text-[#1A1A1A]/60 hover:bg-gray-200'
                                         }`}
                                     title={language === 'en' ? 'Voice input' : '语音输入'}
                                 >
@@ -243,7 +255,7 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
                             )}
                             <button
                                 onClick={sendMessage}
-                                disabled={!input.trim() || loading}
+                                disabled={!input.trim() || isSending}
                                 className="px-4 py-3 bg-[#0B3D2E] text-white rounded-lg hover:bg-[#0B3D2E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Send className="w-5 h-5" />

@@ -17,14 +17,16 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
-import { getDashboardData, syncProfile } from '@/app/actions/dashboard';
-import type { 
-  UseDashboardReturn, 
+import { getDashboardData, syncProfile, getDigitalTwinData } from '@/app/actions/dashboard';
+import type {
+  UseDashboardReturn,
   DashboardData,
   UnifiedProfile,
   WellnessLog,
-  HardwareData 
+  HardwareData,
+  ActionResult
 } from '@/types/architecture';
+import type { DashboardResponse } from '@/types/digital-twin';
 
 // ============================================
 // Cache Configuration
@@ -32,6 +34,7 @@ import type {
 
 /** Cache key for dashboard data */
 const CACHE_KEY = 'dashboard-data';
+const TWIN_CACHE_KEY = 'digital-twin-data';
 
 /** Stale time in milliseconds (30 seconds) */
 const STALE_TIME = 30 * 1000;
@@ -70,67 +73,49 @@ function isCacheStale(key: string): boolean {
 // Hook Implementation
 // ============================================
 
-/**
- * Domain hook for dashboard data management.
- * 
- * @returns UseDashboardReturn interface with data, states, and actions
- * 
- * @example
- * function DashboardComponent() {
- *   const { profile, isLoading, sync, isOffline } = useDashboard();
- *   
- *   if (isLoading) return <Skeleton />;
- *   if (isOffline) return <OfflineBanner />;
- *   
- *   return <ProfileCard profile={profile} onSync={sync} />;
- * }
- */
-export function useDashboard(): UseDashboardReturn {
+interface ExtendedUseDashboardReturn extends UseDashboardReturn {
+  digitalTwin: DashboardResponse | { status: string; collectionStatus?: any; message?: string } | null;
+  loadingDigitalTwin: boolean;
+  loadDigitalTwin: () => Promise<void>;
+}
+
+export function useDashboard(): ExtendedUseDashboardReturn {
   // Network status
   const { isOnline } = useNetwork();
-  
+
   // Data state
   const [data, setData] = useState<DashboardData | null>(() => getCachedData(CACHE_KEY));
+  const [digitalTwin, setDigitalTwin] = useState<any | null>(() => getCachedData(TWIN_CACHE_KEY));
+
   const [isLoading, setIsLoading] = useState(!getCachedData(CACHE_KEY));
+  const [loadingDigitalTwin, setLoadingDigitalTwin] = useState(false);
+
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Deduplication ref
   const lastFetchRef = useRef<number>(0);
   const fetchingRef = useRef<boolean>(false);
-  
+  const lastTwinFetchRef = useRef<number>(0);
+
   // ============================================
   // Data Fetching
   // ============================================
-  
+
   const fetchData = useCallback(async (force = false) => {
-    // Deduplication: skip if recently fetched
     const now = Date.now();
-    if (!force && now - lastFetchRef.current < DEDUPE_INTERVAL) {
-      return;
-    }
-    
-    // Skip if already fetching
-    if (fetchingRef.current) {
-      return;
-    }
-    
-    // Skip if offline and have cached data
-    if (!isOnline && getCachedData(CACHE_KEY)) {
-      return;
-    }
-    
+    if (!force && now - lastFetchRef.current < DEDUPE_INTERVAL) return;
+    if (fetchingRef.current) return;
+    if (!isOnline && getCachedData(CACHE_KEY)) return;
+
     fetchingRef.current = true;
     lastFetchRef.current = now;
-    
-    // Only show loading if no cached data
-    if (!getCachedData(CACHE_KEY)) {
-      setIsLoading(true);
-    }
-    
+
+    if (!getCachedData(CACHE_KEY)) setIsLoading(true);
+
     try {
       const result = await getDashboardData();
-      
+
       if (result.success && result.data) {
         setData(result.data);
         setCachedData(CACHE_KEY, result.data);
@@ -145,103 +130,98 @@ export function useDashboard(): UseDashboardReturn {
       fetchingRef.current = false;
     }
   }, [isOnline]);
-  
+
+  const loadDigitalTwin = useCallback(async () => {
+    // Dedupe for digital twin specifically? 
+    // For now, simple fetch
+    setLoadingDigitalTwin(true);
+    try {
+      const result = await getDigitalTwinData();
+      if (result.success && result.data) {
+        setDigitalTwin(result.data);
+        setCachedData(TWIN_CACHE_KEY, result.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDigitalTwin(false);
+    }
+  }, []);
+
   // ============================================
   // Initial Fetch & Revalidation
   // ============================================
-  
+
   useEffect(() => {
-    // Initial fetch
     fetchData();
-    
-    // Revalidate when coming back online
     if (isOnline && isCacheStale(CACHE_KEY)) {
       fetchData(true);
     }
   }, [fetchData, isOnline]);
-  
+
   // ============================================
   // Actions
   // ============================================
-  
-  /**
-   * Trigger profile sync and refresh data.
-   */
+
   const sync = useCallback(async () => {
     if (isSyncing) return;
-    
     setIsSyncing(true);
     setError(null);
-    
     try {
       const result = await syncProfile();
-      
       if (!result.success) {
         setError(result.error || 'Sync failed');
         return;
       }
-      
-      // Refresh data after sync
       await fetchData(true);
+      // Also refresh digital twin if loaded
+      if (digitalTwin) loadDigitalTwin();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed');
     } finally {
       setIsSyncing(false);
     }
-  }, [isSyncing, fetchData]);
-  
-  /**
-   * Manually refresh data.
-   */
+  }, [isSyncing, fetchData, digitalTwin, loadDigitalTwin]);
+
   const refresh = useCallback(async () => {
-    await fetchData(true);
-  }, [fetchData]);
-  
-  /**
-   * Optimistic update / manual mutation.
-   */
+    await Promise.all([fetchData(true), loadDigitalTwin()]);
+  }, [fetchData, loadDigitalTwin]);
+
   const mutate = useCallback(async (
-    newData?: DashboardData, 
+    newData?: DashboardData,
     shouldRevalidate = true
   ) => {
     if (newData) {
       setData(newData);
       setCachedData(CACHE_KEY, newData);
     }
-    
-    if (shouldRevalidate) {
-      await fetchData(true);
-    }
+    if (shouldRevalidate) await fetchData(true);
   }, [fetchData]);
-  
-  // ============================================
-  // Return Interface
-  // ============================================
-  
+
   return {
-    // Data (destructured for convenience)
     profile: data?.profile ?? null,
     weeklyLogs: data?.weeklyLogs ?? [],
     hardwareData: data?.hardwareData ?? null,
-    
-    // States
+    digitalTwin,
+
     isLoading,
+    loadingDigitalTwin,
     isSyncing,
     isOffline: !isOnline,
     error,
-    
-    // Actions
+
     sync,
     refresh,
     mutate,
+    loadDigitalTwin
   };
 }
 
-// Re-export types for convenience
-export type { 
-  UseDashboardReturn, 
+export type {
+  UseDashboardReturn,
+  ExtendedUseDashboardReturn,
   DashboardData,
   UnifiedProfile,
   WellnessLog,
-  HardwareData 
+  HardwareData
 };

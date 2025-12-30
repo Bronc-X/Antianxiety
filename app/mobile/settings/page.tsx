@@ -1,259 +1,180 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useI18n } from '@/lib/i18n';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-    User, Bell, Shield, Watch, LogOut, ChevronRight,
-    Moon, Globe, Heart, HelpCircle, FileText
-} from 'lucide-react';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+    User, Bell, Moon, LogOut, ChevronRight, Shield, Heart,
+    Smartphone, Globe, Zap, Loader2, Save
+} from "lucide-react";
+import { useAuth } from "@/hooks/domain/useAuth";
+import { useSettings } from "@/hooks/domain/useSettings";
+import { useI18n } from "@/lib/i18n";
+import { useRouter } from "next/navigation";
 
-interface SettingsItem {
-    id: string;
-    labelEn: string;
-    labelZh: string;
-    icon: React.ReactNode;
-    color: string;
-    action?: () => void;
-    rightContent?: React.ReactNode;
-}
+// --- Components ---
 
-interface SettingsSection {
-    titleEn: string;
-    titleZh: string;
-    items: SettingsItem[];
-}
-
-function SettingsRow({
-    item,
-    delay,
-    isLast
-}: {
-    item: SettingsItem;
-    delay: number;
-    isLast: boolean;
-}) {
-    const { language } = useI18n();
-
+function SettingSection({ title, children }: { title: string, children: React.ReactNode }) {
     return (
-        <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay }}
-            whileTap={{ scale: 0.98 }}
-            onClick={async () => {
-                try {
-                    await Haptics.impact({ style: ImpactStyle.Light });
-                } catch { }
-                item.action?.();
-            }}
-            className={`w-full flex items-center gap-4 p-4 ${!isLast ? 'border-b border-gray-100' : ''}`}
-        >
-            <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: `${item.color}15` }}
-            >
-                <div style={{ color: item.color }}>{item.icon}</div>
+        <div className="mb-8">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">{title}</h3>
+            <div className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100 overflow-hidden">
+                {children}
             </div>
-            <span className="flex-1 text-left font-medium text-gray-900">
-                {language === 'en' ? item.labelEn : item.labelZh}
-            </span>
-            {item.rightContent || <ChevronRight className="w-5 h-5 text-gray-300" />}
-        </motion.button>
+        </div>
     );
 }
 
-export default function MobileSettings() {
-    const { language, setLanguage } = useI18n();
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-
-    const settingsSections: SettingsSection[] = [
-        {
-            titleEn: 'Account',
-            titleZh: '账户',
-            items: [
-                {
-                    id: 'profile',
-                    labelEn: 'Profile',
-                    labelZh: '个人资料',
-                    icon: <User className="w-5 h-5" />,
-                    color: '#0B3D2E',
-                },
-                {
-                    id: 'notifications',
-                    labelEn: 'Notifications',
-                    labelZh: '通知',
-                    icon: <Bell className="w-5 h-5" />,
-                    color: '#F59E0B',
-                    rightContent: (
-                        <div
-                            className={`w-12 h-7 rounded-full p-1 transition-colors ${notificationsEnabled ? 'bg-[#0B3D2E]' : 'bg-gray-200'
-                                }`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setNotificationsEnabled(!notificationsEnabled);
-                            }}
-                        >
-                            <motion.div
-                                animate={{ x: notificationsEnabled ? 20 : 0 }}
-                                className="w-5 h-5 bg-white rounded-full shadow"
-                            />
-                        </div>
-                    ),
-                },
-                {
-                    id: 'privacy',
-                    labelEn: 'Privacy & Security',
-                    labelZh: '隐私与安全',
-                    icon: <Shield className="w-5 h-5" />,
-                    color: '#3B82F6',
-                },
-            ],
-        },
-        {
-            titleEn: 'Health',
-            titleZh: '健康',
-            items: [
-                {
-                    id: 'wearables',
-                    labelEn: 'Connected Devices',
-                    labelZh: '已连接设备',
-                    icon: <Watch className="w-5 h-5" />,
-                    color: '#8B5CF6',
-                },
-                {
-                    id: 'healthkit',
-                    labelEn: 'Health Data',
-                    labelZh: '健康数据',
-                    icon: <Heart className="w-5 h-5" />,
-                    color: '#EF4444',
-                },
-            ],
-        },
-        {
-            titleEn: 'Preferences',
-            titleZh: '偏好设置',
-            items: [
-                {
-                    id: 'language',
-                    labelEn: 'Language',
-                    labelZh: '语言',
-                    icon: <Globe className="w-5 h-5" />,
-                    color: '#06B6D4',
-                    rightContent: (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">
-                                {language === 'en' ? 'English' : '中文'}
-                            </span>
-                            <ChevronRight className="w-5 h-5 text-gray-300" />
-                        </div>
-                    ),
-                    action: () => setLanguage(language === 'en' ? 'zh' : 'en'),
-                },
-                {
-                    id: 'appearance',
-                    labelEn: 'Appearance',
-                    labelZh: '外观',
-                    icon: <Moon className="w-5 h-5" />,
-                    color: '#6366F1',
-                },
-            ],
-        },
-        {
-            titleEn: 'Support',
-            titleZh: '支持',
-            items: [
-                {
-                    id: 'help',
-                    labelEn: 'Help Center',
-                    labelZh: '帮助中心',
-                    icon: <HelpCircle className="w-5 h-5" />,
-                    color: '#10B981',
-                },
-                {
-                    id: 'terms',
-                    labelEn: 'Terms & Privacy',
-                    labelZh: '条款与隐私',
-                    icon: <FileText className="w-5 h-5" />,
-                    color: '#64748B',
-                },
-            ],
-        },
-    ];
-
+function SettingItem({
+    icon: Icon,
+    label,
+    value,
+    onClick,
+    isDestructive = false,
+    toggle = null
+}: {
+    icon: any,
+    label: string,
+    value?: string,
+    onClick?: () => void,
+    isDestructive?: boolean,
+    toggle?: { checked: boolean, onChange: () => void }
+}) {
     return (
-        <div
-            className="min-h-screen pb-8"
-            style={{
-                background: 'linear-gradient(180deg, #F0F4F8 0%, #FFFFFF 100%)',
-            }}
+        <button
+            onClick={onClick}
+            className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors rounded-2xl group text-left"
         >
-            {/* Header */}
-            <div className="px-5 pt-4 pb-6">
-                <motion.h1
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-2xl font-bold text-gray-900"
-                >
-                    {language === 'en' ? 'Settings' : '设置'}
-                </motion.h1>
+            <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isDestructive ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
+                    <Icon className="w-5 h-5" />
+                </div>
+                <div>
+                    <div className={`font-medium ${isDestructive ? 'text-red-600' : 'text-slate-900'}`}>{label}</div>
+                </div>
             </div>
 
-            {/* Settings Sections */}
-            <div className="px-5 space-y-6">
-                {settingsSections.map((section, sectionIndex) => (
-                    <motion.div
-                        key={section.titleEn}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: sectionIndex * 0.1 }}
+            <div className="flex items-center gap-3">
+                {value && <span className="text-sm text-slate-400 font-medium">{value}</span>}
+
+                {toggle ? (
+                    <div
+                        className={`w-12 h-7 rounded-full transition-colors flex items-center px-1 ${toggle.checked ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                        onClick={(e) => { e.stopPropagation(); toggle.onChange(); }}
                     >
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
-                            {language === 'en' ? section.titleEn : section.titleZh}
-                        </p>
-                        <div
-                            className="rounded-[24px] overflow-hidden"
-                            style={{
-                                background: 'rgba(255, 255, 255, 0.9)',
-                                backdropFilter: 'blur(20px)',
-                                border: '1px solid rgba(255, 255, 255, 0.5)',
-                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
-                            }}
-                        >
-                            {section.items.map((item, itemIndex) => (
-                                <SettingsRow
-                                    key={item.id}
-                                    item={item}
-                                    delay={sectionIndex * 0.1 + itemIndex * 0.05}
-                                    isLast={itemIndex === section.items.length - 1}
-                                />
-                            ))}
-                        </div>
-                    </motion.div>
-                ))}
+                        <motion.div
+                            className="w-5 h-5 bg-white rounded-full shadow-sm"
+                            animate={{ x: toggle.checked ? 20 : 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        />
+                    </div>
+                ) : (
+                    <ChevronRight className="w-4 h-4 text-slate-300" />
+                )}
+            </div>
+        </button>
+    );
+}
 
-                {/* Logout Button */}
-                <motion.button
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={async () => {
-                        try {
-                            await Haptics.impact({ style: ImpactStyle.Medium });
-                        } catch { }
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-4 rounded-[24px] bg-red-50 text-red-600 font-semibold"
-                >
-                    <LogOut className="w-5 h-5" />
-                    {language === 'en' ? 'Log Out' : '退出登录'}
-                </motion.button>
+export default function MobileSettingsPage() {
+    const router = useRouter();
+    const { user, signOut } = useAuth();
+    const { settings, update, isSaving } = useSettings({ userId: user?.id });
+    const { language, setLanguage } = useI18n(); // Assuming setLanguage available
 
-                {/* Version */}
-                <p className="text-center text-xs text-gray-400 pt-4">
-                    AntiAnxiety v1.0.0
-                </p>
+    const handleLogout = async () => {
+        await signOut();
+        router.push('/mobile/login');
+    };
+
+    const toggleNotification = () => {
+        // Mock toggle as local state or specific setting if available
+        // For now assuming it's part of settings or handled separately
+    };
+
+    // Derived values
+    const displayName = settings.full_name || user?.email?.split('@')[0] || "Friend";
+
+    return (
+        <div className="px-6 py-8 pb-32">
+            <h1 className="text-2xl font-serif text-slate-900 mb-8">
+                Settings
+            </h1>
+
+            {/* Profile Card */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2rem] p-6 text-white mb-8 relative overflow-hidden shadow-lg shadow-slate-900/20">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+
+                <div className="flex items-center gap-4 relative z-10">
+                    <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-2xl font-serif font-bold shadow-inner">
+                        {displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold">{displayName}</h2>
+                        <p className="text-slate-400 text-sm">{user?.email}</p>
+                    </div>
+                </div>
+
+                <div className="mt-6 flex gap-3">
+                    <button className="flex-1 py-2.5 bg-white/10 rounded-xl text-sm font-medium hover:bg-white/20 transition-colors border border-white/5">
+                        Edit Profile
+                    </button>
+                    <button className="px-4 py-2.5 bg-indigo-600 rounded-xl text-sm font-medium hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-900/40">
+                        Upgrade
+                    </button>
+                </div>
+            </div>
+
+            {/* Preferences */}
+            <SettingSection title="Preferences">
+                <SettingItem
+                    icon={Globe}
+                    label="Language"
+                    value={language === 'en' ? 'English' : '中文'}
+                    onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
+                />
+                <SettingItem
+                    icon={Moon}
+                    label="Dark Mode"
+                    toggle={{ checked: false, onChange: () => { } }} // Todo: connect theme
+                />
+                <SettingItem
+                    icon={Bell}
+                    label="Notifications"
+                    toggle={{ checked: true, onChange: () => { } }}
+                />
+            </SettingSection>
+
+            {/* AI & Data */}
+            <SettingSection title="Intelligence">
+                <SettingItem
+                    icon={Zap}
+                    label="AI Personality"
+                    value={settings.ai_personality || "Empathetic"}
+                />
+                <SettingItem
+                    icon={Heart}
+                    label="Health Data"
+                    value="Connected"
+                />
+                <SettingItem
+                    icon={Shield}
+                    label="Privacy & Security"
+                />
+            </SettingSection>
+
+            {/* Account */}
+            <SettingSection title="Account">
+                <SettingItem
+                    icon={LogOut}
+                    label="Sign Out"
+                    isDestructive
+                    onClick={handleLogout}
+                />
+            </SettingSection>
+
+            <div className="text-center text-xs text-slate-400 mt-8">
+                Version 1.0.2 (Build 45)<br />
+                Made with ❤️ to help you unlearn anxiety.
             </div>
         </div>
     );

@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { Sparkles } from 'lucide-react';
 import {
-    AIInquiryPanel,
     FeedbackLoop,
     WearableConnect,
     HRVDashboard,
@@ -14,7 +13,9 @@ import {
     DailyCalibration,
     UnlearnFooter,
     MaxFloatingButton,
+    ParticipantDigitalTwin,
 } from '@/components/unlearn';
+import ProactiveInquiryManager from '@/components/max/ProactiveInquiryManager';
 
 export default function AppDashboard() {
     const { language } = useI18n();
@@ -236,8 +237,11 @@ export default function AppDashboard() {
             {/* Daily Calibration (toggleable) */}
             {showCalibration && <DailyCalibration />}
 
-            {/* AI Proactive Inquiry */}
-            <AIInquiryPanel onInquiryComplete={() => console.log('Inquiry completed')} />
+            {/* AI Proactive Inquiry (Floating) */}
+            <ProactiveInquiryManager />
+
+            {/* Participant Digital Twin (Added back) */}
+            <ParticipantDigitalTwin />
 
             {/* HRV Dashboard */}
             <HRVDashboard />

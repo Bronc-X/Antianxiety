@@ -105,36 +105,7 @@
     -webkit-text-fill-color: unset !important;
 }
 
-/* Explicit white text for dark sections */
-.unlearn-theme h1.text-white,
-.unlearn-theme h2.text-white,
-.unlearn-theme h3.text-white,
-.unlearn-theme h1[class*="text-white"],
-.unlearn-theme h2[class*="text-white"],
-.unlearn-theme h3[class*="text-white"] {
-    color: #FFFFFF !important;
-    -webkit-text-fill-color: #FFFFFF !important;
-}
-
-/* Force white on sections with dark backgrounds */
-.unlearn-theme section[style*="0B3D2E"] h1,
-.unlearn-theme section[style*="0B3D2E"] h2,
-.unlearn-theme section[style*="0B3D2E"] h3 {
-    color: #FFFFFF !important;
-    -webkit-text-fill-color: #FFFFFF !important;
-}
-
-/* Force dark text on sections with light backgrounds */
-.unlearn-theme section[style*="FAF6EF"] h1,
-.unlearn-theme section[style*="FAF6EF"] h2,
-.unlearn-theme section[style*="FAF6EF"] h3,
-.unlearn-theme section.bg-white h1,
-.unlearn-theme section.bg-white h2,
-.unlearn-theme section.bg-white h3 {
-    color: #0B3D2E !important;
-    -webkit-text-fill-color: #0B3D2E !important;
-}
-
+/* Dangerous text color overrides removed */
 /* Typography Utilities */
 .unlearn-heading-xl {
     font-size: var(--twin-heading-xl);
