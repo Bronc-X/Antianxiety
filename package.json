@@ -20,6 +20,7 @@
     "pages:build": "npm run build && npx @cloudflare/next-on-pages@1",
     "pages:deploy": "npm run pages:build",
     "build:cap": "node scripts/build-capacitor.js",
+    "check-features": "node scripts/check-features.js",
     "android": "npx cap open android",
     "cap:sync": "npx cap sync"
   },
