@@ -332,7 +332,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
     // 延迟跳转，让用户看到活动环
     setTimeout(() => {
-      router.push('/unlearn/app');
+      router.push('/unlearn');
     }, 2000);
   };
 

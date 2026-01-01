@@ -33,8 +33,8 @@ const navItems: NavItem[] = [
     id: 'today',
     label: 'Today',
     icon: <CalendarDays className="w-5 h-5" />,
-    href: '/unlearn/app',
-    activeRoutes: ['/unlearn/app', '/plans', '/'],
+    href: '/unlearn',
+    activeRoutes: ['/unlearn', '/plans', '/'],
   },
   {
     id: 'max',
@@ -63,7 +63,7 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
 
   // 在这些页面隐藏底部导航
-  const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta', '/unlearn'];
+  const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta', '/unlearn', '/mobile'];
   const shouldHideNav = hideNavPages.some(page => pathname?.startsWith(page));
 
   if (shouldHideNav) {

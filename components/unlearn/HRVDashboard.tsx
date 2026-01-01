@@ -40,6 +40,17 @@ export default function HRVDashboard() {
     // Track if initial fetch has completed to prevent re-fetching on re-renders
     const hasFetchedRef = useRef(false);
 
+    const languageRef = useRef(language);
+    const loadWearableStatusRef = useRef(loadWearableStatus);
+
+    useEffect(() => {
+        languageRef.current = language;
+    }, [language]);
+
+    useEffect(() => {
+        loadWearableStatusRef.current = loadWearableStatus;
+    }, [loadWearableStatus]);
+
     const fetchHealthData = useCallback(async (isInitial = false) => {
         // Prevent duplicate initial fetches
         if (isInitial && hasFetchedRef.current) return;
@@ -47,7 +58,7 @@ export default function HRVDashboard() {
 
         try {
             setErrorMessage(null);
-            const data = await loadWearableStatus();
+            const data = await loadWearableStatusRef.current();
             if (data?.latestData) {
                 setHrv(data.latestData.hrv || null);
                 setSleep(data.latestData.sleep || null);
@@ -59,14 +70,14 @@ export default function HRVDashboard() {
             }
         } catch (error) {
             console.error('Failed to fetch health data:', error);
-            setErrorMessage(language === 'en' ? 'Unable to load wearable data.' : '暂时无法加载穿戴数据。');
+            setErrorMessage(languageRef.current === 'en' ? 'Unable to load wearable data.' : '暂时无法加载穿戴数据。');
             setHrv(null);
             setSleep(null);
             setActivity(null);
         } finally {
             if (isInitial) setInitialLoading(false);
         }
-    }, [language, loadWearableStatus]);
+    }, []);
 
     // Initial fetch - only runs once
     useEffect(() => {

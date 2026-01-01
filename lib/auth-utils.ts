@@ -34,7 +34,7 @@ export async function requireAuth() {
   const session = await getServerSession();
 
   if (!session) {
-    redirect('/login');
+    redirect('/unlearn/login');
   }
 
   return session;

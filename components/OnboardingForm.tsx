@@ -63,7 +63,7 @@ export default function OnboardingForm({ initialData }: OnboardingFormProps) {
       }
 
       // 更新成功，重定向到主页
-      router.push('/unlearn/app');
+      router.push('/unlearn');
       router.refresh();
     } catch (err) {
       console.error('提交表单时出错:', err);

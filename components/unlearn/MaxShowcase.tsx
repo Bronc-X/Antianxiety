@@ -21,7 +21,7 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
 
     const handleChatClick = () => {
         if (!isAuthenticated) {
-            router.push('/login');
+            router.push('/unlearn/login');
             return;
         }
         onOpenChat?.();

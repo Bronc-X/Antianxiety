@@ -1,0 +1,113 @@
+"use client";
+
+import React from "react";
+import { motion } from "framer-motion";
+import {
+    X,
+    Trash2,
+    Pause,
+    Play,
+    Archive,
+    Clock,
+    Calendar,
+    Zap,
+    CheckCircle2,
+    Circle
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ViewPlanDetailProps {
+    onClose: () => void;
+    plan: any; // Mock type for demo
+}
+
+export const ViewPlanDetail = ({ onClose, plan }: ViewPlanDetailProps) => {
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute inset-0 z-50 flex items-end justify-center pointer-events-none"
+        >
+            <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto"
+                onClick={onClose}
+            />
+
+            <motion.div
+                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="w-full bg-[#FAFAF8] dark:bg-[#111] rounded-t-[2rem] pointer-events-auto overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                {/* Handle for drag (visual only) */}
+                <div className="w-full flex justify-center pt-3 pb-1">
+                    <div className="w-12 h-1.5 rounded-full bg-stone-200 dark:bg-stone-800" />
+                </div>
+
+                <div className="p-6 flex-1 overflow-y-auto">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-stone-100 text-stone-600 mb-3 uppercase tracking-wide">
+                                {plan?.type || "Activity"}
+                            </span>
+                            <h2 className="text-3xl font-bold text-emerald-950 dark:text-emerald-50 leading-tight">
+                                {plan?.title || "Workout"}
+                            </h2>
+                        </div>
+                        <button className="p-2 bg-stone-100 dark:bg-white/10 rounded-full" onClick={onClose}>
+                            <X size={20} className="text-stone-500" />
+                        </button>
+                    </div>
+
+                    {/* Stats Row */}
+                    <div className="flex items-center gap-6 mb-8 text-stone-500 text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                            <Clock size={16} /> 30 min
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Calendar size={16} /> Daily
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Zap size={16} className="text-amber-500" /> 150 exp
+                        </div>
+                    </div>
+
+                    {/* Subtasks */}
+                    <div className="space-y-4 mb-8">
+                        <h3 className="font-bold text-stone-800 dark:text-stone-200">Session Breakdown</h3>
+                        <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-100 dark:border-white/5">
+                                    <div className="text-stone-300">
+                                        <Circle size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-medium text-stone-700 dark:text-stone-300">Phase {i}</p>
+                                        <p className="text-xs text-stone-400">5 minutes</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-amber-50 text-amber-600 font-bold hover:bg-amber-100 transition-colors">
+                            <Pause size={24} />
+                            Pause Plan
+                        </button>
+                        <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-stone-100 text-stone-600 font-bold hover:bg-stone-200 transition-colors">
+                            <Archive size={24} />
+                            Archive
+                        </button>
+                    </div>
+
+                    <button className="w-full mt-4 flex items-center justify-center gap-2 text-rose-500 font-medium p-4 hover:bg-rose-50 rounded-xl transition-colors">
+                        <Trash2 size={18} /> Delete Plan
+                    </button>
+
+                </div>
+            </motion.div>
+        </motion.div>
+    )
+}

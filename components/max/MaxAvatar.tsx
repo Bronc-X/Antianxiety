@@ -72,7 +72,7 @@ export default function MaxAvatar({
 
     return (
         <div
-            className={cn("relative flex items-center justify-center select-none", className)}
+            className={cn("relative flex items-center justify-center select-none rounded-full", className)}
             style={{ width: size, height: size }}
         >
             <motion.div

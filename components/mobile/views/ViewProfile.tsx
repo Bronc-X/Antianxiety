@@ -1,0 +1,164 @@
+"use client";
+
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CardGlass } from "@/components/mobile/HealthWidgets";
+import {
+    User,
+    Heart,
+    Shield,
+    HelpCircle,
+    LogOut,
+    Zap,
+    Brain,
+    ChevronRight,
+    Camera,
+    Settings,
+    Bell,
+    Smartphone,
+    Moon,
+    Volume2,
+    Clock
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ViewProfileEdit } from "./ViewProfileEdit";
+
+const pageVariants = {
+    initial: { opacity: 0, x: 10 },
+    in: { opacity: 1, x: 0 },
+    out: { opacity: 0, x: -10 }
+};
+
+const pageTransition = {
+    type: "tween",
+    ease: "anticipate",
+    duration: 0.3
+};
+
+export const ViewProfile = () => {
+    const [showEdit, setShowEdit] = useState(false);
+
+    const stats = [
+        { label: "Streak", value: "12", icon: Zap, color: "text-amber-600", bg: "bg-amber-100 dark:bg-amber-500/20" },
+        { label: "Level", value: "3", icon: Brain, color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-500/20" },
+        { label: "Focus", value: "85%", icon: Moon, color: "text-indigo-600", bg: "bg-indigo-100 dark:bg-indigo-500/20" },
+        { label: "Hours", value: "48", icon: Clock, color: "text-rose-600", bg: "bg-rose-100 dark:bg-rose-500/20" },
+    ];
+
+    const menuGroups = [
+        {
+            title: "General",
+            items: [
+                { icon: User, label: "Account Settings", value: "" },
+                { icon: Bell, label: "Notifications", value: "On" },
+                { icon: Smartphone, label: "Devices", value: "2 Active" },
+            ]
+        },
+        {
+            title: "Health & Privacy",
+            items: [
+                { icon: Heart, label: "Health Data Connect", value: "Synced" },
+                { icon: Shield, label: "Privacy & Security", value: "" },
+            ]
+        },
+        {
+            title: "Preferences",
+            items: [
+                { icon: Volume2, label: "Sound & Haptics", value: "" },
+                { icon: HelpCircle, label: "Support", value: "" },
+            ]
+        }
+    ];
+
+    return (
+        <motion.div
+            initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}
+            className="space-y-6 pb-24 relative"
+        >
+            <div className="flex justify-between items-center mb-2">
+                <h2 className="text-2xl font-bold text-emerald-950 dark:text-emerald-50">Profile</h2>
+                <button className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-500">
+                    <Settings size={20} />
+                </button>
+            </div>
+
+            {/* Profile Header */}
+            <div className="flex items-center gap-5 mb-4 px-2">
+                <div className="relative group cursor-pointer" onClick={() => setShowEdit(true)}>
+                    <div className="h-24 w-24 rounded-full bg-stone-200 p-1 shadow-lg shadow-emerald-900/10">
+                        <img src="https://i.pravatar.cc/150?u=admin" alt="User" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-black" />
+                    </div>
+                    <div className="absolute bottom-0 right-0 p-2 bg-emerald-600 text-white rounded-full shadow-md hover:scale-105 transition-transform">
+                        <Camera size={14} />
+                    </div>
+                </div>
+                <div>
+                    <h3 className="text-2xl font-bold text-emerald-950 dark:text-emerald-50">Dr. Broncin</h3>
+                    <p className="text-stone-500 dark:text-stone-400 text-sm mb-2">Pro Member • Joined 2024</p>
+                    <button
+                        onClick={() => setShowEdit(true)}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800/50"
+                    >
+                        Edit Profile
+                    </button>
+                </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-4 gap-2">
+                {stats.map((stat, i) => (
+                    <CardGlass key={i} className="p-3 flex flex-col items-center justify-center gap-2 border-stone-100 dark:border-white/5 !rounded-2xl">
+                        <div className={cn("p-2 rounded-full", stat.bg, stat.color)}>
+                            <stat.icon size={16} />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-lg font-bold text-emerald-950 dark:text-white leading-none">{stat.value}</p>
+                            <p className="text-[10px] text-stone-500 dark:text-stone-400 uppercase font-bold tracking-wider mt-1">{stat.label}</p>
+                        </div>
+                    </CardGlass>
+                ))}
+            </div>
+
+            {/* Settings Menu */}
+            <div className="space-y-6">
+                {menuGroups.map((group, groupIdx) => (
+                    <div key={groupIdx} className="space-y-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 ml-2 mb-2">{group.title}</h4>
+                        <CardGlass className="p-0 overflow-hidden !rounded-3xl border-stone-100 dark:border-white/5">
+                            {group.items.map((item, i) => (
+                                <div key={i} className={cn(
+                                    "flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 dark:hover:bg-white/5 transition-colors active:bg-stone-100",
+                                    i !== group.items.length - 1 && "border-b border-stone-100 dark:border-white/5"
+                                )}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-stone-400 dark:text-stone-500">
+                                            <item.icon size={18} />
+                                        </div>
+                                        <span className="font-medium text-stone-700 dark:text-stone-200 text-sm">{item.label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {item.value && <span className="text-xs text-stone-400 font-medium">{item.value}</span>}
+                                        <ChevronRight size={16} className="text-stone-300" />
+                                    </div>
+                                </div>
+                            ))}
+                        </CardGlass>
+                    </div>
+                ))}
+
+                <button className="w-full py-4 text-center text-red-500 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-colors">
+                    Log Out
+                </button>
+
+                <p className="text-center text-[10px] text-stone-300 dark:text-stone-600 pb-4">
+                    Version 2.4.0 (Build 302)
+                </p>
+            </div>
+
+            {/* Overlays */}
+            <AnimatePresence>
+                {showEdit && <ViewProfileEdit onClose={() => setShowEdit(false)} />}
+            </AnimatePresence>
+        </motion.div>
+    )
+}

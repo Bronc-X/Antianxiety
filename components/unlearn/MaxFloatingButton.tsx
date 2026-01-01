@@ -52,7 +52,7 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
     const handleClick = () => {
         // If not logged in, redirect to login
         if (!isAuthenticated) {
-            router.push('/login');
+            router.push('/unlearn/login');
             return;
         }
 

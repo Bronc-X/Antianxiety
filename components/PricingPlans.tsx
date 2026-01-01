@@ -40,7 +40,7 @@ const pricingPlans: PricingPlan[] = [
       { text: { zh: '无身份标识', en: 'No badge' } },
     ],
     ctaText: { zh: '免费开始', en: 'Start Free' },
-    ctaLink: '/signup',
+    ctaLink: '/unlearn/signup',
   },
   {
     name: { zh: 'Pro', en: 'Pro' },
@@ -238,7 +238,7 @@ export default function PricingPlans() {
               </ul>
 
               {/* CTA */}
-              {plan.ctaLink === '/signup' ? (
+              {plan.ctaLink === '/unlearn/signup' ? (
                 <Link
                   href={plan.ctaLink}
                   className={`block w-full text-center py-3 px-6 font-semibold transition-all font-serif ${

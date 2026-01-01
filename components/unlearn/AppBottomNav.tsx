@@ -41,8 +41,8 @@ const navItems: NavItem[] = [
     labelEn: 'Dashboard',
     labelZh: '仪表盘',
     icon: <LayoutDashboard className="w-5 h-5" />,
-    href: '/unlearn/app',
-    activeRoutes: ['/unlearn/app'],
+    href: '/unlearn',
+    activeRoutes: ['/unlearn'],
   },
   {
     id: 'max',
@@ -56,16 +56,16 @@ const navItems: NavItem[] = [
     labelEn: 'Plans',
     labelZh: '计划',
     icon: <Target className="w-5 h-5" />,
-    href: '/unlearn/app/plans',
-    activeRoutes: ['/unlearn/app/plans'],
+    href: '/unlearn/plans',
+    activeRoutes: ['/unlearn/plans'],
   },
   {
     id: 'settings',
     labelEn: 'Settings',
     labelZh: '设置',
     icon: <Settings className="w-5 h-5" />,
-    href: '/unlearn/app/settings',
-    activeRoutes: ['/unlearn/app/settings', '/settings'],
+    href: '/unlearn/settings',
+    activeRoutes: ['/unlearn/settings'],
   },
 ];
 
@@ -77,7 +77,7 @@ export default function AppBottomNav({ onMaxClick }: AppBottomNavProps) {
     if (!item.activeRoutes) return false;
     // 特殊处理 dashboard - 只有精确匹配才激活
     if (item.id === 'dashboard') {
-      return pathname === '/unlearn/app' || pathname === '/unlearn/app/';
+      return pathname === '/unlearn' || pathname === '/unlearn/';
     }
     return item.activeRoutes.some(route => pathname?.startsWith(route));
   };
@@ -141,7 +141,7 @@ export default function AppBottomNav({ onMaxClick }: AppBottomNavProps) {
             return (
               <Link
                 key={item.id}
-                href={item.href || '/unlearn/app'}
+                href={item.href || '/unlearn'}
                 onClick={() => handleClick(item, active)}
                 className="relative flex-1 flex flex-col items-center justify-center py-1"
               >

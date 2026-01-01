@@ -91,7 +91,6 @@ export function useProactiveInquiry(
     const [inquiryRecordId, setInquiryRecordId] = useState<string | null>(null);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
-    const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
     // Check for data gaps and generate inquiry
     const checkAndGenerateInquiry = useCallback(async () => {
@@ -202,10 +201,6 @@ export function useProactiveInquiry(
                 clearInterval(timerRef.current);
                 timerRef.current = null;
             }
-            if (countdownRef.current) {
-                clearInterval(countdownRef.current);
-                countdownRef.current = null;
-            }
             setNextInquiryIn(null);
             return;
         }
@@ -220,34 +215,23 @@ export function useProactiveInquiry(
 
         // Clear existing timers
         if (timerRef.current) clearInterval(timerRef.current);
-        if (countdownRef.current) clearInterval(countdownRef.current);
 
         // First trigger after remaining time
         const firstTrigger = setTimeout(() => {
             // Call the ref
             void checkCallbackRef.current();
+            setNextInquiryIn(INQUIRY_INTERVAL_MS);
 
             // Then set up regular interval
             timerRef.current = setInterval(() => {
                 void checkCallbackRef.current();
+                setNextInquiryIn(INQUIRY_INTERVAL_MS);
             }, INQUIRY_INTERVAL_MS);
         }, timeUntilNext);
-
-        // Update countdown every second
-        countdownRef.current = setInterval(() => {
-            setNextInquiryIn(prev => {
-                if (prev === null) return INQUIRY_INTERVAL_MS;
-                const newValue = prev - 1000;
-                // If we hit 0, we don't reset here (the main timer handles the trigger)
-                // We just wrap around or hold at 0
-                return newValue <= 0 ? INQUIRY_INTERVAL_MS : newValue;
-            });
-        }, 1000);
 
         return () => {
             clearTimeout(firstTrigger);
             if (timerRef.current) clearInterval(timerRef.current);
-            if (countdownRef.current) clearInterval(countdownRef.current);
         };
     }, [enabled, isPaused]); // Removed checkAndGenerateInquiry dependency
 

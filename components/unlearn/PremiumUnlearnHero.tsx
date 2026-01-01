@@ -22,7 +22,7 @@ export default function PremiumUnlearnHero({
     title = 'Unlearn What Holds You Back',
     subtitle = 'A science-based approach to breaking free from anxiety patterns',
     ctaText = 'Start Your Journey',
-    ctaLink = '/signup',
+    ctaLink = '/unlearn/signup',
 }: PremiumUnlearnHeroProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 

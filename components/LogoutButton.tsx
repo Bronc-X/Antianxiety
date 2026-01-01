@@ -21,7 +21,7 @@ export default function LogoutButton() {
   const handleLogout = async () => {
     setErrorMessage(null);
     try {
-      const success = await signOut('/login');
+      const success = await signOut('/unlearn/login');
       if (!success) {
         setErrorMessage(authError || '登出失败，请稍后重试');
         return;

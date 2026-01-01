@@ -456,10 +456,10 @@ export default function PersonalizedLandingContent({
     let cancelled = false;
     const loadCsv = async () => {
       try {
-        // 仅在 /unlearn/app 页面尝试加载 CSV
+        // 仅在 /unlearn 页面尝试加载 CSV
         if (typeof window !== 'undefined') {
           const path = window.location?.pathname || '';
-          if (!path.startsWith('/unlearn/app')) {
+          if (!path.startsWith('/unlearn')) {
             return;
           }
         }

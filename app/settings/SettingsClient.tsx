@@ -592,7 +592,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 {t('settings.upgradeHint')}
               </p>
               <button
-                onClick={() => router.push('/onboarding/upgrade?from=settings')}
+                onClick={() => router.push('/unlearn/onboarding/upgrade?from=settings')}
                 className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white hover:shadow-lg transition-all"
               >
                 <CreditCard className="w-4 h-4" />

@@ -87,7 +87,7 @@ class ErrorBoundary extends Component<Props, State> {
                 Refresh Page
               </button>
               <a
-                href="/unlearn/app"
+                href="/unlearn"
                 className="px-6 py-2.5 border-2 border-[#0B3D2E] text-[#0B3D2E] rounded-lg hover:bg-[#FAF6EF] transition-colors"
               >
                 Go to Home

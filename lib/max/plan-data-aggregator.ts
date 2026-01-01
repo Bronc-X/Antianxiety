@@ -7,7 +7,7 @@
  * @module lib/max/plan-data-aggregator
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type {
   AggregatedPlanData,
   InquiryData,
@@ -37,15 +37,15 @@ const CALIBRATION_LOOKBACK_DAYS = 7;
  * @param userId - 用户 ID
  * @returns 聚合的用户数据
  */
-export async function aggregatePlanData(userId: string): Promise<AggregatedPlanData> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export async function aggregatePlanData(
+  userId: string,
+  supabaseOverride?: SupabaseClient
+): Promise<AggregatedPlanData> {
+  const supabase = supabaseOverride ?? getServiceRoleClient();
 
-  if (!supabaseUrl || !supabaseServiceKey) {
+  if (!supabase) {
     throw new Error('Supabase configuration missing');
   }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // 并行获取所有数据
   const [inquiry, calibration, hrv, profile] = await Promise.all([
@@ -66,6 +66,17 @@ export async function aggregatePlanData(userId: string): Promise<AggregatedPlanD
     profile,
     dataStatus,
   };
+}
+
+function getServiceRoleClient(): SupabaseClient | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 // ============================================

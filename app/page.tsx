@@ -10,12 +10,11 @@ export const dynamic = 'force-dynamic';
 export default async function Home() {
   const session = await getServerSession();
 
-  // If user is logged in, redirect to unlearn app dashboard
+  // Always land on Unlearn for desktop; mobile is handled in middleware.
   if (session) {
-    return redirect('/unlearn/app');
+    return redirect('/unlearn');
   }
 
-  // If not logged in, redirect to Unlearn landing
   return redirect('/unlearn');
 }
 

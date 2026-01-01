@@ -355,7 +355,7 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
       }
 
       setBanner({ type: 'success', text: '设置已保存，正在返回首页…' });
-      router.push('/unlearn/app');
+      router.push('/unlearn');
       router.refresh();
     } catch (err) {
       console.error('保存设置时出错:', err);
@@ -772,7 +772,7 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-[#E7E1D6] pt-6">
           <button
             type="button"
-            onClick={() => router.push('/unlearn/app')}
+            onClick={() => router.push('/unlearn')}
             className="rounded-full border border-[#E7E1D6] px-4 py-2 text-sm font-medium text-[#0B3D2E] hover:bg-[#FAF6EF]"
           >
             返回主页

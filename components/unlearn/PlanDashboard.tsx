@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import {
@@ -92,13 +92,16 @@ export default function PlanDashboard() {
         created_at: p.created_at,
     });
 
+    const mappedActivePlans = useMemo(() => activePlans.map(mapToPlan), [activePlans]);
+
     // Sync hook state to local state
     useEffect(() => {
         setLoading(hookLoading);
-        if (activePlans) {
-            setPlans(activePlans.map(mapToPlan));
-        }
-    }, [activePlans, hookLoading]);
+    }, [hookLoading]);
+
+    useEffect(() => {
+        setPlans(mappedActivePlans);
+    }, [mappedActivePlans]);
 
     // Check auth state (approximated by empty plans + error in hook, but hook handles error separately)
     // For now we assume if hook returns plans, we are good.

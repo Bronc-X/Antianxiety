@@ -160,7 +160,7 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
       sync().catch(() => {});
 
       setTimeout(() => {
-        router.push('/unlearn/app');
+        router.push('/unlearn');
         router.refresh();
       }, 1000);
     } catch (err) {

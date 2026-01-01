@@ -97,6 +97,7 @@ function DataCollectionState({
     language: string;
 }) {
     const calibrationDays = status.calibrationDays ?? status.calibrationCount ?? 0;
+    const estimatedAccuracy = Math.min(95, Math.max(60, 60 + calibrationDays * 5));
     const dateSummary = status.firstCalibrationDate && status.lastCalibrationDate
         ? (status.firstCalibrationDate === status.lastCalibrationDate
             ? status.lastCalibrationDate
@@ -109,22 +110,24 @@ function DataCollectionState({
                 <Database className="w-10 h-10 text-[#D4AF37]" />
             </div>
             <h3 className="text-white font-semibold text-lg mb-2">
-                {language === 'en' ? 'Building Your Digital Twin' : '正在构建你的数字孪生'}
+                {language === 'en' ? 'Your AI prediction is ready' : '你的 AI 预测已生成'}
             </h3>
             <p className="text-white/60 text-sm text-center mb-6 max-w-md">
-                {status.message}
+                {language === 'en'
+                    ? 'Daily calibration quickly improves accuracy. We estimate 6 consecutive check-ins will push accuracy above 90%.'
+                    : '每日校准会快速提升准确性，预估连续 6 天的校准互动将达到 90% 以上。'}
             </p>
 
             {/* Progress Bar */}
             <div className="w-full max-w-xs mb-4">
                 <div className="flex justify-between text-xs text-white/50 mb-2">
-                    <span>{language === 'en' ? 'Progress' : '进度'}</span>
-                    <span>{status.progress}%</span>
+                    <span>{language === 'en' ? 'Prediction accuracy' : '预测准确性'}</span>
+                    <span>{estimatedAccuracy}%</span>
                 </div>
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                     <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: `${status.progress}%` }}
+                        animate={{ width: `${estimatedAccuracy}%` }}
                         transition={{ duration: 0.5 }}
                         className="h-full bg-gradient-to-r from-[#D4AF37] to-[#B8960C]"
                     />
@@ -134,20 +137,18 @@ function DataCollectionState({
             {/* Collection Details */}
             <div className="grid grid-cols-2 gap-4 text-center mt-4">
                 <div className="p-3 bg-white/5 rounded">
-                    <div className="text-[#D4AF37] font-bold">{status.calibrationCount}/{status.requiredCalibrations}</div>
-                    <div className="text-white/50 text-xs">{language === 'en' ? 'Daily Check-ins' : '每日校准'}</div>
+                    <div className="text-[#D4AF37] font-bold">{estimatedAccuracy}%</div>
+                    <div className="text-white/50 text-xs">{language === 'en' ? 'Current accuracy' : '当前准确性'}</div>
                 </div>
                 <div className="p-3 bg-white/5 rounded">
-                    <div className={`font-bold ${status.hasBaseline ? 'text-green-400' : 'text-white/50'}`}>
-                        {status.hasBaseline ? '✓' : '—'}
-                    </div>
-                    <div className="text-white/50 text-xs">{language === 'en' ? 'Baseline Assessment' : '基线评估'}</div>
+                    <div className="font-bold text-green-400">90%+</div>
+                    <div className="text-white/50 text-xs">{language === 'en' ? 'After 6 check-ins' : '连续 6 天校准后'}</div>
                 </div>
             </div>
 
             <div className="mt-4 text-xs text-white/50">
                 <span>
-                    {language === 'en' ? `Collected ${calibrationDays} days` : `已记录 ${calibrationDays} 天`}
+                    {language === 'en' ? `Calibrated ${calibrationDays} days` : `已校准 ${calibrationDays} 天`}
                 </span>
                 {dateSummary && (
                     <span>

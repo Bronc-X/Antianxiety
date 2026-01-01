@@ -17,7 +17,7 @@ export default function UnlearnHero({
     headline = 'Redefine Your Relationship With Anxiety',
     subheadline = 'The world\'s first AI health coach that understands your unique biology and guides you toward lasting calm.',
     ctaLabel = 'Start Your Journey',
-    ctaHref = '/signup',
+    ctaHref = '/unlearn/signup',
     backgroundImage = '/pitch-scene.png',
 }: UnlearnHeroProps) {
     const containerRef = useRef<HTMLElement>(null);

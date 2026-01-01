@@ -11,18 +11,19 @@ import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
 // Platform Logo Component
 // ============================================
 
-function PlatformLogo({ sourceType }: { sourceType?: string }) {
-    const logoMap: Record<string, { name: string; color: string; icon: string }> = {
-        pubmed: { name: 'PubMed', color: '#326599', icon: '📚' },
-        semantic_scholar: { name: 'Semantic Scholar', color: '#1857B6', icon: '🔬' },
-        nature: { name: 'Nature', color: '#C41E3A', icon: '🧬' },
-        science: { name: 'Science', color: '#1A5276', icon: '⚗️' },
-        lancet: { name: 'The Lancet', color: '#00457C', icon: '🏥' },
-        cell: { name: 'Cell', color: '#00A651', icon: '🔬' },
-        default: { name: 'Research', color: '#6B7280', icon: '📄' },
+function PlatformLogo({ sourceType, language }: { sourceType?: string; language: string }) {
+    const logoMap: Record<string, { nameEn: string; nameZh: string; color: string; icon: string }> = {
+        pubmed: { nameEn: 'PubMed', nameZh: 'PubMed', color: '#326599', icon: '📚' },
+        semantic_scholar: { nameEn: 'Semantic Scholar', nameZh: 'Semantic Scholar', color: '#1857B6', icon: '🔬' },
+        nature: { nameEn: 'Nature', nameZh: 'Nature', color: '#C41E3A', icon: '🧬' },
+        science: { nameEn: 'Science', nameZh: 'Science', color: '#1A5276', icon: '⚗️' },
+        lancet: { nameEn: 'The Lancet', nameZh: 'The Lancet', color: '#00457C', icon: '🏥' },
+        cell: { nameEn: 'Cell', nameZh: 'Cell', color: '#00A651', icon: '🔬' },
+        default: { nameEn: 'Research', nameZh: '研究', color: '#6B7280', icon: '📄' },
     };
 
     const platform = logoMap[sourceType || 'default'] || logoMap.default;
+    const label = language === 'en' ? platform.nameEn : platform.nameZh;
 
     return (
         <div
@@ -30,7 +31,7 @@ function PlatformLogo({ sourceType }: { sourceType?: string }) {
             style={{ backgroundColor: `${platform.color}20`, color: platform.color }}
         >
             <span>{platform.icon}</span>
-            <span>{platform.name}</span>
+            <span>{label}</span>
         </div>
     );
 }
@@ -39,7 +40,7 @@ function PlatformLogo({ sourceType }: { sourceType?: string }) {
 // Match Badge Component
 // ============================================
 
-function MatchBadge({ percentage }: { percentage?: number }) {
+function MatchBadge({ percentage, language }: { percentage?: number; language: string }) {
     if (!percentage) return null;
 
     const getColor = () => {
@@ -51,7 +52,7 @@ function MatchBadge({ percentage }: { percentage?: number }) {
     return (
         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${getColor()}`}>
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>{percentage}% 匹配</span>
+            <span>{percentage}% {language === 'en' ? 'match' : '匹配'}</span>
         </div>
     );
 }
@@ -98,8 +99,8 @@ function FeedCard({
         >
             {/* Header: Platform + Match */}
             <div className="flex items-center justify-between mb-4">
-                <PlatformLogo sourceType={item.source_type} />
-                <MatchBadge percentage={item.match_percentage} />
+                <PlatformLogo sourceType={item.source_type} language={language} />
+                <MatchBadge percentage={item.match_percentage} language={language} />
             </div>
 
             {/* Title */}
@@ -163,7 +164,7 @@ function FeedCard({
                         <ExternalLink className="w-3 h-3" />
                     </a>
                 ) : (
-                    <span className="text-sm opacity-50">Link unavailable</span>
+                    <span className="text-sm opacity-50">{language === 'en' ? 'Link unavailable' : '暂无链接'}</span>
                 )}
 
                 <div className="flex items-center gap-2">

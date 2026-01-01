@@ -126,7 +126,7 @@ export function useAuth(): UseAuthReturn {
 
             if (result.success && result.data) {
                 setUser(result.data);
-                router.push(redirectTo || '/unlearn/app');
+                router.push(redirectTo || '/unlearn');
                 return true;
             } else {
                 setError(result.error || 'Sign in failed');
@@ -150,14 +150,14 @@ export function useAuth(): UseAuthReturn {
         setError(null);
 
         try {
-            const redirectTo = options?.redirectTo ?? `${window.location.origin}/onboarding`;
+            const redirectTo = options?.redirectTo ?? `${window.location.origin}/unlearn/onboarding`;
             const shouldRedirect = options?.shouldRedirect !== false;
             const result = await signUpWithEmail(email, password, redirectTo);
 
             if (result.success && result.data) {
                 setUser(result.data);
                 if (shouldRedirect) {
-                    router.push(options?.redirectTo || '/onboarding');
+                    router.push(options?.redirectTo || '/unlearn/onboarding');
                 }
                 return true;
             } else {
@@ -226,7 +226,7 @@ export function useAuth(): UseAuthReturn {
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
-                    redirectTo: redirectTo || `${window.location.origin}/auth/callback?next=/unlearn/app`,
+                    redirectTo: redirectTo || `${window.location.origin}/auth/callback?next=/unlearn`,
                     skipBrowserRedirect: false,
                 },
             });

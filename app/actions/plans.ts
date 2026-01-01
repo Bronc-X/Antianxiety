@@ -110,6 +110,53 @@ function parsePlanItems(plan: any): PlanItem[] {
     return items;
 }
 
+function normalizeCompletedItems(raw: any): PlanCompletionItem[] {
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+        return raw
+            .filter(Boolean)
+            .map((item: any) => ({
+                id: item?.id?.toString() || '',
+                completed: item?.completed === true || item?.completed === 'true',
+            }))
+            .filter(item => item.id);
+    }
+    if (typeof raw === 'string') {
+        try {
+            const parsed = JSON.parse(raw);
+            return normalizeCompletedItems(parsed);
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
+
+function applyCompletionItems(
+    items: PlanItem[],
+    completedItems: PlanCompletionItem[],
+    planId: string
+): PlanItem[] {
+    if (!completedItems.length) return items;
+
+    return items.map((item, index) => {
+        const itemId = item.id?.toString() || `${planId}-${index}`;
+        const matched = completedItems.find(ci => {
+            const ciId = ci.id?.toString();
+            return ciId === itemId ||
+                ciId === `${planId}-${index}` ||
+                ciId === index.toString();
+        });
+        const completed = matched?.completed ?? item.completed;
+
+        return {
+            ...item,
+            id: itemId,
+            completed: completed === true,
+        };
+    });
+}
+
 function mapPlanRow(plan: any): PlanData {
     const items = parsePlanItems(plan);
 
@@ -161,7 +208,39 @@ export async function getPlans(): Promise<ActionResult<PlanData[]>> {
 
         const plans: PlanData[] = (data || []).map(mapPlanRow);
 
-        return toSerializable({ success: true, data: plans });
+        if (!plans.length) {
+            return toSerializable({ success: true, data: plans });
+        }
+
+        const planIds = plans.map(plan => plan.id);
+        const { data: completions } = await supabase
+            .from('user_plan_completions')
+            .select('plan_id, completed_items, completion_date')
+            .eq('user_id', user.id)
+            .in('plan_id', planIds)
+            .order('completion_date', { ascending: false });
+
+        const completionMap = new Map<string, PlanCompletionItem[]>();
+        (completions || []).forEach((row: any) => {
+            if (completionMap.has(row.plan_id)) return;
+            const normalized = normalizeCompletedItems(row.completed_items);
+            if (normalized.length > 0) {
+                completionMap.set(row.plan_id, normalized);
+            }
+        });
+
+        const mergedPlans = plans.map(plan => {
+            const completionItems = completionMap.get(plan.id);
+            if (!completionItems?.length) {
+                return plan;
+            }
+            return {
+                ...plan,
+                items: applyCompletionItems(plan.items, completionItems, plan.id),
+            };
+        });
+
+        return toSerializable({ success: true, data: mergedPlans });
 
     } catch (error) {
         console.error('[Plans Action] getPlans error:', error);
@@ -363,59 +442,8 @@ export async function completePlan(
             return { success: true };
         }
 
-        const content = typeof plan.content === 'string'
-            ? JSON.parse(plan.content)
-            : plan.content || {};
-
-        if (!content.items) {
-            content.items = content.actions || [];
-        }
-
-        if (Array.isArray(input.completedItems)) {
-            content.items = content.items.map((item: any, index: number) => {
-                const itemId = item.id?.toString() || `${input.planId}-${index}`;
-                const matched = input.completedItems?.find(ci => {
-                    const ciId = ci.id?.toString();
-                    return ciId === itemId ||
-                        ciId === `${input.planId}-${index}` ||
-                        ciId === index.toString() ||
-                        ciId === item.id?.toString();
-                });
-
-                const itemByIndex = input.completedItems?.[index];
-                const isCompleted = matched?.completed ?? itemByIndex?.completed ?? item.completed;
-
-                return {
-                    ...item,
-                    id: itemId,
-                    completed: isCompleted === true,
-                    status: isCompleted ? 'completed' : 'pending',
-                };
-            });
-        }
-
-        const completedCount = content.items.filter((i: any) => i.completed === true).length;
-        const progress = content.items.length > 0
-            ? Math.round((completedCount / content.items.length) * 100)
-            : 0;
-
-        const { error: updateError } = await supabase
-            .from('user_plans')
-            .update({
-                content,
-                progress,
-                updated_at: new Date().toISOString(),
-                ...(progress === 100 ? { status: 'completed' } : {}),
-            })
-            .eq('id', input.planId)
-            .eq('user_id', user.id);
-
-        if (updateError) {
-            return { success: false, error: updateError.message };
-        }
-
         const completionDate = input.completionDate || new Date().toISOString().split('T')[0];
-        await supabase
+        const { error: completionError } = await supabase
             .from('user_plan_completions')
             .upsert({
                 user_id: user.id,
@@ -428,6 +456,71 @@ export async function completePlan(
             }, {
                 onConflict: 'user_id,plan_id,completion_date',
             });
+
+        if (completionError) {
+            return { success: false, error: completionError.message };
+        }
+
+        let updateError: { message?: string } | null = null;
+
+        try {
+            const content = typeof plan.content === 'string'
+                ? JSON.parse(plan.content)
+                : plan.content || {};
+
+            if (!content.items) {
+                content.items = content.actions || [];
+            }
+
+            if (Array.isArray(input.completedItems)) {
+                content.items = content.items.map((item: any, index: number) => {
+                    const itemId = item.id?.toString() || `${input.planId}-${index}`;
+                    const matched = input.completedItems?.find(ci => {
+                        const ciId = ci.id?.toString();
+                        return ciId === itemId ||
+                            ciId === `${input.planId}-${index}` ||
+                            ciId === index.toString() ||
+                            ciId === item.id?.toString();
+                    });
+
+                    const itemByIndex = input.completedItems?.[index];
+                    const isCompleted = matched?.completed ?? itemByIndex?.completed ?? item.completed;
+
+                    return {
+                        ...item,
+                        id: itemId,
+                        completed: isCompleted === true,
+                        status: isCompleted ? 'completed' : 'pending',
+                    };
+                });
+            }
+
+            const completedCount = content.items.filter((i: any) => i.completed === true).length;
+            const progress = content.items.length > 0
+                ? Math.round((completedCount / content.items.length) * 100)
+                : 0;
+
+            const { error } = await supabase
+                .from('user_plans')
+                .update({
+                    content,
+                    progress,
+                    updated_at: new Date().toISOString(),
+                    ...(progress === 100 ? { status: 'completed' } : {}),
+                })
+                .eq('id', input.planId)
+                .eq('user_id', user.id);
+
+            if (error) {
+                updateError = error;
+            }
+        } catch (error) {
+            updateError = error instanceof Error ? error : { message: 'Failed to update plan content' };
+        }
+
+        if (updateError) {
+            console.warn('[Plans Action] update content failed:', updateError);
+        }
 
         return { success: true };
 

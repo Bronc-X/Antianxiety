@@ -27,7 +27,7 @@ interface UnlearnNavProps {
 export default function UnlearnNav({
     links,
     ctaLabel = 'Get Started',
-    ctaHref = '/signup',
+    ctaHref = '/unlearn/signup',
     isAppNav = false,
 }: UnlearnNavProps) {
     const { language, t } = useI18n();
@@ -110,7 +110,7 @@ export default function UnlearnNav({
                 {/* Logo */}
                 <Logo
                     variant="dark"
-                    href={isLoggedIn ? '/unlearn/app' : '/unlearn'}
+                    href="/unlearn"
                 />
 
                 {/* Desktop Links */}
@@ -166,7 +166,7 @@ export default function UnlearnNav({
                                         </div>
                                     ) : null}
                                     <Link
-                                        href="/unlearn/app/settings"
+                                        href="/unlearn/settings"
                                         className="block px-4 py-3 text-sm text-[#1A1A1A] hover:bg-[#FAF6EF] transition-colors"
                                         onClick={() => setShowUserMenu(false)}
                                     >
@@ -174,7 +174,7 @@ export default function UnlearnNav({
                                     </Link>
 
                                     <Link
-                                        href="/onboarding/upgrade?from=menu"
+                                        href="/unlearn/onboarding/upgrade?from=menu"
                                         className="block px-4 py-3 text-sm text-[#1A1A1A] hover:bg-[#FAF6EF] transition-colors"
                                         onClick={() => setShowUserMenu(false)}
                                     >
@@ -193,7 +193,7 @@ export default function UnlearnNav({
                     ) : (
                         /* 未登录状态 - 显示登录按钮 */
                         <Link
-                            href="/login"
+                            href="/unlearn/login"
                             className="hidden sm:block text-sm font-medium text-[#1A1A1A]/70 hover:text-[#0B3D2E] transition-colors"
                         >
                             {loginLabel}
@@ -278,7 +278,7 @@ export default function UnlearnNav({
                                 </button>
                             ) : (
                                 <Link
-                                    href="/login"
+                            href="/unlearn/login"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="text-lg font-medium text-[#1A1A1A]/70 py-2"
                                 >
