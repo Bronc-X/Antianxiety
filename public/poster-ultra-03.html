@@ -23,7 +23,8 @@
         #poster {
             width: 1080px;
             height: 1920px;
-            background: #000;
+            background: radial-gradient(circle at 50% 40%, #12001a 0%, #000000 90%);
+            /* Deep Cyber Purple/Black */
             position: relative;
             overflow: hidden;
             box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
@@ -135,11 +136,37 @@
             transition: opacity 3.5s ease-in, transform 3.5s ease-out;
             text-shadow: 0 0 80px rgba(255, 255, 255, 0.8);
             z-index: 30;
+            white-space: nowrap;
+            /* Force 1 line so dot never wraps */
         }
 
         .max-reveal.visible {
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
+        }
+
+        .dot-breath {
+            display: inline-block;
+            animation: breath 2s ease-in-out infinite;
+            color: #0f0;
+            /* Ensure dot is green or white? User said "waiting for command" usually green in terminal context, but title is white-ish. Let's make it match title but pulse. */
+            text-shadow: 0 0 20px #0f0;
+        }
+
+        @keyframes breath {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+                text-shadow: 0 0 20px #0f0;
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.9);
+                text-shadow: 0 0 5px #0f0;
+            }
         }
 
         .sub-text-container {
@@ -221,7 +248,7 @@
                         <circle cx="10" cy="22" r="4" fill="#0f0" />
                         <text x="24" y="26" font-family="'Playfair Display', serif" font-weight="700"
                             font-style="italic" font-size="20" fill="#0f0" letter-spacing="-0.02em">
-                            AntiAnxiety™
+                            AntiAnxiety<tspan fill="#ffffff" font-size="12" dy="-5">™</tspan>
                         </text>
                     </svg>
                 </div>
@@ -233,7 +260,7 @@
 
             <div class="terminal-container" id="terminal"></div>
 
-            <div class="max-reveal" id="maxTitle">Max.</div>
+            <div class="max-reveal" id="maxTitle">Max<span class="dot-breath">.</span></div>
 
             <div class="sub-text-container">
                 <div class="sub-text">顺应身体的声音，我听得懂 <span class="highlight">你</span></div>
@@ -259,6 +286,9 @@
         ];
 
         async function runTerminal() {
+            // Initial 10s delay for recording prep
+            await new Promise(r => setTimeout(r, 10000));
+
             const createLine = () => {
                 const div = document.createElement('div');
                 div.className = 'line-content';

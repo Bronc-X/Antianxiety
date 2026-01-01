@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, FormEvent, useCallback } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
 import { MotionButton } from '@/components/motion/MotionButton';
 import { BrainLoader } from '@/components/lottie/BrainLoader';
@@ -10,6 +9,8 @@ import type { AIAssistantProfile, ConversationRow, RoleType } from '@/types/assi
 import type { ActionItem, ExecutionStatus, FollowUpSession } from '@/types/adaptive-plan';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, RefreshCw, Minus } from 'lucide-react';
+import { useChatAI } from '@/hooks/domain/useChatAI';
+import { useAiConversation } from '@/hooks/domain/useAiConversation';
 
 interface Message {
   role: RoleType;
@@ -83,7 +84,13 @@ export default function AIAssistantChat({
   const [isLoading, setIsLoading] = useState(false);
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const supabase = createClientSupabaseClient();
+  const { sendPayload, error: chatError } = useChatAI();
+  const {
+    loadHistory,
+    saveMessage: persistMessage,
+    isLoading: historyLoading,
+    error: historyError,
+  } = useAiConversation();
   
   // Follow-up mode state
   const [followUpMode, setFollowUpMode] = useState<FollowUpModeState>({
@@ -94,6 +101,14 @@ export default function AIAssistantChat({
     executionStatuses: new Map(),
     replacementRequests: new Set(),
   });
+
+  // Generate follow-up welcome message
+  const generateFollowUpWelcome = useCallback((sessionType?: 'morning' | 'evening'): string => {
+    if (sessionType === 'morning') {
+      return `早安，${resolveDisplayName(initialProfile)}。\n\n新的一天开始了，让我们一起回顾一下今天的计划。\n\n请告诉我你现在的状态，以及昨天的执行情况。`;
+    }
+    return `晚安，${resolveDisplayName(initialProfile)}。\n\n一天即将结束，让我们一起回顾今天的执行情况。\n\n请告诉我你今天的感受，以及各项行动的完成情况。`;
+  }, [initialProfile]);
 
   // Initialize follow-up mode when session is provided
   useEffect(() => {
@@ -120,15 +135,7 @@ export default function AIAssistantChat({
         return prev;
       });
     }
-  }, [followUpSession, initialActionItems]);
-
-  // Generate follow-up welcome message
-  const generateFollowUpWelcome = (sessionType?: 'morning' | 'evening'): string => {
-    if (sessionType === 'morning') {
-      return `早安，${resolveDisplayName(initialProfile)}。\n\n新的一天开始了，让我们一起回顾一下今天的计划。\n\n请告诉我你现在的状态，以及昨天的执行情况。`;
-    }
-    return `晚安，${resolveDisplayName(initialProfile)}。\n\n一天即将结束，让我们一起回顾今天的执行情况。\n\n请告诉我你今天的感受，以及各项行动的完成情况。`;
-  };
+  }, [followUpSession, initialActionItems, generateFollowUpWelcome]);
 
   // Handle execution status change
   const handleExecutionStatusChange = useCallback((itemId: string, status: ExecutionStatus) => {
@@ -184,22 +191,7 @@ export default function AIAssistantChat({
   // 加载对话历史
   const loadConversationHistory = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('ai_conversations')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(50)
-        .returns<ConversationRow[]>();
-
-      if (error) {
-        console.error('加载对话历史时出错:', error);
-        return;
-      }
-
+      const data = await loadHistory(50);
       if (data && data.length > 0) {
         const historyMessages: Message[] = data.map((msg: ConversationRow) => ({
           role: msg.role,
@@ -333,22 +325,15 @@ export default function AIAssistantChat({
   // 保存消息到数据库
   const saveMessage = async (message: Message) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase
-        .from('ai_conversations')
-        .insert({
-          user_id: user.id,
-          role: message.role,
-          content: message.content,
-          metadata: {
-            timestamp: message.timestamp.toISOString(),
-          },
-        });
-
-      if (error) {
-        console.error('保存消息时出错:', error);
+      const success = await persistMessage({
+        role: message.role,
+        content: message.content,
+        metadata: {
+          timestamp: message.timestamp.toISOString(),
+        },
+      });
+      if (!success) {
+        console.error('保存消息时出错');
       }
     } catch (error) {
       console.error('保存消息时出错:', error);
@@ -382,25 +367,16 @@ export default function AIAssistantChat({
       } : undefined;
 
       // 调用我们的 API 路由
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userInput,
-          conversationHistory: conversationHistory,
-          userProfile: initialProfile,
-          followUpContext,
-        }),
+      const data = await sendPayload({
+        message: userInput,
+        conversationHistory,
+        userProfile: initialProfile,
+        followUpContext,
+        stream: false,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'AI 服务暂时不可用');
+      if (!data) {
+        throw new Error('AI 服务暂时不可用');
       }
-
-      const data = await response.json();
       
       // 更新使用情况信息
       if (data.usage) {
@@ -412,7 +388,7 @@ export default function AIAssistantChat({
       }
       
       // RAG端点返回格式: { success: true, data: { answer, sessionId, knowledgeUsed, metadata } }
-      return data.data?.answer || data.response || '抱歉，我无法生成回复。';
+      return data.data?.answer || data.response || data.reply || data.message || '抱歉，我无法生成回复。';
     } catch (error) {
       console.error('调用 AI API 时出错:', error);
       // 如果 API 调用失败，返回友好的错误消息
@@ -420,8 +396,10 @@ export default function AIAssistantChat({
     }
   };
 
+  const errorMessage = historyError || chatError;
+
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className={`flex flex-col h-[calc(100vh-8rem)] ${historyLoading ? 'animate-pulse' : ''}`}>
       <AnimatedSection variant="fadeUp" className="mb-4">
         <div className="rounded-lg border border-[#E7E1D6] bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -631,6 +609,9 @@ export default function AIAssistantChat({
           发送
         </MotionButton>
       </form>
+      {errorMessage && (
+        <p className="mt-3 text-sm text-red-500">{errorMessage}</p>
+      )}
     </div>
   );
 }

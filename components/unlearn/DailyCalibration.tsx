@@ -1,192 +1,62 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Sun, Moon, Battery, Brain, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
-
-interface CalibrationQuestion {
-    id: string;
-    type: 'slider' | 'options' | 'text';
-    question: string;
-    options?: { label: string; value: string }[];
-    min?: number;
-    max?: number;
-}
+import { ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
+import { useCalibration } from '@/hooks/domain/useCalibration';
 
 export default function DailyCalibration() {
     const { language } = useI18n();
-    const [step, setStep] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, string | number>>({});
-    const [submitting, setSubmitting] = useState(false);
-    const [completed, setCompleted] = useState(false);
-    const [checkingStatus, setCheckingStatus] = useState(true);
-    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+    // MVVM Hook (The Bridge)
+    const {
+        step,
+        questions,
+        currentQuestionIndex,
+        answers,
+        isLoading,
+        shouldShowToday,
+        hasCompletedToday,
+        start,
+        answerQuestion,
+        progressPercent,
+        currentQuestion
+    } = useCalibration();
+
+    // Auto-start if should show, handled by user click usually or auto? 
+    // The original UI didn't seem to have a "Start" button, it just showed questions if available.
+    // The original UI initialized step=0. 
+    // Let's call start() on mount if shouldShowToday and not completed.
 
     useEffect(() => {
-        let isActive = true;
-
-        const checkStatus = async () => {
-            setCheckingStatus(true);
-            setStatusMessage(null);
-
-            try {
-                const res = await fetch('/api/assessment/daily-calibration');
-                if (res.status === 401) {
-                    if (isActive) {
-                        setStatusMessage(language === 'en' ? 'Please sign in to submit calibration.' : '请先登录后再提交校准。');
-                    }
-                    return;
-                }
-                if (!res.ok) {
-                    throw new Error('Failed to check status');
-                }
-
-                const data = await res.json();
-                if (!isActive) return;
-
-                if (data.completedToday) {
-                    setCompleted(true);
-                    return;
-                }
-
-                if (data.syncNeeded) {
-                    setStatusMessage(language === 'en'
-                        ? 'We saved your answers, but sync is pending. Please submit again.'
-                        : '已保存你的答案，但同步未完成。请再提交一次。'
-                    );
-                }
-            } catch (error) {
-                if (isActive) {
-                    setStatusMessage(language === 'en' ? 'Unable to check today\'s status.' : '无法检查今日校准状态。');
-                }
-            } finally {
-                if (isActive) {
-                    setCheckingStatus(false);
-                }
-            }
-        };
-
-        checkStatus();
-
-        return () => {
-            isActive = false;
-        };
-    }, [language]);
-
-    const questions: CalibrationQuestion[] = [
-        {
-            id: 'sleep_quality',
-            type: 'slider',
-            question: language === 'en' ? 'How was your sleep quality last night?' : '你昨晚的睡眠质量如何？',
-            min: 1,
-            max: 10,
-        },
-        {
-            id: 'energy_level',
-            type: 'slider',
-            question: language === 'en' ? 'What is your current energy level?' : '你现在的精力水平如何？',
-            min: 1,
-            max: 10,
-        },
-        {
-            id: 'stress_level',
-            type: 'options',
-            question: language === 'en' ? 'How stressed do you feel today?' : '你今天感觉压力大吗？',
-            options: [
-                { label: language === 'en' ? 'Not at all' : '完全没有', value: 'none' },
-                { label: language === 'en' ? 'A little' : '有一点', value: 'low' },
-                { label: language === 'en' ? 'Moderate' : '中等', value: 'medium' },
-                { label: language === 'en' ? 'High' : '很高', value: 'high' },
-            ],
-        },
-        {
-            id: 'mood',
-            type: 'options',
-            question: language === 'en' ? 'How would you describe your mood?' : '你现在的心情怎么样？',
-            options: [
-                { label: '😊 ' + (language === 'en' ? 'Great' : '很好'), value: 'great' },
-                { label: '🙂 ' + (language === 'en' ? 'Good' : '不错'), value: 'good' },
-                { label: '😐 ' + (language === 'en' ? 'Neutral' : '一般'), value: 'neutral' },
-                { label: '😔 ' + (language === 'en' ? 'Low' : '低落'), value: 'low' },
-            ],
-        },
-    ];
-
-    const currentQuestion = questions[step];
-    const progress = ((step + 1) / questions.length) * 100;
-
-    const formatErrorMessage = (message: string) => {
-        if (language === 'en') return message;
-        if (message.includes('Unauthorized')) return '请先登录后再提交校准。';
-        if (message.includes('Already completed today')) return '今日校准已完成。';
-        if (message.includes('Failed to save daily questionnaire')) return '保存每日问卷失败。';
-        if (message.includes('Failed to update daily questionnaire')) return '更新每日问卷失败。';
-        if (message.includes('Failed to sync daily calibration')) return '同步每日校准失败。';
-        return message;
-    };
-
-    const handleAnswer = (value: string | number) => {
-        setAnswers(prev => ({
-            ...prev,
-            [currentQuestion.id]: value,
-        }));
-    };
-
-    const handleNext = async () => {
-        if (step < questions.length - 1) {
-            setStep(step + 1);
-        } else {
-            // Submit calibration
-            setSubmitting(true);
-            setStatusMessage(null);
-            try {
-                const res = await fetch('/api/assessment/daily-calibration', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ responses: answers }),
-                });
-
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        setStatusMessage(language === 'en' ? 'Please sign in to submit calibration.' : '请先登录后再提交校准。');
-                        return;
-                    }
-                    if (res.status === 409) {
-                        setCompleted(true);
-                        return;
-                    }
-                    const data = await res.json().catch(() => ({}));
-                    const errorText = data?.details ? `${data.error}: ${data.details}` : data.error;
-                    throw new Error(errorText || 'Failed to submit calibration');
-                }
-
-                setCompleted(true);
-                window.dispatchEvent(new Event('daily-calibration:completed'));
-            } catch (error) {
-                console.error('Failed to submit calibration:', error);
-                const message = error instanceof Error ? error.message : 'Submission failed. Please try again.';
-                setStatusMessage(formatErrorMessage(message));
-            } finally {
-                setSubmitting(false);
-            }
+        if (shouldShowToday && !hasCompletedToday && step === 'welcome') {
+            start();
         }
+    }, [shouldShowToday, hasCompletedToday, step, start]);
+
+    const handleAnswer = (value: number) => {
+        if (!currentQuestion) return;
+        answerQuestion(currentQuestion.id, value);
     };
 
-    if (checkingStatus) {
+    // Derived UI state
+    const isCompleted = hasCompletedToday || step === 'result';
+
+    if (isLoading) {
         return (
             <section className="py-16 px-6" style={{ backgroundColor: '#0B3D2E' }}>
                 <div className="max-w-[600px] mx-auto text-center">
                     <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin mx-auto mb-3" />
                     <p className="text-white/60 text-sm">
-                        {language === 'en' ? 'Checking today\'s status...' : '正在检查今日状态...'}
+                        {language === 'en' ? 'Loading...' : '加载中...'}
                     </p>
                 </div>
             </section>
         );
     }
 
-    if (completed) {
+    if (isCompleted) {
         return (
             <section className="py-16 px-6" style={{ backgroundColor: '#0B3D2E' }}>
                 <div className="max-w-[600px] mx-auto text-center">
@@ -210,6 +80,12 @@ export default function DailyCalibration() {
         );
     }
 
+    if (!shouldShowToday) {
+        return null;
+    }
+
+    if (!currentQuestion) return null;
+
     return (
         <section className="py-16 px-6" style={{ backgroundColor: '#0B3D2E' }}>
             <div className="max-w-[600px] mx-auto">
@@ -221,24 +97,19 @@ export default function DailyCalibration() {
                     <h2 className="text-white text-2xl font-bold">
                         {language === 'en' ? 'How are you feeling today?' : '你今天感觉怎么样？'}
                     </h2>
-                    {statusMessage && (
-                        <p className="text-xs text-[#D4AF37] mt-3">
-                            {statusMessage}
-                        </p>
-                    )}
                 </div>
 
                 {/* Progress Bar */}
                 <div className="mb-8">
                     <div className="flex justify-between text-sm text-white/40 mb-2">
-                        <span>{language === 'en' ? `Question ${step + 1} of ${questions.length}` : `第 ${step + 1} / ${questions.length} 题`}</span>
-                        <span>{Math.round(progress)}%</span>
+                        <span>{language === 'en' ? `Question ${currentQuestionIndex + 1} of ${questions.length}` : `第 ${currentQuestionIndex + 1} / ${questions.length} 题`}</span>
+                        <span>{Math.round(progressPercent)}%</span>
                     </div>
                     <div className="h-1 bg-white/10 rounded-full overflow-hidden">
                         <motion.div
                             className="h-full bg-[#D4AF37]"
                             initial={{ width: 0 }}
-                            animate={{ width: `${progress}%` }}
+                            animate={{ width: `${progressPercent}%` }}
                             transition={{ duration: 0.3 }}
                         />
                     </div>
@@ -247,13 +118,13 @@ export default function DailyCalibration() {
                 {/* Question Card */}
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={step}
+                        key={currentQuestion.id}
                         initial={{ opacity: 0, x: 50 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -50 }}
                         className="bg-white/5 border border-white/10 p-8"
                     >
-                        <h3 className="text-white text-xl mb-8">{currentQuestion.question}</h3>
+                        <h3 className="text-white text-xl mb-8">{currentQuestion.text}</h3>
 
                         {currentQuestion.type === 'slider' && (
                             <div className="space-y-6">
@@ -275,7 +146,7 @@ export default function DailyCalibration() {
                             </div>
                         )}
 
-                        {currentQuestion.type === 'options' && currentQuestion.options && (
+                        {currentQuestion.type === 'single' && currentQuestion.options && (
                             <div className="grid gap-3">
                                 {currentQuestion.options.map((option) => (
                                     <button
@@ -286,7 +157,12 @@ export default function DailyCalibration() {
                                                 : 'bg-white/10 border-white/20 text-white hover:border-white/40 hover:bg-white/15'
                                             }`}
                                     >
-                                        {option.label}
+                                        <div className="flex items-center justify-between">
+                                            <span>{option.label}</span>
+                                            {answers[currentQuestion.id] === option.value && (
+                                                <CheckCircle className="w-4 h-4 text-[#D4AF37]" />
+                                            )}
+                                        </div>
                                     </button>
                                 ))}
                             </div>
@@ -294,33 +170,20 @@ export default function DailyCalibration() {
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Navigation */}
-                <div className="flex justify-between mt-6">
-                    <button
-                        onClick={() => setStep(Math.max(0, step - 1))}
-                        disabled={step === 0}
-                        className="px-6 py-3 text-white/50 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                        {language === 'en' ? 'Back' : '上一步'}
-                    </button>
-                    <button
-                        onClick={handleNext}
-                        disabled={submitting || !answers[currentQuestion.id]}
-                        className="flex items-center gap-2 px-6 py-3 bg-[#D4AF37] text-[#0B3D2E] font-medium hover:bg-[#E5C158] transition-colors disabled:opacity-50"
-                    >
-                        {submitting ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <>
-                                {step < questions.length - 1
-                                    ? (language === 'en' ? 'Next' : '下一步')
-                                    : (language === 'en' ? 'Complete' : '完成')
-                                }
-                                <ChevronRight className="w-5 h-5" />
-                            </>
-                        )}
-                    </button>
-                </div>
+                {currentQuestion.type === 'slider' && (
+                    <div className="flex justify-end mt-6">
+                        <button
+                            onClick={() => handleAnswer(answers[currentQuestion.id] || 5)}
+                            className="flex items-center gap-2 px-6 py-3 bg-[#D4AF37] text-[#0B3D2E] font-medium hover:bg-[#E5C158] transition-colors"
+                        >
+                            {currentQuestionIndex < questions.length - 1
+                                ? (language === 'en' ? 'Next' : '下一步')
+                                : (language === 'en' ? 'Complete' : '完成')
+                            }
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </div>
+                )}
             </div>
         </section>
     );

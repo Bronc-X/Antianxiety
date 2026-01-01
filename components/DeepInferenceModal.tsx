@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Brain, BookOpen, Lightbulb, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
+import { useDeepInference } from '@/hooks/domain/useDeepInference';
 
 interface Citation {
   id: string;
@@ -49,6 +50,7 @@ export default function DeepInferenceModal({
   analysisResult,
   recentLogs,
 }: DeepInferenceModalProps) {
+  const { fetchInference } = useDeepInference();
   const [data, setData] = useState<DeepInferenceData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,17 +67,12 @@ export default function DeepInferenceModal({
     setError(null);
     
     try {
-      const response = await fetch('/api/ai/deep-inference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysisResult, recentLogs }),
-      });
+      const result = await fetchInference({ analysisResult, recentLogs });
 
-      if (!response.ok) {
+      if (!result) {
         throw new Error('获取推演数据失败');
       }
 
-      const result = await response.json();
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : '未知错误');

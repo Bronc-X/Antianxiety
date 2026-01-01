@@ -73,22 +73,22 @@ const FEATURE_CHECKLIST = {
 
     // Unlearn 主页面必须导入的组件
     unlearnPageImports: {
-        file: 'app/unlearn/app/page.tsx',
+        file: 'app/unlearn/page.tsx',
         mustContain: [
             'DailyCalibration',
-            'AIInquiryPanel',
             'HRVDashboard',
             'WearableConnect',
             'PlanDashboard',
             'FeedbackLoop',
             'ScienceFeed',
             'MaxFloatingButton',
+            'ProactiveInquiryManager',
         ],
     },
 
     // Unlearn 子路由
     unlearnRoutes: {
-        basePath: 'app/unlearn/app',
+        basePath: 'app/unlearn',
         required: [
             'calibration/page.tsx',
             'insights/page.tsx',

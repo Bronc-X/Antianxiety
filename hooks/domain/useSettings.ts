@@ -9,8 +9,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
-import { updateSettings } from '@/app/actions/settings';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { getSettings, updateSettings } from '@/app/actions/settings';
 
 // ============================================
 // Types
@@ -91,49 +90,29 @@ export function useSettings(options?: UseSettingsOptions): UseSettingsReturn {
         options?.initialData || getCachedData(CACHE_KEY) || {}
     );
     const [userId, setUserId] = useState<string | null>(options?.userId || null);
-    const [isLoading, setIsLoading] = useState(!options?.userId);
+    const [isLoading, setIsLoading] = useState(!options?.initialData);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Fetch user ID if not provided
     useEffect(() => {
-        if (options?.userId) {
+        if (options?.userId && options?.initialData) {
             setUserId(options.userId);
             setIsLoading(false);
             return;
         }
 
-        const fetchUserId = async () => {
+        const fetchSettings = async () => {
+            setIsLoading(true);
             try {
-                const supabase = createClientSupabaseClient();
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    setUserId(user.id);
-
-                    // Also fetch current settings from profile
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('height, weight, age, gender, primary_goal, ai_personality, current_focus, full_name, avatar_url')
-                        .eq('id', user.id)
-                        .single();
-
-                    if (profile) {
-                        const settingsData: SettingsData = {
-                            height: profile.height,
-                            weight: profile.weight,
-                            age: profile.age,
-                            gender: profile.gender,
-                            primary_goal: profile.primary_goal,
-                            ai_personality: profile.ai_personality,
-                            current_focus: profile.current_focus,
-                            full_name: profile.full_name,
-                            avatar_url: profile.avatar_url,
-                        };
-                        setSettings(settingsData);
-                        setCachedData(CACHE_KEY, settingsData);
-                    }
+                const result = await getSettings();
+                if (result.success && result.data) {
+                    setSettings(result.data.settings);
+                    setCachedData(CACHE_KEY, result.data.settings);
+                    setUserId(result.data.userId);
+                    setError(null);
                 } else {
-                    setError('请先登录');
+                    setError(result.error || '请先登录');
                 }
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to get user');
@@ -142,8 +121,8 @@ export function useSettings(options?: UseSettingsOptions): UseSettingsReturn {
             }
         };
 
-        fetchUserId();
-    }, [options?.userId]);
+        fetchSettings();
+    }, [options?.userId, options?.initialData]);
 
     // Cache initial data
     useEffect(() => {
@@ -191,33 +170,17 @@ export function useSettings(options?: UseSettingsOptions): UseSettingsReturn {
 
     // Refresh - fetch from database
     const refresh = useCallback(async () => {
-        if (!userId) return;
-
         setIsLoading(true);
         try {
-            const supabase = createClientSupabaseClient();
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('height, weight, age, gender, primary_goal, ai_personality, current_focus, full_name, avatar_url')
-                .eq('id', userId)
-                .single();
-
-            if (profile) {
-                const settingsData: SettingsData = {
-                    height: profile.height,
-                    weight: profile.weight,
-                    age: profile.age,
-                    gender: profile.gender,
-                    primary_goal: profile.primary_goal,
-                    ai_personality: profile.ai_personality,
-                    current_focus: profile.current_focus,
-                    full_name: profile.full_name,
-                    avatar_url: profile.avatar_url,
-                };
-                setSettings(settingsData);
-                setCachedData(CACHE_KEY, settingsData);
+            const result = await getSettings();
+            if (result.success && result.data) {
+                setSettings(result.data.settings);
+                setCachedData(CACHE_KEY, result.data.settings);
+                setUserId(result.data.userId);
+                setError(null);
+            } else {
+                setError(result.error || '请先登录');
             }
-            setError(null);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to refresh');
         } finally {

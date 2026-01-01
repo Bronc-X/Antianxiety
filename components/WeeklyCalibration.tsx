@@ -12,8 +12,9 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, TrendingUp, ChevronRight, Calendar } from 'lucide-react';
-import { createClient } from '@/lib/supabase-client';
 import { getPSS4Questions } from '@/lib/clinical-scales';
+import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
+import { useScaleCalibration } from '@/hooks/domain/useScaleCalibration';
 
 // ============ Types ============
 
@@ -67,18 +68,17 @@ const EVOLUTION_QUESTION = {
 // ============ Component ============
 
 export function WeeklyCalibration({
-    userId,
+    userId: _userId,
     userName,
     onComplete,
     onSkip,
 }: WeeklyCalibrationProps) {
-    const supabase = createClient();
+    const { isSaving, error, saveWeekly } = useScaleCalibration();
 
     const [step, setStep] = useState<CalibrationStep>('welcome');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
-    const [evolutionAnswer, setEvolutionAnswer] = useState<string>('');
-    const [isLoading, setIsLoading] = useState(false);
+    const { refresh } = useProfileMaintenance();
 
     const pss4Questions = getPSS4Questions();
 
@@ -102,9 +102,6 @@ export function WeeklyCalibration({
 
     // Handle evolution answer and complete
     const handleEvolutionAnswer = useCallback(async (value: string) => {
-        setEvolutionAnswer(value);
-        setIsLoading(true);
-
         try {
             // Calculate PSS-4 score
             const pss4Score = Object.values(answers).reduce((sum, v) => sum + v, 0);
@@ -115,44 +112,16 @@ export function WeeklyCalibration({
             else if (pss4Score <= 10) stressLevel = 'moderate';
             else stressLevel = 'high';
 
-            // Save to database
-            const now = new Date();
-            const responseDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
-            const records = Object.entries(answers).map(([questionId, answerValue]) => ({
-                user_id: userId,
-                scale_id: 'PSS4',
-                question_id: questionId,
-                answer_value: answerValue,
-                source: 'weekly',
-                response_date: responseDate, // 🆕 Added for proper upsert
-                created_at: now.toISOString(),
-            }));
-
-            // Add evolution answer
-            records.push({
-                user_id: userId,
-                scale_id: 'WEEKLY_EVO',
-                question_id: 'weekly_evolution',
-                answer_value: EVOLUTION_QUESTION.options.findIndex(o => o.value === value),
-                answer_text: value,
-                source: 'weekly',
-                response_date: responseDate,
-                created_at: now.toISOString(),
-            } as any);
-
-            // 🆕 Use upsert instead of insert to handle conflict
-            await supabase.from('user_scale_responses').upsert(records, {
-                onConflict: 'user_id,scale_id,question_id,response_date',
+            const responseDate = new Date().toISOString().split('T')[0];
+            const saved = await saveWeekly({
+                answers,
+                evolutionAnswer: value,
+                responseDate,
             });
-
-            // Update profile
-            await supabase
-                .from('profiles')
-                .update({ last_weekly_calibration: now.toISOString() })
-                .eq('id', userId);
+            if (!saved) return;
 
             // Trigger refresh
-            fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+            refresh().catch(() => {});
 
             const result: WeeklyCalibrationResult = {
                 pss4Score,
@@ -164,10 +133,8 @@ export function WeeklyCalibration({
             if (onComplete) onComplete(result);
         } catch (error) {
             console.error('Weekly calibration failed:', error);
-        } finally {
-            setIsLoading(false);
         }
-    }, [answers, userId, supabase, onComplete]);
+    }, [answers, onComplete, refresh, saveWeekly]);
 
     // Skip handler
     const handleSkip = useCallback((reason: string) => {
@@ -182,7 +149,7 @@ export function WeeklyCalibration({
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="relative overflow-hidden rounded-3xl bg-white/90 backdrop-blur-2xl border border-black/[0.04] shadow-[0_8px_60px_rgba(0,0,0,0.06)]"
+            className={`relative overflow-hidden rounded-3xl bg-white/90 backdrop-blur-2xl border border-black/[0.04] shadow-[0_8px_60px_rgba(0,0,0,0.06)] ${isSaving ? 'animate-pulse' : ''}`}
         >
             <div className="absolute inset-0 bg-gradient-to-br from-amber-50/30 via-transparent to-orange-50/20 pointer-events-none" />
 
@@ -320,7 +287,7 @@ export function WeeklyCalibration({
                                     whileHover={{ scale: 1.01 }}
                                     whileTap={{ scale: 0.99 }}
                                     onClick={() => handleEvolutionAnswer(option.value)}
-                                    disabled={isLoading}
+                                    disabled={isSaving}
                                     className="w-full p-5 text-left rounded-2xl border border-neutral-200 hover:border-amber-300 hover:bg-amber-50/50 transition-all disabled:opacity-50"
                                 >
                                     <span className="text-base font-medium text-neutral-800">
@@ -357,6 +324,9 @@ export function WeeklyCalibration({
                     </motion.div>
                 )}
             </AnimatePresence>
+            {error && (
+                <div className="px-10 pb-8 text-sm text-red-600">{error}</div>
+            )}
         </motion.div>
     );
 }

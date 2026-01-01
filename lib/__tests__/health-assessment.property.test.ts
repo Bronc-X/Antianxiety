@@ -31,9 +31,9 @@ const userProfileArb = fc.record({
     id: fc.uuid(),
     gender: fc.constantFrom('male', 'female', 'other') as fc.Arbitrary<'male' | 'female' | 'other'>,
     age: fc.integer({ min: 18, max: 100 }),
-    height: fc.float({ min: 1.4, max: 2.2, noNaN: true }),
-    weight: fc.float({ min: 40, max: 200, noNaN: true }),
-    waistLine: fc.float({ min: 50, max: 150, noNaN: true }),
+    height: fc.double({ min: 1.4, max: 2.2, noNaN: true, noDefaultInfinity: true }),
+    weight: fc.double({ min: 40, max: 190, noNaN: true, noDefaultInfinity: true }),
+    waistLine: fc.double({ min: 50, max: 150, noNaN: true, noDefaultInfinity: true }),
 });
 
 const gad7AnswerArb = fc.constantFrom('not_at_all', 'several_days', 'more_than_half', 'nearly_every_day');

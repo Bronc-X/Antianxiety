@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Zap, Terminal, Sparkles } from 'lucide-react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { Send, Terminal, Sparkles } from 'lucide-react';
+import { useChatAI } from '@/hooks/domain/useChatAI';
+import { useAiConversation } from '@/hooks/domain/useAiConversation';
 
 interface Message {
     role: 'user' | 'assistant' | 'system';
@@ -13,87 +14,65 @@ interface Message {
 export function MobileMaxChat() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
-    const supabase = createClientSupabaseClient();
+    const { sendPayload } = useChatAI();
+    const { loadHistory, saveMessage, isLoading, error } = useAiConversation();
 
     useEffect(() => {
-        loadHistory();
-    }, []);
+        const fetchHistory = async () => {
+            const history = await loadHistory(50);
+            if (history && history.length > 0) {
+                setMessages(history.map((m) => ({ role: m.role, content: m.content })));
+            } else {
+                setMessages([{
+                    role: 'assistant',
+                    content: 'Systems nominal. Max initialized.\nReady to process bio-data.',
+                }]);
+            }
+        };
+        fetchHistory();
+    }, [loadHistory]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    const loadHistory = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data } = await supabase
-            .from('ai_conversations')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: true })
-            .limit(50);
-
-        if (data) {
-            setMessages(data.map((m: any) => ({ role: m.role, content: m.content })));
-        } else {
-            setMessages([{
-                role: 'assistant',
-                content: `Systems nominal. Max initialized.\nReady to process bio-data.`
-            }]);
-        }
-    };
-
     const sendMessage = async () => {
-        if (!input.trim() || isLoading) return;
+        if (!input.trim() || isSending) return;
 
         const userMsg = { role: 'user' as const, content: input };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
-        setIsLoading(true);
+        setIsSending(true);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (user) {
-                await supabase.from('ai_conversations').insert({
-                    user_id: user.id,
-                    role: 'user',
-                    content: userMsg.content,
-                    metadata: { timestamp: new Date().toISOString() }
-                });
-            }
-
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: userMsg.content,
-                    conversationHistory: messages.map(m => ({ role: m.role, content: m.content }))
-                })
+            await saveMessage({
+                role: 'user',
+                content: userMsg.content,
+                metadata: { timestamp: new Date().toISOString() },
             });
 
-            const result = await res.json();
-            const aiContent = result.data?.answer || result.response || "Connection interrupted.";
+            const data = await sendPayload({
+                message: userMsg.content,
+                conversationHistory: messages.map(m => ({ role: m.role, content: m.content })),
+                stream: false,
+            });
+            const aiContent = data?.data?.answer || data?.response || data?.reply || data?.message || "Connection interrupted.";
 
             const aiMsg = { role: 'assistant' as const, content: aiContent };
             setMessages(prev => [...prev, aiMsg]);
 
-            if (user) {
-                await supabase.from('ai_conversations').insert({
-                    user_id: user.id,
-                    role: 'assistant',
-                    content: aiMsg.content,
-                    metadata: { timestamp: new Date().toISOString() }
-                });
-            }
+            await saveMessage({
+                role: 'assistant',
+                content: aiMsg.content,
+                metadata: { timestamp: new Date().toISOString() },
+            });
 
         } catch (e) {
             setMessages(prev => [...prev, { role: 'system', content: 'Link failure.' }]);
         } finally {
-            setIsLoading(false);
+            setIsSending(false);
         }
     };
 
@@ -126,7 +105,12 @@ export function MobileMaxChat() {
                         </div>
                     </motion.div>
                 ))}
-                {isLoading && (
+                {isLoading && messages.length === 0 && (
+                    <div className="flex justify-start animate-pulse">
+                        <div className="bg-[#111111] border border-[#333333] p-3 rounded-lg w-32 h-6" />
+                    </div>
+                )}
+                {isSending && (
                     <div className="flex justify-start">
                         <div className="bg-[#111111] border border-[#333333] p-3 rounded-lg flex gap-1 items-center">
                             <span className="w-1.5 h-1.5 bg-[#00FF94] animate-pulse" />
@@ -150,12 +134,15 @@ export function MobileMaxChat() {
                     />
                     <button
                         onClick={sendMessage}
-                        disabled={isLoading || !input.trim()}
+                        disabled={isSending || !input.trim()}
                         className="w-8 h-8 rounded-full bg-[#00FF94] flex items-center justify-center text-black disabled:opacity-50 hover:bg-[#00CC76] transition-colors"
                     >
-                        {isLoading ? <Sparkles className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        {isSending ? <Sparkles className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
                 </div>
+                {error && (
+                    <div className="mt-2 text-xs text-red-400 text-center">{error}</div>
+                )}
             </div>
         </div>
     );

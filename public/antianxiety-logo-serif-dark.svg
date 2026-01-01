@@ -7,6 +7,6 @@
   
   <!-- Text (Black for Light Mode) -->
   <text x="24" y="26" font-family="'Playfair Display', serif" font-weight="700" font-style="italic" font-size="20" fill="black" letter-spacing="-0.02em">
-    AntiAnxiety™
+    AntiAnxiety<tspan fill="#ffffff" font-size="12" dy="-5">™</tspan>
   </text>
 </svg>

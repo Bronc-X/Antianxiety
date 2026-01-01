@@ -23,7 +23,7 @@ function ensureRedirectPlaceholder() {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
-  const html = `<!DOCTYPE html>
+  const html = `<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -62,6 +62,7 @@ function ensureRedirectPlaceholder() {
 <body>
   <div class="loading">
     <div class="spinner"></div>
+    <p>Redirecting...</p>
     <p>正在加载 AntiAnxiety...</p>
   </div>
 </body>

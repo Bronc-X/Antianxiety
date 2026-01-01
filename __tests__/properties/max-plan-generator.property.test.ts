@@ -89,9 +89,15 @@ const invalidPlanItemArb: fc.Arbitrary<PlanItemDraft> = fc.oneof(
 const validPlanItemsArb = (count: number): fc.Arbitrary<PlanItemDraft[]> =>
   fc.array(validPlanItemArb, { minLength: count, maxLength: count });
 
+const isoDateArb = fc.integer({ min: 0, max: 365 * 5 }).map(daysAgo => {
+  const date = new Date('2025-12-31T00:00:00.000Z');
+  date.setUTCDate(date.getUTCDate() - daysAgo);
+  return date.toISOString();
+});
+
 /** Generate HRV data */
 const hrvDataArb: fc.Arbitrary<HrvData> = fc.record({
-  date: fc.date({ min: new Date('2020-01-01'), max: new Date('2025-12-31') }).map(d => d.toISOString()),
+  date: isoDateArb,
   avgHrv: fc.integer({ min: 20, max: 100 }),
   minHrv: fc.integer({ min: 10, max: 50 }),
   maxHrv: fc.integer({ min: 50, max: 150 }),
@@ -102,7 +108,7 @@ const hrvDataArb: fc.Arbitrary<HrvData> = fc.record({
 
 /** Generate calibration data */
 const calibrationDataArb: fc.Arbitrary<CalibrationData> = fc.record({
-  date: fc.date({ min: new Date('2020-01-01'), max: new Date('2025-12-31') }).map(d => d.toISOString()),
+  date: isoDateArb,
   sleepHours: fc.integer({ min: 0, max: 12 }),
   sleepQuality: fc.integer({ min: 0, max: 10 }),
   moodScore: fc.integer({ min: 0, max: 10 }),

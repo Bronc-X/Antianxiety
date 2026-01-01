@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, ChevronRight, Check, Sparkles, Info, ArrowRight } from 'lucide-react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { Check, ArrowRight } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { useDailyQuestionnaire } from '@/hooks/domain/useDailyQuestionnaire';
 
 // --- Shared Logic from PC (Duplicated for isolation/styling freedom) ---
 
@@ -34,10 +34,9 @@ interface MobileDailyQuestionnaireProps {
 }
 
 export function MobileDailyQuestionnaire({ userId, onComplete }: MobileDailyQuestionnaireProps) {
+    const { completed, isLoading, isSaving, error, saveResponse } = useDailyQuestionnaire({ userId });
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
-    const [isCompleted, setIsCompleted] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const questions = getTodayQuestions();
     const currentQuestion = questions[currentIndex];
@@ -65,26 +64,30 @@ export function MobileDailyQuestionnaire({ userId, onComplete }: MobileDailyQues
 
     const handleSubmit = async () => {
         triggerHaptic();
-        setIsSubmitting(true);
-
-        // Mock API call / Supabase logic
-        // In real app, un-comment Supabase logic
-        /*
-        if (userId) {
-            const supabase = createClientSupabaseClient();
-            await supabase.from('daily_questionnaire_responses').insert({ ... });
+        const success = await saveResponse({
+            responses: answers,
+            questions: questions.map(q => q.id),
+        });
+        if (success) {
+            onComplete?.();
         }
-        */
-
-        // Simulate network
-        setTimeout(() => {
-            setIsCompleted(true);
-            setIsSubmitting(false);
-            if (onComplete) onComplete();
-        }, 1000);
     };
 
-    if (isCompleted) {
+    if (isLoading) {
+        return (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-6 rounded-2xl border border-[#222222] bg-[#0A0A0A] text-center animate-pulse"
+            >
+                <div className="w-12 h-12 rounded-full bg-[#00FF94]/20 flex items-center justify-center mx-auto mb-4" />
+                <div className="h-4 w-40 bg-[#222222] mx-auto rounded mb-2" />
+                <div className="h-3 w-28 bg-[#1A1A1A] mx-auto rounded" />
+            </motion.div>
+        );
+    }
+
+    if (completed) {
         return (
             <motion.div
                 initial={{ opacity: 0 }}
@@ -98,6 +101,10 @@ export function MobileDailyQuestionnaire({ userId, onComplete }: MobileDailyQues
                 <p className="text-[#666666] text-xs">Your bio-twin has been updated.</p>
             </motion.div>
         );
+    }
+
+    if (questions.length === 0) {
+        return null;
     }
 
     return (
@@ -166,10 +173,10 @@ export function MobileDailyQuestionnaire({ userId, onComplete }: MobileDailyQues
                 >
                     <button
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSaving}
                         className="w-full py-4 bg-[#007AFF] text-white font-bold tracking-wide uppercase rounded-xl flex items-center justify-center gap-2 hover:bg-[#0060C9] transition-colors"
                     >
-                        {isSubmitting ? (
+                        {isSaving ? (
                             <span className="text-xs">Processing Data...</span>
                         ) : (
                             <>
@@ -179,6 +186,10 @@ export function MobileDailyQuestionnaire({ userId, onComplete }: MobileDailyQues
                         )}
                     </button>
                 </motion.div>
+            )}
+
+            {error && (
+                <div className="mt-4 text-xs text-red-400">{error}</div>
             )}
         </div>
     );

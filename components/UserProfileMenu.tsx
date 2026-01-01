@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/hooks/domain/useAuth';
 
 interface UserProfileMenuProps {
   user: {
@@ -23,8 +22,7 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
-  const supabase = createClientSupabaseClient();
+  const { signOut, isSigningOut, error: authError } = useAuth();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -38,10 +36,10 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
   }, [isOpen]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsOpen(false);
-    router.push('/login');
-    router.refresh();
+    const success = await signOut('/login');
+    if (success) {
+      setIsOpen(false);
+    }
   };
 
   const displayName = profile?.full_name || user.email?.split('@')[0] || t('userMenu.defaultUser');
@@ -66,7 +64,7 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
         onClick={() => setIsOpen(prev => !prev)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className="flex items-center gap-2 rounded-full border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-1.5 hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors"
+        className={`flex items-center gap-2 rounded-full border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-1.5 hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors ${isSigningOut ? 'animate-pulse' : ''}`}
       >
         {avatarUrl ? (
           <Image
@@ -149,8 +147,11 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
                   type="button"
                   className="w-full rounded-md border border-red-200 dark:border-red-800 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-left"
                 >
-                  {t('userMenu.logout')}
+                  {isSigningOut ? t('common.loading') : t('userMenu.logout')}
                 </button>
+                {authError && (
+                  <p className="text-sm text-red-600">{authError}</p>
+                )}
               </div>
           </motion.div>
         )}

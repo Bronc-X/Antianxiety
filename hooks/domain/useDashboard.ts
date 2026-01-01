@@ -18,6 +18,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
 import { getDashboardData, syncProfile, getDigitalTwinData } from '@/app/actions/dashboard';
+import { analyzeDigitalTwin as analyzeDigitalTwinAction } from '@/app/actions/digital-twin';
 import type {
   UseDashboardReturn,
   DashboardData,
@@ -77,6 +78,7 @@ interface ExtendedUseDashboardReturn extends UseDashboardReturn {
   digitalTwin: DashboardResponse | { status: string; collectionStatus?: any; message?: string } | null;
   loadingDigitalTwin: boolean;
   loadDigitalTwin: () => Promise<void>;
+  analyzeDigitalTwin: (forceRefresh?: boolean) => Promise<boolean>;
 }
 
 export function useDashboard(): ExtendedUseDashboardReturn {
@@ -148,6 +150,25 @@ export function useDashboard(): ExtendedUseDashboardReturn {
     }
   }, []);
 
+  const analyzeDigitalTwin = useCallback(async (forceRefresh = true) => {
+    setLoadingDigitalTwin(true);
+    setError(null);
+    try {
+      const result = await analyzeDigitalTwinAction({ forceRefresh });
+      if (!result.success) {
+        setError(result.error || 'Analysis failed');
+        return false;
+      }
+      await loadDigitalTwin();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed');
+      return false;
+    } finally {
+      setLoadingDigitalTwin(false);
+    }
+  }, [loadDigitalTwin]);
+
   // ============================================
   // Initial Fetch & Revalidation
   // ============================================
@@ -213,7 +234,8 @@ export function useDashboard(): ExtendedUseDashboardReturn {
     sync,
     refresh,
     mutate,
-    loadDigitalTwin
+    loadDigitalTwin,
+    analyzeDigitalTwin
   };
 }
 

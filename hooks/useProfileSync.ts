@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * useProfileSync Hook
  * 
@@ -6,26 +8,29 @@
  */
 
 import { useCallback } from 'react';
+import { useProfileMaintenance, triggerProfileSync as triggerProfileSyncAction } from '@/hooks/domain/useProfileMaintenance';
+
+export interface UseProfileSyncReturn {
+    syncProfile: () => Promise<void>;
+}
 
 /**
  * Hook to trigger profile aggregation
  * @returns Function to call after form submissions
  */
-export function useProfileSync() {
+export function useProfileSync(): UseProfileSyncReturn {
+    const { sync } = useProfileMaintenance();
     const syncProfile = useCallback(async () => {
         try {
             // Fire and forget - don't block the UI
-            fetch('/api/user/profile-sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            }).catch(err => {
+            sync().catch(err => {
                 // Silently log errors - profile sync is not critical to UX
                 console.warn('Profile sync failed (non-critical):', err);
             });
         } catch {
             // Ignore errors - this is a background operation
         }
-    }, []);
+    }, [sync]);
 
     return { syncProfile };
 }
@@ -34,12 +39,8 @@ export function useProfileSync() {
  * Standalone function for use outside React components
  */
 export async function triggerProfileSync(): Promise<void> {
-    try {
-        await fetch('/api/user/profile-sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        });
-    } catch (err) {
-        console.warn('Profile sync failed (non-critical):', err);
+    const ok = await triggerProfileSyncAction();
+    if (!ok) {
+        console.warn('Profile sync failed (non-critical)');
     }
 }

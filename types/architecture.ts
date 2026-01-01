@@ -48,16 +48,16 @@ export type ActionData<T> = T extends ActionResult<infer U> ? U : never;
 export interface DomainHookReturn<TData, TActions extends Record<string, (...args: unknown[]) => unknown> = Record<string, never>> {
   // Core data
   data: TData | null;
-  
+
   // Loading states
   isLoading: boolean;
-  
+
   // Error state
   error: string | null;
-  
+
   // Network state
   isOffline: boolean;
-  
+
   // Actions (feature-specific)
   actions: TActions;
 }
@@ -68,14 +68,14 @@ export interface DomainHookReturn<TData, TActions extends Record<string, (...arg
  * 
  * Requirements: 8.1, 8.2, 8.3
  */
-export interface OptimisticHookReturn<TData, TActions extends Record<string, (...args: unknown[]) => unknown> = Record<string, never>> 
+export interface OptimisticHookReturn<TData, TActions extends Record<string, (...args: unknown[]) => unknown> = Record<string, never>>
   extends DomainHookReturn<TData, TActions> {
   // Server-confirmed data
   data: TData | null;
-  
+
   // UI-priority data (use this for rendering)
   optimisticData: TData | null;
-  
+
   // Manual mutation function
   mutate: (data?: TData, shouldRevalidate?: boolean) => Promise<void>;
 }
@@ -114,12 +114,12 @@ export interface DeviceRoutingProps {
  * 
  * Requirements: 7.6
  */
-export type JSONSerializable = 
-  | string 
-  | number 
-  | boolean 
-  | null 
-  | JSONSerializable[] 
+export type JSONSerializable =
+  | string
+  | number
+  | boolean
+  | null
+  | JSONSerializable[]
   | { [key: string]: JSONSerializable };
 
 /**
@@ -136,7 +136,13 @@ export type EnsureSerializable<T> = T extends JSONSerializable ? T : never;
  * Unified user profile data structure.
  * Used across dashboard and profile features.
  */
+/**
+ * Unified user profile data structure.
+ * Used across dashboard and profile features.
+ */
 export interface UnifiedProfile {
+  id?: string;
+  full_name?: string;
   demographics: {
     gender?: string;
     age?: number;
@@ -160,6 +166,14 @@ export interface UnifiedProfile {
 export interface WellnessLog {
   log_date: string; // ISO string
   sleep_duration_minutes: number | null;
+  exercise_duration_minutes?: number | null;
+  mindfulness_minutes?: number | null;
+  sleep_quality?: string | number | null;
+  body_tension?: number | null;
+  mental_clarity?: number | null;
+  morning_energy?: number | null;
+  overall_readiness?: number | null;
+  ai_recommendation?: string | null;
   mood_status: string | null;
   stress_level: number | null;
 }
@@ -212,13 +226,13 @@ export interface UseDashboardReturn {
   profile: UnifiedProfile | null;
   weeklyLogs: WellnessLog[];
   hardwareData: HardwareData | null;
-  
+
   // States
   isLoading: boolean;
   isSyncing: boolean;
   isOffline: boolean;
   error: string | null;
-  
+
   // Actions
   sync: () => Promise<void>;
   refresh: () => Promise<void>;

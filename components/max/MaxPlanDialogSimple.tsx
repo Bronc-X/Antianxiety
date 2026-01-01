@@ -9,6 +9,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/components/ui/toast';
 import { X, Loader2, Sparkles, Check, RefreshCw, Edit2, Send } from 'lucide-react';
+import { useMaxApi } from '@/hooks/domain/useMaxApi';
+import { usePlans } from '@/hooks/domain/usePlans';
+import type { ParsedPlan } from '@/lib/plan-parser';
 
 interface Message {
   id: string;
@@ -35,6 +38,8 @@ interface MaxPlanDialogSimpleProps {
 export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: MaxPlanDialogSimpleProps) {
   const { language } = useI18n();
   const { toast } = useToast();
+  const { planChat, planReplace } = useMaxApi();
+  const { createFromAI } = usePlans();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
@@ -80,19 +85,16 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
   const initDialog = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/max/plan-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'init', language: lang }),
-      });
-      const data = await res.json();
-      if (data.success) {
+      const data = await planChat({ action: 'init', language: lang });
+      if (data) {
         setSessionId(data.sessionId);
         setMessages(data.messages || []);
         setNextAction(data.nextAction || 'question');
         if (data.nextAction === 'generate') {
           await generatePlan(data.sessionId);
         }
+      } else {
+        setMessages([{ id: 'error', role: 'max', content: lang === 'zh' ? '初始化失败，请重试' : 'Failed to initialize' }]);
       }
     } catch (e) {
       console.error('Init error:', e);
@@ -112,13 +114,8 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
     setCustomInput('');
 
     try {
-      const res = await fetch('/api/max/plan-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'respond', sessionId, questionId, message: value, language: lang }),
-      });
-      const data = await res.json();
-      if (data.success) {
+      const data = await planChat({ action: 'respond', sessionId, questionId, message: value, language: lang });
+      if (data) {
         const newMaxMessages = (data.messages || []).filter((m: Message) => m.role === 'max');
         setMessages(prev => [...prev, ...newMaxMessages]);
         setNextAction(data.nextAction || 'question');
@@ -141,13 +138,8 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
   const generatePlan = async (sid: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/max/plan-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate', sessionId: sid, language: lang }),
-      });
-      const data = await res.json();
-      if (data.success) {
+      const data = await planChat({ action: 'generate', sessionId: sid, language: lang });
+      if (data) {
         const newMaxMessages = (data.messages || []).filter((m: Message) => m.role === 'max');
         setMessages(prev => [...prev, ...newMaxMessages]);
         setPlanItems(data.planItems || []);
@@ -164,13 +156,8 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
     if (!sessionId) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/max/plan-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'skip', sessionId, language: lang }),
-      });
-      const data = await res.json();
-      if (data.success && data.nextAction === 'generate') {
+      const data = await planChat({ action: 'skip', sessionId, language: lang });
+      if (data?.nextAction === 'generate') {
         await generatePlan(sessionId);
       }
     } catch (e) {
@@ -186,13 +173,8 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
     setReplacingItemId(itemId);
     
     try {
-      const res = await fetch('/api/max/plan-replace', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, itemId, language: lang }),
-      });
-      const data = await res.json();
-      if (data.success && data.newItem) {
+      const data = await planReplace({ sessionId, itemId, language: lang });
+      if (data?.newItem) {
         setPlanItems(prev => prev.map(item => 
           item.id === itemId ? data.newItem : item
         ));
@@ -225,26 +207,23 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
     if (planItems.length === 0) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/plans/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plans: [{
-            title: lang === 'zh' ? 'Max 个性化计划' : 'Max Personalized Plan',
-            content: planItems.map(item => item.action).join('\n'),
-            items: planItems.map((item, index) => ({ 
-              id: item.id || `item_${Date.now()}_${index}`,
-              text: `${item.title}: ${item.action}`,
-              completed: false,
-              status: 'pending',
-            })),
-          }],
-        }),
-      });
-      if (res.ok) {
+      const planPayload: ParsedPlan = {
+        title: lang === 'zh' ? 'Max 个性化计划' : 'Max Personalized Plan',
+        content: planItems.map(item => item.action).join('\n'),
+        items: planItems.map((item, index) => ({
+          id: item.id || `item_${Date.now()}_${index}`,
+          text: `${item.title}: ${item.action}`,
+          status: 'pending',
+        })),
+      };
+
+      const created = await createFromAI([planPayload]);
+      if (created) {
         toast({ message: lang === 'zh' ? '计划已保存！' : 'Plan saved!', type: 'success' });
         onPlanCreated?.();
         onClose();
+      } else {
+        throw new Error('Save failed');
       }
     } catch (e) {
       console.error('Save error:', e);

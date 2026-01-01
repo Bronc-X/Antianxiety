@@ -3,5 +3,5 @@
   <!-- Emerald Dot -->
   <circle cx="10" cy="20" r="4" fill="#10b981"/>
   <!-- Text -->
-  <text x="24" y="24" font-family="'Inter', sans-serif" font-weight="700" font-size="18" fill="white" letter-spacing="-0.02em">AntiAnxiety™</text>
+  <text x="24" y="24" font-family="'Inter', sans-serif" font-weight="700" font-size="18" fill="white" letter-spacing="-0.02em">AntiAnxiety<tspan fill="#ffffff" font-size="10" dy="-4">™</tspan></text>
 </svg>

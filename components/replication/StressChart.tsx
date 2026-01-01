@@ -2,33 +2,54 @@
 
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
-const data = [
-    { time: "06:30", value: 45 },
-    { time: "06:45", value: 42 },
-    { time: "07:00", value: 38 }, // Descending stress is good
-    { time: "07:15", value: 35 },
-    { time: "07:30", value: 30 },
-    { time: "07:45", value: 28 },
-    { time: "08:00", value: 25 },
-];
+const CustomCursor = ({ points, width, height }: { points?: { x: number; y: number }[]; width?: number; height?: number }) => {
+    if (!points?.length || width == null || height == null) {
+        return null;
+    }
 
-const CustomCursor = (props: any) => {
-    const { points, width, height } = props;
-    const { x } = points[0];
+    const { x, y } = points[0];
+
     return (
-        <line x1={x} y1={0} x2={x} y2={height} stroke="#6366f1" strokeWidth={2} strokeDasharray="4 4" />
+        <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            fill="rgba(99, 102, 241, 0.08)"
+        />
     );
 };
 
-export const StressChart = () => {
+interface StressChartProps {
+    data?: { time: string; value: number }[];
+    currentStress?: number;
+    trendLabel?: string;
+    trendValue?: 'up' | 'down' | 'stable';
+    isSkeleton?: boolean;
+}
+
+export const StressChart = ({ 
+    data,
+    currentStress,
+    trendLabel,
+    trendValue,
+    isSkeleton = false
+}: StressChartProps) => {
+    const chartData = data || [];
+    const labelText = trendLabel || '';
+    // Determine trend visual if not explicitly passed
+    const isStable = trendValue === 'stable' || (!trendValue && labelText.includes('平稳'));
+
     return (
-        <div className="p-6 bg-white rounded-[2rem] shadow-sm">
+        <div className={`p-6 bg-white rounded-[2rem] shadow-sm${isSkeleton ? ' animate-pulse' : ''}`}>
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <h3 className="text-sm font-semibold text-slate-500 mb-1">压力趋势 (Stress)</h3>
                     <div className="flex items-center gap-2">
                         <span className="w-2 h-2 bg-indigo-500 rounded-full" />
-                        <span className="text-sm font-bold text-indigo-500">逐渐平稳</span>
+                        <span className={`text-sm font-bold text-indigo-500${isSkeleton ? ' text-transparent bg-slate-200 rounded px-2' : ''}`}>
+                            {isSkeleton ? 'loading' : labelText}
+                        </span>
                     </div>
                 </div>
                 <div className="text-2xl mr-2">😌</div>
@@ -36,7 +57,7 @@ export const StressChart = () => {
 
             <div className="h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
+                    <LineChart data={chartData}>
                         <XAxis
                             dataKey="time"
                             axisLine={false}

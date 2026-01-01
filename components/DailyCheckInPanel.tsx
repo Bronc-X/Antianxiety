@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import AnimatedSection from '@/components/AnimatedSection';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useCalibrationLog } from '@/hooks/domain/useCalibrationLog';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 type DailyWellnessLog = {
   id?: number;
@@ -85,10 +86,40 @@ const formatDate = (dateString: string) => {
 
 export default function DailyCheckInPanel({ initialProfile, initialLogs }: DailyCheckInPanelProps) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
+  const {
+    today,
+    history,
+    isLoading,
+    isSaving: isSavingLog,
+    error: logError,
+    loadToday,
+    loadHistory,
+    save,
+  } = useCalibrationLog();
+  const {
+    isLoading: isProfileLoading,
+    error: profileError,
+    update,
+  } = useProfile();
   const [logs, setLogs] = useState<DailyWellnessLog[]>(initialLogs || []);
   const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const todayLog = useMemo(() => logs.find((log) => log.log_date === todayKey) || null, [logs, todayKey]);
+
+  useEffect(() => {
+    loadHistory(7);
+    loadToday();
+  }, [loadHistory, loadToday]);
+
+  useEffect(() => {
+    if (!history.length && !today) return;
+    const normalizedHistory = history as unknown as DailyWellnessLog[];
+    const normalizedToday = today as unknown as DailyWellnessLog | null;
+    const historyWithoutToday = normalizedToday
+      ? normalizedHistory.filter((log) => log.log_date !== normalizedToday.log_date)
+      : normalizedHistory;
+    const mergedLogs = normalizedToday ? [normalizedToday, ...historyWithoutToday] : historyWithoutToday;
+    setLogs(mergedLogs);
+  }, [history, today]);
 
   const [formState, setFormState] = useState({
     sleepDuration: '',
@@ -102,11 +133,12 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
     initialProfile?.daily_checkin_time ? (initialProfile.daily_checkin_time as string).slice(0, 5) : ''
   );
 
-  const [isSaving, setIsSaving] = useState(false);
   const [isUpdatingReminder, setIsUpdatingReminder] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const hasPromptedRef = useRef(false);
   const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
+  const isPending = isLoading || isProfileLoading;
+  const combinedError = logError || profileError;
 
   useEffect(() => {
     startTransition(() => {
@@ -169,13 +201,9 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
   };
 
   const handleSaveLog = async () => {
-    if (!initialProfile?.id) return;
-    setIsSaving(true);
     setToast(null);
 
     const payload = {
-      user_id: initialProfile.id,
-      log_date: todayKey,
       sleep_duration_minutes: formState.sleepDuration ? Number(formState.sleepDuration) : null,
       sleep_quality: formState.sleepQuality || null,
       exercise_duration_minutes: formState.exerciseDuration ? Number(formState.exerciseDuration) : null,
@@ -187,34 +215,16 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
     console.log('=== 保存每日记录 ===');
     console.log('保存 payload:', payload);
 
-    const { data, error } = await supabase
-      .from('daily_wellness_logs')
-      .upsert(payload, { onConflict: 'user_id,log_date' })
-      .select()
-      .single();
+    const saved = await save(payload);
 
-    if (error) {
-      console.error('保存每日记录失败 - 详细错误:', {
-        error,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-      });
-      setToast(`保存失败：${error.message || '请稍后重试'}`);
-      setIsSaving(false);
+    if (!saved) {
+      setToast(`保存失败：${logError || '请稍后重试'}`);
       return;
     }
 
-    console.log('保存成功:', data);
-
-    setLogs((prev) => {
-      const otherLogs = prev.filter((log) => log.log_date !== todayKey);
-      return [data, ...otherLogs].sort((a, b) => (a.log_date < b.log_date ? 1 : -1));
-    });
+    console.log('保存成功:', saved);
 
     setToast('✅ 保存成功！即将返回主页...');
-    setIsSaving(false);
 
     // 保存成功后返回首页
     setTimeout(() => {
@@ -223,19 +233,15 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
   };
 
   const handleUpdateReminder = async () => {
-    if (!initialProfile?.id) return;
     setIsUpdatingReminder(true);
     setToast(null);
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        daily_checkin_time: reminderTime ? `${reminderTime}:00` : null,
-      })
-      .eq('id', initialProfile.id);
+    const success = await update({
+      daily_checkin_time: reminderTime ? `${reminderTime}:00` : null,
+    });
 
-    if (error) {
-      console.error('更新提醒时间失败:', error);
+    if (!success) {
+      console.error('更新提醒时间失败:', profileError);
       setToast('提醒时间更新失败，请稍后重试。');
       setIsUpdatingReminder(false);
       return;
@@ -258,7 +264,7 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
     <AnimatedSection inView variant="fadeUp" className="mb-8">
       <div
         className={`rounded-2xl border ${shouldPrompt ? 'border-[#0B3D2E]' : 'border-[#E7E1D6]'
-          } bg-white p-6 shadow-sm transition-shadow duration-300`}
+          } bg-white p-6 shadow-sm transition-shadow duration-300 ${isPending ? 'animate-pulse' : ''}`}
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -532,10 +538,10 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
           <button
             type="button"
             onClick={handleSaveLog}
-            disabled={isSaving}
+            disabled={isSavingLog}
             className="rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md disabled:opacity-60"
           >
-            {isSaving ? '保存中…' : '保存今日记录'}
+            {isSavingLog ? '保存中…' : '保存今日记录'}
           </button>
         </div>
 
@@ -567,6 +573,10 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
               ))}
             </div>
           </div>
+        )}
+
+        {combinedError && (
+          <div className="mt-6 text-sm text-red-600">{combinedError}</div>
         )}
       </div>
     </AnimatedSection>

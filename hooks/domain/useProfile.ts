@@ -13,9 +13,12 @@ import {
     updateProfile,
     uploadAvatar,
     deleteAccount,
+    saveHealthProfile as saveHealthProfileAction,
     type UserProfile,
-    type UpdateProfileInput
+    type UpdateProfileInput,
+    type SaveHealthProfileInput
 } from '@/app/actions/profile';
+import type { ActionResult } from '@/types/architecture';
 
 // ============================================
 // Types
@@ -37,6 +40,7 @@ export interface UseProfileReturn {
     uploadPhoto: (file: File) => Promise<string | null>;
     refresh: () => Promise<void>;
     remove: () => Promise<boolean>;
+    saveHealthProfile: (input: SaveHealthProfileInput) => Promise<ActionResult<any>>;
 }
 
 // ============================================
@@ -192,6 +196,25 @@ export function useProfile(): UseProfileReturn {
         }
     }, []);
 
+    // Save extended health profile
+    const saveHealthProfile = useCallback(async (input: SaveHealthProfileInput): Promise<ActionResult<any>> => {
+        setIsSaving(true);
+        setError(null);
+        try {
+            const result = await saveHealthProfileAction(input);
+            if (!result.success) {
+                setError(result.error || '保存失败');
+            }
+            return result;
+        } catch (err) {
+            const message = err instanceof Error ? err.message : '保存失败';
+            setError(message);
+            return { success: false, error: message };
+        } finally {
+            setIsSaving(false);
+        }
+    }, []);
+
     return {
         profile,
         isLoading,
@@ -203,7 +226,8 @@ export function useProfile(): UseProfileReturn {
         uploadPhoto,
         refresh,
         remove,
+        saveHealthProfile,
     };
 }
 
-export type { UserProfile, UpdateProfileInput };
+export type { UserProfile, UpdateProfileInput, SaveHealthProfileInput };

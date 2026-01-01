@@ -1,88 +1,35 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-
-/**
- * 内容项类型定义
- */
-interface FeedItem {
-  id: number | string;
-  source_url: string;
-  source_type: string;
-  content_text: string;
-  published_at: string | null;
-  relevance_score?: number | null;
-}
-
-interface FeedResponseMeta {
-  ready: boolean;
-  reason: string;
-  message?: string | null;
-  fallback?: 'latest' | 'trending' | 'none';
-}
+import { useEffect } from 'react';
+import { useFeed } from '@/hooks/domain/useFeed';
 
 /**
  * 个性化信息流组件
  * 根据用户画像向量，显示高度相关的内容（相关性 >= 4.5/5）
- * 符合 readme.md 要求：只保留高度正相关的内容
+ * Conform to MVVM: Uses useFeed hook (Bridge)
  */
 export default function PersonalizedFeed({
-  limit = 10,
+  limit = 20,
   sourceType,
 }: {
   limit?: number;
   sourceType?: string;
 }) {
-  const [items, setItems] = useState<FeedItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [meta, setMeta] = useState<FeedResponseMeta | null>(null);
-  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const {
+    items,
+    personalization,
+    isLoading,
+    isLoadingMore,
+    error,
+    loadMore,
+    refresh,
+    setFilters
+  } = useFeed();
 
-  const fetchFeed = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // 构建查询参数
-      const params = new URLSearchParams({
-        limit: limit.toString(),
-      });
-      if (sourceType) {
-        params.append('source_type', sourceType);
-      }
-
-      // 调用 API（Next.js API 路由会自动处理 cookies 认证）
-      const response = await fetch(`/api/feed?${params.toString()}`, {
-        credentials: 'include', // 包含 cookies
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '获取信息流失败');
-      }
-
-      const data = (await response.json()) as {
-        items?: FeedItem[];
-        personalization?: FeedResponseMeta;
-        message?: string;
-      };
-
-      setItems(data.items || []);
-      setMeta(data.personalization || null);
-      setInfoMessage(data.message || null);
-    } catch (err) {
-      console.error('获取信息流失败:', err);
-      const message = err instanceof Error ? err.message : '获取信息流失败，请稍后重试';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [limit, sourceType]);
-
+  // Update filters when props change
   useEffect(() => {
-    fetchFeed();
-  }, [fetchFeed]);
+    setFilters({ sourceType });
+  }, [sourceType, setFilters]);
 
   /**
    * 获取来源类型标签
@@ -95,7 +42,8 @@ export default function PersonalizedFeed({
       research_institution: '研究机构',
       university: '大学',
     };
-    return labels[type] || type;
+    // Handles undefined or null safely
+    return labels[type || ''] || type || 'Unknown';
   };
 
   /**
@@ -109,7 +57,7 @@ export default function PersonalizedFeed({
       research_institution: 'bg-green-100 text-green-800',
       university: 'bg-indigo-100 text-indigo-800',
     };
-    return colors[type] || 'bg-gray-100 text-gray-800';
+    return colors[type || ''] || 'bg-gray-100 text-gray-800';
   };
 
   /**
@@ -129,7 +77,7 @@ export default function PersonalizedFeed({
     }
   };
 
-  if (loading) {
+  if (isLoading && items.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-medium text-gray-900 mb-4">个性化信息流</h3>
@@ -141,14 +89,14 @@ export default function PersonalizedFeed({
     );
   }
 
-  if (error) {
+  if (error && items.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-medium text-gray-900 mb-4">个性化信息流</h3>
         <div className="text-center py-8">
           <p className="text-sm text-red-600">{error}</p>
           <button
-            onClick={fetchFeed}
+            onClick={() => refresh()}
             className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 text-sm"
           >
             重试
@@ -164,10 +112,15 @@ export default function PersonalizedFeed({
         <h3 className="text-lg font-medium text-gray-900 mb-4">个性化信息流</h3>
         <div className="text-center py-8">
           <p className="text-sm text-gray-600">
-            {meta?.message ||
-              infoMessage ||
+            {personalization?.message ||
               '暂无相关内容。请先完成个人资料设置，或等待内容池更新。'}
           </p>
+          <button
+            onClick={() => refresh()}
+            className="mt-4 text-sm text-blue-600 hover:underline"
+          >
+            刷新试试
+          </button>
         </div>
       </div>
     );
@@ -183,7 +136,7 @@ export default function PersonalizedFeed({
           </p>
         </div>
         <button
-          onClick={fetchFeed}
+          onClick={() => refresh()}
           className="text-sm text-gray-600 hover:text-gray-900"
           title="刷新"
         >
@@ -191,12 +144,12 @@ export default function PersonalizedFeed({
         </button>
       </div>
 
-      {meta && (
+      {personalization && (
         <div className="mb-4 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-          {meta.message || (meta.ready ? '个性化筛选已启用。' : '暂未生成个性化画像，展示最新高质量内容。')}
-          {meta.fallback && meta.fallback !== 'none' && (
+          {personalization.message || (personalization.ready ? '个性化筛选已启用。' : '暂未生成个性化画像，展示最新高质量内容。')}
+          {personalization.fallback && personalization.fallback !== 'none' && (
             <span className="ml-2 text-gray-500">
-              （当前内容来源：{meta.fallback === 'latest' ? '最新内容池' : '精选热议'}）
+              （当前内容来源：{personalization.fallback === 'latest' ? '最新内容池' : '精选热议'}）
             </span>
           )}
         </div>
@@ -212,10 +165,10 @@ export default function PersonalizedFeed({
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSourceTypeColor(
-                    item.source_type
+                    item.source_type || 'default'
                   )}`}
                 >
-                  {getSourceTypeLabel(item.source_type)}
+                  {getSourceTypeLabel(item.source_type || 'default')}
                 </span>
                 <span className="text-xs text-gray-500">
                   相关性:{' '}
@@ -225,49 +178,57 @@ export default function PersonalizedFeed({
                 </span>
               </div>
               <span className="text-xs text-gray-500">
-                {formatDate(item.published_at)}
+                {formatDate(item.created_at)}
               </span>
             </div>
 
             <p className="text-sm text-gray-700 mb-3 line-clamp-3">
-              {item.content_text}
+              {item.content || item.summary}
             </p>
 
-            <a
-              href={item.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
-            >
-              查看原文
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {item.source_url && (
+              <a
+                href={item.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </a>
+                查看原文
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+              </a>
+            )}
+
+            {/* AI Insights Display (Optional, relying on implementation in FeedItem) */}
+            {item.why_recommended && (
+              <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-800">
+                💡 {item.why_recommended}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {items.length >= limit && (
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => fetchFeed()}
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            加载更多
-          </button>
-        </div>
-      )}
+      <div className="mt-6 text-center">
+        <button
+          onClick={() => loadMore()}
+          disabled={isLoadingMore}
+          className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+        >
+          {isLoadingMore ? '加载中...' : '加载更多'}
+        </button>
+      </div>
     </div>
   );
 }

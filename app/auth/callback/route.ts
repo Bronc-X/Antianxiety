@@ -44,6 +44,17 @@ function createClientWithCookies(cookieStore: Awaited<ReturnType<typeof cookies>
   );
 }
 
+async function ensureProfileRow(
+  supabase: ReturnType<typeof createClientWithCookies>,
+  userId: string
+) {
+  try {
+    await supabase.from('profiles').upsert({ id: userId }, { onConflict: 'id' });
+  } catch (error) {
+    console.error('Failed to ensure profile row:', error);
+  }
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const next = requestUrl.searchParams.get('next') || '/unlearn/app';
@@ -91,6 +102,8 @@ export async function GET(request: NextRequest) {
         console.error('设置 session 失败:', setSessionError);
         return NextResponse.redirect(new URL('/login?error=pkce_set_session_failed', request.url));
       }
+
+      await ensureProfileRow(supabase, verifyData.session.user.id);
 
       // 检查用户是否需要完成问卷
       const { data: profile } = await supabase
@@ -149,6 +162,8 @@ export async function GET(request: NextRequest) {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (user && !userError) {
           console.log('Session 验证成功，用户ID:', user.id);
+
+          await ensureProfileRow(supabase, user.id);
 
           // ========================================
           // CRITICAL: 检查用户是否需要完成问卷

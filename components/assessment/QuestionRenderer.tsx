@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuestionStep } from '@/types/assessment';
-import { Check, Edit3, Info } from 'lucide-react';
+import { Check, ChevronRight, Edit3, Info } from 'lucide-react';
 import { tr, type Language } from '@/lib/i18n';
 import { maybeCnToTw } from '@/lib/i18n-core';
 

@@ -3,51 +3,53 @@
 /**
  * useAssessment Domain Hook (The Bridge)
  * 
- * Manages clinical assessment flow.
+ * Manages the dynamic AI-driven clinical assessment flow ("Bio-Ledger").
+ * Replaces the previous static scale implementation.
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { useNetwork } from '@/hooks/useNetwork';
+import { useI18n, type Language } from '@/lib/i18n';
 import {
-    getAssessmentTypes,
-    getAssessmentQuestions,
-    submitAssessment,
-    getAssessmentHistory,
-    type AssessmentType,
-    type AssessmentQuestion,
-    type AssessmentResult,
-    type AssessmentResponse
-} from '@/app/actions/assessment';
+    AssessmentPhase,
+    AssessmentResponse,
+    QuestionStep,
+    AnswerRecord
+} from '@/types/assessment';
+import {
+    startAssessmentSession,
+    submitAssessmentAnswer,
+    dismissEmergencySession
+} from '@/app/actions/assessment-engine';
 
 // ============================================
 // Types
 // ============================================
 
-export interface UseAssessmentReturn {
-    // Data
-    types: AssessmentType[];
-    questions: AssessmentQuestion[];
-    currentResult: AssessmentResult | null;
-    history: AssessmentResult[];
-
-    // Flow state
-    currentQuestion: number;
-    responses: AssessmentResponse[];
-
-    // States
+export interface AssessmentState {
+    sessionId: string | null;
+    phase: AssessmentPhase;
+    currentStep: AssessmentResponse | null;
+    history: AnswerRecord[];
     isLoading: boolean;
-    isSubmitting: boolean;
-    isOffline: boolean;
     error: string | null;
+    language: Language;
+    countryCode: string;
+    // Dynamic loading context implementation
+    loadingContext: {
+        lastQuestion?: string;
+        lastAnswer?: string;
+        questionCount: number;
+        currentQuestionId?: string;
+    };
+}
 
+export interface UseAssessmentReturn extends AssessmentState {
     // Actions
-    startAssessment: (typeId: string) => Promise<void>;
-    answerQuestion: (questionId: string, value: number | string) => void;
-    nextQuestion: () => void;
-    prevQuestion: () => void;
-    submit: () => Promise<boolean>;
-    loadHistory: (typeId?: string) => Promise<void>;
-    reset: () => void;
+    startAssessment: () => Promise<void>;
+    submitAnswer: (questionId: string, value: string | string[] | number | boolean) => Promise<void>;
+    resetAssessment: () => void;
+    dismissEmergency: () => Promise<void>;
+    setLanguage: (lang: Language) => void;
 }
 
 // ============================================
@@ -55,156 +57,171 @@ export interface UseAssessmentReturn {
 // ============================================
 
 export function useAssessment(): UseAssessmentReturn {
-    const { isOnline } = useNetwork();
+    const { language: appLanguage, setLanguage: setAppLanguage } = useI18n();
 
-    const [types, setTypes] = useState<AssessmentType[]>([]);
-    const [questions, setQuestions] = useState<AssessmentQuestion[]>([]);
-    const [currentResult, setCurrentResult] = useState<AssessmentResult | null>(null);
-    const [history, setHistory] = useState<AssessmentResult[]>([]);
+    const [state, setState] = useState<AssessmentState>({
+        sessionId: null,
+        phase: 'welcome',
+        currentStep: null,
+        history: [],
+        isLoading: false,
+        error: null,
+        language: appLanguage,
+        countryCode: 'CN',
+        loadingContext: {
+            questionCount: 0
+        }
+    });
 
-    const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [responses, setResponses] = useState<AssessmentResponse[]>([]);
-    const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
-
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // Load assessment types on mount
+    // Sync language and detect country
     useEffect(() => {
-        const loadTypes = async () => {
-            try {
-                const result = await getAssessmentTypes();
-                if (result.success && result.data) {
-                    setTypes(result.data);
+        setState(prev => ({ ...prev, language: appLanguage }));
+
+        // Only fetch if not already set or default
+        if (state.countryCode === 'CN') {
+            const detectCountry = async () => {
+                try {
+                    const res = await fetch('https://ipapi.co/country/');
+                    const code = await res.text();
+                    if (code && code.length === 2) {
+                        setState(prev => ({ ...prev, countryCode: code }));
+                    }
+                } catch (e) {
+                    // Ignore errors
                 }
-            } catch {
-                // Ignore
-            } finally {
-                setIsLoading(false);
-            }
-        };
+            };
+            detectCountry();
+        }
+    }, [appLanguage, state.countryCode]);
 
-        loadTypes();
-    }, []);
-
-    // Start assessment
-    const startAssessment = useCallback(async (typeId: string) => {
-        setIsLoading(true);
-        setSelectedTypeId(typeId);
-        setCurrentQuestion(0);
-        setResponses([]);
-        setCurrentResult(null);
-        setError(null);
+    const startAssessment = useCallback(async () => {
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
-            const result = await getAssessmentQuestions(typeId);
+            const result = await startAssessmentSession(
+                state.language === 'en' ? 'en' : 'zh',
+                state.countryCode
+            );
 
-            if (result.success && result.data) {
-                setQuestions(result.data);
-            } else {
-                setError(result.error || 'Failed to load questions');
+            if (!result.success || !result.data) {
+                throw new Error(result.error || 'Request failed');
             }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
 
-    // Answer question
-    const answerQuestion = useCallback((questionId: string, value: number | string) => {
-        setResponses(prev => {
-            const existing = prev.findIndex(r => r.question_id === questionId);
-            if (existing >= 0) {
-                const newResponses = [...prev];
-                newResponses[existing] = { question_id: questionId, value };
-                return newResponses;
+            const data = result.data;
+
+            setState(prev => ({
+                ...prev,
+                sessionId: data.session_id,
+                phase: data.phase,
+                currentStep: data,
+                isLoading: false,
+                loadingContext: { questionCount: 0 }
+            }));
+        } catch (error) {
+            console.error('Assessment start error:', error);
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            }));
+        }
+    }, [state.language, state.countryCode]);
+
+    const submitAnswer = useCallback(async (
+        questionId: string,
+        value: string | string[] | number | boolean
+    ) => {
+        if (!state.sessionId) return;
+
+        const currentQuestion = (state.currentStep as QuestionStep)?.question?.text || '';
+        const answerText = typeof value === 'string' ? value : JSON.stringify(value);
+
+        setState(prev => ({
+            ...prev,
+            isLoading: true,
+            error: null,
+            loadingContext: {
+                lastQuestion: currentQuestion,
+                lastAnswer: answerText,
+                questionCount: prev.history.length + 1,
+                currentQuestionId: questionId
             }
-            return [...prev, { question_id: questionId, value }];
-        });
-    }, []);
-
-    // Next question
-    const nextQuestion = useCallback(() => {
-        if (currentQuestion < questions.length - 1) {
-            setCurrentQuestion(currentQuestion + 1);
-        }
-    }, [currentQuestion, questions.length]);
-
-    // Previous question
-    const prevQuestion = useCallback(() => {
-        if (currentQuestion > 0) {
-            setCurrentQuestion(currentQuestion - 1);
-        }
-    }, [currentQuestion]);
-
-    // Submit assessment
-    const submit = useCallback(async (): Promise<boolean> => {
-        if (!selectedTypeId) return false;
-
-        setIsSubmitting(true);
-        setError(null);
+        }));
 
         try {
-            const result = await submitAssessment(selectedTypeId, responses);
+            const result = await submitAssessmentAnswer(
+                state.sessionId,
+                { question_id: questionId, value },
+                state.language === 'en' ? 'en' : 'zh',
+                state.countryCode
+            );
 
-            if (result.success && result.data) {
-                setCurrentResult(result.data);
-                return true;
-            } else {
-                setError(result.error || 'Failed to submit');
-                return false;
+            if (!result.success || !result.data) {
+                throw new Error(result.error || 'Failed to submit answer');
             }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed');
-            return false;
-        } finally {
-            setIsSubmitting(false);
-        }
-    }, [selectedTypeId, responses]);
 
-    // Load history
-    const loadHistory = useCallback(async (typeId?: string) => {
+            const data = result.data;
+
+            const newHistory: AnswerRecord = {
+                question_id: questionId,
+                question_text: (state.currentStep as QuestionStep)?.question?.text || '',
+                value,
+                answered_at: new Date().toISOString()
+            };
+
+            setState(prev => ({
+                ...prev,
+                phase: data.phase,
+                currentStep: data,
+                history: [...prev.history, newHistory],
+                isLoading: false
+            }));
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            }));
+        }
+    }, [state.sessionId, state.language, state.countryCode, state.currentStep]);
+
+    const resetAssessment = useCallback(() => {
+        setState(prev => ({
+            sessionId: null,
+            phase: 'welcome',
+            currentStep: null,
+            history: [],
+            isLoading: false,
+            error: null,
+            language: prev.language,
+            countryCode: prev.countryCode,
+            loadingContext: { questionCount: 0 }
+        }));
+    }, []);
+
+    const dismissEmergency = useCallback(async () => {
+        if (!state.sessionId) return;
+
         try {
-            const result = await getAssessmentHistory(typeId);
-            if (result.success && result.data) {
-                setHistory(result.data);
-            }
-        } catch {
-            // Ignore
+            await dismissEmergencySession(state.sessionId);
+        } catch (error) {
+            console.error('Failed to log emergency dismissal:', error);
         }
-    }, []);
 
-    // Reset
-    const reset = useCallback(() => {
-        setQuestions([]);
-        setCurrentQuestion(0);
-        setResponses([]);
-        setCurrentResult(null);
-        setSelectedTypeId(null);
-        setError(null);
-    }, []);
+        resetAssessment();
+    }, [state.sessionId, resetAssessment]);
+
+    const setLanguage = useCallback((lang: Language) => {
+        setAppLanguage(lang);
+        // state update for language is handled by effect
+    }, [setAppLanguage]);
 
     return {
-        types,
-        questions,
-        currentResult,
-        history,
-        currentQuestion,
-        responses,
-        isLoading,
-        isSubmitting,
-        isOffline: !isOnline,
-        error,
+        ...state,
         startAssessment,
-        answerQuestion,
-        nextQuestion,
-        prevQuestion,
-        submit,
-        loadHistory,
-        reset,
+        submitAnswer,
+        resetAssessment,
+        dismissEmergency,
+        setLanguage
     };
 }
-
-export type { AssessmentType, AssessmentQuestion, AssessmentResult, AssessmentResponse };

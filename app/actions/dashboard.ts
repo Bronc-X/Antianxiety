@@ -194,7 +194,7 @@ async function fetchWeeklyLogs(
 
   const { data, error } = await supabase
     .from('daily_wellness_logs')
-    .select('log_date, sleep_duration_minutes, mood_status, stress_level')
+    .select('log_date, sleep_duration_minutes, exercise_duration_minutes, mood_status, stress_level, mindfulness_minutes, sleep_quality, overall_readiness, ai_recommendation, morning_energy')
     .eq('user_id', userId)
     .gte('log_date', sevenDaysAgo.toISOString().split('T')[0])
     .order('log_date', { ascending: false });
@@ -207,6 +207,12 @@ async function fetchWeeklyLogs(
   return data.map(log => ({
     log_date: log.log_date,
     sleep_duration_minutes: log.sleep_duration_minutes,
+    exercise_duration_minutes: log.exercise_duration_minutes || null,
+    mindfulness_minutes: log.mindfulness_minutes,
+    sleep_quality: log.sleep_quality ?? null,
+    morning_energy: log.morning_energy ?? null,
+    overall_readiness: log.overall_readiness ?? null,
+    ai_recommendation: log.ai_recommendation ?? null,
     mood_status: log.mood_status,
     stress_level: log.stress_level,
   }));

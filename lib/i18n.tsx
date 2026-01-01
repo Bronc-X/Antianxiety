@@ -60,26 +60,28 @@ function normalizeClientLanguage(): Language {
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('zh');
-  const setLanguage = useCallback((lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-    writeLanguageCookie(lang);
-    document.documentElement.lang = toHtmlLang(lang);
-  }, []);
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window === 'undefined') {
+      return 'zh';
+    }
 
-  useEffect(() => {
-    // Check URL query parameter first (for development testing)
     const urlParams = new URLSearchParams(window.location.search);
     const langParam = urlParams.get('lang');
     if (isLanguage(langParam)) {
-      setLanguage(langParam);
-      return;
+      return langParam;
     }
 
-    const initialLanguage = normalizeClientLanguage();
-    setLanguage(initialLanguage);
-  }, [setLanguage]);
+    return normalizeClientLanguage();
+  });
+  const setLanguage = useCallback((lang: Language) => {
+    setLanguageState(lang);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    writeLanguageCookie(language);
+    document.documentElement.lang = toHtmlLang(language);
+  }, [language]);
 
   const t = useMemo(() => createTranslator(language), [language]);
 

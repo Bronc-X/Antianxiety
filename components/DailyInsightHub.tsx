@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 // ConsensusMeter removed - we don't show fake consensus data
 import { BrainLoader } from '@/components/lottie/BrainLoader';
 import { useI18n } from '@/lib/i18n';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { TaskSessionModal } from './TaskSessionModal';
+import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
+import { useDailyQuestionnaire } from '@/hooks/domain/useDailyQuestionnaire';
 
 type TabType = 'today' | 'questionnaire' | 'plan';
 type IconName = 'clock' | 'moon' | 'wind' | 'dumbbell' | 'sparkles';
@@ -105,101 +106,26 @@ export function DailyInsightHub({
   onHintHover,
 }: DailyInsightHubProps) {
   const { language } = useI18n();
+  const {
+    completed: questionnaireCompletedFromHook,
+    summary,
+    isLoading: questionnaireLoading,
+    isSaving: questionnaireSaving,
+    error: questionnaireError,
+    saveResponse,
+  } = useDailyQuestionnaire({ userId });
   const [activeTab, setActiveTab] = useState<TabType>('today');
-  const [questionnaireSummary, setQuestionnaireSummary] = useState<QuestionnaireSummary | undefined>();
+  const questionnaireSummary = summary as QuestionnaireSummary | null;
   // 内部维护问诊完成状态，不依赖外部 prop
   const [questionnaireCompleted, setQuestionnaireCompleted] = useState(questionnaireCompletedProp);
 
-  // 检查今日问诊是否已完成（从 localStorage 和数据库）
   useEffect(() => {
-    const checkQuestionnaireCompletion = async () => {
-      const today = new Date().toISOString().split('T')[0];
+    if (questionnaireCompletedFromHook) {
+      setQuestionnaireCompleted(true);
+    }
+  }, [questionnaireCompletedFromHook]);
 
-      // 先检查 localStorage
-      const completedDate = localStorage.getItem('nma_questionnaire_date');
-      if (completedDate === today) {
-        setQuestionnaireCompleted(true);
-        return;
-      }
-
-      // 从数据库检查
-      if (userId) {
-        try {
-          const supabase = createClientSupabaseClient();
-          const { data } = await supabase
-            .from('daily_questionnaire_responses')
-            .select('id')
-            .eq('user_id', userId)
-            .gte('created_at', `${today}T00:00:00`)
-            .lt('created_at', `${today}T23:59:59`)
-            .limit(1);
-
-          if (data && data.length > 0) {
-            localStorage.setItem('nma_questionnaire_date', today);
-            setQuestionnaireCompleted(true);
-          } else {
-            setQuestionnaireCompleted(false);
-          }
-        } catch (err) {
-          console.error('检查问诊状态失败:', err);
-        }
-      }
-    };
-
-    checkQuestionnaireCompletion();
-  }, [userId]);
-
-  // 获取今日问卷数据用于总结
-  useEffect(() => {
-    const fetchQuestionnaireSummary = async () => {
-      if (!questionnaireCompleted) {
-        setQuestionnaireSummary(undefined);
-        return;
-      }
-
-      // 先尝试从 localStorage 获取
-      const today = new Date().toISOString().split('T')[0];
-      const cachedData = localStorage.getItem(`nma_questionnaire_summary_${today}`);
-      if (cachedData) {
-        try {
-          setQuestionnaireSummary(JSON.parse(cachedData));
-          return;
-        } catch { }
-      }
-
-      // 从数据库获取
-      if (userId) {
-        try {
-          const supabase = createClientSupabaseClient();
-          const { data } = await supabase
-            .from('daily_questionnaire_responses')
-            .select('responses')
-            .eq('user_id', userId)
-            .gte('created_at', `${today}T00:00:00`)
-            .lt('created_at', `${today}T23:59:59`)
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-          if (data && data.length > 0 && data[0].responses) {
-            const responses = data[0].responses as Record<string, number>;
-            const summary: QuestionnaireSummary = {
-              sleepQuality: responses.sleep_quality,
-              energyLevel: responses.morning_energy,
-              stressLevel: responses.stress_level,
-              moodState: responses.mood_state,
-              focusAbility: responses.focus_ability,
-            };
-            setQuestionnaireSummary(summary);
-            localStorage.setItem(`nma_questionnaire_summary_${today}`, JSON.stringify(summary));
-          }
-        } catch (err) {
-          console.error('获取问卷数据失败:', err);
-        }
-      }
-    };
-
-    fetchQuestionnaireSummary();
-  }, [questionnaireCompleted, userId]);
+  // 钩子已处理问诊完成状态与摘要加载
 
   // 切换到问卷 tab
   const handleGoToQuestionnaire = () => {
@@ -209,9 +135,6 @@ export function DailyInsightHub({
   // 问卷完成后的回调
   const handleQuestionnaireComplete = () => {
     setQuestionnaireCompleted(true);
-    // 重新获取问卷摘要
-    const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem('nma_questionnaire_date', today);
     onQuestionnaireComplete?.();
   };
 
@@ -332,7 +255,14 @@ export function DailyInsightHub({
                   transition={{ duration: 0.15 }}
                   className="h-full"
                 >
-                  <QuestionnairePanel userId={userId} onComplete={handleQuestionnaireComplete} />
+                  <QuestionnairePanel
+                    completed={questionnaireCompleted}
+                    isLoading={questionnaireLoading}
+                    isSaving={questionnaireSaving}
+                    error={questionnaireError}
+                    saveResponse={saveResponse}
+                    onComplete={handleQuestionnaireComplete}
+                  />
                 </motion.div>
               )}
               {activeTab === 'plan' && (
@@ -590,47 +520,29 @@ function getTodayQuestions(date: Date = new Date()) {
   return shuffled.slice(0, 5);
 }
 
-function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplete?: () => void }) {
+function QuestionnairePanel({
+  completed,
+  isLoading,
+  isSaving,
+  error,
+  saveResponse,
+  onComplete,
+}: {
+  completed: boolean;
+  isLoading: boolean;
+  isSaving: boolean;
+  error: string | null;
+  saveResponse: (input: { responses: Record<string, number>; questions: string[] }) => Promise<boolean>;
+  onComplete?: () => void;
+}) {
   const { language } = useI18n();
+  const { refresh: refreshProfile, sync } = useProfileMaintenance();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const todayQuestions = getTodayQuestions();
   const currentQuestion = todayQuestions[currentIndex];
   const progress = (Object.keys(answers).length / todayQuestions.length) * 100;
-
-  useEffect(() => {
-    const checkTodayCompletion = async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const completedDate = localStorage.getItem('nma_questionnaire_date');
-      if (completedDate === today) {
-        setIsCompleted(true);
-        setIsLoading(false);
-        return;
-      }
-      if (userId) {
-        try {
-          const supabase = createClientSupabaseClient();
-          const { data } = await supabase
-            .from('daily_questionnaire_responses')
-            .select('id')
-            .eq('user_id', userId)
-            .gte('created_at', `${today}T00:00:00`)
-            .lt('created_at', `${today}T23:59:59`)
-            .limit(1);
-          if (data && data.length > 0) {
-            localStorage.setItem('nma_questionnaire_date', today);
-            setIsCompleted(true);
-          }
-        } catch (err) { console.error(err); }
-      }
-      setIsLoading(false);
-    };
-    checkTodayCompletion();
-  }, [userId]);
 
   const handleAnswer = (value: number) => {
     const newAnswers = { ...answers, [currentQuestion.id]: value };
@@ -642,31 +554,23 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
 
   const handleSubmit = async () => {
     if (Object.keys(answers).length < todayQuestions.length) return;
-    setIsSubmitting(true);
     try {
-      if (userId) {
-        const supabase = createClientSupabaseClient();
-        await supabase.from('daily_questionnaire_responses').insert({
-          user_id: userId,
-          responses: answers,
-          questions: todayQuestions.map(q => q.id),
-          created_at: new Date().toISOString(),
-        });
-      }
-      localStorage.setItem('nma_questionnaire_date', new Date().toISOString().split('T')[0]);
-      setIsCompleted(true);
+      const saved = await saveResponse({
+        responses: answers,
+        questions: todayQuestions.map(q => q.id),
+      });
+      if (!saved) return;
       onComplete?.();
 
       // 后台刷新：让 AI 方案与内容推荐跟随问卷状态更新
-      fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
-      fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
+      refreshProfile().catch(() => {});
+      sync().catch(() => {});
     } catch (error) { console.error(error); }
-    finally { setIsSubmitting(false); }
   };
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
+      <div className="flex flex-col items-center justify-center h-full animate-pulse">
         <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center animate-pulse">
           <ClipboardList className="w-5 h-5 text-white" />
         </div>
@@ -675,7 +579,7 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
     );
   }
 
-  if (isCompleted) {
+  if (completed) {
     return (
       <div className="flex flex-col items-center justify-center text-center h-full">
         <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-4">
@@ -685,6 +589,10 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
         <p className="text-sm text-white/60 mt-1">{language === 'en' ? 'AI is analyzing your data...' : 'AI 正在分析你的数据...'}</p>
       </div>
     );
+  }
+
+  if (todayQuestions.length === 0) {
+    return null;
   }
 
   return (
@@ -745,10 +653,10 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSaving}
             className="w-full py-3 bg-white hover:bg-gray-50 text-[#2E7D5A] rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
           >
-            {isSubmitting ? (language === 'en' ? 'Submitting...' : '提交中...') : (
+            {isSaving ? (language === 'en' ? 'Submitting...' : '提交中...') : (
               <span className="flex items-center justify-center gap-2">
                 <Sparkles className="w-4 h-4" />
                 {language === 'en' ? 'Complete & Generate Insights' : '完成问卷，生成 AI 洞察'}
@@ -756,6 +664,10 @@ function QuestionnairePanel({ userId, onComplete }: { userId?: string; onComplet
             )}
           </button>
         </motion.div>
+      )}
+
+      {error && (
+        <div className="mt-3 text-xs text-red-200">{error}</div>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Sparkles, Loader2, Mic, MicOff } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useMax, type LocalMessage } from '@/hooks/domain/useMax';
+import MaxAvatar from '@/components/max/MaxAvatar';
 
 interface MaxChatPanelProps {
     isOpen: boolean;
@@ -18,11 +19,11 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
     const {
         messages,
         addMessage,
-        updateLastMessage,
         isLoading: historyLoading,
         isSending,
         newConversation,
-        currentConversationId
+        currentConversationId,
+        sendMessage: sendMessageHook
     } = useMax();
 
     const [input, setInput] = useState('');
@@ -108,48 +109,8 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
         if (!input.trim() || isSending) return;
 
         const userContent = input;
-        const userMessage: LocalMessage = {
-            id: Date.now().toString(),
-            role: 'user',
-            content: userContent,
-            created_at: new Date().toISOString(),
-            conversation_id: currentConversationId || 'temp',
-        };
-
-        addMessage(userMessage);
         setInput('');
-
-        try {
-            // Add placeholder assistant message
-            const placeholderId = (Date.now() + 1).toString();
-            const placeholderMessage: LocalMessage = {
-                id: placeholderId,
-                role: 'assistant',
-                content: '',
-                isStreaming: true,
-                created_at: new Date().toISOString(),
-                conversation_id: currentConversationId || 'temp',
-            };
-            addMessage(placeholderMessage);
-
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: userContent,
-                    stream: false, // Currently using non-streaming per original component
-                    language,
-                }),
-            });
-
-            const data = await res.json();
-            const reply = data.response || data.reply || data.message || (language === 'en' ? 'I understand.' : '我明白了。');
-
-            updateLastMessage(reply, true);
-        } catch (error) {
-            console.error('Chat error:', error);
-            updateLastMessage(language === 'en' ? 'Sorry, connection error.' : '抱歉，连接错误。', true);
-        }
+        await sendMessageHook(userContent, language === 'en' ? 'en' : 'zh');
     };
 
     return (

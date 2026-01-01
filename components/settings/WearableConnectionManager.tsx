@@ -6,8 +6,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { syncHealthConnectData, syncHealthKitData, type SyncErrorCode } from '@/lib/services/wearables/client-sync';
+import { useWearables } from '@/hooks/domain/useWearables';
 
 interface ConnectedDevice {
     provider: string;
@@ -41,17 +41,20 @@ const PROVIDER_INFO: Record<string, { name: string; icon: string; color: string;
 };
 
 export default function WearableConnectionManager() {
+    const {
+        loadStatus: loadWearableStatus,
+        sync: syncWearables,
+        disconnect,
+        isDisconnecting,
+        error: wearablesError,
+    } = useWearables();
     const [connectedDevices, setConnectedDevices] = useState<ConnectedDevice[]>([]);
     const [recentSyncs, setRecentSyncs] = useState<SyncLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [guideProvider, setGuideProvider] = useState<string | null>(null);
-
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const combinedError = error || wearablesError;
 
     // 加载连接状态
     useEffect(() => {
@@ -79,10 +82,8 @@ export default function WearableConnectionManager() {
     async function loadStatus() {
         try {
             setLoading(true);
-            const response = await fetch('/api/wearables/sync');
-
-            if (response.ok) {
-                const data = await response.json();
+            const data = await loadWearableStatus();
+            if (data) {
                 setConnectedDevices(data.connectedDevices || []);
                 setRecentSyncs(data.recentSyncs || []);
             }
@@ -103,16 +104,12 @@ export default function WearableConnectionManager() {
         }
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            await supabase
-                .from('wearable_tokens')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('provider', provider);
-
-            loadStatus();
+            const success = await disconnect(provider);
+            if (!success) {
+                setError('断开失败，请稍后重试');
+                return;
+            }
+            await loadStatus();
         } catch (err) {
             console.error('Failed to disconnect:', err);
         }
@@ -149,13 +146,8 @@ export default function WearableConnectionManager() {
                     return;
                 }
             } else {
-                const response = await fetch('/api/wearables/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, daysBack: 7 }),
-                });
-
-                if (!response.ok) {
+                const synced = await syncWearables({ provider, daysBack: 7 });
+                if (!synced) {
                     throw new Error('Sync failed');
                 }
             }
@@ -184,7 +176,7 @@ export default function WearableConnectionManager() {
     if (loading) {
         return (
             <div className="wearable-manager">
-                <div className="loading">加载中...</div>
+                <div className="loading animate-pulse">加载中...</div>
             </div>
         );
     }
@@ -194,9 +186,9 @@ export default function WearableConnectionManager() {
             <h3 className="section-title">🔗 穿戴设备连接</h3>
             <p className="section-subtitle">仅支持 HealthKit 与 Health Connect（OS-hub 策略）。</p>
 
-            {error && (
+            {combinedError && (
                 <div className="error-banner">
-                    ⚠️ {error}
+                    ⚠️ {combinedError}
                 </div>
             )}
 
@@ -234,6 +226,7 @@ export default function WearableConnectionManager() {
                                         <button
                                             className="btn-disconnect"
                                             onClick={() => handleDisconnect(provider)}
+                                            disabled={isDisconnecting}
                                         >
                                             断开
                                         </button>
@@ -275,6 +268,12 @@ export default function WearableConnectionManager() {
                             </div>
                         ))}
                     </div>
+                </div>
+            )}
+
+            {combinedError && (
+                <div className="error-banner">
+                    ⚠️ {combinedError}
                 </div>
             )}
 

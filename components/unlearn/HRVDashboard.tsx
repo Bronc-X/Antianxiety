@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { Moon, Activity, TrendingUp, Loader2 } from 'lucide-react';
+import { useWearables } from '@/hooks/domain/useWearables';
 
 interface HRVData {
     value: number;
@@ -27,6 +28,7 @@ interface ActivityData {
 
 export default function HRVDashboard() {
     const { language } = useI18n();
+    const { loadStatus: loadWearableStatus } = useWearables();
     const ref = useRef<HTMLDivElement>(null);
     const isInView = useInView(ref, { once: true });
     const [initialLoading, setInitialLoading] = useState(true);
@@ -45,10 +47,8 @@ export default function HRVDashboard() {
 
         try {
             setErrorMessage(null);
-            const res = await fetch('/api/wearables/sync', { method: 'GET' });
-            const data = await res.json();
-
-            if (data.latestData) {
+            const data = await loadWearableStatus();
+            if (data?.latestData) {
                 setHrv(data.latestData.hrv || null);
                 setSleep(data.latestData.sleep || null);
                 setActivity(data.latestData.activity || null);
@@ -66,7 +66,7 @@ export default function HRVDashboard() {
         } finally {
             if (isInitial) setInitialLoading(false);
         }
-    }, [language]);
+    }, [language, loadWearableStatus]);
 
     // Initial fetch - only runs once
     useEffect(() => {

@@ -17,7 +17,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Brain, ChevronRight, Pause, AlertTriangle } from 'lucide-react';
-import { createClient } from '@/lib/supabase-client';
 import {
     GAD7,
     PHQ9,
@@ -27,6 +26,8 @@ import {
     logSafetyEvent,
 } from '@/lib/clinical-scales';
 import type { ScaleDefinition } from '@/lib/clinical-scales';
+import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
+import { useScaleCalibration } from '@/hooks/domain/useScaleCalibration';
 
 // ============ Types ============
 
@@ -98,7 +99,8 @@ export function MonthlyCalibration({
     onSkip,
     savedProgress,
 }: MonthlyCalibrationProps) {
-    const supabase = createClient();
+    const { refresh: refreshProfile } = useProfileMaintenance();
+    const { isSaving, error, saveMonthly } = useScaleCalibration();
 
     const scale = SCALE_MAP[scaleType];
     const colors = SCALE_COLORS[scaleType] || SCALE_COLORS.PSS10;
@@ -110,7 +112,6 @@ export function MonthlyCalibration({
     const [answers, setAnswers] = useState<Record<string, number>>(
         savedProgress?.answers || {}
     );
-    const [isLoading, setIsLoading] = useState(false);
     const [safetyMessage, setSafetyMessage] = useState<string>('');
     const [result, setResult] = useState<MonthlyCalibrationResult | null>(null);
 
@@ -130,6 +131,50 @@ export function MonthlyCalibration({
     const startCalibration = useCallback(() => {
         setStep('questions');
     }, []);
+
+    // Complete assessment
+    const completeAssessment = useCallback(async (finalAnswers: Record<string, number>) => {
+        try {
+            // Calculate total score
+            const totalScore = Object.values(finalAnswers).reduce((sum, v) => sum + v, 0);
+
+            // Get interpretation
+            const interpretation = scale.scoring.interpretation.find(
+                i => totalScore >= i.minScore && totalScore <= i.maxScore
+            )?.label || '未知';
+
+            // Check if safety was triggered
+            const safetyTriggered = Object.entries(finalAnswers).some(
+                ([qId, v]) => checkSafetyTrigger(qId, v)
+            );
+
+            const responseDate = new Date().toISOString().split('T')[0];
+            const saved = await saveMonthly({
+                scaleId: scaleType,
+                answers: finalAnswers,
+                totalScore,
+                interpretation,
+                responseDate,
+            });
+            if (!saved) return;
+
+            // Trigger refresh
+            refreshProfile().catch(() => {});
+
+            const resultData: MonthlyCalibrationResult = {
+                scaleId: scaleType,
+                totalScore,
+                interpretation,
+                safetyTriggered,
+            };
+
+            setResult(resultData);
+            setStep('result');
+            if (onComplete) onComplete(resultData);
+        } catch (error) {
+            console.error('Monthly calibration failed:', error);
+        }
+    }, [scale, scaleType, onComplete, refreshProfile, saveMonthly]);
 
     // Handle answer
     const handleAnswer = useCallback(async (questionId: string, value: number) => {
@@ -151,7 +196,7 @@ export function MonthlyCalibration({
                 completeAssessment(newAnswers);
             }
         }, 400);
-    }, [answers, currentQuestionIndex, questions.length, userId]);
+    }, [answers, currentQuestionIndex, questions.length, userId, completeAssessment]);
 
     // Continue after safety message
     const continueAfterSafety = useCallback(() => {
@@ -161,76 +206,7 @@ export function MonthlyCalibration({
         } else {
             completeAssessment(answers);
         }
-    }, [currentQuestionIndex, questions.length, answers]);
-
-    // Complete assessment
-    const completeAssessment = useCallback(async (finalAnswers: Record<string, number>) => {
-        setIsLoading(true);
-
-        try {
-            // Calculate total score
-            const totalScore = Object.values(finalAnswers).reduce((sum, v) => sum + v, 0);
-
-            // Get interpretation
-            const interpretation = scale.scoring.interpretation.find(
-                i => totalScore >= i.minScore && totalScore <= i.maxScore
-            )?.label || '未知';
-
-            // Check if safety was triggered
-            const safetyTriggered = Object.entries(finalAnswers).some(
-                ([qId, v]) => checkSafetyTrigger(qId, v)
-            );
-
-            // Save to database
-            const now = new Date();
-            const responseDate = now.toISOString().split('T')[0];
-            const records = Object.entries(finalAnswers).map(([questionId, answerValue]) => ({
-                user_id: userId,
-                scale_id: scaleType,
-                question_id: questionId,
-                answer_value: answerValue,
-                source: 'monthly',
-                response_date: responseDate,
-                created_at: now.toISOString(),
-            }));
-
-            await supabase.from('user_scale_responses').upsert(records, {
-                onConflict: 'user_id,scale_id,question_id,response_date',
-            });
-
-            // Update profile - MERGE scores instead of overwriting
-            await supabase.rpc('merge_inferred_scores', {
-                p_user_id: userId,
-                p_scale_id: scaleType,
-                p_score: totalScore,
-                p_interpretation: interpretation,
-            });
-
-            // Update last_monthly_calibration
-            await supabase
-                .from('profiles')
-                .update({ last_monthly_calibration: now.toISOString() })
-                .eq('id', userId);
-
-            // Trigger refresh
-            fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
-
-            const resultData: MonthlyCalibrationResult = {
-                scaleId: scaleType,
-                totalScore,
-                interpretation,
-                safetyTriggered,
-            };
-
-            setResult(resultData);
-            setStep('result');
-            if (onComplete) onComplete(resultData);
-        } catch (error) {
-            console.error('Monthly calibration failed:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [scale, scaleType, userId, supabase, onComplete]);
+    }, [currentQuestionIndex, questions.length, answers, completeAssessment]);
 
     // Pause and save progress
     const handlePause = useCallback(() => {
@@ -260,7 +236,7 @@ export function MonthlyCalibration({
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="relative overflow-hidden rounded-3xl bg-white/90 backdrop-blur-2xl border border-black/[0.04] shadow-[0_8px_60px_rgba(0,0,0,0.06)]"
+            className={`relative overflow-hidden rounded-3xl bg-white/90 backdrop-blur-2xl border border-black/[0.04] shadow-[0_8px_60px_rgba(0,0,0,0.06)] ${isSaving ? 'animate-pulse' : ''}`}
         >
             <div className={`absolute inset-0 bg-gradient-to-br ${colors.from}/10 via-transparent ${colors.to}/5 pointer-events-none`} />
 
@@ -355,7 +331,7 @@ export function MonthlyCalibration({
                                     whileHover={{ scale: 1.01 }}
                                     whileTap={{ scale: 0.99 }}
                                     onClick={() => handleAnswer(currentQuestion.id, option.value)}
-                                    disabled={isLoading}
+                                    disabled={isSaving}
                                     className={`w-full p-5 text-left rounded-2xl border border-emerald-100/60 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all disabled:opacity-50`}
                                 >
                                     <span className="text-base font-medium text-[#0B3D2E]">
@@ -436,6 +412,9 @@ export function MonthlyCalibration({
                     </motion.div>
                 )}
             </AnimatePresence>
+            {error && (
+                <div className="px-10 pb-8 text-sm text-red-600">{error}</div>
+            )}
         </motion.div>
     );
 }

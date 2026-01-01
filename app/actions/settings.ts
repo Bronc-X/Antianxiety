@@ -2,6 +2,9 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
+import type { ActionResult } from '@/types/architecture';
+import { NextRequest } from 'next/server';
+import { GET as getPhaseGoalsRoute } from '@/app/api/settings/phase-goals/route';
 
 interface SettingsData {
   // Body Metrics
@@ -22,6 +25,65 @@ interface SettingsData {
   // Account
   full_name?: string;
   avatar_url?: string;
+}
+
+export async function getSettings(): Promise<ActionResult<{ userId: string; settings: SettingsData }>> {
+  try {
+    const supabase = await createServerSupabaseClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: '请先登录' };
+    }
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('height, weight, age, gender, primary_goal, ai_personality, current_focus, full_name, avatar_url, ai_settings, ai_persona_context')
+      .eq('id', user.id)
+      .single();
+
+    if (error || !profile) {
+      return { success: false, error: error?.message || 'Failed to load settings' };
+    }
+
+    let honesty = 90;
+    let humor = 65;
+
+    if (profile.ai_settings && typeof profile.ai_settings.honesty_level === 'number') {
+      honesty = profile.ai_settings.honesty_level;
+      humor = profile.ai_settings.humor_level ?? 65;
+    } else if (profile.ai_persona_context) {
+      const honestyMatch = profile.ai_persona_context.match(/诚实度:\s*(\d+)%/);
+      const humorMatch = profile.ai_persona_context.match(/幽默感:\s*(\d+)%/);
+      if (honestyMatch) honesty = parseInt(honestyMatch[1], 10);
+      if (humorMatch) humor = parseInt(humorMatch[1], 10);
+    }
+
+    const settings: SettingsData = {
+      height: profile.height,
+      weight: profile.weight,
+      age: profile.age,
+      gender: profile.gender,
+      primary_goal: profile.primary_goal,
+      ai_personality: profile.ai_personality,
+      current_focus: profile.current_focus,
+      full_name: profile.full_name,
+      avatar_url: profile.avatar_url,
+      max_honesty: honesty,
+      max_humor: humor,
+    };
+
+    return {
+      success: true,
+      data: {
+        userId: user.id,
+        settings,
+      },
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: message };
+  }
 }
 
 /**
@@ -169,5 +231,35 @@ ${maxHumor >= 100 ? '- 🎉 彩蛋模式激活：可以更加放飞自我，增�
       success: false,
       error: message
     };
+  }
+}
+
+async function parseJsonResponse(response: Response): Promise<any> {
+  const raw = await response.text();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+export async function getPhaseGoals(userId?: string): Promise<ActionResult<any>> {
+  try {
+    const url = new URL('http://settings.local/api/settings/phase-goals');
+    if (userId) {
+      url.searchParams.set('userId', userId);
+    }
+    const request = new NextRequest(url.toString());
+    const response = await getPhaseGoalsRoute(request);
+    const data = await parseJsonResponse(response);
+
+    if (!response.ok) {
+      return { success: false, error: data?.error || 'Failed to load goals' };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load goals';
+    return { success: false, error: message };
   }
 }

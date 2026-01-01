@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, TrendingUp, Target, Sparkles } from 'lucide-react';
 import type { UserUnderstandingScore, ScoreBreakdown } from '@/types/adaptive-plan';
+import { useUnderstandingScore } from '@/hooks/domain/useUnderstandingScore';
 
 interface UnderstandingScoreWidgetProps {
   userId: string;
@@ -33,19 +34,20 @@ export default function UnderstandingScoreWidget({
   userId,
   className = '',
 }: UnderstandingScoreWidgetProps) {
+  const { fetchScore: fetchUnderstandingScore } = useUnderstandingScore();
   const [score, setScore] = useState<UserUnderstandingScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
   useEffect(() => {
-    fetchScore();
+    loadScore();
   }, [userId]);
 
-  const fetchScore = async () => {
+  const loadScore = async () => {
     try {
-      const response = await fetch(`/api/understanding-score?userId=${userId}`);
-      if (response.ok) {
-        const data = await response.json();
+      const result = await fetchUnderstandingScore({ userId });
+      if (result.success && result.data) {
+        const data = result.data;
         setScore({
           user_id: userId,
           current_score: data.score.current,
@@ -54,6 +56,8 @@ export default function UnderstandingScoreWidget({
           last_updated: data.score.lastUpdated,
           history: [],
         });
+      } else {
+        setScore(null);
       }
     } catch (error) {
       console.error('Failed to fetch understanding score:', error);

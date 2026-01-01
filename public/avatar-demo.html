@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Max Avatar Demo</title>
+    <style>
+        /* 页面背景，为了衬托头像 */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f8f9fa;
+            /* 极浅的灰白色背景 */
+            margin: 0;
+        }
+
+        /* Max 头像容器样式 */
+        .max-avatar-container {
+            /* 定义头像尺寸 */
+            width: 150px;
+            height: 150px;
+
+            /* 关键：将容器变为圆形，并裁剪溢出内容 */
+            border-radius: 50%;
+            overflow: hidden;
+
+            /* 可选：添加一个非常微妙的硅谷风格光晕/阴影，增加立体感 */
+            box-shadow:
+                0 4px 12px rgba(60, 160, 220, 0.2),
+                /* 蓝绿色系的柔和光晕 */
+                0 1px 3px rgba(0, 0, 0, 0.05);
+            /* 基础阴影 */
+
+            /* 确保图片居中填充 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            /* 图片加载前的占位色 */
+        }
+
+        /* 图片样式，确保适应容器 */
+        .max-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* 保证图片填满圆形且不变形 */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="max-avatar-container">
+        <img src="/max-avatar.png" alt="Max 智能体头像" class="max-avatar-img">
+    </div>
+
+</body>
+
+</html>

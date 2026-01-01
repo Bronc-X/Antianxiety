@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 // 表单数据类型定义
 interface OnboardingFormData {
@@ -25,7 +25,7 @@ interface OnboardingFormProps {
  */
 export default function OnboardingForm({ initialData }: OnboardingFormProps) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
+  const { update, isSaving, error: profileError } = useProfile();
 
   const [formData, setFormData] = useState<OnboardingFormData>({
     primary_concern: initialData?.primary_concern || '',
@@ -33,13 +33,14 @@ export default function OnboardingForm({ initialData }: OnboardingFormProps) {
     circadian_rhythm: initialData?.circadian_rhythm || '',
   });
 
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isLoading = isSaving;
+
+  const displayError = error || profileError;
 
   // 处理表单提交
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
 
     // 验证所有字段都已填写
@@ -50,32 +51,14 @@ export default function OnboardingForm({ initialData }: OnboardingFormProps) {
     }
 
     try {
-      // 获取当前用户
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const success = await update({
+        primary_concern: formData.primary_concern,
+        activity_level: formData.activity_level,
+        circadian_rhythm: formData.circadian_rhythm,
+      });
 
-      if (userError || !user) {
-        setError('无法获取用户信息，请重新登录');
-        setIsLoading(false);
-        return;
-      }
-
-      // 更新 profiles 表
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          primary_concern: formData.primary_concern,
-          activity_level: formData.activity_level,
-          circadian_rhythm: formData.circadian_rhythm,
-        })
-        .eq('id', user.id);
-
-      if (updateError) {
-        console.error('更新用户资料时出错:', updateError);
-        setError('保存信息时出错，请稍后重试');
-        setIsLoading(false);
+      if (!success) {
+        setError(profileError || '保存信息时出错，请稍后重试');
         return;
       }
 
@@ -85,7 +68,6 @@ export default function OnboardingForm({ initialData }: OnboardingFormProps) {
     } catch (err) {
       console.error('提交表单时出错:', err);
       setError('提交时发生错误，请稍后重试');
-      setIsLoading(false);
     }
   };
 
@@ -98,11 +80,11 @@ export default function OnboardingForm({ initialData }: OnboardingFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className={`space-y-6 ${isLoading ? 'animate-pulse' : ''}`}>
       {/* 错误提示 */}
-      {error && (
+      {displayError && (
         <div className="rounded-md bg-red-50 p-4 border border-red-200">
-          <p className="text-sm text-red-800">{error}</p>
+          <p className="text-sm text-red-800">{displayError}</p>
         </div>
       )}
 

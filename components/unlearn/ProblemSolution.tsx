@@ -10,12 +10,33 @@ export default function ProblemSolution() {
     const [showNotification, setShowNotification] = useState(false);
 
     useEffect(() => {
+        let hideTimer: NodeJS.Timeout;
+        // Initial setup
         const timer = setInterval(() => {
             setShowNotification(true);
-            setTimeout(() => setShowNotification(false), 4000);
+            hideTimer = setTimeout(() => setShowNotification(false), 4000);
         }, 6000);
-        return () => clearInterval(timer);
+
+        return () => {
+            clearInterval(timer);
+            clearTimeout(hideTimer);
+        };
     }, []);
+
+    // Or better logic:
+    /*
+    useEffect(() => {
+        let hideTimer: NodeJS.Timeout;
+        const timer = setInterval(() => {
+            setShowNotification(true);
+            hideTimer = setTimeout(() => setShowNotification(false), 4000);
+        }, 6000);
+        return () => {
+            clearInterval(timer);
+            clearTimeout(hideTimer);
+        };
+    }, []);
+    */
 
     return (
         <>
@@ -98,13 +119,13 @@ export default function ProblemSolution() {
                                                         {/* Move Ring (Red) - Progress 35% */}
                                                         <circle cx="32" cy="32" r="28" fill="none" stroke="#FF3B30" strokeWidth="5" strokeLinecap="round"
                                                             strokeDasharray="176" strokeDashoffset="114" />
-                                                        
+
                                                         {/* Exercise Ring (Green) - Background */}
                                                         <circle cx="32" cy="32" r="21" fill="none" stroke="rgba(48,209,88,0.3)" strokeWidth="5" />
                                                         {/* Exercise Ring (Green) - Progress 20% */}
                                                         <circle cx="32" cy="32" r="21" fill="none" stroke="#30D158" strokeWidth="5" strokeLinecap="round"
                                                             strokeDasharray="132" strokeDashoffset="106" />
-                                                        
+
                                                         {/* Stand Ring (Blue) - Background */}
                                                         <circle cx="32" cy="32" r="14" fill="none" stroke="rgba(10,132,255,0.3)" strokeWidth="5" />
                                                         {/* Stand Ring (Blue) - Progress 50% */}
@@ -112,7 +133,7 @@ export default function ProblemSolution() {
                                                             strokeDasharray="88" strokeDashoffset="44" />
                                                     </svg>
                                                 </div>
-                                                
+
                                                 {/* Ring Labels */}
                                                 <div className="flex-1 space-y-1">
                                                     <div className="flex items-center justify-between">
@@ -238,7 +259,7 @@ export default function ProblemSolution() {
                                 transition={{ duration: 0.8 }}
                             >
                                 <span className="text-[#1A1A1A]/20 mr-2">"</span>
-                                {language === 'en' 
+                                {language === 'en'
                                     ? <>Your health apps don&apos;t seem<br />to understand your <em className="italic text-[#C4A77D]">fatigue</em>.</>
                                     : <>现在的健康App，<br />似乎不太懂你的<em className="italic text-[#C4A77D]">疲惫</em>。</>}
                                 <span className="text-[#1A1A1A]/20 ml-2">"</span>

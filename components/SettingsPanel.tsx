@@ -3,7 +3,7 @@
 import { useMemo, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import AnimatedSection from '@/components/AnimatedSection';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 type GenderOption = 'male' | 'female' | 'prefer_not';
 type ActivityLevelOption = 'sedentary' | 'light' | 'moderate' | 'active';
@@ -110,8 +110,8 @@ const convertLbsToKg = (lbs: number) => parseFloat((lbs / LBS_PER_KG).toFixed(1)
 
 export default function SettingsPanel({ initialProfile, userId }: SettingsPanelProps) {
   const profile = initialProfile || {};
-  const supabase = createClientSupabaseClient();
   const router = useRouter();
+  const { isLoading, isSaving, error, update } = useProfile();
 
   const initialHeightCm = profile.height_cm ?? profile.height ?? null;
   const baseHeightImperial =
@@ -143,7 +143,6 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
   const [currentStep, setCurrentStep] = useState(0);
   const steps = ['基础指标', '目标设定'];
   const [banner, setBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [hasTouchedTargetWeight, setHasTouchedTargetWeight] = useState(
     Boolean(profile.target_weight_kg),
   );
@@ -311,13 +310,11 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!validateStep(1)) return;
-    setIsSaving(true);
     setBanner(null);
 
     try {
       if (!userId) {
         setBanner({ type: 'error', text: '请先登录后再保存设置。' });
-        setIsSaving(false);
         return;
       }
 
@@ -351,24 +348,9 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
             : null,
       };
 
-      const fallbackUsername = initialProfile?.username || userId.slice(0, 8);
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: userId,
-            username: fallbackUsername,
-            ...payload
-          },
-          {
-            onConflict: 'id',
-            ignoreDuplicates: false
-          }
-        );
-
-      if (upsertError) {
-        setBanner({ type: 'error', text: `保存失败：${upsertError.message}` });
-        setIsSaving(false);
+      const success = await update(payload);
+      if (!success) {
+        setBanner({ type: 'error', text: error || '保存失败，请稍后重试。' });
         return;
       }
 
@@ -381,8 +363,6 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
         type: 'error',
         text: '保存设置时出现问题，请稍后再试。',
       });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -733,7 +713,7 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
 
   return (
     <AnimatedSection inView variant="fadeUp">
-      <form onSubmit={handleSubmit} className="rounded-3xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className={`rounded-3xl border border-[#E7E1D6] bg-white p-6 shadow-sm ${isLoading ? 'animate-pulse' : ''}`}>
         <div className="flex flex-col gap-4 border-b border-[#E7E1D6] pb-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#0B3D2E]/60">
@@ -826,6 +806,10 @@ export default function SettingsPanel({ initialProfile, userId }: SettingsPanelP
             )}
           </div>
         </div>
+
+        {error && (
+          <div className="mt-4 text-sm text-red-600">{error}</div>
+        )}
       </form>
     </AnimatedSection>
   );

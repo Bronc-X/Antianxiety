@@ -14,10 +14,12 @@ import {
     getConversations,
     getChatHistory,
     createConversation,
+    appendMessage,
     deleteConversation,
     type ChatMessage,
     type Conversation
 } from '@/app/actions/chat';
+import { generateChatResponse } from '@/app/actions/chat-ai';
 
 // ============================================
 // Types
@@ -46,6 +48,7 @@ export interface UseMaxReturn {
     newConversation: () => Promise<string | null>;
     switchConversation: (id: string) => Promise<void>;
     deleteChat: (id: string) => Promise<boolean>;
+    sendMessage: (content: string, language?: 'zh' | 'en') => Promise<boolean>;
     clearMessages: () => void;
     refresh: () => Promise<void>;
 }
@@ -150,6 +153,107 @@ export function useMax(): UseMaxReturn {
         }
     }, []);
 
+    // Send message + persist
+    const sendMessage = useCallback(async (
+        content: string,
+        language: 'zh' | 'en' = 'zh'
+    ): Promise<boolean> => {
+        if (!content.trim()) return false;
+        if (isSending) return false;
+
+        setIsSending(true);
+        setError(null);
+
+        let conversationId = currentConversationId;
+
+        if (!conversationId) {
+            const created = await createConversation();
+            if (!created.success || !created.data) {
+                setError(created.error || 'Failed to create conversation');
+                setIsSending(false);
+                return false;
+            }
+            conversationId = created.data.id;
+            setConversations(prev => [created.data!, ...prev]);
+            setCurrentConversationId(created.data.id);
+        }
+
+        const userResult = await appendMessage({
+            conversation_id: conversationId,
+            role: 'user',
+            content: content.trim(),
+        });
+
+        if (!userResult.success || !userResult.data) {
+            setError(userResult.error || 'Failed to send message');
+            setIsSending(false);
+            return false;
+        }
+
+        setMessages(prev => [...prev, userResult.data!]);
+
+        const placeholderId = `assistant-${Date.now()}`;
+        setMessages(prev => ([
+            ...prev,
+            {
+                id: placeholderId,
+                conversation_id: conversationId,
+                role: 'assistant',
+                content: '',
+                created_at: new Date().toISOString(),
+                isStreaming: true,
+            },
+        ]));
+
+        let assistantContent = '';
+
+        try {
+            const chatHistory = [...messages, { role: 'user', content: content.trim() }]
+                .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
+            const result = await generateChatResponse(chatHistory, language);
+
+            if (!result.success) {
+                assistantContent = language === 'en'
+                    ? 'AI service is temporarily unavailable.'
+                    : 'AI 服务暂时不可用。';
+            } else {
+                assistantContent = result.data || '';
+            }
+        } catch (err) {
+            assistantContent = language === 'en'
+                ? 'Network error. Please try again.'
+                : '网络错误，请稍后再试。';
+        }
+
+        let parsedContent = assistantContent.trim();
+
+        if (!parsedContent) {
+            parsedContent = language === 'en' ? 'I understand.' : '我明白了。';
+        }
+
+        const assistantResult = await appendMessage({
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: parsedContent,
+        });
+
+        setMessages(prev => prev.map(msg => {
+            if (msg.id !== placeholderId) return msg;
+            if (assistantResult.success && assistantResult.data) {
+                return { ...assistantResult.data, isStreaming: false };
+            }
+            return { ...msg, content: parsedContent, isStreaming: false };
+        }));
+
+        if (!assistantResult.success) {
+            setError(assistantResult.error || 'Failed to save response');
+        }
+
+        setIsSending(false);
+        return true;
+    }, [currentConversationId, isSending, messages]);
+
     // Delete a conversation
     const deleteChat = useCallback(async (id: string): Promise<boolean> => {
         try {
@@ -203,9 +307,10 @@ export function useMax(): UseMaxReturn {
         newConversation,
         switchConversation,
         deleteChat,
+        sendMessage,
         clearMessages,
         refresh,
     };
 }
 
-export type { ChatMessage, Conversation, LocalMessage };
+export type { ChatMessage, Conversation };

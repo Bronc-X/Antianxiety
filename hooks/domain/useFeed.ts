@@ -13,8 +13,11 @@ import {
     markAsRead,
     toggleSave,
     getSavedItems,
+    toggleFeedFeedback,
     type FeedItem,
-    type FeedFilters
+    type FeedFilters,
+    type FeedResponseMeta,
+    type FeedFeedbackInput
 } from '@/app/actions/feed';
 
 // ============================================
@@ -25,6 +28,7 @@ export interface UseFeedReturn {
     // Data
     items: FeedItem[];
     savedItems: FeedItem[];
+    personalization: FeedResponseMeta | null;
 
     // States
     isLoading: boolean;
@@ -39,6 +43,7 @@ export interface UseFeedReturn {
     refresh: () => Promise<void>;
     read: (itemId: string) => Promise<void>;
     save: (itemId: string) => Promise<boolean>;
+    feedback: (input: FeedFeedbackInput) => Promise<'added' | 'removed' | null>;
     setFilters: (filters: FeedFilters) => void;
     loadSaved: () => Promise<void>;
 }
@@ -75,6 +80,7 @@ export function useFeed(): UseFeedReturn {
 
     const [items, setItems] = useState<FeedItem[]>(() => getCachedData(CACHE_KEY) || []);
     const [savedItems, setSavedItems] = useState<FeedItem[]>([]);
+    const [personalization, setPersonalization] = useState<FeedResponseMeta | null>(null);
     const [isLoading, setIsLoading] = useState(!getCachedData(CACHE_KEY));
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -97,6 +103,9 @@ export function useFeed(): UseFeedReturn {
                 if (result.success && result.data) {
                     setItems(result.data.items);
                     setHasMore(result.data.hasMore);
+                    if (result.data.personalization) {
+                        setPersonalization(result.data.personalization);
+                    }
                     setCachedData(CACHE_KEY, result.data.items);
                     setError(null);
                 } else {
@@ -148,6 +157,9 @@ export function useFeed(): UseFeedReturn {
             if (result.success && result.data) {
                 setItems(result.data.items);
                 setHasMore(result.data.hasMore);
+                if (result.data.personalization) {
+                    setPersonalization(result.data.personalization);
+                }
                 setCachedData(CACHE_KEY, result.data.items);
                 setError(null);
             }
@@ -193,6 +205,20 @@ export function useFeed(): UseFeedReturn {
         return result.data || false;
     }, []);
 
+    const feedback = useCallback(async (input: FeedFeedbackInput): Promise<'added' | 'removed' | null> => {
+        try {
+            const result = await toggleFeedFeedback(input);
+            if (!result.success || !result.data) {
+                setError(result.error || 'Failed to save feedback');
+                return null;
+            }
+            return result.data.action;
+        } catch {
+            setError('Failed to save feedback');
+            return null;
+        }
+    }, []);
+
     // Set filters
     const setFilters = useCallback((newFilters: FeedFilters) => {
         setFiltersState(newFilters);
@@ -215,6 +241,7 @@ export function useFeed(): UseFeedReturn {
     return {
         items,
         savedItems,
+        personalization,
         isLoading,
         isLoadingMore,
         isRefreshing,
@@ -225,9 +252,10 @@ export function useFeed(): UseFeedReturn {
         refresh,
         read,
         save,
+        feedback,
         setFilters,
         loadSaved,
     };
 }
 
-export type { FeedItem, FeedFilters };
+export type { FeedItem, FeedFilters, FeedFeedbackInput };

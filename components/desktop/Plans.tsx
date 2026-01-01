@@ -9,11 +9,11 @@
 
 import { useState } from 'react';
 import {
-    Plus, Check, Pause, Play, Trash2, RefreshCw,
-    Target, Calendar, AlertCircle
+    Plus, RefreshCw, Target, AlertCircle
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Skeleton } from '@/components/ui';
 import type { UsePlansReturn, CreatePlanInput } from '@/hooks/domain/usePlans';
+import PlanListWithActions from '@/components/PlanListWithActions';
 
 // ============================================
 // Props Interface
@@ -150,112 +150,7 @@ function CreatePlanForm({
     );
 }
 
-// ============================================
-// Plan Card
-// ============================================
-
-interface PlanCardProps {
-    plan: UsePlansReturn['plans'][0];
-    onComplete: () => void;
-    onPause: () => void;
-    onResume: () => void;
-    onDelete: () => void;
-    isSaving: boolean;
-}
-
-function PlanCard({ plan, onComplete, onPause, onResume, onDelete, isSaving }: PlanCardProps) {
-    const statusColors = {
-        active: 'bg-green-100 text-green-700',
-        completed: 'bg-blue-100 text-blue-700',
-        paused: 'bg-gray-100 text-gray-700',
-    };
-
-    return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                    <CardTitle className="text-base font-medium">{plan.name}</CardTitle>
-                    <span className={`text-xs px-2 py-1 rounded-full ${statusColors[plan.status]}`}>
-                        {plan.status}
-                    </span>
-                </div>
-            </CardHeader>
-            <CardContent>
-                {plan.description && (
-                    <p className="text-sm text-gray-600 mb-3">{plan.description}</p>
-                )}
-
-                <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
-                    <span className="flex items-center gap-1">
-                        <Target className="h-3 w-3" />
-                        {plan.category}
-                    </span>
-                    {plan.target_date && (
-                        <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(plan.target_date).toLocaleDateString()}
-                        </span>
-                    )}
-                </div>
-
-                {/* Progress bar */}
-                <div className="h-1.5 bg-gray-100 rounded-full mb-3">
-                    <div
-                        className="h-full bg-green-500 rounded-full transition-all"
-                        style={{ width: `${plan.progress}%` }}
-                    />
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                    {plan.status === 'active' && (
-                        <>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={onComplete}
-                                disabled={isSaving}
-                                className="flex-1"
-                            >
-                                <Check className="h-3 w-3 mr-1" />
-                                Complete
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={onPause}
-                                disabled={isSaving}
-                            >
-                                <Pause className="h-3 w-3" />
-                            </Button>
-                        </>
-                    )}
-                    {plan.status === 'paused' && (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={onResume}
-                            disabled={isSaving}
-                            className="flex-1"
-                        >
-                            <Play className="h-3 w-3 mr-1" />
-                            Resume
-                        </Button>
-                    )}
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={onDelete}
-                        disabled={isSaving}
-                        className="text-red-500 hover:text-red-700"
-                    >
-                        <Trash2 className="h-3 w-3" />
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
+// PlanCard component removed as we use PlanListWithActions now
 
 // ============================================
 // Main Component
@@ -265,6 +160,7 @@ export function DesktopPlans({ plans: hook }: DesktopPlansProps) {
     const [showCreate, setShowCreate] = useState(false);
 
     const {
+        plans,
         activePlans,
         completedPlans,
         isLoading,
@@ -330,45 +226,14 @@ export function DesktopPlans({ plans: hook }: DesktopPlansProps) {
                 </Card>
             )}
 
-            {/* Active Plans */}
-            {activePlans.length > 0 && (
-                <section>
-                    <h2 className="text-lg font-medium text-gray-800 mb-4">Active Plans</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {activePlans.map(plan => (
-                            <PlanCard
-                                key={plan.id}
-                                plan={plan}
-                                onComplete={() => complete(plan.id)}
-                                onPause={() => pause(plan.id)}
-                                onResume={() => resume(plan.id)}
-                                onDelete={() => remove(plan.id)}
-                                isSaving={isSaving}
-                            />
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {/* Completed Plans */}
-            {completedPlans.length > 0 && (
-                <section>
-                    <h2 className="text-lg font-medium text-gray-800 mb-4">Completed</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {completedPlans.map(plan => (
-                            <PlanCard
-                                key={plan.id}
-                                plan={plan}
-                                onComplete={() => complete(plan.id)}
-                                onPause={() => pause(plan.id)}
-                                onResume={() => resume(plan.id)}
-                                onDelete={() => remove(plan.id)}
-                                isSaving={isSaving}
-                            />
-                        ))}
-                    </div>
-                </section>
-            )}
+            {/* Plan List */}
+            <PlanListWithActions
+                plans={plans}
+                onDelete={remove}
+                onComplete={complete}
+                onPause={pause}
+                onResume={resume}
+            />
 
             {/* Empty State */}
             {activePlans.length === 0 && completedPlans.length === 0 && (

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 interface ReminderPreference {
   enabled: boolean;
@@ -33,13 +33,13 @@ const reminderActivities = [
 
 export default function ReminderPreferencesPanel({ initialProfile }: ReminderPreferencesPanelProps) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const savedPreferences = initialProfile?.reminder_preferences || {};
+  const { profile, isLoading, isSaving, error, update } = useProfile();
+  const [localError, setLocalError] = useState<string | null>(null);
+  const resolvedProfile = profile || initialProfile;
+  const savedPreferences = resolvedProfile?.reminder_preferences || {};
   const [aiAutoMode, setAiAutoMode] = useState(Boolean(savedPreferences.ai_auto_mode));
 
-  const [preferences, setPreferences] = useState<Record<string, ReminderPreference>>(() => {
+  const buildPreferences = () => {
     const prefs: Record<string, ReminderPreference> = {};
     reminderActivities.forEach((activity) => {
       const existingPreference = savedPreferences[activity.id] as ReminderPreference | undefined;
@@ -52,7 +52,14 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
         };
     });
     return prefs;
-  });
+  };
+
+  const [preferences, setPreferences] = useState<Record<string, ReminderPreference>>(buildPreferences);
+
+  useEffect(() => {
+    setPreferences(buildPreferences());
+    setAiAutoMode(Boolean(savedPreferences.ai_auto_mode));
+  }, [savedPreferences]);
 
   const updatePreference = <K extends keyof ReminderPreference>(
     activityId: string,
@@ -86,17 +93,9 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSaving(true);
-    setError(null);
+    setLocalError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('请先登录');
-        setIsSaving(false);
-        return;
-      }
-
       // 保存提醒偏好，并标记为今日提醒
       const todayReminders = {
         ...preferences,
@@ -104,41 +103,23 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
         last_updated: new Date().toISOString(),
       };
 
-      const metadata = (user.user_metadata || {}) as { username?: string };
-      const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
-
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: user.id,
-            username: fallbackUsername,
-            reminder_preferences: todayReminders
-          },
-          {
-            onConflict: 'id',
-            ignoreDuplicates: false
-          }
-        );
-
-      if (upsertError) {
-        setError(`保存失败: ${upsertError.message}`);
-        setIsSaving(false);
-        return;
-      }
+      const success = await update({
+        reminder_preferences: todayReminders,
+      });
 
       // 保存成功后返回首页
-      router.push('/unlearn/app');
+      if (success) {
+        router.push('/unlearn/app');
+      }
     } catch (err) {
       console.error('保存提醒偏好时出错:', err);
-      setError('保存时发生错误，请稍后重试');
-      setIsSaving(false);
+      setLocalError('保存时发生错误，请稍后重试');
     }
   };
 
   return (
     <AnimatedSection inView variant="fadeUp">
-      <div className="rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm">
+      <div className={`rounded-2xl border border-[#E7E1D6] bg-white p-6 shadow-sm ${isLoading ? 'animate-pulse' : ''}`}>
         <h2 className="text-xl font-semibold text-[#0B3D2E] mb-4">今日提醒</h2>
         <p className="text-sm text-[#0B3D2E]/70 mb-6">
           选择你希望今天接收提醒的活动，选择后今天就会智能提醒。也可以启用AI自动提醒，无需手动选择。
@@ -164,12 +145,6 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="rounded-md bg-red-50 p-4 border border-red-200">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
           {reminderActivities.map(activity => {
             const pref = preferences[activity.id];
             return (
@@ -239,6 +214,11 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
             </button>
           </div>
         </form>
+        {(error || localError) && (
+          <div className="mt-4 rounded-md bg-red-50 p-4 border border-red-200">
+            <p className="text-sm text-red-800">{localError || error}</p>
+          </div>
+        )}
       </div>
     </AnimatedSection>
   );

@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { motion } from 'framer-motion';
 import BrutalistNav from './BrutalistNav';
-import { User, Lock, Save, Watch, Activity, Check, Shield } from 'lucide-react';
+import { User, Lock, Watch, Activity, Check, Shield } from 'lucide-react';
+import { useAuth } from '@/hooks/domain/useAuth';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 export default function BrutalistProfile() {
     const router = useRouter();
-    const supabase = createClientComponentClient();
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [user, setUser] = useState<any>(null);
-    const [profile, setProfile] = useState<any>(null);
+    const { user, isLoading: authLoading, error: authError, updatePassword } = useAuth();
+    const { profile, isLoading: profileLoading, error: profileError, update } = useProfile();
+    const isLoading = authLoading || profileLoading;
 
     // Form States
     const [fullName, setFullName] = useState('');
@@ -26,50 +26,40 @@ export default function BrutalistProfile() {
     const [fitbitConnected, setFitbitConnected] = useState(false);
 
     useEffect(() => {
-        const getProfile = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                router.push('/brutalist/signup');
-                return;
-            }
-            setUser(user);
+        if (!authLoading && !user) {
+            router.push('/brutalist/signup');
+        }
+    }, [authLoading, user, router]);
 
-            const { data } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-
-            if (data) {
-                setProfile(data);
-                setFullName(data.full_name || '');
-                setNickname(data.nickname || '');
-            }
-            setLoading(false);
-        };
-        getProfile();
-    }, [supabase, router]);
+    useEffect(() => {
+        if (profile) {
+            setFullName(profile.full_name || '');
+            setNickname((profile as any).nickname || '');
+        }
+    }, [profile]);
 
     const handleUpdateProfile = async () => {
         setSaving(true);
         setMessage(null);
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: user.id,
-                    full_name: fullName,
-                    nickname: nickname,
-                    updated_at: new Date().toISOString(),
-                });
+            const success = await update({
+                full_name: fullName,
+                nickname: nickname,
+            });
 
-            if (error) throw error;
+            if (!success) {
+                setMessage({ type: 'error', text: profileError || 'Failed to update profile' });
+                return;
+            }
             setMessage({ type: 'success', text: 'Profile updated successfully' });
 
             // Update password if provided
             if (password) {
-                const { error: pwdError } = await supabase.auth.updateUser({ password: password });
-                if (pwdError) throw pwdError;
+                const updated = await updatePassword(password);
+                if (!updated) {
+                    setMessage({ type: 'error', text: authError || 'Failed to update password' });
+                    return;
+                }
                 setMessage({ type: 'success', text: 'Profile and password updated successfully' });
                 setPassword('');
             }
@@ -86,7 +76,7 @@ export default function BrutalistProfile() {
         // In real app, this would redirect to OAuth flow
     };
 
-    if (loading) return <div className="min-h-screen bg-[var(--brutalist-bg)]" />;
+    if (isLoading) return <div className="min-h-screen bg-[var(--brutalist-bg)] animate-pulse" />;
 
     return (
         <div className="brutalist-page min-h-screen">
@@ -156,15 +146,6 @@ export default function BrutalistProfile() {
                         </section>
 
                         <div className="pt-4">
-                            {message && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className={`p-4 mb-4 text-sm font-mono border ${message.type === 'success' ? 'border-[var(--signal-green)] text-[var(--signal-green)]' : 'border-red-500 text-red-500'}`}
-                                >
-                                    {message.text}
-                                </motion.div>
-                            )}
                             <button
                                 onClick={handleUpdateProfile}
                                 disabled={saving}
@@ -172,6 +153,15 @@ export default function BrutalistProfile() {
                             >
                                 {saving ? 'SAVING...' : 'SAVE CHANGES'}
                             </button>
+                            {message && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={`p-4 mt-4 text-sm font-mono border ${message.type === 'success' ? 'border-[var(--signal-green)] text-[var(--signal-green)]' : 'border-red-500 text-red-500'}`}
+                                >
+                                    {message.text}
+                                </motion.div>
+                            )}
                         </div>
                     </div>
 
@@ -245,6 +235,9 @@ export default function BrutalistProfile() {
                         </section>
                     </div>
                 </div>
+                {(profileError || authError) && (
+                    <div className="mt-8 text-center text-xs text-red-400">{profileError || authError}</div>
+                )}
             </main>
         </div>
     );

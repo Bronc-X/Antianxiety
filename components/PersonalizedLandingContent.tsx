@@ -20,8 +20,8 @@ import AnimatedSection from './AnimatedSection';
 import { trendingTopics } from '@/data/trendingTopics';
 import type { TrendingTopic } from '@/data/trendingTopics';
 import RefreshIcon from './RefreshIcon';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 // 扩展Window接口以支持requestIdleCallback（如果不存在）
 if (typeof window !== 'undefined' && !window.requestIdleCallback) {
@@ -105,12 +105,11 @@ interface PersonalizedLandingContentProps {
 // 今日提醒面板组件
 function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
+  const { isSaving, error: profileError, update } = useProfile();
   const [reminderTimeMode, setReminderTimeMode] = useState<'manual' | 'ai'>('manual');
   const [manualTime, setManualTime] = useState(profile?.daily_checkin_time ? (profile.daily_checkin_time as string).slice(0, 5) : '09:00');
   const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
   const [aiAutoMode, setAiAutoMode] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const activities = [
@@ -149,17 +148,9 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
     setSaveMessage(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setSaveMessage('请先登录');
-        setIsSaving(false);
-        return;
-      }
-
       const todayReminders = {
         reminder_time_mode: reminderTimeMode,
         manual_time: reminderTimeMode === 'manual' ? manualTime : null,
@@ -179,14 +170,9 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
         updateData.daily_checkin_time = `${manualTime}:00`;
       }
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', user.id);
-
-      if (updateError) {
-        setSaveMessage(`保存失败: ${updateError.message}`);
-        setIsSaving(false);
+      const success = await update(updateData);
+      if (!success) {
+        setSaveMessage(profileError || '保存失败，请稍后重试');
         return;
       }
 
@@ -198,8 +184,6 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
     } catch (err) {
       console.error('保存提醒设置时出错:', err);
       setSaveMessage('保存时发生错误，请稍后重试');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -290,6 +274,10 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
         >
           {isSaving ? '保存中...' : '保存设置'}
         </button>
+
+        {profileError && (
+          <div className="text-sm text-red-600">{profileError}</div>
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { ReportStep } from '@/types/assessment';
 import { ChevronLeft, Download, Mail, AlertTriangle, Clock, Stethoscope, Home, History, Loader2 } from 'lucide-react';
 import { tr, type Language } from '@/lib/i18n';
 import { maybeCnToTw } from '@/lib/i18n-core';
+import { useAssessmentReport } from '@/hooks/domain/useAssessmentReport';
 
 interface HistoricalAssessment {
   date: string;
@@ -57,6 +58,7 @@ const URGENCY_CONFIG = {
 };
 
 export function ReportView({ report, sessionId, onRestart, language, historicalContext }: ReportViewProps) {
+  const { exportReport, sendEmail } = useAssessmentReport();
   const urgencyConfig = URGENCY_CONFIG[report.urgency];
   const UrgencyIcon = urgencyConfig.icon;
   const [isExporting, setIsExporting] = useState(false);
@@ -66,9 +68,8 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
   const handleDownloadPDF = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`/api/assessment/export?session_id=${sessionId}&format=html`);
-      if (response.ok) {
-        const html = await response.text();
+      const html = await exportReport(sessionId, 'html');
+      if (html) {
         // 打开新窗口用于打印
         const printWindow = window.open('', '_blank');
         if (printWindow) {
@@ -87,12 +88,8 @@ export function ReportView({ report, sessionId, onRestart, language, historicalC
   const handleSendEmail = async () => {
     setIsSendingEmail(true);
     try {
-      const response = await fetch('/api/assessment/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId }),
-      });
-      if (response.ok) {
+      const ok = await sendEmail(sessionId);
+      if (ok) {
         setEmailSent(true);
       }
     } catch (error) {

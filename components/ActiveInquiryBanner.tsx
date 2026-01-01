@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles, ChevronRight, BookOpen, ExternalLink } from 'lucide-react';
 import type { InquiryQuestion, CuratedContent } from '@/types/adaptive-interaction';
 import { useI18n } from '@/lib/i18n';
+import { useInquiry } from '@/hooks/domain/useInquiry';
 
 interface ActiveInquiryBannerProps {
   userId: string;
@@ -35,6 +36,7 @@ export default function ActiveInquiryBanner({
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [responses, setResponses] = useState<Array<{ inquiryId: string; response: string }>>([]);
+  const { loadPending, respond } = useInquiry();
 
   const currentInquiry = inquiries[currentIndex] || null;
   const totalQuestions = inquiries.length;
@@ -52,12 +54,8 @@ export default function ActiveInquiryBanner({
       const apiLang = language === 'zh-TW' ? 'zh' : language;
 
       // Fetch single pending inquiry (API handles deduplication via cooldown)
-      const response = await fetch(`/api/inquiry/pending?language=${apiLang}`, {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      const data = await loadPending(apiLang as 'zh' | 'en');
+      if (data) {
         if (data.hasInquiry && data.inquiry) {
           // Only add if we haven't already displayed this inquiry
           const seenIds = JSON.parse(sessionStorage.getItem('seen_inquiry_ids') || '[]') as string[];
@@ -72,7 +70,7 @@ export default function ActiveInquiryBanner({
           console.log('📋 [Inquiry] No pending questions');
         }
       } else {
-        console.error('📋 [Inquiry] API error:', response.status);
+        console.error('📋 [Inquiry] API error:', result.error);
       }
     } catch (error) {
       console.error('📋 [Inquiry] Fetch error:', error);
@@ -97,19 +95,9 @@ export default function ActiveInquiryBanner({
 
     setIsResponding(true);
     try {
-      const response = await fetch('/api/inquiry/respond', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          inquiryId: currentInquiry.id,
-          response: selectedOption,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ [Inquiry] Response submitted:', data.message);
+      const success = await respond(currentInquiry.id, selectedOption);
+      if (success) {
+        console.log('✅ [Inquiry] Response submitted');
 
         // Mark this inquiry as seen to prevent duplicate display
         const seenIds = JSON.parse(sessionStorage.getItem('seen_inquiry_ids') || '[]') as string[];
@@ -139,7 +127,7 @@ export default function ActiveInquiryBanner({
           }, 2000);
         }
       } else {
-        console.error('❌ [Inquiry] Submit failed:', response.status);
+        console.error('❌ [Inquiry] Submit failed:', result.error);
         setIsResponding(false);
       }
     } catch (error) {

@@ -38,15 +38,15 @@ export function useLottie(
   options: UseLottieOptions = {}
 ): UseLottieReturn {
   const [animationData, setAnimationData] = useState<object | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [loadedPath, setLoadedPath] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<{ path: string; error: Error } | null>(null);
   const lottieRef = useRef<LottieRefCurrentProps | null>(null);
+  const error = errorState?.path === animationPath ? errorState.error : null;
+  const isLoading = loadedPath !== animationPath && error === null;
 
   // Load animation data
   useEffect(() => {
     let isMounted = true;
-    setIsLoading(true);
-    setError(null);
 
     fetch(animationPath)
       .then((res) => {
@@ -58,13 +58,18 @@ export function useLottie(
       .then((data) => {
         if (isMounted) {
           setAnimationData(data);
-          setIsLoading(false);
+          setLoadedPath(animationPath);
+          setErrorState(null);
         }
       })
       .catch((err) => {
         if (isMounted) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-          setIsLoading(false);
+          setAnimationData(null);
+          setLoadedPath(animationPath);
+          setErrorState({
+            path: animationPath,
+            error: err instanceof Error ? err : new Error(String(err)),
+          });
         }
       });
 
