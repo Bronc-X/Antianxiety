@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
 import { useAuth } from '@/hooks/domain/useAuth';
 import {
@@ -70,6 +70,23 @@ export function useCalibration(initialUserId?: string): UseCalibrationReturn {
     const [shouldShowToday, setShouldShowToday] = useState(true);
     const [hasCompletedToday, setHasCompletedToday] = useState(false);
     const [isRestoringFrequency, setIsRestoringFrequency] = useState(false);
+    const answersRef = useRef<Record<string, number>>({});
+    const questionsRef = useRef<DailyCalibrationQuestion[]>([]);
+    const currentQuestionIndexRef = useRef(0);
+    const submittingRef = useRef(false);
+    const pendingSubmitRef = useRef<Record<string, number> | null>(null);
+
+    useEffect(() => {
+        answersRef.current = answers;
+    }, [answers]);
+
+    useEffect(() => {
+        questionsRef.current = questions;
+    }, [questions]);
+
+    useEffect(() => {
+        currentQuestionIndexRef.current = currentQuestionIndex;
+    }, [currentQuestionIndex]);
 
     // Check frequency and completion on mount
     const checkFrequency = useCallback(async () => {
@@ -115,25 +132,6 @@ export function useCalibration(initialUserId?: string): UseCalibrationReturn {
         }
     }, []);
 
-    // Handle Answer
-    const answerQuestion = useCallback((questionId: string, value: number) => {
-        setAnswers(prev => ({ ...prev, [questionId]: value }));
-
-        // Logic for advancing is handled by UI (delay) or we can expose a 'next' function
-        // For now, we update state immediately.
-
-        // Automated progression logic
-        setTimeout(() => {
-            if (currentQuestionIndex < questions.length - 1) {
-                setCurrentQuestionIndex(prev => prev + 1);
-            } else {
-                submitAssessment({ ...answers, [questionId]: value });
-            }
-        }, 400); // Small delay for UI feedback, but this couples logic with UI timing...
-        // Ideally UI handles the delay and calls 'next'. 
-        // But preserving original behavior which had timeout in handler.
-    }, [currentQuestionIndex, questions.length, answers]);
-
     // Submit Assessment
     const submitAssessment = useCallback(async (finalAnswers: Record<string, number>) => {
         if (!userId) return;
@@ -158,6 +156,45 @@ export function useCalibration(initialUserId?: string): UseCalibrationReturn {
             setIsLoading(false);
         }
     }, [userId]);
+
+    // Handle Answer
+    const answerQuestion = useCallback((questionId: string, value: number) => {
+        const nextAnswers = { ...answersRef.current, [questionId]: value };
+        answersRef.current = nextAnswers;
+        setAnswers(nextAnswers);
+
+        const isLastQuestion = currentQuestionIndexRef.current >= questionsRef.current.length - 1;
+
+        if (!isLastQuestion) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            return;
+        }
+
+        if (!userId) {
+            pendingSubmitRef.current = nextAnswers;
+            return;
+        }
+
+        if (submittingRef.current) {
+            return;
+        }
+
+        submittingRef.current = true;
+        void submitAssessment(nextAnswers).finally(() => {
+            submittingRef.current = false;
+        });
+    }, [submitAssessment, userId]);
+
+    useEffect(() => {
+        if (!userId || !pendingSubmitRef.current) return;
+        const pendingAnswers = pendingSubmitRef.current;
+        pendingSubmitRef.current = null;
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        void submitAssessment(pendingAnswers).finally(() => {
+            submittingRef.current = false;
+        });
+    }, [submitAssessment, userId]);
 
     // Reset Frequency
     const resetFrequency = useCallback(async () => {

@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
             type: 'magiclink',
             email: `reddit_${userInfo.id}@reddit.antianxiety.app`,
             options: {
-                redirectTo: 'https://en.antianxiety.app/unlearn/app',
+                redirectTo: 'https://en.antianxiety.app/unlearn',
             },
         });
 

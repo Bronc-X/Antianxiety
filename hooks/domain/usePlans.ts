@@ -7,7 +7,7 @@
  * Shared between Desktop and Mobile presentational components.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
 import {
     getPlans,
@@ -367,8 +367,8 @@ export function usePlans(): UsePlansReturn {
     }, []);
 
     // Computed values
-    const activePlans = plans.filter(p => p.status === 'active');
-    const completedPlans = plans.filter(p => p.status === 'completed');
+    const activePlans = useMemo(() => plans.filter(p => p.status === 'active'), [plans]);
+    const completedPlans = useMemo(() => plans.filter(p => p.status === 'completed'), [plans]);
 
     return {
         plans,

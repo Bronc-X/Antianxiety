@@ -22,7 +22,16 @@ export default function ProactiveInquiryManager() {
 
     // Pause inquiries on specific pages (e.g. login, onboarding)
     useEffect(() => {
-        const sensitivePages = ['/login', '/signup', '/onboarding', '/auth'];
+        const sensitivePages = [
+            '/login',
+            '/signup',
+            '/onboarding',
+            '/auth',
+            '/unlearn/login',
+            '/unlearn/signup',
+            '/unlearn/onboarding',
+            '/unlearn/update-password',
+        ];
         const isSensitive = sensitivePages.some(p => pathname?.includes(p));
 
         if (isSensitive) {

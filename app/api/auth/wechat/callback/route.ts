@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
             type: 'magiclink',
             email: `wechat_${tokenResponse.openid}@wechat.antianxiety.app`,
             options: {
-                redirectTo: 'https://zh.antianxiety.app/unlearn/app',
+                redirectTo: 'https://zh.antianxiety.app/unlearn',
             },
         });
 

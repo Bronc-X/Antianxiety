@@ -316,7 +316,7 @@ export async function resetPassword(email: string, redirectTo?: string): Promise
 /**
  * Server-side auth check with redirect
  */
-export async function requireAuth(redirectTo: string = '/login') {
+export async function requireAuth(redirectTo: string = '/unlearn/login') {
     const result = await getCurrentUser();
     if (!result.success) {
         redirect(redirectTo);

@@ -41,7 +41,7 @@ export default function OnboardingFlowClient({ userId, userName }: OnboardingFlo
     try {
       // Navigate to upgrade page
       console.log('✅ Clinical onboarding completed, navigating to upgrade');
-      router.push('/onboarding/upgrade');
+      router.push('/unlearn/onboarding/upgrade');
       router.refresh();
     } catch (error) {
       console.error('处理问卷结果时出错:', error);

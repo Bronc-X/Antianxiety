@@ -216,8 +216,8 @@ ${maxHumor >= 100 ? '- 🎉 彩蛋模式激活：可以更加放飞自我，增�
     // === STEP 4: Revalidate Paths ===
     // This ensures the Assistant page and Landing page update immediately
     revalidatePath('/assistant');
-    revalidatePath('/unlearn/app');
-    revalidatePath('/settings');
+    revalidatePath('/unlearn');
+    revalidatePath('/unlearn/settings');
 
     return {
       success: true,

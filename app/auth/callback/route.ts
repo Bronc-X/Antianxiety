@@ -57,7 +57,7 @@ async function ensureProfileRow(
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const next = requestUrl.searchParams.get('next') || '/unlearn/app';
+  const next = requestUrl.searchParams.get('next') || '/unlearn';
 
   try {
     const cookieStore = await cookies();
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     // 如果 OAuth 提供商返回了错误
     if (errorParam) {
       console.error('OAuth 提供商返回错误:', errorParam);
-      return NextResponse.redirect(new URL('/login?error=oauth_error', request.url));
+      return NextResponse.redirect(new URL('/unlearn/login?error=oauth_error', request.url));
     }
 
     // 处理 PKCE 流程（token_hash + type）
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
       if (verifyError || !verifyData.session) {
         console.error('PKCE 流程验证失败:', verifyError);
-        return NextResponse.redirect(new URL('/login?error=pkce_verify_failed', request.url));
+        return NextResponse.redirect(new URL('/unlearn/login?error=pkce_verify_failed', request.url));
       }
 
       console.log('PKCE 验证成功，用户ID:', verifyData.session.user.id);
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
 
       if (setSessionError) {
         console.error('设置 session 失败:', setSessionError);
-        return NextResponse.redirect(new URL('/login?error=pkce_set_session_failed', request.url));
+        return NextResponse.redirect(new URL('/unlearn/login?error=pkce_set_session_failed', request.url));
       }
 
       await ensureProfileRow(supabase, verifyData.session.user.id);
@@ -113,8 +113,8 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (!profile || !profile.metabolic_profile || Object.keys(profile.metabolic_profile).length === 0) {
-        console.log('用户未完成问卷，重定向到 /onboarding');
-        return NextResponse.redirect(new URL('/onboarding', request.url));
+        console.log('用户未完成问卷，重定向到 /unlearn/onboarding');
+        return NextResponse.redirect(new URL('/unlearn/onboarding', request.url));
       }
 
       console.log('用户已完成问卷，重定向到:', next);
@@ -136,13 +136,13 @@ export async function GET(request: NextRequest) {
         const errorMessage = exchangeError.message?.toLowerCase() || '';
         if (errorMessage.includes('expired') || errorMessage.includes('invalid')) {
           // 构建包含详细错误信息的URL（使用hash以便客户端JavaScript读取）
-          const loginUrl = new URL('/login', request.url);
+          const loginUrl = new URL('/unlearn/login', request.url);
           loginUrl.searchParams.set('error', 'oauth_error');
           loginUrl.hash = `error=access_denied&error_code=otp_expired&error_description=${encodeURIComponent('Email link is invalid or has expired')}`;
           return NextResponse.redirect(loginUrl);
         }
 
-        return NextResponse.redirect(new URL(`/login?error=invalid_token&details=${encodeURIComponent(exchangeError.message)}`, request.url));
+        return NextResponse.redirect(new URL(`/unlearn/login?error=invalid_token&details=${encodeURIComponent(exchangeError.message)}`, request.url));
       }
 
       // 如果成功交换到 session，验证 session 是否存在
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
 
         if (setSessionError) {
           console.error('设置 session 到 cookies 失败:', setSessionError);
-          return NextResponse.redirect(new URL('/login?error=session_cookie_failed', request.url));
+          return NextResponse.redirect(new URL('/unlearn/login?error=session_cookie_failed', request.url));
         }
 
         const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -176,8 +176,8 @@ export async function GET(request: NextRequest) {
 
           // 如果profile不存在或metabolic_profile为空，重定向到问卷
           if (!profile || !profile.metabolic_profile || Object.keys(profile.metabolic_profile).length === 0) {
-            console.log('用户未完成问卷，重定向到 /onboarding');
-            return NextResponse.redirect(new URL('/onboarding', request.url));
+            console.log('用户未完成问卷，重定向到 /unlearn/onboarding');
+            return NextResponse.redirect(new URL('/unlearn/onboarding', request.url));
           }
 
           console.log('用户已完成问卷，重定向到:', next);
@@ -185,11 +185,11 @@ export async function GET(request: NextRequest) {
           return NextResponse.redirect(redirectUrl);
         } else {
           console.error('Session 验证失败:', userError);
-          return NextResponse.redirect(new URL('/login?error=session_validation_failed', request.url));
+          return NextResponse.redirect(new URL('/unlearn/login?error=session_validation_failed', request.url));
         }
       } else {
         console.error('Session 交换成功但 session 为空');
-        return NextResponse.redirect(new URL('/login?error=no_session', request.url));
+        return NextResponse.redirect(new URL('/unlearn/login?error=no_session', request.url));
       }
     }
 
@@ -201,7 +201,7 @@ export async function GET(request: NextRequest) {
 
     if (sessionError) {
       console.error('获取 session 失败:', sessionError);
-      return NextResponse.redirect(new URL('/login?error=session_error', request.url));
+      return NextResponse.redirect(new URL('/unlearn/login?error=session_error', request.url));
     }
 
     if (session) {
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
     } else {
       // 没有 code 也没有 session，重定向到登录页
       console.error('没有 code 参数且没有现有 session');
-      return NextResponse.redirect(new URL('/login?error=no_code', request.url));
+      return NextResponse.redirect(new URL('/unlearn/login?error=no_code', request.url));
     }
   } catch (error) {
     const err = error as Error;
@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
     // 发生错误，重定向到登录页面
     return NextResponse.redirect(
       new URL(
-        `/login?error=server_error&details=${encodeURIComponent(err?.message || '未知错误')}`,
+        `/unlearn/login?error=server_error&details=${encodeURIComponent(err?.message || '未知错误')}`,
         request.url
       )
     );

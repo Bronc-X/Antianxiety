@@ -72,7 +72,7 @@ export function useOnboarding(): UseOnboardingReturn {
 
                     // Redirect if already complete
                     if (result.data.is_complete) {
-                        router.push('/dashboard');
+                        router.push('/unlearn');
                     }
                 }
             } catch {
@@ -98,7 +98,7 @@ export function useOnboarding(): UseOnboardingReturn {
 
                 if (result.data.is_complete) {
                     // Onboarding complete, redirect
-                    router.push('/dashboard');
+                    router.push('/unlearn');
                 } else {
                     setCurrentStep(result.data.current_step);
                 }
@@ -138,7 +138,7 @@ export function useOnboarding(): UseOnboardingReturn {
             const result = await skipOnboarding();
 
             if (result.success) {
-                router.push('/dashboard');
+                router.push('/unlearn');
                 return true;
             }
 

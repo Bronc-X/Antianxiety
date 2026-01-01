@@ -19,7 +19,7 @@ export default function DigitalTwinHero({
     headline,
     subheadline,
     ctaLabel,
-    ctaHref = '/signup',
+    ctaHref = '/unlearn/signup',
 }: DigitalTwinHeroProps) {
     const { language } = useI18n();
     const containerRef = useRef<HTMLElement>(null);

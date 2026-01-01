@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { aggregatePlanData } from '@/lib/max/plan-data-aggregator';
 import { generateQuestionsFromDataStatus, getNextQuestion, parseQuestionResponse, MAX_QUESTIONS } from '@/lib/max/question-generator';
@@ -84,13 +85,13 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'init':
-        return handleInit(user.id, language);
+        return handleInit(user.id, language, supabase);
       
       case 'respond':
         return handleRespond(sessionId, questionId, message, language);
       
       case 'generate':
-        return handleGenerate(sessionId, language);
+        return handleGenerate(sessionId, language, supabase);
       
       case 'skip':
         return handleSkip(sessionId, language);
@@ -120,10 +121,11 @@ export async function POST(request: NextRequest) {
  */
 async function handleInit(
   userId: string,
-  language: 'zh' | 'en'
+  language: 'zh' | 'en',
+  supabase: SupabaseClient
 ): Promise<NextResponse<PlanChatResponse>> {
   // 聚合用户数据
-  const aggregatedData = await aggregatePlanData(userId);
+  const aggregatedData = await aggregatePlanData(userId, supabase);
   const { dataStatus } = aggregatedData;
 
   // 创建会话
@@ -277,7 +279,8 @@ async function handleRespond(
  */
 async function handleGenerate(
   sessionId: string | undefined,
-  language: 'zh' | 'en'
+  language: 'zh' | 'en',
+  supabase: SupabaseClient
 ): Promise<NextResponse<PlanChatResponse>> {
   if (!sessionId || !sessions.has(sessionId)) {
     return NextResponse.json(
@@ -293,7 +296,7 @@ async function handleGenerate(
 
   try {
     // 重新聚合数据（确保最新）
-    const aggregatedData = await aggregatePlanData(session.userId);
+    const aggregatedData = await aggregatePlanData(session.userId, supabase);
     
     // 生成计划
     let planItems: PlanItemDraft[];
@@ -342,7 +345,7 @@ async function handleGenerate(
     ));
 
     // 使用备用计划
-    const aggregatedData = await aggregatePlanData(session.userId);
+    const aggregatedData = await aggregatePlanData(session.userId, supabase);
     const fallbackItems = generateFallbackPlan(aggregatedData, session.userResponses, sessionLang);
     session.planItems = fallbackItems;
 

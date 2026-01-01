@@ -133,19 +133,15 @@ export function middleware(req: NextRequest) {
     return response;
   }
 
-  const userAgent = req.headers.get('user-agent') || '';
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+  const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname.startsWith('/onboarding') || pathname.startsWith('/auth');
+  const isUnlearnRoute = pathname === '/unlearn' || pathname.startsWith('/unlearn/');
+  const isMobileRoute = pathname === '/mobile' || pathname.startsWith('/mobile/');
 
-  if (!isMobile) {
-    const isUnlearnRoute = pathname === '/unlearn' || pathname.startsWith('/unlearn/');
-    const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname.startsWith('/onboarding') || pathname.startsWith('/auth');
-
-    if (!isUnlearnRoute && !isAuthRoute) {
-      const redirectUrl = req.nextUrl.clone();
-      redirectUrl.pathname = '/unlearn';
-      redirectUrl.search = '';
-      return NextResponse.redirect(redirectUrl, 302);
-    }
+  if (!isUnlearnRoute && !isAuthRoute && !isMobileRoute) {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = '/unlearn';
+    redirectUrl.search = '';
+    return NextResponse.redirect(redirectUrl, 302);
   }
 
   // Non-API routes pass through

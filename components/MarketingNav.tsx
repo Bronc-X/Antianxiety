@@ -27,9 +27,9 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
 
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (pathname !== '/unlearn/app') {
+    if (pathname !== '/unlearn') {
       // 如果不在主页，跳转到主页相应部分
-      window.location.href = `/unlearn/app${href}`;
+      window.location.href = `/unlearn${href}`;
       return;
     }
 
@@ -53,7 +53,7 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/unlearn/app" className="flex items-center gap-2">
+            <Link href="/unlearn" className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full bg-emerald-500" />
               <span className="text-sm font-bold tracking-tight text-[#0B3D2E] dark:text-white">
                 AntiAnxiety<sup className="text-[8px]">™</sup>
@@ -69,7 +69,7 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
                   { href: '/welcome', label: t('nav.scienceInsight') },
                   { href: '/assistant', label: t('nav.assistant') },
                   { href: '/analysis', label: t('nav.analysis') },
-                  { href: '/onboarding/upgrade?from=landing', label: t('nav.upgrade') },
+                  { href: '/unlearn/onboarding/upgrade?from=landing', label: t('nav.upgrade') },
                 ].map((item) => {
                   const isActive = item.href === hoveredPath;
 

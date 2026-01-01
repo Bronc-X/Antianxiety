@@ -36,7 +36,7 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
   }, [isOpen]);
 
   const handleLogout = async () => {
-    const success = await signOut('/login');
+    const success = await signOut('/unlearn/login');
     if (success) {
       setIsOpen(false);
     }
@@ -129,14 +129,14 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
                   </div>
                 </div>
                 <Link
-                  href="/settings"
+                href="/unlearn/settings"
                   onClick={() => setIsOpen(false)}
                   className="w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors text-left block"
                 >
                   ⚙️ {t('userMenu.settings')}
                 </Link>
               <Link
-                href="/onboarding/upgrade?from=menu"
+                href="/unlearn/onboarding/upgrade?from=menu"
                 onClick={() => setIsOpen(false)}
                 className="w-full rounded-md border border-[#0B3D2E] dark:border-emerald-600 bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 px-3 py-2 text-sm text-white hover:shadow-md transition-all text-left block font-medium"
                 >

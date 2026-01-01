@@ -22,7 +22,7 @@ interface GlobalScienceHeroProps {
 
 export default function GlobalScienceHero({
   ctaLabel,
-  ctaHref = '/signup',
+  ctaHref = '/unlearn/signup',
 }: GlobalScienceHeroProps) {
   const { language } = useI18n();
   const containerRef = useRef<HTMLElement>(null);

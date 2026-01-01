@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { TrendingUp, Brain, RefreshCw, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
@@ -42,7 +42,7 @@ export default function FeedbackLoop() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isUnauthorized, setIsUnauthorized] = useState(false);
 
-    const fetchScore = async () => {
+    const fetchScore = useCallback(async () => {
         try {
             setLoading(true);
             setErrorMessage(null);
@@ -68,11 +68,11 @@ export default function FeedbackLoop() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [fetchUnderstandingScore, language]);
 
     useEffect(() => {
         fetchScore();
-    }, [language]);
+    }, [fetchScore]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -86,7 +86,7 @@ export default function FeedbackLoop() {
             clearInterval(interval);
             window.removeEventListener('focus', handleFocus);
         };
-    }, [language]);
+    }, [fetchScore]);
 
     const sortedHistory = [...history].sort((a, b) => (
         new Date(b.date).getTime() - new Date(a.date).getTime()

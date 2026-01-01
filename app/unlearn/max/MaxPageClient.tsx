@@ -206,7 +206,7 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
     <div className="flex flex-col h-screen bg-[#FAF6EF] dark:bg-neutral-950">
       {/* Header */}
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white safe-area-inset-top">
-        <Link href="/unlearn/app" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
+        <Link href="/unlearn" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="text-center">
