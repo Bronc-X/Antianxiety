@@ -25,7 +25,8 @@
         #poster {
             width: 1080px;
             height: 1920px;
-            background: #000;
+            background: radial-gradient(circle at 50% 30%, #1a1205 0%, #000000 90%);
+            /* Deep Warm Bronze/Black */
             position: relative;
             overflow: hidden;
             box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
@@ -184,7 +185,7 @@
                         <circle cx="10" cy="22" r="4" fill="#FFD700" />
                         <text x="24" y="26" font-family="'Playfair Display', serif" font-weight="700"
                             font-style="italic" font-size="20" fill="#FFD700" letter-spacing="-0.02em">
-                            AntiAnxiety™
+                            AntiAnxiety<tspan fill="#ffffff" font-size="12" dy="-5">™</tspan>
                         </text>
                     </svg>
                 </div>
@@ -195,7 +196,10 @@
             </div>
 
             <div class="hero-text">
-                <span class="hero-line">REST IS</span>
+                <span class="hero-line">
+                    <span style="color: #FFD700; text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);">REST</span>
+                    <span style="color: #fff; text-shadow: none;">IS</span>
+                </span>
                 <span class="hero-line serif">Progress.</span>
                 <!-- Profound Translation: Knowing to stop is to gain -->
                 <div class="cn-subtitle">知止有得</div>
@@ -256,8 +260,11 @@
                 const y = positions.getY(i);
 
                 let z = 0;
-                z += simplex.noise3D(x * 0.08, y * 0.08, time * 0.4) * 5.0;
-                z += simplex.noise3D(x * 0.3, y * 0.3, time * 0.6) * 1.0;
+                // Smoother, more liquid-like noise parameters
+                // Reduced spatial frequency (0.08 -> 0.05) makes waves wider/smoother
+                // Adjusted time speed feels more like water
+                z += simplex.noise3D(x * 0.04, y * 0.04, time * 0.3) * 6.0;
+                z += simplex.noise3D(x * 0.15, y * 0.15, time * 0.5) * 1.5;
 
                 positions.setZ(i, z);
             }

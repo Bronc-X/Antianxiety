@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { useCuratedFeed } from "@/hooks/domain/useCuratedFeed";
 
 interface CuratedItem {
   id: string;
@@ -167,6 +168,7 @@ export default function InfiniteNewsFeed({
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { fetchPage: fetchCuratedPage, sendFeedback } = useCuratedFeed();
 
   const storageKey = userId || "anon";
   const storageDateKey = `nma_curated_feed_date_${storageKey}`;
@@ -189,12 +191,18 @@ export default function InfiniteNewsFeed({
       const excludeList = overrideExclude ?? excludeIdsRef.current;
       if (excludeList.length > 0) params.set("exclude", excludeList.join(","));
 
-      const response = await fetch(`/api/curated-feed?${params.toString()}`);
-      if (!response.ok) {
+      const data = await fetchCuratedPage({
+        limit: PAGE_SIZE,
+        cursor: nextCursor,
+        language,
+        cycle: overrideCycle,
+        exclude: excludeList,
+        userId,
+      });
+
+      if (!data) {
         throw new Error("Failed to load feed");
       }
-
-      const data = await response.json();
       const nextItems = Array.isArray(data.items) ? data.items : [];
       setItems((prev) => (replace ? nextItems : mergeUnique(prev, nextItems)));
       setKeywords(Array.isArray(data.keywords) ? data.keywords : []);
@@ -460,16 +468,12 @@ export default function InfiniteNewsFeed({
                             onClick={async (e) => {
                               e.preventDefault();
                               try {
-                                await fetch('/api/feed-feedback', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    contentId: item.id,
-                                    contentUrl: item.url,
-                                    contentTitle: item.title,
-                                    source: item.source,
-                                    feedbackType: 'bookmark'
-                                  }),
+                                await sendFeedback({
+                                  contentId: item.id,
+                                  contentUrl: item.url,
+                                  contentTitle: item.title,
+                                  source: item.source,
+                                  feedbackType: 'bookmark'
                                 });
                                 // Visual feedback - toggle active state
                                 const btn = e.currentTarget;
@@ -491,16 +495,12 @@ export default function InfiniteNewsFeed({
                             onClick={async (e) => {
                               e.preventDefault();
                               try {
-                                await fetch('/api/feed-feedback', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    contentId: item.id,
-                                    contentUrl: item.url,
-                                    contentTitle: item.title,
-                                    source: item.source,
-                                    feedbackType: 'dislike'
-                                  }),
+                                await sendFeedback({
+                                  contentId: item.id,
+                                  contentUrl: item.url,
+                                  contentTitle: item.title,
+                                  source: item.source,
+                                  feedbackType: 'dislike'
                                 });
                                 // Visual feedback
                                 const btn = e.currentTarget;

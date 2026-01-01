@@ -252,6 +252,7 @@ export default function ParticipantDigitalTwin() {
         digitalTwin,
         loadingDigitalTwin,
         loadDigitalTwin,
+        analyzeDigitalTwin,
         isOffline,
         error: dashboardError
     } = useDashboard();
@@ -303,19 +304,10 @@ export default function ParticipantDigitalTwin() {
         setIsAnalyzing(true);
 
         try {
-            const response = await fetch('/api/digital-twin/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ forceRefresh: true }),
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Analysis failed');
+            const ok = await analyzeDigitalTwin(true);
+            if (!ok) {
+                throw new Error('Analysis failed');
             }
-
-            // Refresh dashboard after analysis
-            await loadDigitalTwin();
         } catch (err) {
             console.error(err);
         } finally {

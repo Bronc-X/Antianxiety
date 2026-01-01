@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ultra Fluid Pull Refresh - Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #e8e8ed;
+            /* Apple-like light grey */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Dynamic Island */
+        .dynamic-island {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 124px;
+            height: 36px;
+            background: #000;
+            border-radius: 20px;
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .helper-text {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 5;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dynamic-island"></div>
+    <div class="helper-text">Pull Down to Interact</div>
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- PRO CONFIG (High Fidelity) ---
+        const CLOTH_W = 40;  // Resolution X
+        const CLOTH_H = 50;  // Resolution Y (Silk like)
+        const PHYSICS_STEPS = 5; // Sub-steps for stability
+        const CONSTRAINT_ITERATIONS = 8; // Stiff cloth
+        const DAMPING = 0.96;
+        const SCREEN_WIDTH_RATIO = 0.9; // Cloth width relative to screen
+
+        // --- THREE JS SETUP ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        // Soft gradient-like fog
+        scene.fog = new THREE.FogExp2(0xe8e8ed, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2, 25);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x for perf
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        // --- STUDIO LIGHTING ---
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.4);
+        scene.add(hemiLight);
+
+        // Key Light
+        const spotLight = new THREE.SpotLight(0xffffff, 1.2);
+        spotLight.position.set(10, 20, 15);
+        spotLight.angle = 0.4;
+        spotLight.penumbra = 0.5;
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 2048; // High res shadow for wrinkles
+        spotLight.shadow.mapSize.height = 2048;
+        spotLight.shadow.bias = -0.0001;
+        scene.add(spotLight);
+
+        // Rim Light (Cool Blue)
+        const rimLight = new THREE.SpotLight(0xddeeff, 0.8);
+        rimLight.position.set(-10, 10, -5);
+        scene.add(rimLight);
+
+        // --- CLOTH MESH ---
+        const geometry = new THREE.PlaneGeometry(14, 18, CLOTH_W, CLOTH_H);
+
+        // Premium Material: Like thick silk or soft silicone
+        const material = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 0.1,
+            roughness: 0.3,
+            transmission: 0.0, // Opaque
+            clearcoat: 1.0,    // Wet/Glossy look
+            clearcoatRoughness: 0.4,
+            side: THREE.DoubleSide
+        });
+
+        const clothMesh = new THREE.Mesh(geometry, material);
+        clothMesh.castShadow = true;
+        clothMesh.receiveShadow = true;
+        clothMesh.position.y = 9; // Hang from top
+        scene.add(clothMesh);
+
+        /* 
+           PHYSICS (XPBD / Verlet High-Perf) 
+        */
+        const particles = [];
+        const constraints = [];
+
+        const wSeg = CLOTH_W + 1;
+        const hSeg = CLOTH_H + 1;
+        const posAttr = geometry.attributes.position;
+
+        // Initialize Particles
+        for (let j = 0; j < hSeg; j++) {
+            for (let i = 0; i < wSeg; i++) {
+                const x = posAttr.getX(j * wSeg + i);
+                const y = posAttr.getY(j * wSeg + i);
+                const z = posAttr.getZ(j * wSeg + i);
+
+                // Pin the top row
+                const pinned = (j === 0);
+                particles.push({
+                    x: x, y: y, z: z,
+                    ox: x, oy: y, oz: z, // Old position
+                    pinned: pinned,
+                    mass: 1.0
+                });
+            }
+        }
+
+        // Initialize Constraints
+        const addConstraint = (p1, p2) => {
+            const dist = Math.sqrt(
+                (p1.x - p2.x) ** 2 +
+                (p1.y - p2.y) ** 2 +
+                (p1.z - p2.z) ** 2
+            );
+            constraints.push({ p1, p2, rest: dist });
+        };
+
+        for (let j = 0; j < hSeg; j++) {
+            for (let i = 0; i < wSeg; i++) {
+                const idx = j * wSeg + i;
+                if (i < wSeg - 1) addConstraint(particles[idx], particles[idx + 1]);
+                if (j < hSeg - 1) addConstraint(particles[idx], particles[idx + wSeg]);
+                // Sheer constraints (Diagonal) for better structure (optional, adds stiffness)
+                if (i < wSeg - 1 && j < hSeg - 1) {
+                    addConstraint(particles[idx], particles[idx + wSeg + 1]);
+                    addConstraint(particles[idx + 1], particles[idx + wSeg]);
+                }
+            }
+        }
+
+        // --- INTERACTION CURSOR ---
+        // A physical sphere that pushes the cloth
+        const cursorGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+        const cursorMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x333333,
+            metalness: 0.9,
+            roughness: 0.1,
+            clearcoat: 1.0
+        });
+        const cursorValues = { x: 0, y: 0, z: 0, active: false, grabbedParticle: null };
+
+        // Add a visual 'Hand' mesh if desired, but invisible collider is cleaner for 'magic' feel.
+        // Let's make it visible but subtle glass
+        const cursorMesh = new THREE.Mesh(cursorGeometry,
+            new THREE.MeshPhysicalMaterial({
+                color: 0xffffff, transmission: 0.9, opacity: 1, metalness: 0, roughness: 0, ior: 1.5, thickness: 2
+            })
+        );
+        scene.add(cursorMesh);
+
+        // --- INPUT HANDLING ---
+        const mouse = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+
+        function updateCursor(x, y, isDown) {
+
+            mouse.x = (x / window.innerWidth) * 2 - 1;
+            mouse.y = -(y / window.innerHeight) * 2 + 1;
+
+            // Project mouse to Z=0 plane
+            const vec = new THREE.Vector3(mouse.x, mouse.y, 0);
+            vec.unproject(camera);
+            const dir = vec.sub(camera.position).normalize();
+            const distance = -camera.position.z / dir.z;
+            const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+
+            cursorValues.x = pos.x;
+            cursorValues.y = pos.y;
+            cursorValues.z = 0; // Grab exactly on plane
+
+            cursorMesh.position.set(cursorValues.x, cursorValues.y, cursorValues.z);
+
+            if (isDown && !cursorValues.active) {
+                // Just started clicking: Find closest particle to Grab
+                let minD = Infinity;
+                let closest = null;
+                for (let p of particles) {
+                    const d = (p.x - pos.x) ** 2 + (p.y - pos.y) ** 2;
+                    if (d < minD) {
+                        minD = d;
+                        closest = p;
+                    }
+                }
+                // Only grab if reasonably close (e.g. radius 5)
+                if (minD < 25 && closest) {
+                    cursorValues.grabbedParticle = closest;
+                    // Visual feedback
+                    cursorMesh.material.color.set(0xffaaaa);
+                }
+            }
+
+            if (!isDown) {
+                cursorValues.grabbedParticle = null;
+                cursorMesh.material.color.set(0xffffff);
+            }
+
+            cursorValues.active = isDown;
+        }
+
+        window.addEventListener('mousedown', e => updateCursor(e.clientX, e.clientY, true));
+        window.addEventListener('mousemove', e => updateCursor(e.clientX, e.clientY, cursorValues.active));
+        window.addEventListener('mouseup', () => cursorValues.active = false);
+
+        window.addEventListener('touchstart', e => updateCursor(e.touches[0].clientX, e.touches[0].clientY, true), { passive: false });
+        window.addEventListener('touchmove', e => { e.preventDefault(); updateCursor(e.touches[0].clientX, e.touches[0].clientY, true); }, { passive: false });
+        window.addEventListener('touchend', () => cursorValues.active = false);
+
+
+        // --- PHYSICS LOOP (Sub-stepping) ---
+        function runPhysics(dt) {
+            // Split frame time into smaller steps for stability
+            const stepDt = dt / PHYSICS_STEPS;
+
+            for (let s = 0; s < PHYSICS_STEPS; s++) {
+
+                // 1. Integrate Position
+                for (let p of particles) {
+                    if (p.pinned) continue;
+
+                    // Simple Gravity + Return to Z=0 Force (Fake elasticity)
+                    const gravity = -9.8 * p.mass * 0.01;
+                    const returnForce = -p.x * 2.0; // Keeps it centered X
+
+                    // Verlet
+                    const vx = (p.x - p.ox) * DAMPING;
+                    const vy = (p.y - p.oy) * DAMPING;
+                    const vz = (p.z - p.oz) * DAMPING;
+
+                    p.ox = p.x; p.oy = p.y; p.oz = p.z;
+
+                    p.x += vx;
+                    p.y += vy + gravity * stepDt * stepDt;
+                    p.z += vz;
+                }
+
+                // 2. Interaction: GRAB (Spring Pull)
+                if (cursorValues.active && cursorValues.grabbedParticle) {
+                    const gp = cursorValues.grabbedParticle;
+                    // Spring force to cursor position
+                    const dx = cursorValues.x - gp.x;
+                    const dy = cursorValues.y - gp.y;
+                    const dz = cursorValues.z - gp.z;
+
+                    // Stiff spring for direct control
+                    gp.x += dx * 0.2;
+                    gp.y += dy * 0.2;
+                    gp.z += dz * 0.2;
+
+                    // Wake up neighbors (optional, implicit via constraints)
+                }
+
+                // 3. Solve Constraints
+                for (let k = 0; k < CONSTRAINT_ITERATIONS; k++) {
+                    for (let c of constraints) {
+                        const dx = c.p1.x - c.p2.x;
+                        const dy = c.p1.y - c.p2.y;
+                        const dz = c.p1.z - c.p2.z;
+                        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.0001;
+                        const diff = (dist - c.rest) / dist;
+                        // Stiffness 1.0 (Direct correction)
+
+                        const corrected = diff * 0.5; // Shared between 2 particles
+                        const cx = dx * corrected;
+                        const cy = dy * corrected;
+                        const cz = dz * corrected;
+
+                        if (!c.p1.pinned) {
+                            c.p1.x -= cx; c.p1.y -= cy; c.p1.z -= cz;
+                        }
+                        if (!c.p2.pinned) {
+                            c.p2.x += cx; c.p2.y += cy; c.p2.z += cz;
+                        }
+                    }
+                }
+
+                // 4. Floor constraint (optional, just reset if too low)
+                // for(let p of particles) if(p.y < -15) p.y = -15;
+            }
+        }
+
+        // --- RENDER LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Run Physics
+            runPhysics(0.016); // Fixed dt approx 60fps
+
+            // Sync Visuals
+            const pArr = geometry.attributes.position.array;
+            for (let i = 0; i < particles.length; i++) {
+                pArr[i * 3] = particles[i].x;
+                pArr[i * 3 + 1] = particles[i].y;
+                pArr[i * 3 + 2] = particles[i].z;
+            }
+            geometry.attributes.position.needsUpdate = true;
+            geometry.computeVertexNormals();
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+
+</html>

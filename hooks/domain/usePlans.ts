@@ -12,11 +12,16 @@ import { useNetwork } from '@/hooks/useNetwork';
 import {
     getPlans,
     createPlan,
+    createPlansFromAI,
+    getPlanStatsSummary,
     updatePlanStatus,
+    completePlan,
     deletePlan,
     type PlanData,
-    type CreatePlanInput
+    type CreatePlanInput,
+    type PlanItem
 } from '@/app/actions/plans';
+import type { ParsedPlan } from '@/lib/plan-parser';
 
 // ============================================
 // Types
@@ -36,11 +41,15 @@ export interface UsePlansReturn {
 
     // Actions
     create: (input: CreatePlanInput) => Promise<boolean>;
+    createFromAI: (plans: ParsedPlan[], sessionId?: string) => Promise<PlanData[] | null>;
     complete: (planId: string) => Promise<boolean>;
     pause: (planId: string) => Promise<boolean>;
     resume: (planId: string) => Promise<boolean>;
+    updateItems: (planId: string, items: PlanItem[], status: 'completed' | 'partial' | 'skipped') => Promise<boolean>;
+    archive: (planId: string) => Promise<boolean>;
     remove: (planId: string) => Promise<boolean>;
     refresh: () => Promise<void>;
+    getStatsSummary: (days?: number) => Promise<any | null>;
 }
 
 // ============================================
@@ -144,6 +153,30 @@ export function usePlans(): UsePlansReturn {
         }
     }, [plans]);
 
+    // Create plans from AI
+    const createFromAI = useCallback(async (inputPlans: ParsedPlan[], sessionId?: string): Promise<PlanData[] | null> => {
+        setIsSaving(true);
+        setError(null);
+
+        try {
+            const result = await createPlansFromAI(inputPlans, sessionId);
+
+            if (result.success && result.data) {
+                setPlans(prev => [...result.data!, ...prev]);
+                setCachedData(CACHE_KEY, [...result.data, ...plans]);
+                return result.data;
+            } else {
+                setError(result.error || 'Failed to create plan');
+                return null;
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create plan');
+            return null;
+        } finally {
+            setIsSaving(false);
+        }
+    }, [plans]);
+
     // Complete plan
     const complete = useCallback(async (planId: string): Promise<boolean> => {
         setIsSaving(true);
@@ -223,6 +256,71 @@ export function usePlans(): UsePlansReturn {
         }
     }, [fetchPlans]);
 
+    // Update plan items + progress
+    const updateItems = useCallback(async (
+        planId: string,
+        items: PlanItem[],
+        status: 'completed' | 'partial' | 'skipped'
+    ): Promise<boolean> => {
+        setIsSaving(true);
+        setError(null);
+
+        const completedCount = items.filter(item => item.completed).length;
+        const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
+
+        setPlans(prev => prev.map(p =>
+            p.id === planId ? { ...p, items, progress, status: progress === 100 ? 'completed' : p.status } : p
+        ));
+
+        try {
+            const result = await completePlan({
+                planId,
+                status,
+                completedItems: items.map(item => ({ id: item.id, completed: item.completed })),
+            });
+
+            if (!result.success) {
+                await fetchPlans(true);
+                setError(result.error || 'Failed to update plan');
+                return false;
+            }
+
+            return true;
+        } catch (err) {
+            await fetchPlans(true);
+            setError(err instanceof Error ? err.message : 'Failed');
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    }, [fetchPlans]);
+
+    // Archive plan
+    const archive = useCallback(async (planId: string): Promise<boolean> => {
+        setIsSaving(true);
+        setError(null);
+
+        try {
+            const result = await completePlan({
+                planId,
+                status: 'archived',
+            });
+
+            if (!result.success) {
+                setError(result.error || 'Failed to archive plan');
+                return false;
+            }
+
+            setPlans(prev => prev.filter(p => p.id !== planId));
+            return true;
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to archive plan');
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    }, []);
+
     // Remove plan
     const remove = useCallback(async (planId: string): Promise<boolean> => {
         setIsSaving(true);
@@ -254,6 +352,20 @@ export function usePlans(): UsePlansReturn {
         await fetchPlans(true);
     }, [fetchPlans]);
 
+    const getStatsSummary = useCallback(async (days = 7) => {
+        try {
+            const result = await getPlanStatsSummary(days);
+            if (!result.success) {
+                setError(result.error || 'Failed to load stats');
+                return null;
+            }
+            return result.data;
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load stats');
+            return null;
+        }
+    }, []);
+
     // Computed values
     const activePlans = plans.filter(p => p.status === 'active');
     const completedPlans = plans.filter(p => p.status === 'completed');
@@ -267,12 +379,16 @@ export function usePlans(): UsePlansReturn {
         isOffline: !isOnline,
         error,
         create,
+        createFromAI,
         complete,
         pause,
         resume,
+        updateItems,
+        archive,
         remove,
         refresh,
+        getStatsSummary,
     };
 }
 
-export type { PlanData, CreatePlanInput };
+export type { PlanData, CreatePlanInput, PlanItem };

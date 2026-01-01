@@ -26,7 +26,7 @@ import type {
 // ============================================
 
 /** 触发分析所需的最小校准次数 */
-export const MIN_CALIBRATIONS_FOR_ANALYSIS = 0;
+export const MIN_CALIBRATIONS_FOR_ANALYSIS = 3;
 
 /** 获取校准数据的默认天数 */
 const DEFAULT_CALIBRATION_DAYS = 30;
@@ -419,7 +419,7 @@ export async function getDataCollectionStatus(userId: string): Promise<DataColle
     lastCalibrationDate = latestCalibration?.[0]?.date ?? null;
   }
   const requiredCalibrations = MIN_CALIBRATIONS_FOR_ANALYSIS;
-  const isReady = calibrationCount >= requiredCalibrations;
+  const isReady = hasBaseline && calibrationCount >= requiredCalibrations;
 
   // 计算进度
   let progress = 0;
@@ -455,5 +455,5 @@ export async function getDataCollectionStatus(userId: string): Promise<DataColle
  * 验证聚合数据是否足够进行分析
  */
 export function isDataSufficientForAnalysis(data: AggregatedUserData): boolean {
-  return data.calibrations.length >= MIN_CALIBRATIONS_FOR_ANALYSIS;
+  return !!data.baseline && data.calibrations.length >= MIN_CALIBRATIONS_FOR_ANALYSIS;
 }

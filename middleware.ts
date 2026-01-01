@@ -133,6 +133,21 @@ export function middleware(req: NextRequest) {
     return response;
   }
 
+  const userAgent = req.headers.get('user-agent') || '';
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
+  if (!isMobile) {
+    const isUnlearnRoute = pathname === '/unlearn' || pathname.startsWith('/unlearn/');
+    const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname.startsWith('/onboarding') || pathname.startsWith('/auth');
+
+    if (!isUnlearnRoute && !isAuthRoute) {
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = '/unlearn';
+      redirectUrl.search = '';
+      return NextResponse.redirect(redirectUrl, 302);
+    }
+  }
+
   // Non-API routes pass through
   return NextResponse.next();
 }
@@ -146,6 +161,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - 公共资源文件
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|html)$).*)',
   ],
 };

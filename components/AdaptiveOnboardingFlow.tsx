@@ -18,6 +18,7 @@ import type {
   OnboardingResult,
 } from '@/types/adaptive-interaction';
 import { useI18n } from '@/lib/i18n';
+import { useAdaptiveOnboarding } from '@/hooks/domain/useAdaptiveOnboarding';
 
 interface AdaptiveOnboardingFlowProps {
   onComplete: (result: OnboardingResult) => void;
@@ -44,6 +45,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
   const [recommendedGoals, setRecommendedGoals] = useState<PhaseGoal[]>([]);
   const [metabolicProfile, setMetabolicProfile] = useState<MetabolicProfile | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(180); // 3 minutes
+  const { recommend } = useAdaptiveOnboarding();
 
   // Goal modification state (Requirement 2.3, 2.4)
   const [modificationState, setModificationState] = useState<GoalModificationState>({
@@ -74,6 +76,31 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
       setCurrentQuestion(templateQuestions[0]);
     }
   }, [templateQuestions, currentQuestion]);
+
+  // Fetch goals from API
+  const fetchGoals = useCallback(async (allAnswers: Record<string, string>) => {
+    setStep('analyzing');
+
+    try {
+      const data = await recommend(allAnswers);
+
+      if (data) {
+        setRecommendedGoals(data.goals || []);
+        setMetabolicProfile(data.metabolicProfile || null);
+
+        // Short delay for animation
+        setTimeout(() => {
+          setStep('goals');
+        }, 2000);
+      } else {
+        console.error('Failed to fetch goals');
+        setStep('goals');
+      }
+    } catch (error) {
+      console.error('Error fetching goals:', error);
+      setStep('goals');
+    }
+  }, [recommend]);
 
   // Handle answer selection
   const handleAnswer = useCallback(async (questionId: string, value: string) => {
@@ -123,37 +150,7 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
         }
       }
     }
-  }, [currentQuestionIndex, templateAnswers, decisionTreeAnswers, templateQuestions]);
-
-  // Fetch goals from API
-  const fetchGoals = async (allAnswers: Record<string, string>) => {
-    setStep('analyzing');
-
-    try {
-      const response = await fetch('/api/onboarding/recommend-goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: allAnswers }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRecommendedGoals(data.goals);
-        setMetabolicProfile(data.metabolicProfile);
-
-        // Short delay for animation
-        setTimeout(() => {
-          setStep('goals');
-        }, 2000);
-      } else {
-        console.error('Failed to fetch goals');
-        setStep('goals');
-      }
-    } catch (error) {
-      console.error('Error fetching goals:', error);
-      setStep('goals');
-    }
-  };
+  }, [currentQuestionIndex, templateAnswers, decisionTreeAnswers, templateQuestions, fetchGoals]);
 
   // Handle goal modification request (Requirement 2.3)
   const handleModifyGoal = (goal: PhaseGoal) => {

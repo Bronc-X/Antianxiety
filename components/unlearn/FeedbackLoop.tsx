@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { TrendingUp, Brain, RefreshCw, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useUnderstandingScore } from '@/hooks/domain/useUnderstandingScore';
 
 interface FeedbackMetric {
     label: string;
@@ -34,6 +35,7 @@ interface ScoreHistoryEntry {
 
 export default function FeedbackLoop() {
     const { language } = useI18n();
+    const { fetchScore: fetchUnderstandingScore } = useUnderstandingScore();
     const [score, setScore] = useState<UnderstandingScore | null>(null);
     const [history, setHistory] = useState<ScoreHistoryEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -45,17 +47,17 @@ export default function FeedbackLoop() {
             setLoading(true);
             setErrorMessage(null);
             setIsUnauthorized(false);
-            const res = await fetch('/api/understanding-score?includeHistory=true&days=14', { cache: 'no-store' });
-            if (res.status === 401) {
-                setScore(null);
-                setHistory([]);
-                setIsUnauthorized(true);
-                return;
+            const result = await fetchUnderstandingScore({ includeHistory: true, days: 14 });
+            if (!result.success) {
+                if (result.error?.toLowerCase().includes('authentication') || result.error?.includes('登录')) {
+                    setScore(null);
+                    setHistory([]);
+                    setIsUnauthorized(true);
+                    return;
+                }
+                throw new Error(result.error || 'Failed to fetch understanding score');
             }
-            if (!res.ok) {
-                throw new Error('Failed to fetch understanding score');
-            }
-            const data = await res.json();
+            const data = result.data;
             setScore(data?.score ?? null);
             setHistory(Array.isArray(data?.history) ? data.history : []);
         } catch (error) {

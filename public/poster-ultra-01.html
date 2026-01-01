@@ -181,7 +181,7 @@
                         <circle cx="10" cy="22" r="4" fill="#4488ff" />
                         <text x="24" y="26" font-family="'Playfair Display', serif" font-weight="700"
                             font-style="italic" font-size="20" fill="#4488ff" letter-spacing="-0.02em">
-                            AntiAnxiety™
+                            AntiAnxiety<tspan fill="#ffffff" font-size="12" dy="-5">™</tspan>
                         </text>
                     </svg>
                 </div>
@@ -229,48 +229,48 @@
         // TRAILS SYSTEM
         const particleCount = 2000;
         const linesGeometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 2 * 3); 
+        const positions = new Float32Array(particleCount * 2 * 3);
         const colors = new Float32Array(particleCount * 2 * 3);
-        
+
         const particlesData = [];
-        
+
         const colorBlue = new THREE.Color(0x4488ff);
         const colorCyan = new THREE.Color(0x00ffff);
-        
+
         for (let i = 0; i < particleCount; i++) {
             const r = 25 + Math.random() * 5;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
-            
+
             const x = r * Math.sin(phi) * Math.cos(theta);
             const y = r * Math.sin(phi) * Math.sin(theta);
             const z = r * Math.cos(phi);
-            
+
             const velocity = new THREE.Vector3(-y, x, 0).normalize().multiplyScalar(0.2 + Math.random() * 0.3);
-            
+
             particlesData.push({
                 position: new THREE.Vector3(x, y, z),
                 velocity: velocity,
                 radius: r,
                 speed: 0.1 + Math.random() * 0.2
             });
-            
+
             const col = Math.random() > 0.5 ? colorBlue : colorCyan;
-            
-            colors[i*6] = col.r; colors[i*6+1] = col.g; colors[i*6+2] = col.b; 
-            colors[i*6+3] = col.r * 0.5; colors[i*6+4] = col.g * 0.5; colors[i*6+5] = col.b * 0.5; 
+
+            colors[i * 6] = col.r; colors[i * 6 + 1] = col.g; colors[i * 6 + 2] = col.b;
+            colors[i * 6 + 3] = col.r * 0.5; colors[i * 6 + 4] = col.g * 0.5; colors[i * 6 + 5] = col.b * 0.5;
         }
-        
+
         linesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         linesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        
+
         const material = new THREE.LineBasicMaterial({
             vertexColors: true,
             blending: THREE.AdditiveBlending,
             transparent: true,
             opacity: 0.6
         });
-        
+
         const lines = new THREE.LineSegments(linesGeometry, material);
         scene.add(lines);
 
@@ -278,40 +278,45 @@
 
         function animate() {
             const time = clock.getElapsedTime();
-            
+
             const posAttr = linesGeometry.attributes.position;
-            
+
+            // Increased rotation for "storm" feel
+            lines.rotation.z = time * 0.2;
+            lines.rotation.y = time * 0.1;
+
             for (let i = 0; i < particleCount; i++) {
                 const data = particlesData[i];
                 const oldX = data.position.x;
                 const oldZ = data.position.z;
-                
-                const speed = data.speed;
-                const angle = speed * 0.1;
-                
+
+                // More dynamic speed based on position (swirling storm)
+                const speed = data.speed * (1 + Math.sin(time + data.position.y * 0.05));
+                const angle = speed * 0.15; // Faster orbit
+
                 const cos = Math.cos(angle);
                 const sin = Math.sin(angle);
-                
+
                 const newX = data.position.x * cos - data.position.z * sin;
                 const newZ = data.position.x * sin + data.position.z * cos;
-                
+
                 data.position.x = newX;
                 data.position.z = newZ;
-                
-                posAttr.setXYZ(i*2, data.position.x, data.position.y, data.position.z);
-                
-                const tailLen = 2.0; 
-                posAttr.setXYZ(i*2+1, 
-                    data.position.x - (newX-oldX)*5, 
-                    data.position.y,     
-                    data.position.z - (newZ-oldZ)*5
+
+                // Add vertical subtle wave (breathing storm)
+                data.position.y += Math.sin(time * 2 + data.position.x * 0.1) * 0.05;
+
+                posAttr.setXYZ(i * 2, data.position.x, data.position.y, data.position.z);
+
+                const tailLen = 3.0; // Longer trails for speed impression
+                posAttr.setXYZ(i * 2 + 1,
+                    data.position.x - (newX - oldX) * 8, // More exaggerated tail lag
+                    data.position.y,
+                    data.position.z - (newZ - oldZ) * 8
                 );
             }
-            
-            posAttr.needsUpdate = true;
-            lines.rotation.z = time * 0.1;
-            lines.rotation.x = Math.sin(time * 0.2) * 0.2;
 
+            posAttr.needsUpdate = true;
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }

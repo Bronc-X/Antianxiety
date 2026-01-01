@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { createClientSupabaseClient as createClient } from '@/lib/supabase-client';
+import { useBayesianNudgeAction } from '@/hooks/domain/useBayesianNudgeAction';
 
 // ============================================
 // Types
@@ -33,6 +34,7 @@ export interface UseBayesianNudgeReturn {
 // ============================================
 
 export function useBayesianNudge(): UseBayesianNudgeReturn {
+  const { trigger } = useBayesianNudgeAction();
   const [nudgeState, setNudgeState] = useState<NudgeState | null>(null);
 
   /**
@@ -40,28 +42,22 @@ export function useBayesianNudge(): UseBayesianNudgeReturn {
    */
   const triggerNudge = useCallback(async (actionType: string, durationMinutes?: number) => {
     try {
-      const response = await fetch('/api/bayesian/nudge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action_type: actionType,
-          duration_minutes: durationMinutes
-        })
+      const result = await trigger({
+        action_type: actionType,
+        duration_minutes: durationMinutes,
       });
 
-      const result = await response.json();
-
-      if (result.success && result.data) {
+      if (result) {
         setNudgeState({
           isVisible: true,
           actionType,
-          correction: result.data.correction
+          correction: result.correction
         });
       }
     } catch (error) {
       console.error('❌ Failed to trigger nudge:', error);
     }
-  }, []);
+  }, [trigger]);
 
   /**
    * 关闭微调提示

@@ -2,9 +2,9 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { User, Activity, Calendar, Scale, Smile } from 'lucide-react';
 import { tr, useI18n } from '@/lib/i18n';
+import { useOnboarding } from '@/hooks/domain/useOnboarding';
 
 /**
  * 个人资料设置页面（营销漏斗最后一步）
@@ -13,11 +13,24 @@ import { tr, useI18n } from '@/lib/i18n';
  */
 export default function ProfileSetupPage() {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
   const { language } = useI18n();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  // Use MVVM Hook
+  const {
+    saveStep,
+    isLoading: isHookLoading,
+    isSaving,
+    progress
+  } = useOnboarding();
+
+  // Redirect if already complete
+  // Note: saveStep handles redirection on completion internally in hook,
+  // but checking initial state is good.
+  useEffect(() => {
+    if (progress.is_complete) {
+      router.push('/unlearn/app');
+    }
+  }, [progress, router]);
 
   // 表单字段
   const [nickname, setNickname] = useState('');
@@ -26,43 +39,12 @@ export default function ProfileSetupPage() {
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
 
-  // 检查用户是否已登录以及是否已完成设置
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        console.error('用户未登录，重定向到登录页');
-        router.push('/login');
-        return;
-      }
-
-      setUserId(user.id);
-
-      // 检查用户是否已完成个人资料设置
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('height, weight, age')
-        .eq('id', user.id)
-        .single();
-
-      // 如果用户已完成设置，直接跳转到主页
-      if (profile && profile.height && profile.weight && profile.age) {
-        console.log('用户已完成个人资料设置，跳转到主页');
-        router.push('/unlearn/app');
-        return;
-      }
-    };
-    checkUser();
-  }, [supabase, router]);
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
 
     // 验证必填字段
     if (!height || !weight || !age) {
       alert(tr(language, { zh: '请填写所有必填字段', en: 'Please fill in all required fields.' }));
-      setIsLoading(false);
       return;
     }
 
@@ -73,55 +55,46 @@ export default function ProfileSetupPage() {
 
     if (heightNum < 100 || heightNum > 250) {
       alert(tr(language, { zh: '身高请输入 100-250 cm', en: 'Height must be between 100–250 cm.' }));
-      setIsLoading(false);
       return;
     }
 
     if (weightNum < 30 || weightNum > 300) {
       alert(tr(language, { zh: '体重请输入 30-300 kg', en: 'Weight must be between 30–300 kg.' }));
-      setIsLoading(false);
       return;
     }
 
     if (ageNum < 10 || ageNum > 120) {
       alert(tr(language, { zh: '年龄请输入 10-120 岁', en: 'Age must be between 10–120.' }));
-      setIsLoading(false);
       return;
     }
 
     try {
-      // 保存到 profiles 表
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: nickname.trim() || null,
-          height: heightNum,
-          weight: weightNum,
-          age: ageNum,
-          gender: gender,
-          profile_completed_at: new Date().toISOString(),
-        })
-        .eq('id', userId);
+      // Send to Brain via Bridge
+      const success = await saveStep({
+        first_name: nickname.trim(), // Maps to full_name in server action
+        age: ageNum,
+        gender,
+        height: heightNum,
+        weight: weightNum
+      });
 
-      if (error) {
-        console.error('保存个人资料失败:', error);
+      if (!success) {
         alert(tr(language, { zh: '保存失败，请重试', en: 'Save failed. Please try again.' }));
-        setIsLoading(false);
         return;
       }
 
-      // 保存成功，跳转到主页
+      // Success handled by hook's router push or side effect, but explicit for clarity
       console.log('✅ 个人资料保存成功，用户完成 onboarding');
       router.push('/unlearn/app');
       router.refresh();
+
     } catch (error) {
       console.error('保存个人资料时出错:', error);
       alert(tr(language, { zh: '保存失败，请重试', en: 'Save failed. Please try again.' }));
-      setIsLoading(false);
     }
   };
 
-  if (!userId) {
+  if (isHookLoading) {
     return (
       <div className="min-h-screen bg-[#FAF6EF] flex items-center justify-center">
         <p className="text-[#0B3D2E]">{tr(language, { zh: '正在加载...', en: 'Loading...' })}</p>
@@ -291,10 +264,10 @@ export default function ProfileSetupPage() {
           {/* 提交按钮 */}
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSaving}
             className="w-full py-4 bg-[#0B3D2E] text-[#FAF6EF] rounded-xl font-semibold hover:bg-[#0B3D2E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading
+            {isSaving
               ? tr(language, { zh: '正在保存...', en: 'Saving...' })
               : tr(language, { zh: '完成设置，进入主页 →', en: 'Finish and continue →' })}
           </button>

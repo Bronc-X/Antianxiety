@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import MarketingNav from './MarketingNav';
+import { useAuth } from '@/hooks/domain/useAuth';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 /**
  * Global Navigation Wrapper
@@ -12,37 +12,28 @@ import MarketingNav from './MarketingNav';
  */
 export default function GlobalNav() {
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const supabase = createClientSupabaseClient();
+  const { user, isLoading: authLoading, error: authError } = useAuth();
+  const { profile, isLoading: profileLoading, error: profileError } = useProfile();
 
   // Hide nav on auth pages and marketing pages (which have their own nav)
   const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta', '/brutalist', '/unlearn'];
   const shouldHideNav = hideNavPages.some(page => pathname?.startsWith(page));
 
-  useEffect(() => {
-    async function fetchUserData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('full_name, avatar_url')
-          .eq('id', user.id)
-          .single();
-        setProfile(data);
-      }
-    }
-
-    if (!shouldHideNav) {
-      fetchUserData();
-    }
-  }, [pathname, shouldHideNav]);
-
   if (shouldHideNav) {
     return null;
   }
 
-  return <MarketingNav user={user} profile={profile} />;
+  const isLoading = authLoading || (!!user && profileLoading);
+  const errorMessage = authError || (user ? profileError : null);
+
+  return (
+    <div className={isLoading ? 'animate-pulse' : ''}>
+      <MarketingNav user={user} profile={profile} />
+      {errorMessage && (
+        <div className="mt-2 text-center text-sm text-red-600">
+          {errorMessage}
+        </div>
+      )}
+    </div>
+  );
 }

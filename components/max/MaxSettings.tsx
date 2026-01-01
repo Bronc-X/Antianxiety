@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Zap, Brain, Sparkles, Activity } from 'lucide-react';
 import { AISettings, MaxMode, HONESTY_RANGE, HUMOR_RANGE } from '@/types/max';
+import { useMaxApi } from '@/hooks/domain/useMaxApi';
 
 interface MaxSettingsProps {
   initialSettings?: AISettings;
@@ -39,6 +40,7 @@ function deriveMode(humorLevel: number): MaxMode {
 }
 
 export function MaxSettings({ initialSettings, onSettingsChange }: MaxSettingsProps) {
+  const { loadSettings, saveSettings, getResponse } = useMaxApi();
   const [settings, setSettings] = useState<AISettings>(initialSettings || {
     honesty_level: 90,
     humor_level: 65,
@@ -61,12 +63,9 @@ export function MaxSettings({ initialSettings, onSettingsChange }: MaxSettingsPr
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/max/settings');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.settings) {
-          setSettings(data.settings);
-        }
+      const data = await loadSettings();
+      if (data?.settings) {
+        setSettings(data.settings);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -80,28 +79,19 @@ export function MaxSettings({ initialSettings, onSettingsChange }: MaxSettingsPr
 
     try {
       setIsLoading(true);
-      const res = await fetch('/api/max/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings)
-      });
+      const saved = await saveSettings(newSettings);
 
-      if (res.ok) {
-        const feedbackRes = await fetch('/api/max/response', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event_type: 'slider_change',
-            data: { 
-              setting: Object.keys(newSettings)[0],
-              value: Object.values(newSettings)[0]
-            }
-          })
+      if (saved) {
+        const feedback = await getResponse({
+          event_type: 'slider_change',
+          data: { 
+            setting: Object.keys(newSettings)[0],
+            value: Object.values(newSettings)[0]
+          }
         });
 
-        if (feedbackRes.ok) {
-          const feedbackData = await feedbackRes.json();
-          setMaxFeedback(feedbackData.response?.text || 'Parameters updated.');
+        if (feedback?.response) {
+          setMaxFeedback(feedback.response?.text || 'Parameters updated.');
         }
       }
     } catch (error) {

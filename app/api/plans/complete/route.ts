@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     // 2. 更新 user_plans.content 中的 items 完成状态
     if (currentPlan && completedItems && Array.isArray(completedItems)) {
       try {
-        let content = typeof currentPlan.content === 'string' 
+        const content = typeof currentPlan.content === 'string' 
           ? JSON.parse(currentPlan.content) 
           : currentPlan.content || {};
         

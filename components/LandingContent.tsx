@@ -10,6 +10,7 @@ import { MotionButton } from '@/components/motion/MotionButton';
 import TypewriterText from '@/components/motion/TypewriterText';
 import { CalibrationInput, GeneratedTask } from '@/lib/calibration-service';
 import { useI18n } from '@/lib/i18n';
+import { useInsight } from '@/hooks/domain/useInsight';
 
 
 // 懒加载重型组件 - 显著提升首屏渲染速度
@@ -43,6 +44,7 @@ interface LandingContentProps {
 
 export default function LandingContent({ user, profile, dailyLogs }: LandingContentProps) {
   const { t, language } = useI18n();
+  const { generate, fallback } = useInsight();
   const [insight, setInsight] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAnomalyCard, setShowAnomalyCard] = useState(false);
@@ -125,33 +127,29 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
 
   useEffect(() => {
     if (!canGenerateInsight && !canFallbackInsight) { setIsLoading(false); return; }
-    const generateInsight = async () => {
+    const runInsight = async () => {
       setIsLoading(true);
       try {
         if (canGenerateInsight) {
-          const response = await fetch('/api/insight/generate', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sleep_hours: biometrics.sleep, hrv: biometrics.hrv, stress_level: biometrics.stress })
+          const result = await generate({
+            sleep_hours: biometrics.sleep,
+            hrv: biometrics.hrv,
+            stress_level: biometrics.stress,
           });
-          if (response.ok) {
-            const reader = response.body?.getReader();
-            const decoder = new TextDecoder();
-            let text = '';
-            while (reader) { const { done, value } = await reader.read(); if (done) break; text += decoder.decode(value, { stream: true }); }
-            setInsight(text || null);
+          if (result) {
+            setInsight(result);
           }
           return;
         }
 
-        const fallbackResponse = await fetch('/api/insight', { method: 'POST' });
-        if (fallbackResponse.ok) {
-          const data = await fallbackResponse.json();
-          setInsight(data?.insight || null);
+        const fallbackResult = await fallback();
+        if (fallbackResult) {
+          setInsight(fallbackResult);
         }
       } catch (err) { console.error(err); } finally { setIsLoading(false); }
     };
-    generateInsight();
-  }, [canGenerateInsight, canFallbackInsight, biometrics.sleep, biometrics.hrv, biometrics.stress]);
+    runInsight();
+  }, [canGenerateInsight, canFallbackInsight, biometrics.sleep, biometrics.hrv, biometrics.stress, generate, fallback]);
 
   const handleAnomalyAnswer = (trigger: string) => { console.log('Anomaly:', trigger); setShowAnomalyCard(false); };
   const anomalyLabels = language === 'en' ? ['🍷 Alcohol', '🍜 Late Dinner', '😰 High Stress', 'None'] : ['🍷 饮酒', '🍜 晚餐过晚', '😰 压力大', '都没有'];

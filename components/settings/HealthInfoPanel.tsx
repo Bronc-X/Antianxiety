@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 interface ProfileRecord {
   id?: string;
@@ -32,9 +32,9 @@ interface HealthFormState {
 
 export default function HealthInfoPanel({ initialProfile }: HealthInfoPanelProps) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoading, isSaving, error, update } = useProfile();
+  const [localError, setLocalError] = useState<string | null>(null);
+  const isPending = isLoading;
 
   const [formData, setFormData] = useState<HealthFormState>({
     height: initialProfile?.height?.toString() || '',
@@ -52,55 +52,34 @@ export default function HealthInfoPanel({ initialProfile }: HealthInfoPanelProps
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSaving(true);
-    setError(null);
+    setLocalError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('请先登录');
-        setIsSaving(false);
-        return;
-      }
+      const success = await update({
+        height: formData.height ? parseFloat(formData.height) : null,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
+        birth_date: formData.birth_date || null,
+        location: formData.location || null,
+        daily_checkin_time: formData.daily_checkin_time ? `${formData.daily_checkin_time}:00` : null,
+        notification_enabled: formData.notification_enabled,
+        notification_email: formData.notification_email || null,
+      });
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          height: formData.height ? parseFloat(formData.height) : null,
-          weight: formData.weight ? parseFloat(formData.weight) : null,
-          birth_date: formData.birth_date || null,
-          location: formData.location || null,
-          daily_checkin_time: formData.daily_checkin_time ? `${formData.daily_checkin_time}:00` : null,
-          notification_enabled: formData.notification_enabled,
-          notification_email: formData.notification_email || null,
-        })
-        .eq('id', user.id);
-
-      if (updateError) {
-        setError(`保存失败: ${updateError.message}`);
-        setIsSaving(false);
+      if (!success) {
+        setLocalError(error || '保存失败，请稍后重试');
         return;
       }
 
       // 保存成功后刷新页面
       router.refresh();
-      setError(null);
     } catch (err) {
       console.error('保存设置时出错:', err);
-      setError('保存时发生错误，请稍后重试');
-      setIsSaving(false);
-    } finally {
-      setIsSaving(false);
+      setLocalError('保存时发生错误，请稍后重试');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="rounded-md bg-red-50 p-4 border border-red-200">
-          <p className="text-sm text-red-800">{error}</p>
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className={`space-y-6 ${isPending ? 'animate-pulse' : ''}`}>
 
       {/* 个人生理指标 */}
       <div>
@@ -220,6 +199,11 @@ export default function HealthInfoPanel({ initialProfile }: HealthInfoPanelProps
           {isSaving ? '保存中...' : '保存'}
         </button>
       </div>
+      {(localError || error) && (
+        <div className="rounded-md bg-red-50 p-4 border border-red-200">
+          <p className="text-sm text-red-800">{localError || error}</p>
+        </div>
+      )}
     </form>
   );
 }

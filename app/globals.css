@@ -120,40 +120,74 @@
   }
 }
 
-/* Luxury / Editorial - Dark Mode (Muted Charcoal) */
+/* Luxury / Editorial - Dark Mode (Muted Charcoal -> Deep Obsidian Tech) */
 .dark {
-  --primary: 0 0% 98%;
+  /* Obsidian Palette for High-Tech feel */
+  --background: 220 15% 7%;  /* #0F1115 - Deep Obsidian */
+  --foreground: 39 47% 96%;  /* #F9F8F6 - Off White */
+  
+  --primary: 38 78% 50%;     /* Gold as Primary in Dark Mode */
   --primary-foreground: 0 0% 10%;
-  --background: 0 0% 10%;
-  /* #1A1A1A */
-  --foreground: 39 47% 96%;
-  /* #F9F8F6 */
+
   --accent: 38 78% 50%;
-  /* Gold remains */
   --accent-foreground: 0 0% 10%;
 
-  --card: 0 0% 10%;
+  --card: 220 15% 8%;       /* Slightly lighter obsidian */
   --card-foreground: 39 47% 96%;
-  --popover: 0 0% 10%;
+  
+  --popover: 220 15% 8%;
   --popover-foreground: 39 47% 96%;
 
-  --secondary: 0 0% 15%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 20%;
-  --muted-foreground: 0 0% 60%;
+  --secondary: 220 10% 12%; 
+  --secondary-foreground: 39 47% 96%;
 
-  --border: 0 0% 25%;
-  --input: 0 0% 25%;
-  --ring: 38 78% 50%;
+  --muted: 220 10% 15%;
+  --muted-foreground: 220 5% 50%;
 
-  --destructive: 0 62% 30%;
-  --destructive-foreground: 0 0% 98%;
+  --border: 220 10% 15%;     /* Subtle borders */
+  --input: 220 10% 15%;
+  
+  --ring: 38 78% 50%;        /* Gold Focus Ring */
 
-  --chart-1: 0 0% 90%;
-  --chart-2: 38 78% 50%;
-  --chart-3: 0 0% 70%;
-  --chart-4: 0 0% 50%;
-  --chart-5: 0 0% 30%;
+  /* Chart & Data Colors */
+  --chart-1: 38 78% 50%;     /* Gold */
+  --chart-2: 170 80% 60%;    /* Tech Cyan */
+  --chart-3: 260 80% 70%;    /* Neural Purple */
+  --chart-4: 0 0% 40%;       /* Grey */
+  --chart-5: 0 0% 20%;       /* Dark Grey */
+}
+
+/* ==========================================
+   TECH TEXTURES & UTILITIES
+   ========================================== */
+
+/* Scanline Effect */
+.bg-scanlines {
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+/* Dot Grid Background */
+.bg-grid-dots {
+  background-image: radial-gradient(rgba(212, 175, 55, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Tech Border Glow */
+.tech-border-glow {
+  position: relative;
+}
+.tech-border-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(45deg, transparent 40%, rgba(212, 175, 55, 0.3) 50%, transparent 60%);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 @theme inline {

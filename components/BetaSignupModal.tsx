@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Loader2, CheckCircle, Sparkles } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useBetaSignup } from '@/hooks/domain/useBetaSignup';
 
 interface BetaSignupModalProps {
     isOpen: boolean;
@@ -13,51 +13,28 @@ interface BetaSignupModalProps {
 
 export default function BetaSignupModal({ isOpen, onClose }: BetaSignupModalProps) {
     const { language } = useI18n();
+    const { submit, isSubmitting, error, clearError } = useBetaSignup();
     const [email, setEmail] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        return () => clearError();
+    }, [clearError]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null);
-        setIsLoading(true);
+        clearError();
 
-        try {
-            const supabase = createClientSupabaseClient();
-            const { error: insertError } = await supabase
-                .from('beta_signups')
-                .insert({
-                    email: email.toLowerCase().trim(),
-                    source: 'welcome_modal',
-                    status: 'pending'
-                });
-
-            if (insertError) {
-                if (insertError.code === '23505') {
-                    // Duplicate email - treat as success
-                    setIsSuccess(true);
-                } else {
-                    throw insertError;
-                }
-            } else {
-                setIsSuccess(true);
-            }
-        } catch (err: unknown) {
-            console.error('Beta signup error:', err);
-            setError(language === 'en'
-                ? 'Something went wrong. Please try again.'
-                : '出错了，请稍后再试。'
-            );
-        } finally {
-            setIsLoading(false);
+        const success = await submit(email.toLowerCase().trim());
+        if (success) {
+            setIsSuccess(true);
         }
     };
 
     const handleClose = () => {
         setEmail('');
         setIsSuccess(false);
-        setError(null);
+        clearError();
         onClose();
     };
 
@@ -108,7 +85,7 @@ export default function BetaSignupModal({ isOpen, onClose }: BetaSignupModalProp
                                         }
                                     </p>
 
-                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                    <form onSubmit={handleSubmit} className={`space-y-4 ${isSubmitting ? 'animate-pulse' : ''}`}>
                                         <div className="relative">
                                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1A1A1A]/30 dark:text-white/30" />
                                             <input
@@ -121,16 +98,12 @@ export default function BetaSignupModal({ isOpen, onClose }: BetaSignupModalProp
                                             />
                                         </div>
 
-                                        {error && (
-                                            <p className="text-red-500 text-sm">{error}</p>
-                                        )}
-
                                         <button
                                             type="submit"
-                                            disabled={isLoading || !email}
+                                            disabled={isSubmitting || !email}
                                             className="w-full py-4 bg-[#1A1A1A] dark:bg-white text-white dark:text-[#1A1A1A] rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-[#2A2A2A] dark:hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {isLoading ? (
+                                            {isSubmitting ? (
                                                 <>
                                                     <Loader2 className="w-5 h-5 animate-spin" />
                                                     {language === 'en' ? 'Submitting...' : '提交中...'}
@@ -139,6 +112,9 @@ export default function BetaSignupModal({ isOpen, onClose }: BetaSignupModalProp
                                                 language === 'en' ? 'Request Access' : '申请密钥'
                                             )}
                                         </button>
+                                        {error && (
+                                            <p className="text-red-500 text-sm">{error}</p>
+                                        )}
                                     </form>
 
                                     <p className="text-xs text-[#1A1A1A]/40 dark:text-white/40 mt-4 text-center">

@@ -16,8 +16,11 @@ interface Plan {
 }
 
 interface PlanListWithActionsProps {
-  initialPlans: Plan[];
-  onPlanDeleted?: () => void;
+  plans: any[]; // In strict mode this should be PlanData[] but we'll map or match shapes
+  onDelete: (id: string) => Promise<boolean>;
+  onComplete?: (id: string) => Promise<boolean>;
+  onPause?: (id: string) => Promise<boolean>;
+  onResume?: (id: string) => Promise<boolean>;
 }
 
 // 从内容中提取关注点
@@ -145,11 +148,12 @@ interface ScheduleDay {
   items: ScheduleItem[];
 }
 
-export default function PlanListWithActions({ initialPlans, onPlanDeleted }: PlanListWithActionsProps) {
+
+export default function PlanListWithActions({ plans, onDelete, onComplete }: PlanListWithActionsProps) {
   const { t, language } = useI18n();
   const normalizedLanguage: 'zh' | 'en' = language === 'en' ? 'en' : 'zh';
   const locale = language === 'en' ? 'en-US' : language === 'zh-TW' ? 'zh-TW' : 'zh-CN';
-  const [plans, setPlans] = useState<Plan[]>(initialPlans);
+  // Removed local plans state
   const [expandedPlanIds, setExpandedPlanIds] = useState<Set<string>>(new Set());
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [scheduleCompletions, setScheduleCompletions] = useState<Record<string, Record<string, boolean>>>({});
@@ -189,10 +193,7 @@ export default function PlanListWithActions({ initialPlans, onPlanDeleted }: Pla
     if (!confirm(t('plans.confirmDelete'))) return;
     try {
       setDeletingPlanId(planId);
-      const response = await fetch(`/api/plans/${planId}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error(t('plans.deleteFailed'));
-      setPlans(prev => prev.filter(p => p.id !== planId));
-      onPlanDeleted?.();
+      await onDelete(planId);
     } catch (error) {
       console.error('Delete plan failed:', error);
       alert(t('plans.deleteFailedRetry'));

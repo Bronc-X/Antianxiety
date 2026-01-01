@@ -1,146 +1,201 @@
 'use client';
 
-/**
- * useCalibration Domain Hook (The Bridge)
- * 
- * Manages daily calibration state.
- */
-
 import { useState, useCallback, useEffect } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
+import { useAuth } from '@/hooks/domain/useAuth';
 import {
-    getTodayCalibration,
-    saveCalibration,
-    getCalibrationHistory,
-    type CalibrationData,
-    type CalibrationInput
-} from '@/app/actions/calibration';
+    getDailyCalibrationQuestions,
+    processDailyCalibration,
+    getUserCalibrationFrequency,
+    resetToDailyFrequency,
+    shouldCalibrateToday,
+    type DailyCalibrationQuestion,
+    type DailyCalibrationResult,
+} from '@/lib/assessment';
 
 // ============================================
 // Types
 // ============================================
 
-export interface UseCalibrationReturn {
-    // Data
-    todayData: CalibrationData | null;
-    history: CalibrationData[];
-    isCompleted: boolean;
+export type CalibrationStep = 'welcome' | 'questions' | 'analyzing' | 'result';
 
-    // States
+export interface UseCalibrationReturn {
+    // State
+    step: CalibrationStep;
+    questions: DailyCalibrationQuestion[];
+    currentQuestionIndex: number;
+    answers: Record<string, number>;
+    result: DailyCalibrationResult | null;
     isLoading: boolean;
-    isSaving: boolean;
-    isOffline: boolean;
-    error: string | null;
+    isSaving: boolean; // separate saving state if needed
+
+    // Frequency State
+    frequency: 'daily' | 'every_other_day';
+    frequencyReason: string | undefined;
+    shouldShowToday: boolean;
+    hasCompletedToday: boolean;
+    isRestoringFrequency: boolean;
 
     // Actions
-    save: (input: CalibrationInput) => Promise<boolean>;
-    refresh: () => Promise<void>;
-    loadHistory: (days?: number) => Promise<void>;
+    start: () => Promise<void>;
+    answerQuestion: (questionId: string, value: number) => void;
+    checkFrequency: () => Promise<void>;
+    resetFrequency: () => Promise<void>;
+
+    // Helpers
+    progressPercent: number;
+    currentQuestion: DailyCalibrationQuestion | undefined;
 }
 
 // ============================================
 // Hook Implementation
 // ============================================
 
-export function useCalibration(): UseCalibrationReturn {
-    const { isOnline } = useNetwork();
+export function useCalibration(initialUserId?: string): UseCalibrationReturn {
+    const { user } = useAuth();
+    const userId = initialUserId || user?.id; // Priority to prop, then auth
 
-    const [todayData, setTodayData] = useState<CalibrationData | null>(null);
-    const [history, setHistory] = useState<CalibrationData[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    // Flow State
+    const [step, setStep] = useState<CalibrationStep>('welcome');
+    const [questions, setQuestions] = useState<DailyCalibrationQuestion[]>([]);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [answers, setAnswers] = useState<Record<string, number>>({});
+    const [result, setResult] = useState<DailyCalibrationResult | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    // Fetch today's data on mount
-    useEffect(() => {
-        const fetchToday = async () => {
-            try {
-                const result = await getTodayCalibration();
-                if (result.success) {
-                    setTodayData(result.data || null);
-                } else {
-                    setError(result.error || 'Failed to load');
-                }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed');
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    // Frequency State
+    const [frequency, setFrequency] = useState<'daily' | 'every_other_day'>('daily');
+    const [frequencyReason, setFrequencyReason] = useState<string | undefined>();
+    const [shouldShowToday, setShouldShowToday] = useState(true);
+    const [hasCompletedToday, setHasCompletedToday] = useState(false);
+    const [isRestoringFrequency, setIsRestoringFrequency] = useState(false);
 
-        fetchToday();
-    }, []);
+    // Check frequency and completion on mount
+    const checkFrequency = useCallback(async () => {
+        if (!userId) return;
 
-    // Save calibration
-    const save = useCallback(async (input: CalibrationInput): Promise<boolean> => {
-        setIsSaving(true);
-        setError(null);
+        const today = new Date().toISOString().split('T')[0];
+        const storageKey = `calibration_${userId}_${today}`;
+        const completed = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+
+        if (completed) {
+            setHasCompletedToday(true);
+        }
 
         try {
-            const result = await saveCalibration(input);
+            const freqData = await getUserCalibrationFrequency(userId);
+            setFrequency(freqData.dailyFrequency);
+            setFrequencyReason(freqData.frequencyReason);
 
-            if (result.success && result.data) {
-                setTodayData(result.data);
-                return true;
-            } else {
-                setError(result.error || 'Failed to save');
-                return false;
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed');
-            return false;
-        } finally {
-            setIsSaving(false);
+            const shouldShow = await shouldCalibrateToday(userId);
+            setShouldShowToday(shouldShow);
+        } catch (e) {
+            console.error('Failed to load frequency:', e);
+            setFrequency('daily');
         }
-    }, []);
+    }, [userId]);
 
-    // Refresh today's data
-    const refresh = useCallback(async () => {
+    useEffect(() => {
+        checkFrequency();
+    }, [checkFrequency]);
+
+    // Start flow
+    const start = useCallback(async () => {
         setIsLoading(true);
         try {
-            const result = await getTodayCalibration();
-            if (result.success) {
-                setTodayData(result.data || null);
-                setError(null);
-            }
-        } catch {
-            // Ignore
+            const dailyQuestions = getDailyCalibrationQuestions();
+            setQuestions(dailyQuestions);
+            setStep('questions');
+            setCurrentQuestionIndex(0);
+        } catch (error) {
+            console.error('Failed to start calibration:', error);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    // Load history
-    const loadHistory = useCallback(async (days = 7) => {
-        try {
-            const result = await getCalibrationHistory(days);
-            if (result.success && result.data) {
-                setHistory(result.data);
-            }
-        } catch {
-            // Ignore
-        }
-    }, []);
+    // Handle Answer
+    const answerQuestion = useCallback((questionId: string, value: number) => {
+        setAnswers(prev => ({ ...prev, [questionId]: value }));
 
-    // Check if today is completed
-    const isCompleted = todayData !== null && (
-        todayData.mood_status !== null ||
-        todayData.sleep_duration_minutes !== null ||
-        todayData.stress_level !== null
-    );
+        // Logic for advancing is handled by UI (delay) or we can expose a 'next' function
+        // For now, we update state immediately.
+
+        // Automated progression logic
+        setTimeout(() => {
+            if (currentQuestionIndex < questions.length - 1) {
+                setCurrentQuestionIndex(prev => prev + 1);
+            } else {
+                submitAssessment({ ...answers, [questionId]: value });
+            }
+        }, 400); // Small delay for UI feedback, but this couples logic with UI timing...
+        // Ideally UI handles the delay and calls 'next'. 
+        // But preserving original behavior which had timeout in handler.
+    }, [currentQuestionIndex, questions.length, answers]);
+
+    // Submit Assessment
+    const submitAssessment = useCallback(async (finalAnswers: Record<string, number>) => {
+        if (!userId) return;
+        setStep('analyzing');
+        setIsLoading(true);
+
+        try {
+            // Process logic (Client Lib for now, wrapping Server calls)
+            const assessmentResult = await processDailyCalibration(userId, finalAnswers);
+
+            // Mark local storage
+            const today = new Date().toISOString().split('T')[0];
+            localStorage.setItem(`calibration_${userId}_${today}`, 'true');
+
+            setResult(assessmentResult);
+            setStep('result');
+            setHasCompletedToday(true);
+        } catch (error) {
+            console.error('Assessment failed:', error);
+            setStep('result'); // Or error state
+        } finally {
+            setIsLoading(false);
+        }
+    }, [userId]);
+
+    // Reset Frequency
+    const resetFrequency = useCallback(async () => {
+        if (!userId) return;
+        setIsRestoringFrequency(true);
+        try {
+            await resetToDailyFrequency(userId);
+            setFrequency('daily');
+            setShouldShowToday(true);
+            setFrequencyReason(undefined);
+        } catch (e) {
+            console.error('Failed to reset frequency:', e);
+        } finally {
+            setIsRestoringFrequency(false);
+        }
+    }, [userId]);
+
+    const progressPercent = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
+    const currentQuestion = questions[currentQuestionIndex];
 
     return {
-        todayData,
-        history,
-        isCompleted,
+        step,
+        questions,
+        currentQuestionIndex,
+        answers,
+        result,
         isLoading,
         isSaving,
-        isOffline: !isOnline,
-        error,
-        save,
-        refresh,
-        loadHistory,
+        frequency,
+        frequencyReason,
+        shouldShowToday,
+        hasCompletedToday,
+        isRestoringFrequency,
+        start,
+        answerQuestion,
+        checkFrequency,
+        resetFrequency,
+        progressPercent,
+        currentQuestion
     };
 }
-
-export type { CalibrationData, CalibrationInput };

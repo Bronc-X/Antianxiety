@@ -1,59 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Activity, Moon, Brain, Heart, Zap, TrendingUp, TrendingDown, Minus, Settings, ChevronRight, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Activity, Moon, Brain, Heart, Zap, TrendingUp, TrendingDown, Minus, Settings, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import BrutalistNav from './BrutalistNav';
+import { useDashboard } from '@/hooks/domain/useDashboard';
+import { useAuth } from '@/hooks/domain/useAuth';
 
 interface WellnessLog {
     log_date: string;
-    overall_readiness: number;
-    ai_recommendation: string;
+    overall_readiness?: number | null;
+    ai_recommendation?: string | null;
     sleep_quality?: number;
     stress_level?: number;
 }
 
 export default function BrutalistDashboard() {
     const router = useRouter();
-    const supabase = createClientComponentClient();
-
-    const [userId, setUserId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [logs, setLogs] = useState<WellnessLog[]>([]);
-    const [todayLog, setTodayLog] = useState<WellnessLog | null>(null);
+    const { weeklyLogs, isLoading, error } = useDashboard();
+    const { isLoading: authLoading, isAuthenticated } = useAuth();
+    const logs = weeklyLogs as WellnessLog[];
+    const today = new Date().toISOString().split('T')[0];
+    const todayLog = logs.find((log) => log.log_date === today) || null;
 
     useEffect(() => {
-        async function loadData() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                router.push('/brutalist/signup');
-                return;
-            }
-            setUserId(user.id);
-
-            // Fetch last 7 days
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-            const { data } = await supabase
-                .from('daily_wellness_logs')
-                .select('log_date, overall_readiness, ai_recommendation, sleep_quality, stress_level')
-                .eq('user_id', user.id)
-                .gte('log_date', sevenDaysAgo.toISOString().split('T')[0])
-                .order('log_date', { ascending: false });
-
-            if (data) {
-                setLogs(data);
-                const today = new Date().toISOString().split('T')[0];
-                setTodayLog(data.find(l => l.log_date === today) || null);
-            }
-
-            setLoading(false);
+        if (!authLoading && !isAuthenticated) {
+            router.push('/brutalist/signup');
         }
-        loadData();
-    }, [supabase, router]);
+    }, [authLoading, isAuthenticated, router]);
 
     const getReadinessColor = (score: number) => {
         if (score < 2.5) return 'text-blue-400 border-blue-400/50';
@@ -71,10 +46,10 @@ export default function BrutalistDashboard() {
         return 'stable';
     };
 
-    if (loading) {
+    if (isLoading || authLoading) {
         return (
             <div className="brutalist-page min-h-screen flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-[#00FF94] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#00FF94] border-t-transparent rounded-full animate-spin animate-pulse" />
             </div>
         );
     }
@@ -285,6 +260,9 @@ export default function BrutalistDashboard() {
                         </motion.button>
                     </div>
                 </div>
+                {error && (
+                    <div className="mt-6 text-center text-xs text-red-400">{error}</div>
+                )}
             </main>
         </div>
     );

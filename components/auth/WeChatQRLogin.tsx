@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QrCode, RefreshCw, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { useAuthProviders } from '@/hooks/domain/useAuthProviders';
 
 /**
  * WeChat QR Code Login Component
@@ -19,20 +20,26 @@ interface WeChatQRLoginProps {
 type LoginState = 'loading' | 'ready' | 'scanning' | 'success' | 'error' | 'expired';
 
 export default function WeChatQRLogin({ onSuccess, onError }: WeChatQRLoginProps) {
+    const { loadWeChatQr } = useAuthProviders();
     const [state, setState] = useState<LoginState>('loading');
     const [loginUrl, setLoginUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    const onErrorRef = useRef(onError);
+
+    useEffect(() => {
+        onErrorRef.current = onError;
+    }, [onError]);
+
     const fetchQRCode = useCallback(async () => {
         setState('loading');
-        setError(null);
+        // setError(null); // Don't clear error here if we want to preserve previous error for specific cases, but usually fine.
 
         try {
-            const response = await fetch('/api/auth/wechat/qr');
-            const data = await response.json();
+            const data = await loadWeChatQr();
 
-            if (!data.success) {
-                throw new Error(data.error || '获取二维码失败');
+            if (!data?.loginUrl) {
+                throw new Error('获取二维码失败');
             }
 
             setLoginUrl(data.loginUrl);
@@ -45,12 +52,14 @@ export default function WeChatQRLogin({ onSuccess, onError }: WeChatQRLoginProps
 
         } catch (err) {
             console.error('Failed to fetch WeChat QR:', err);
-            setError(err instanceof Error ? err.message : '网络错误，请重试');
+            const msg = err instanceof Error ? err.message : '网络错误，请重试';
+            setError(msg);
             setState('error');
-            onError?.(err instanceof Error ? err.message : '网络错误');
+            onErrorRef.current?.(msg);
         }
-    }, [onError]);
+    }, [loadWeChatQr]); // Stable function from hook
 
+    // Initial fetch on mount
     useEffect(() => {
         fetchQRCode();
     }, [fetchQRCode]);

@@ -2,8 +2,9 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useI18n } from '@/lib/i18n';
+import { useProfile } from '@/hooks/domain/useProfile';
+import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
 
 interface HealthProfileFormProps {
   userId: string;
@@ -30,8 +31,9 @@ interface HealthProfileFormProps {
 
 export default function HealthProfileForm({ userId, initialData }: HealthProfileFormProps) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
   const { t } = useI18n();
+  const { saveHealthProfile } = useProfile();
+  const { refresh: refreshProfile, sync } = useProfileMaintenance();
 
   const [formData, setFormData] = useState({
     gender: initialData?.gender || '',
@@ -126,42 +128,36 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
 
       console.log('准备保存数据:', payload);
 
-      const response = await fetch('/api/profile/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gender: formData.gender || null,
-          birth_date: formData.birth_date || null,
-          height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
-          weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
-          activity_level: formData.activity_level || null,
-          body_fat_percentage: formData.body_fat_percentage ? parseFloat(formData.body_fat_percentage) : null,
-          primary_goal: formData.primary_goal,
-          target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : null,
-          weekly_goal_rate: formData.weekly_goal_rate,
-          sleep_hours: formData.sleep_hours ? Math.round(parseFloat(formData.sleep_hours) * 10) / 10 : null,
-          stress_level: formData.stress_level ? parseInt(formData.stress_level, 10) : null,
-          energy_level: formData.energy_level ? parseInt(formData.energy_level, 10) : null,
-          exercise_frequency: formData.exercise_frequency,
-          caffeine_intake: formData.caffeine_intake,
-          alcohol_intake: formData.alcohol_intake,
-          smoking_status: formData.smoking_status,
-          metabolic_concerns: formData.metabolic_concerns,
-        }),
+      const result = await saveHealthProfile({
+        gender: formData.gender || null,
+        birth_date: formData.birth_date || null,
+        height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
+        weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
+        activity_level: formData.activity_level || null,
+        body_fat_percentage: formData.body_fat_percentage ? parseFloat(formData.body_fat_percentage) : null,
+        primary_goal: formData.primary_goal,
+        target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : null,
+        weekly_goal_rate: formData.weekly_goal_rate,
+        sleep_hours: formData.sleep_hours ? Math.round(parseFloat(formData.sleep_hours) * 10) / 10 : null,
+        stress_level: formData.stress_level ? parseInt(formData.stress_level, 10) : null,
+        energy_level: formData.energy_level ? parseInt(formData.energy_level, 10) : null,
+        exercise_frequency: formData.exercise_frequency,
+        caffeine_intake: formData.caffeine_intake,
+        alcohol_intake: formData.alcohol_intake,
+        smoking_status: formData.smoking_status,
+        metabolic_concerns: formData.metabolic_concerns,
       });
-
-      const result = await response.json();
       console.log('API 返回:', result);
 
-      if (!response.ok || result.error) {
+      if (!result.success) {
         throw new Error(result.error || t('healthProfile.error.saveFailed'));
       }
 
       setSuccess(t('healthProfile.saved'));
 
       // 后台刷新：更新 AI 分析/方案 + 用户画像向量（用于文章推荐）
-      fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
-      fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
+      refreshProfile().catch(() => {});
+      sync().catch(() => {});
 
       setTimeout(() => {
         router.push('/unlearn/app');

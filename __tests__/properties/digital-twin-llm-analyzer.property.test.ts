@@ -23,6 +23,12 @@ import type { AggregatedUserData } from '@/types/digital-twin';
 // 配置 fast-check 运行 100 次迭代
 fc.configureGlobal({ numRuns: 100 });
 
+const isoDateArb = fc.integer({ min: 0, max: 365 * 10 }).map(daysAgo => {
+  const date = new Date('2030-12-31T00:00:00.000Z');
+  date.setUTCDate(date.getUTCDate() - daysAgo);
+  return date.toISOString();
+});
+
 // ============================================
 // 生成器
 // ============================================
@@ -99,7 +105,7 @@ const aggregatedUserDataArb: fc.Arbitrary<AggregatedUserData> = fc.record({
     phq9Score: fc.integer({ min: 0, max: 27 }),
     isiScore: fc.integer({ min: 0, max: 28 }),
     pss10Score: fc.integer({ min: 0, max: 40 }),
-    assessmentDate: fc.date().map(d => d.toISOString()),
+    assessmentDate: isoDateArb,
     interpretations: fc.record({
       gad7: fc.constant('轻度焦虑'),
       phq9: fc.constant('轻度抑郁'),
@@ -124,13 +130,13 @@ const aggregatedUserDataArb: fc.Arbitrary<AggregatedUserData> = fc.record({
     totalMessages: fc.integer({ min: 0, max: 1000 }),
     emotionalTrend: fc.constantFrom('improving', 'stable', 'declining'),
     frequentTopics: fc.array(fc.string(), { maxLength: 5 }),
-    lastInteraction: fc.date().map(d => d.toISOString()),
+    lastInteraction: isoDateArb,
   }),
   profile: fc.record({
     age: fc.option(fc.integer({ min: 18, max: 100 }), { nil: undefined }),
     gender: fc.option(fc.constantFrom('male', 'female', 'other'), { nil: undefined }),
     primaryConcern: fc.option(fc.string(), { nil: undefined }),
-    registrationDate: fc.date().map(d => d.toISOString()),
+    registrationDate: isoDateArb,
     medicalHistoryConsent: fc.boolean(),
   }),
 });

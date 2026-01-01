@@ -19,22 +19,36 @@ export interface CalibrationData {
     user_id: string;
     log_date: string;
     sleep_duration_minutes: number | null;
-    sleep_quality: number | null;
+    sleep_quality: string | number | null;
+    exercise_duration_minutes: number | null;
+    exercise_type?: string | null;
+    body_tension?: number | null;
+    mental_clarity?: number | null;
+    morning_energy?: number | null;
     mood_status: string | null;
     energy_level: number | null;
     stress_level: number | null;
     anxiety_level: number | null;
+    overall_readiness?: number | null;
+    ai_recommendation?: string | null;
     notes: string | null;
     created_at: string;
 }
 
 export interface CalibrationInput {
     sleep_duration_minutes?: number;
-    sleep_quality?: number;
+    sleep_quality?: string | number | null;
+    exercise_duration_minutes?: number | null;
+    exercise_type?: string | null;
+    body_tension?: number | null;
+    mental_clarity?: number | null;
+    morning_energy?: number | null;
     mood_status?: string;
     energy_level?: number;
     stress_level?: number;
     anxiety_level?: number;
+    overall_readiness?: number | null;
+    ai_recommendation?: string | null;
     notes?: string;
 }
 
@@ -78,10 +92,17 @@ export async function getTodayCalibration(): Promise<ActionResult<CalibrationDat
             log_date: data.log_date,
             sleep_duration_minutes: data.sleep_duration_minutes,
             sleep_quality: data.sleep_quality,
+            exercise_duration_minutes: data.exercise_duration_minutes,
+            exercise_type: data.exercise_type,
+            body_tension: data.body_tension ?? null,
+            mental_clarity: data.mental_clarity ?? null,
+            morning_energy: data.morning_energy,
             mood_status: data.mood_status,
             energy_level: data.energy_level,
             stress_level: data.stress_level,
             anxiety_level: data.anxiety_level,
+            overall_readiness: data.overall_readiness,
+            ai_recommendation: data.ai_recommendation,
             notes: data.notes,
             created_at: dateToISO(data.created_at) || new Date().toISOString(),
         };
@@ -132,10 +153,17 @@ export async function saveCalibration(input: CalibrationInput): Promise<ActionRe
             log_date: data.log_date,
             sleep_duration_minutes: data.sleep_duration_minutes,
             sleep_quality: data.sleep_quality,
+            exercise_duration_minutes: data.exercise_duration_minutes,
+            exercise_type: data.exercise_type,
+            body_tension: data.body_tension ?? null,
+            mental_clarity: data.mental_clarity ?? null,
+            morning_energy: data.morning_energy,
             mood_status: data.mood_status,
             energy_level: data.energy_level,
             stress_level: data.stress_level,
             anxiety_level: data.anxiety_level,
+            overall_readiness: data.overall_readiness,
+            ai_recommendation: data.ai_recommendation,
             notes: data.notes,
             created_at: dateToISO(data.created_at) || new Date().toISOString(),
         };
@@ -181,10 +209,17 @@ export async function getCalibrationHistory(days = 7): Promise<ActionResult<Cali
             log_date: d.log_date,
             sleep_duration_minutes: d.sleep_duration_minutes,
             sleep_quality: d.sleep_quality,
+            exercise_duration_minutes: d.exercise_duration_minutes,
+            exercise_type: d.exercise_type,
+            body_tension: d.body_tension ?? null,
+            mental_clarity: d.mental_clarity ?? null,
+            morning_energy: d.morning_energy,
             mood_status: d.mood_status,
             energy_level: d.energy_level,
             stress_level: d.stress_level,
             anxiety_level: d.anxiety_level,
+            overall_readiness: d.overall_readiness,
+            ai_recommendation: d.ai_recommendation,
             notes: d.notes,
             created_at: dateToISO(d.created_at) || new Date().toISOString(),
         }));

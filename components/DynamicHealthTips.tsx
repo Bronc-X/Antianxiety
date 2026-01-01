@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Lightbulb, Sparkles, Brain, Activity } from 'lucide-react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 
 // 健康贴士数据结构
 interface HealthTip {

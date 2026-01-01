@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Menu, X, LogOut, User } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/navigation';
 import BrutalistThemeSwitcher from './BrutalistThemeSwitcher';
+import { useAuth } from '@/hooks/domain/useAuth';
 
 interface NavLink {
     href: string;
@@ -23,30 +22,10 @@ const navLinks: NavLink[] = [
 
 export default function BrutalistNav() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [user, setUser] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-
-    const supabase = createClientComponentClient();
-    const router = useRouter();
-
-    useEffect(() => {
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
-            setLoading(false);
-        };
-        getUser();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user || null);
-        });
-
-        return () => subscription.unsubscribe();
-    }, [supabase]);
+    const { user, isLoading, error, signOut } = useAuth();
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push('/brutalist');
+        await signOut('/brutalist');
     };
 
     const filteredLinks = navLinks.filter(link => !link.requiresAuth || user);
@@ -90,26 +69,28 @@ export default function BrutalistNav() {
                         <BrutalistThemeSwitcher />
 
                         {/* Auth Section */}
-                        {!loading && (
-                            user ? (
-                                <div className="flex items-center gap-3">
-                                    <div className="brutalist-badge hover:bg-[var(--signal-green)]/10 cursor-pointer transition-colors">
-                                        <User className="w-3 h-3" />
-                                        <a href="/brutalist/profile"><span className="hidden lg:inline">{user.email?.split('@')[0]}</span></a>
-                                    </div>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="p-2 hover:text-[var(--signal-green)] transition-colors"
-                                        title="Log out"
-                                    >
-                                        <LogOut className="w-4 h-4" />
-                                    </button>
+                        {isLoading ? (
+                            <div className="brutalist-badge animate-pulse">
+                                <span className="hidden lg:inline">Loading</span>
+                            </div>
+                        ) : user ? (
+                            <div className="flex items-center gap-3">
+                                <div className="brutalist-badge hover:bg-[var(--signal-green)]/10 cursor-pointer transition-colors">
+                                    <User className="w-3 h-3" />
+                                    <a href="/brutalist/profile"><span className="hidden lg:inline">{user.email?.split('@')[0]}</span></a>
                                 </div>
-                            ) : (
-                                <a href="/brutalist/signup" className="brutalist-cta text-xs py-2 px-4">
-                                    Sign Up
-                                </a>
-                            )
+                                <button
+                                    onClick={handleLogout}
+                                    className="p-2 hover:text-[var(--signal-green)] transition-colors"
+                                    title="Log out"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ) : (
+                            <a href="/brutalist/signup" className="brutalist-cta text-xs py-2 px-4">
+                                Sign Up
+                            </a>
                         )}
 
                         {/* Privacy Badge */}
@@ -152,7 +133,12 @@ export default function BrutalistNav() {
 
                             <div className="pt-4 border-t border-[var(--brutalist-border)] flex items-center justify-between">
                                 <BrutalistThemeSwitcher />
-                                {!loading && !user && (
+                                {isLoading && (
+                                    <div className="brutalist-badge animate-pulse">
+                                        <span>Loading</span>
+                                    </div>
+                                )}
+                                {!isLoading && !user && (
                                     <a href="/brutalist/signup" className="brutalist-cta text-xs py-2 px-4">
                                         Sign Up
                                     </a>
@@ -170,6 +156,11 @@ export default function BrutalistNav() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {error && (
+                <div className="fixed top-[73px] left-0 right-0 z-40 text-center text-xs text-red-400">
+                    {error}
+                </div>
+            )}
         </>
     );
 }

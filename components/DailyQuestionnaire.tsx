@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MotionButton } from '@/components/motion/MotionButton';
 import { ClipboardList, ChevronRight, Check, Sparkles, Info } from 'lucide-react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
+import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
+import { useDailyQuestionnaire } from '@/hooks/domain/useDailyQuestionnaire';
 
 // 问题池 - 每天随机选择 5-7 个问题，每个问题包含来源信息
 const QUESTION_POOL = [
@@ -78,57 +78,22 @@ function getTodayQuestions(date: Date = new Date()): typeof QUESTION_POOL {
 }
 
 export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestionnaireProps) {
+  const { refresh: refreshProfile, sync } = useProfileMaintenance();
+  const {
+    completed,
+    isLoading,
+    isSaving,
+    error: questionnaireError,
+    saveResponse,
+  } = useDailyQuestionnaire({ userId });
   const [isExpanded, setIsExpanded] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const todayQuestions = getTodayQuestions();
   const currentQuestion = todayQuestions[currentIndex];
   const progress = (Object.keys(answers).length / todayQuestions.length) * 100;
 
-  // 检查今天是否已完成问卷 - 优先从数据库检查
-  useEffect(() => {
-    const checkTodayCompletion = async () => {
-      const today = new Date().toISOString().split('T')[0];
-
-      // 先检查 localStorage（快速响应）
-      const completedDate = localStorage.getItem('nma_questionnaire_date');
-      if (completedDate === today) {
-        setIsCompleted(true);
-        setIsLoading(false);
-        return;
-      }
-
-      // 如果有 userId，从数据库检查（确保跨设备同步）
-      if (userId) {
-        try {
-          const supabase = createClientSupabaseClient();
-          const { data, error } = await supabase
-            .from('daily_questionnaire_responses')
-            .select('id, created_at')
-            .eq('user_id', userId)
-            .gte('created_at', `${today}T00:00:00`)
-            .lt('created_at', `${today}T23:59:59`)
-            .limit(1);
-
-          if (!error && data && data.length > 0) {
-            // 数据库有今日记录，同步到 localStorage
-            localStorage.setItem('nma_questionnaire_date', today);
-            setIsCompleted(true);
-          }
-        } catch (err) {
-          console.error('检查问卷状态失败:', err);
-        }
-      }
-
-      setIsLoading(false);
-    };
-
-    checkTodayCompletion();
-  }, [userId]);
 
   const handleAnswer = (value: number) => {
     const newAnswers = { ...answers, [currentQuestion.id]: value };
@@ -142,33 +107,22 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   const handleSubmit = async () => {
     if (Object.keys(answers).length < todayQuestions.length) return;
 
-    setIsSubmitting(true);
-
     try {
-      // 保存到数据库
-      if (userId) {
-        const supabase = createClientSupabaseClient();
-        await supabase.from('daily_questionnaire_responses').insert({
-          user_id: userId,
-          responses: answers,
-          questions: todayQuestions.map(q => q.id),
-          created_at: new Date().toISOString(),
-        });
+      const success = await saveResponse({
+        responses: answers,
+        questions: todayQuestions.map(q => q.id),
+      });
+
+      if (success) {
+        onComplete?.(answers);
       }
 
-      // 标记今天已完成
-      localStorage.setItem('nma_questionnaire_date', new Date().toISOString().split('T')[0]);
-      setIsCompleted(true);
-      onComplete?.(answers);
-
       // 后台刷新：让 AI 方案与内容推荐跟随问卷状态更新
-      fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
-      fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
+      refreshProfile().catch(() => {});
+      sync().catch(() => {});
 
     } catch (error) {
       console.error('保存问卷失败:', error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -192,7 +146,7 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
   }
 
   // 已完成状态
-  if (isCompleted) {
+  if (completed) {
     return (
       <Card className="shadow-sm bg-[#FFFDF8] border-[#E7E1D6]">
         <CardContent className="py-4">
@@ -314,10 +268,10 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
           >
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSaving}
               className="w-full py-3 bg-[#0B3D2E] hover:bg-[#0a3629] text-white rounded-xl font-medium transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? (
+              {isSaving ? (
                 '提交中...'
               ) : (
                 <span className="flex items-center justify-center gap-2">
@@ -336,6 +290,10 @@ export default function DailyQuestionnaire({ userId, onComplete }: DailyQuestion
         >
           稍后再填
         </button>
+
+        {questionnaireError && (
+          <div className="mt-4 text-sm text-red-600">{questionnaireError}</div>
+        )}
       </CardContent>
     </Card>
   );

@@ -10,6 +10,7 @@ import StepCalculation from '@/components/bayesian/ritual/StepCalculation';
 import StepResult from '@/components/bayesian/ritual/StepResult';
 import { BeliefOutput, Paper } from '@/types/max';
 import { useI18n } from '@/lib/i18n';
+import { useMaxApi } from '@/hooks/domain/useMaxApi';
 
 interface BayesianRitualModalProps {
     onComplete: (result: BeliefOutput) => void;
@@ -80,6 +81,7 @@ const variants = {
 
 export default function BayesianRitualModal({ onComplete, onCancel, mockHrv = false }: BayesianRitualModalProps) {
     const { t } = useI18n();
+    const { submitBelief } = useMaxApi();
     const [currentStep, setCurrentStep] = useState<RitualStep>('input');
     const [direction, setDirection] = useState(0);
 
@@ -154,29 +156,23 @@ export default function BayesianRitualModal({ onComplete, onCancel, mockHrv = fa
             // If logic was strong, the "effective prior" entering the formula is lower
             const effectivePrior = Math.round(ritualData.prior * ritualData.logic_modifier);
 
-            const response = await fetch('/api/max/belief', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prior: effectivePrior, // Use modified prior
-                    hrv_data: ritualData.hrv,
-                    paper_ids: ritualData.papers.map(p => p.id),
-                    belief_text: ritualData.worry
-                })
+            const result = await submitBelief({
+                prior: effectivePrior, // Use modified prior
+                hrv_data: ritualData.hrv,
+                paper_ids: ritualData.papers.map(p => p.id),
+                belief_text: ritualData.worry
             });
 
-            if (!response.ok) throw new Error('Calculation failed');
-
-            const result = await response.json();
+            if (!result.success || !result.data) throw new Error('Calculation failed');
 
             // Artificial delay for the "magic" feeling if API is too fast
             await new Promise(r => setTimeout(r, 1500));
 
             setRitualData(prev => ({
                 ...prev,
-                posterior: result.calculation.posterior,
-                likelihood: result.calculation.likelihood,
-                evidenceWeight: result.calculation.evidence
+                posterior: result.data.calculation.posterior,
+                likelihood: result.data.calculation.likelihood,
+                evidenceWeight: result.data.calculation.evidence
             }));
 
             setIsCalculating(false);

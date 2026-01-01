@@ -13,6 +13,11 @@ import { Loader2, ArrowRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import LanguageSwitcher from '../LanguageSwitcher';
 
+import { TechGrid } from './TechDecorations';
+import ThreeBackground from './ThreeBackground';
+
+// ... imports remain the same
+
 import LogoTicker from './LogoTicker';
 
 const FeatureBento = lazy(() => import('./FeatureBento'));
@@ -29,16 +34,25 @@ export default function MarketingPage({ onStart }: { onStart?: () => void }) {
     const { language } = useI18n();
 
     return (
-        <div className="bg-[#FAF6EF] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-[#F9F8F6] min-h-screen selection:bg-[#D4AF37]/20 relative">
-            {/* Sticky Nav Bar with CTA */}
-            <nav className="sticky top-0 z-50 bg-[#FAF6EF]/90 dark:bg-[#1A1A1A]/90 backdrop-blur-md border-b border-[#1A1A1A]/10 dark:border-white/10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="bg-[#FAF6EF] dark:bg-[#0F1115] text-[#1A1A1A] dark:text-[#F9F8F6] min-h-screen selection:bg-[#D4AF37]/20 relative overflow-x-hidden">
+            {/* 3D WebGL Background (Digital Cortex) */}
+            <ThreeBackground />
+
+            {/* Global Fixed Tech Grid */}
+            <TechGrid />
+
+            {/* Sticky HUD Nav Bar */}
+            <nav className="fixed top-4 left-4 right-4 z-50 rounded-2xl bg-[#FAF6EF]/80 dark:bg-[#1A1A1A]/80 backdrop-blur-xl border border-[#1A1A1A]/5 dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/20 max-w-7xl mx-auto transition-all duration-300">
+                <div className="px-4 sm:px-6">
                     <div className="flex h-14 items-center justify-between">
                         {/* Logo - Left */}
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="h-3 w-3 rounded-full bg-emerald-500" />
-                            <span className="text-sm font-bold tracking-tight text-[#1A1A1A] dark:text-white">
-                                AntiAnxiety<sup className="text-[8px]">™</sup>
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                            </span>
+                            <span className="text-sm font-bold tracking-tight text-[#1A1A1A] dark:text-white font-mono uppercase">
+                                AntiAnxiety<sup className="text-[8px] text-[#D4AF37]">BETA</sup>
                             </span>
                         </div>
 

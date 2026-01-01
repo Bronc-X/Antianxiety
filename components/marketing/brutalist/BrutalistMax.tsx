@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, FormEvent, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Sparkles, Brain, FileText, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Send, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import BrutalistNav from './BrutalistNav';
-import { AIThinkingLoader } from '@/components/AIThinkingLoader';
 import ReactMarkdown from 'react-markdown';
+import { useChatAI } from '@/hooks/domain/useChatAI';
+import { useChatConversation } from '@/hooks/domain/useChatConversation';
+import { useAuth } from '@/hooks/domain/useAuth';
 
 // Types
 interface Message {
@@ -19,59 +20,52 @@ interface Message {
 
 export default function BrutalistMax() {
     const router = useRouter();
-    const supabase = createClientComponentClient();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [userId, setUserId] = useState<string | null>(null);
+    const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const { sendPayload } = useChatAI();
+    const { loadHistory, saveMessage, isLoading: historyLoading, error } = useChatConversation();
+    const { isLoading: authLoading, isAuthenticated } = useAuth();
+    const isPending = isSending || historyLoading;
 
     // Initial Load & Auth Check
     useEffect(() => {
-        const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                router.push('/brutalist/signup');
-                return;
-            }
-            setUserId(user.id);
-            loadHistory(user.id);
-        };
-        checkAuth();
-    }, [supabase, router]);
+        if (!authLoading && !isAuthenticated) {
+            router.push('/brutalist/signup');
+        }
+    }, [authLoading, isAuthenticated, router]);
 
     // Load History
-    const loadHistory = async (uid: string) => {
-        const { data } = await supabase
-            .from('chat_conversations')
-            .select('*')
-            .eq('user_id', uid)
-            .order('created_at', { ascending: false })
-            .limit(50);
-
-        if (data && data.length > 0) {
-            const history = data.reverse().map(msg => ({
-                role: msg.role as any,
-                content: msg.content,
-                timestamp: new Date(msg.created_at),
-                papers: msg.metadata?.papers
-            }));
-            setMessages(history);
-        } else {
-            // Welcome message
-            setMessages([{
-                role: 'assistant',
-                content: "Hello. I am Max.\n\nI am here to optimize your biology effectively and ruthlessly.\n\nTell me about your sleep, stress, or performance goals.",
-                timestamp: new Date()
-            }]);
-        }
-    };
+    useEffect(() => {
+        const fetchHistory = async () => {
+            if (authLoading || !isAuthenticated) return;
+            const data = await loadHistory(50);
+            if (data && data.length > 0) {
+                const history = data.slice().reverse().map(msg => ({
+                    role: msg.role as any,
+                    content: msg.content,
+                    timestamp: new Date(msg.created_at),
+                    papers: msg.metadata?.papers,
+                }));
+                setMessages(history);
+            } else {
+                // Welcome message
+                setMessages([{
+                    role: 'assistant',
+                    content: "Hello. I am Max.\n\nI am here to optimize your biology effectively and ruthlessly.\n\nTell me about your sleep, stress, or performance goals.",
+                    timestamp: new Date()
+                }]);
+            }
+        };
+        fetchHistory();
+    }, [authLoading, isAuthenticated, loadHistory]);
 
     // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isLoading]);
+    }, [messages, isSending]);
 
     // Adjust textarea height
     useEffect(() => {
@@ -83,7 +77,7 @@ export default function BrutalistMax() {
 
     const handleSubmit = async (e?: FormEvent) => {
         if (e) e.preventDefault();
-        if (!input.trim() || isLoading) return;
+        if (!input.trim() || isSending) return;
 
         const userMsg: Message = {
             role: 'user',
@@ -93,64 +87,44 @@ export default function BrutalistMax() {
 
         setMessages(prev => [...prev, userMsg]);
         setInput('');
-        setIsLoading(true);
+        setIsSending(true);
 
         // Save User Message
-        if (userId) {
-            await supabase.from('chat_conversations').insert({
-                user_id: userId,
-                role: 'user',
-                content: userMsg.content,
-                metadata: { timestamp: userMsg.timestamp }
-            });
-        }
+        await saveMessage({
+            role: 'user',
+            content: userMsg.content,
+            metadata: { timestamp: userMsg.timestamp },
+        });
 
         try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: messages.concat(userMsg).map(m => ({ role: m.role, content: m.content })),
-                    systemPrompt: "You are Max, a brutalist, direct, and highly efficient biological optimization agent. Speak concisely. Focus on performance, sleep, and stress data. Use data-driven language. Do not be overly polite. Your goal is to solve the user's problem."
-                })
+            const data = await sendPayload({
+                messages: messages.concat(userMsg).map(m => ({ role: m.role, content: m.content })),
+                stream: false,
+                systemPrompt: "You are Max, a brutalist, direct, and highly efficient biological optimization agent. Speak concisely. Focus on performance, sleep, and stress data. Use data-driven language. Do not be overly polite. Your goal is to solve the user's problem."
             });
 
-            if (!response.ok) throw new Error('Failed to fetch response');
+            if (!data) throw new Error('Failed to fetch response');
 
-            const reader = response.body?.getReader();
-            const decoder = new TextDecoder();
-            let aiContent = '';
+            const aiContent =
+                data?.data?.answer
+                || data?.response
+                || data?.reply
+                || data?.message
+                || 'Response unavailable.';
 
-            // Stream placeholder
             const aiMsgPlaceholder: Message = {
                 role: 'assistant',
-                content: '',
+                content: aiContent,
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, aiMsgPlaceholder]);
 
-            while (reader) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const chunk = decoder.decode(value);
-                aiContent += chunk;
-
-                setMessages(prev => {
-                    const newHistory = [...prev];
-                    newHistory[newHistory.length - 1].content = aiContent;
-                    return newHistory;
-                });
-            }
-
             // Save Assistant Message
-            if (userId) {
-                await supabase.from('chat_conversations').insert({
-                    user_id: userId,
-                    role: 'assistant',
-                    content: aiContent,
-                    metadata: { timestamp: new Date() }
-                });
-            }
+            await saveMessage({
+                role: 'assistant',
+                content: aiContent,
+                metadata: { timestamp: new Date() },
+            });
 
         } catch (error) {
             console.error(error);
@@ -160,7 +134,7 @@ export default function BrutalistMax() {
                 timestamp: new Date()
             }]);
         } finally {
-            setIsLoading(false);
+            setIsSending(false);
         }
     };
 
@@ -170,6 +144,14 @@ export default function BrutalistMax() {
             handleSubmit();
         }
     };
+
+    if (authLoading) {
+        return (
+            <div className="brutalist-page min-h-screen flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-[#00FF94] border-t-transparent rounded-full animate-spin animate-pulse" />
+            </div>
+        );
+    }
 
     return (
         <div className="brutalist-page min-h-screen flex flex-col">
@@ -215,7 +197,14 @@ export default function BrutalistMax() {
                         </motion.div>
                     ))}
 
-                    {isLoading && (
+                    {historyLoading && messages.length === 0 && (
+                        <div className="flex justify-start">
+                            <div className="bg-[var(--brutalist-bg)] border border-[var(--brutalist-border)] p-4 flex items-center gap-2 animate-pulse">
+                                <span className="text-xs font-mono uppercase">Loading...</span>
+                            </div>
+                        </div>
+                    )}
+                    {isSending && (
                         <div className="flex justify-start">
                             <div className="bg-[var(--brutalist-bg)] border border-[var(--brutalist-border)] p-4 flex items-center gap-2">
                                 <Sparkles className="w-4 h-4 text-[var(--signal-green)] animate-spin" />
@@ -243,12 +232,15 @@ export default function BrutalistMax() {
                     </div>
                     <button
                         onClick={() => handleSubmit()}
-                        disabled={!input.trim() || isLoading}
+                        disabled={!input.trim() || isPending}
                         className="p-3 bg-[var(--brutalist-fg)] text-[var(--brutalist-bg)] hover:bg-[var(--signal-green)] hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Send className="w-5 h-5" />
                     </button>
                 </div>
+                {error && (
+                    <div className="mt-2 text-center text-xs text-red-400">{error}</div>
+                )}
             </footer>
         </div>
     );

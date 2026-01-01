@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
+import { useHabits } from '@/hooks/domain/useHabits';
 
 // 习惯表单数据类型定义（兼容新 habits 表）
 interface HabitFormData {
@@ -18,7 +18,7 @@ interface HabitFormData {
  */
 export default function HabitForm() {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
+  const { create, isSaving, error: habitError, clearError } = useHabits({ autoLoad: false });
 
   const [formData, setFormData] = useState<HabitFormData>({
     title: '',
@@ -27,49 +27,30 @@ export default function HabitForm() {
     reward: '',
   });
 
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // 处理表单提交
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+    clearError();
 
     // 验证必填字段
     if (!formData.title.trim()) {
       setError('请填写习惯名称');
-      setIsLoading(false);
       return;
     }
 
     try {
-      // 获取当前用户
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        setError('无法获取用户信息，请重新登录');
-        setIsLoading(false);
-        return;
-      }
-
-      // 插入新习惯到 habits 表（新表结构）
-      const { error: insertError } = await supabase.from('habits').insert({
-        user_id: user.id,
+      const success = await create({
         title: formData.title.trim(),
         cue: formData.cue.trim() || null,
         response: formData.response.trim() || null,
         reward: formData.reward.trim() || null,
       });
 
-      if (insertError) {
-        console.error('添加习惯时出错:', insertError);
-        setError('保存习惯时出错，请稍后重试');
-        setIsLoading(false);
+      if (!success) {
         return;
       }
 
@@ -85,8 +66,6 @@ export default function HabitForm() {
     } catch (err) {
       console.error('提交表单时出错:', err);
       setError('提交时发生错误，请稍后重试');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -98,8 +77,10 @@ export default function HabitForm() {
     }));
   };
 
+  const combinedError = error || habitError;
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div className={`rounded-lg border border-gray-200 bg-white p-6 shadow-sm${isSaving ? ' animate-pulse' : ''}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-medium text-gray-900">我的习惯</h3>
         {!isExpanded && (
@@ -117,9 +98,9 @@ export default function HabitForm() {
       {isExpanded && (
         <form onSubmit={handleSubmit} className="mb-6 space-y-4 border-b border-gray-200 pb-6">
           {/* 错误提示 */}
-          {error && (
+          {combinedError && (
             <div className="rounded-md bg-red-50 p-3">
-              <p className="text-sm text-red-800">{error}</p>
+              <p className="text-sm text-red-800">{combinedError}</p>
             </div>
           )}
 
@@ -195,10 +176,10 @@ export default function HabitForm() {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSaving}
               className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isLoading ? '保存中...' : '保存习惯'}
+              {isSaving ? '保存中...' : '保存习惯'}
             </button>
             <button
               type="button"
@@ -211,6 +192,7 @@ export default function HabitForm() {
                   reward: '',
                 });
                 setError(null);
+                clearError();
               }}
               className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
@@ -218,6 +200,10 @@ export default function HabitForm() {
             </button>
           </div>
         </form>
+      )}
+
+      {combinedError && (
+        <div className="mt-4 text-sm text-red-600">{combinedError}</div>
       )}
     </div>
   );

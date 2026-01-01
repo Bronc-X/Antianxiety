@@ -1,19 +1,20 @@
 'use client';
 
 import { useState, useEffect, useRef, FormEvent, useCallback } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AI_ROLES } from '@/lib/config/constants';
 import type { AIAssistantProfile, RoleType } from '@/types/assistant';
-import { ImageUploadIcon, MicrophoneIcon } from '@/components/ui/Icons';
+import { ImageUploadIcon } from '@/components/ui/Icons';
 import AIPlanCard from '@/components/AIPlanCard';
 import { containsPlans, parsePlans, type ParsedPlan } from '@/lib/plan-parser';
 import { PaperSources } from '@/components/chat/PaperSources';
-import { AIThinkingLoader } from '@/components/AIThinkingLoader';
 import { AIThinkingBlock } from '@/components/AIThinkingBlock';
-import { MotionButton } from '@/components/motion/MotionButton';
-import { generateActiveInquiry, type DailyLog, type PlanItem } from '@/lib/active-inquiry';
+import { type DailyLog, type PlanItem } from '@/lib/active-inquiry';
 import { PlanReviewChecklist } from '@/components/PlanReviewChecklist';
+import { useChatAI } from '@/hooks/domain/useChatAI';
+import { useChatConversation } from '@/hooks/domain/useChatConversation';
+import { usePlans } from '@/hooks/domain/usePlans';
+import MaxAvatar from '@/components/max/MaxAvatar';
 
 // --- Icons ---
 const PlusIcon = ({ className }: { className?: string }) => (
@@ -34,16 +35,6 @@ const XIcon = ({ className }: { className?: string }) => (
 const SendIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-  </svg>
-);
-const HistoryIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-const GalleryIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
   </svg>
 );
 
@@ -70,28 +61,6 @@ interface SpeechRecognition extends EventTarget {
   lang: string;
   start(): void;
   stop(): void;
-  onresult: (event: SpeechRecognitionEvent) => void;
-  onerror: (event: SpeechRecognitionErrorEvent) => void;
-  onend: () => void;
-}
-interface SpeechRecognitionEvent {
-  results: SpeechRecognitionResultList;
-}
-interface SpeechRecognitionResultList {
-  [index: number]: SpeechRecognitionResult;
-  length: number;
-}
-interface SpeechRecognitionResult {
-  [index: number]: SpeechRecognitionAlternative;
-  length: number;
-  isFinal: boolean;
-}
-interface SpeechRecognitionAlternative {
-  transcript: string;
-  confidence: number;
-}
-interface SpeechRecognitionErrorEvent {
-  error: string;
 }
 
 interface Message {
@@ -132,91 +101,96 @@ const resolveDisplayName = (profile?: AIAssistantProfile | null): string => {
 };
 
 // --- Main Component ---
-export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = [], onClose }: AIAssistantFloatingChatProps) {
+export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIAssistantFloatingChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingAnswer, setIsGeneratingAnswer] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-  const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [isVoiceSupported, setIsVoiceSupported] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const supabase = createClientSupabaseClient();
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const { sendPayload, error: chatError } = useChatAI();
+  const {
+    loadHistory: loadConversationHistory,
+    saveMessage: persistMessage,
+    isLoading: historyLoading,
+    error: historyError,
+  } = useChatConversation();
+  const { createFromAI } = usePlans();
 
   // MiniMax UI States
-  const [showHistory, setShowHistory] = useState(true);
   const [historyLoaded, setHistoryLoaded] = useState(false); // 🆕
   const isInitialState = messages.length === 0 && !isLoading;
 
   // Load History
   useEffect(() => {
     const loadHistory = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from('chat_conversations')
-        .select('role, content, created_at, session_id, metadata')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (data && data.length > 0) {
-        const sorted = [...data].reverse();
-        setMessages(sorted.map(msg => ({
-          role: msg.role as RoleType,
-          content: msg.content,
-          timestamp: new Date(msg.created_at),
-          papers: (msg.metadata as any)?.papers,
-          consensus: (msg.metadata as any)?.consensus
-        })));
-        if (sorted[sorted.length - 1].session_id) {
-          setSessionId(sorted[sorted.length - 1].session_id);
+      try {
+        const data = await loadConversationHistory(50);
+        if (data && data.length > 0) {
+          const sorted = [...data].reverse();
+          setMessages(sorted.map(msg => {
+            const metadata = msg.metadata as {
+              papers?: PaperSource[];
+              consensus?: { score: number; level: string; rationale?: string };
+            } | null;
+            return {
+              role: msg.role as RoleType,
+              content: msg.content,
+              timestamp: new Date(msg.created_at),
+              papers: metadata?.papers,
+              consensus: metadata?.consensus,
+            };
+          }));
+          setSessionId(sorted[sorted.length - 1]?.session_id || null);
         }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      } finally {
+        setHistoryLoaded(true); // 🆕 Mark history as loaded
       }
-      setHistoryLoaded(true); // 🆕 Mark history as loaded
     };
     loadHistory();
-  }, [supabase]);
+  }, [loadConversationHistory]);
 
   // Voice Init
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-      setIsVoiceSupported(hasSpeechRecognition);
-      if (hasSpeechRecognition) {
-        const speechWindow = window as unknown as {
-          webkitSpeechRecognition?: SpeechRecognitionConstructor;
-          SpeechRecognition?: SpeechRecognitionConstructor;
-        };
-        const SpeechRecognitionCtor = speechWindow.webkitSpeechRecognition || speechWindow.SpeechRecognition;
-        if (SpeechRecognitionCtor) {
-          const recognitionInstance = new SpeechRecognitionCtor();
-          recognitionInstance.continuous = false;
-          recognitionInstance.interimResults = false;
-          recognitionInstance.lang = 'zh-CN';
-          recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
-            const transcript = event.results[0][0].transcript;
-            setInput(prev => prev + transcript);
-            setIsRecording(false);
-            setVoiceError(null);
-          };
-          recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
-            setIsRecording(false);
-            setVoiceError(`语音识别错误: ${event.error}`); // Simplified error handling
-            setTimeout(() => setVoiceError(null), 3000);
-          };
-          recognitionInstance.onend = () => setIsRecording(false);
-          setRecognition(recognitionInstance);
-        }
-      }
-    }
+    if (typeof window === 'undefined') return;
+    const speechWindow = window as unknown as {
+      webkitSpeechRecognition?: SpeechRecognitionConstructor;
+      SpeechRecognition?: SpeechRecognitionConstructor;
+    };
+    const SpeechRecognitionCtor = speechWindow.webkitSpeechRecognition || speechWindow.SpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+
+    const recognitionInstance = new SpeechRecognitionCtor();
+    recognitionInstance.continuous = false;
+    recognitionInstance.interimResults = false;
+    recognitionInstance.lang = 'zh-CN';
+    recognitionRef.current = recognitionInstance;
   }, []);
+
+  const handleSaveMessage = useCallback(async (msg: Message) => {
+    try {
+      const success = await persistMessage({
+        role: msg.role,
+        content: msg.content,
+        session_id: sessionId,
+        metadata: {
+          timestamp: msg.timestamp.toISOString(),
+          papers: msg.papers,
+          consensus: msg.consensus,
+        },
+      });
+      if (!success) {
+        console.error('保存消息失败');
+      }
+    } catch (error) {
+      console.error('保存消息失败:', error);
+    }
+  }, [persistMessage, sessionId]);
 
   // 🆕 Active Inquiry Trigger
   useEffect(() => {
@@ -225,24 +199,16 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
       if (!historyLoaded || messages.length > 0) return;
 
       try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trigger_checkin: true })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.content) {
-            const activeMsg: Message = {
-              role: 'assistant',
-              content: data.content,
-              timestamp: new Date(),
-              reviewItems: data.metadata?.reviewItems // 🆕 Capture review items
-            };
-            setMessages([activeMsg]);
-            await saveMessage(activeMsg);
-          }
+        const data = await sendPayload({ trigger_checkin: true, stream: false });
+        if (data?.content) {
+          const activeMsg: Message = {
+            role: 'assistant',
+            content: data.content,
+            timestamp: new Date(),
+            reviewItems: data.metadata?.reviewItems // 🆕 Capture review items
+          };
+          setMessages([activeMsg]);
+          await handleSaveMessage(activeMsg);
         }
       } catch (e) {
         console.error('Active inquiry failed:', e);
@@ -250,25 +216,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
     };
 
     checkActiveInquiry();
-  }, [historyLoaded]); // Run when historyLoaded changes
-
-  const handleVoiceInput = async () => {
-    if (!recognition) return;
-    if (isRecording) {
-      recognition.stop();
-      setIsRecording(false);
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop());
-      setVoiceError(null);
-      recognition.start();
-      setIsRecording(true);
-    } catch {
-      setVoiceError('无法访问麦克风');
-    }
-  };
+  }, [historyLoaded, messages.length, handleSaveMessage, sendPayload]); // Run when historyLoaded changes
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -288,10 +236,8 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
     const userMessage: Message = { role: 'user', content: input.trim(), timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
 
-    const currentInput = input.trim();
     setInput('');
     setIsLoading(true);
-    setIsGeneratingAnswer(true);
 
     try {
       // 🆕 Initialize assistant message with thinking state
@@ -304,52 +250,23 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
       };
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Parallel fetch papers & AI
-      const papersPromise = fetch('/api/chat/papers', {
-        method: 'POST', body: JSON.stringify({ query: currentInput })
-      }).then(res => res.json()).catch(() => ({}));
-
-      const aiResponsePromise = fetch('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content }))
-        })
+      const chatData = await sendPayload({
+        messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+        stream: false,
       });
 
-      const [papersData, aiResponse] = await Promise.all([papersPromise, aiResponsePromise]);
-
-      let aiContent = '抱歉，无法生成回复。';
-      let papers = papersData.papers || [];
-      // Handle AI Stream (Simplified for this rewrite, ideally use full reader)
-      if (aiResponse.ok && aiResponse.body) {
-        const reader = aiResponse.body.getReader();
-        const decoder = new TextDecoder();
-        aiContent = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          aiContent += decoder.decode(value, { stream: true });
-
-          // 🆕 Update message content as it streams
-          setMessages(prev => {
-            const last = [...prev];
-            const msg = last[last.length - 1];
-            if (msg && msg.role === 'assistant') {
-              msg.content = aiContent;
-              // Transition from thinking to completed thinking
-              if (aiContent.length > 10) {
-                msg.isThinking = false;
-              }
-            }
-            return last;
-          });
-        }
-        // Check headers for papers if API returns them there
-        const papersHeader = aiResponse.headers.get('x-antianxiety-papers');
-        if (papersHeader && papers.length === 0) {
-          try { papers = JSON.parse(Buffer.from(papersHeader, 'base64').toString()); } catch { }
-        }
+      if (!chatData) {
+        throw new Error('AI response failed');
       }
+
+      const aiContent =
+        chatData?.data?.answer
+        || chatData?.response
+        || chatData?.reply
+        || chatData?.message
+        || '抱歉，无法生成回复。';
+      const papers = chatData?.papers || [];
+      const consensus = chatData?.consensus;
 
       setUploadedImage(null);
 
@@ -360,7 +277,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
         if (msg && msg.role === 'assistant') {
           msg.isThinking = false;
           msg.papers = papers;
-          msg.consensus = papersData.consensus;
+          msg.consensus = consensus;
           msg.content = aiContent;
         }
         return last;
@@ -374,28 +291,15 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
         papers,
         thought: assistantMessage.thought
       };
-      await saveMessage(userMessage);
-      await saveMessage(finalAssistantMsg);
+      await handleSaveMessage(userMessage);
+      await handleSaveMessage(finalAssistantMsg);
 
     } catch (e) {
       console.error(e);
       setMessages(prev => [...prev, { role: 'assistant', content: '发生错误，请重试', timestamp: new Date() }]);
     } finally {
       setIsLoading(false);
-      setIsGeneratingAnswer(false);
     }
-  };
-
-  const saveMessage = async (msg: Message) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('chat_conversations').insert({
-      user_id: user.id,
-      role: msg.role,
-      content: msg.content,
-      metadata: { timestamp: msg.timestamp, papers: msg.papers },
-      session_id: sessionId
-    });
   };
 
   const handleNewChat = () => {
@@ -405,7 +309,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
   };
 
   // 处理方案确认
-  const handlePlanConfirm = async (selectedPlan: any) => {
+  const handlePlanConfirm = async (selectedPlan: ParsedPlan) => {
     console.log('=== 开始保存方案 ===', selectedPlan);
     const loadingMessage: Message = {
       role: 'assistant',
@@ -415,20 +319,14 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
     setMessages(prev => [...prev, loadingMessage]);
 
     try {
-      const response = await fetch('/api/plans/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plans: [selectedPlan], sessionId: sessionId }),
-      });
-
-      const result = await response.json();
+      const createdPlans = await createFromAI([selectedPlan as ParsedPlan], sessionId || undefined);
 
       // Remove loading message
       setMessages(prev => prev.filter(msg => msg.content !== '⏳ 正在保存您的计划...'));
 
-      if (!response.ok) throw new Error(result.error || '保存计划失败');
+      if (!createdPlans) throw new Error('保存计划失败');
 
-      window.dispatchEvent(new CustomEvent('planSaved', { detail: result.data }));
+      window.dispatchEvent(new CustomEvent('planSaved', { detail: createdPlans }));
 
       const confirmMessage: Message = {
         role: 'assistant',
@@ -436,7 +334,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, confirmMessage]);
-      await saveMessage(confirmMessage);
+      await handleSaveMessage(confirmMessage);
 
     } catch (error) {
       console.error('保存失败:', error);
@@ -445,7 +343,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
     }
   };
 
-  const handlePlanConfirmWithModification = async (currentPlan: any, modification: string) => {
+  const handlePlanConfirmWithModification = async (currentPlan: ParsedPlan, modification: string) => {
     const loadingMessage: Message = {
       role: 'assistant',
       content: '⏳ 正在应用修改并保存...',
@@ -459,17 +357,12 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
     };
 
     try {
-      const response = await fetch('/api/plans/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plans: [modifiedPlan], sessionId: sessionId }),
-      });
-      const result = await response.json();
+      const createdPlans = await createFromAI([modifiedPlan as ParsedPlan], sessionId || undefined);
 
       setMessages(prev => prev.filter(msg => msg.content !== '⏳ 正在应用修改并保存...'));
-      if (!response.ok) throw new Error(result.error || '保存计划失败');
+      if (!createdPlans) throw new Error('保存计划失败');
 
-      window.dispatchEvent(new CustomEvent('planSaved', { detail: result.data }));
+      window.dispatchEvent(new CustomEvent('planSaved', { detail: createdPlans }));
 
       const confirmMessage: Message = {
         role: 'assistant',
@@ -477,7 +370,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, confirmMessage]);
-      await saveMessage(confirmMessage);
+      await handleSaveMessage(confirmMessage);
     } catch (error) {
       console.error('保存失败:', error);
       setMessages(prev => prev.filter(msg => msg.content !== '⏳ 正在应用修改并保存...'));
@@ -498,32 +391,24 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
     // Add user message
     const userMessage: Message = { role: 'user', content, timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
-    await saveMessage(userMessage);
+    await handleSaveMessage(userMessage);
 
     setIsLoading(true);
 
     // Send to AI
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content }))
-        })
+      const data = await sendPayload({
+        messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+        stream: false,
       });
 
-      if (response.ok) {
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let aiContent = '';
-
-        // Simplified stream reading
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            aiContent += decoder.decode(value, { stream: true });
-          }
-        }
+      if (data) {
+        const aiContent =
+          data?.data?.answer
+          || data?.response
+          || data?.reply
+          || data?.message
+          || '抱歉，无法生成回复。';
 
         const assistantMessage: Message = {
           role: 'assistant',
@@ -531,7 +416,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
           timestamp: new Date()
         };
         setMessages(prev => [...prev, assistantMessage]);
-        await saveMessage(assistantMessage);
+        await handleSaveMessage(assistantMessage);
       }
     } catch (e) {
       console.error(e);
@@ -547,6 +432,9 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
     }
   }, [messages, isInitialState]);
 
+  const isHistoryLoading = historyLoading && !historyLoaded;
+  const errorMessage = historyError || chatError;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -554,7 +442,7 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
       exit={{ opacity: 0, scale: 0.95 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
     >
-      <div className="w-full max-w-7xl h-[85vh] bg-white rounded-2xl shadow-2xl flex overflow-hidden border border-gray-200">
+      <div className={`w-full max-w-7xl h-[85vh] bg-white rounded-2xl shadow-2xl flex overflow-hidden border border-gray-200 ${isHistoryLoading ? 'animate-pulse' : ''}`}>
 
         {/* --- Sidebar --- */}
         <div className="w-64 bg-gray-50/50 border-r border-gray-100 flex flex-col hidden md:flex">
@@ -791,6 +679,9 @@ export default function AIAssistantFloatingChat({ initialProfile, dailyLogs = []
           )}
 
           <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+          {errorMessage && (
+            <p className="mt-3 text-sm text-red-500">{errorMessage}</p>
+          )}
 
         </div>
       </div>

@@ -1,32 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { ExternalLink, ThumbsUp, ThumbsDown, Loader2, Sparkles, BookOpen, Lightbulb, Tag, TrendingUp } from 'lucide-react';
-
-// ============================================
-// Types
-// ============================================
-
-interface EnrichedFeedItem {
-    id: string | number;
-    source_url: string;
-    source_type: string;
-    title: string;
-    summary: string;
-    why_recommended: string;
-    actionable_insight: string;
-    tags: string[];
-    match_percentage: number;
-    published_at: string | null;
-}
+import { useFeed, type FeedItem } from '@/hooks/domain/useFeed';
+import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
 
 // ============================================
 // Platform Logo Component
 // ============================================
 
-function PlatformLogo({ sourceType }: { sourceType: string }) {
+function PlatformLogo({ sourceType }: { sourceType?: string }) {
     const logoMap: Record<string, { name: string; color: string; icon: string }> = {
         pubmed: { name: 'PubMed', color: '#326599', icon: '📚' },
         semantic_scholar: { name: 'Semantic Scholar', color: '#1857B6', icon: '🔬' },
@@ -37,7 +22,7 @@ function PlatformLogo({ sourceType }: { sourceType: string }) {
         default: { name: 'Research', color: '#6B7280', icon: '📄' },
     };
 
-    const platform = logoMap[sourceType] || logoMap.default;
+    const platform = logoMap[sourceType || 'default'] || logoMap.default;
 
     return (
         <div
@@ -54,7 +39,9 @@ function PlatformLogo({ sourceType }: { sourceType: string }) {
 // Match Badge Component
 // ============================================
 
-function MatchBadge({ percentage }: { percentage: number }) {
+function MatchBadge({ percentage }: { percentage?: number }) {
+    if (!percentage) return null;
+
     const getColor = () => {
         if (percentage >= 95) return 'text-emerald-400 bg-emerald-400/10';
         if (percentage >= 90) return 'text-[#D4AF37] bg-[#D4AF37]/10';
@@ -79,10 +66,10 @@ function FeedCard({
     language,
     onFeedback
 }: {
-    item: EnrichedFeedItem;
+    item: FeedItem;
     index: number;
     language: string;
-    onFeedback: (id: string | number, isPositive: boolean) => void;
+    onFeedback: (id: string, isPositive: boolean) => void;
 }) {
     const isLightCard = index % 2 === 0;
     const cardClasses = isLightCard
@@ -122,26 +109,30 @@ function FeedCard({
 
             {/* Summary */}
             <p className={`${summaryClass} text-sm mb-4 leading-relaxed line-clamp-3`}>
-                {item.summary}
+                {item.summary || item.content?.slice(0, 200)}
             </p>
 
             {/* Why Recommended */}
-            <div className={`p-4 border-l-2 mb-4 ${highlightClass}`}>
-                <div className="flex items-center gap-2 text-[#D4AF37] text-xs font-medium mb-2">
-                    <Sparkles className="w-4 h-4" />
-                    {language === 'en' ? 'Why this is for you' : '为什么推荐给你'}
+            {item.why_recommended && (
+                <div className={`p-4 border-l-2 mb-4 ${highlightClass}`}>
+                    <div className="flex items-center gap-2 text-[#D4AF37] text-xs font-medium mb-2">
+                        <Sparkles className="w-4 h-4" />
+                        {language === 'en' ? 'Why this is for you' : '为什么推荐给你'}
+                    </div>
+                    <p className={`${highlightText} text-sm`}>{item.why_recommended}</p>
                 </div>
-                <p className={`${highlightText} text-sm`}>{item.why_recommended}</p>
-            </div>
+            )}
 
             {/* Actionable Insight */}
-            <div className={`p-4 border-l-2 mb-4 ${insightClass}`}>
-                <div className={`flex items-center gap-2 text-xs font-medium mb-2 ${isLightCard ? 'text-emerald-700' : 'text-emerald-400'}`}>
-                    <Lightbulb className="w-4 h-4" />
-                    {language === 'en' ? 'What you can do' : '你可以这样做'}
+            {item.actionable_insight && (
+                <div className={`p-4 border-l-2 mb-4 ${insightClass}`}>
+                    <div className={`flex items-center gap-2 text-xs font-medium mb-2 ${isLightCard ? 'text-emerald-700' : 'text-emerald-400'}`}>
+                        <Lightbulb className="w-4 h-4" />
+                        {language === 'en' ? 'What you can do' : '你可以这样做'}
+                    </div>
+                    <p className={`${insightText} text-sm`}>{item.actionable_insight}</p>
                 </div>
-                <p className={`${insightText} text-sm`}>{item.actionable_insight}</p>
-            </div>
+            )}
 
             {/* Tags */}
             {item.tags && item.tags.length > 0 && (
@@ -160,16 +151,21 @@ function FeedCard({
 
             {/* Actions */}
             <div className={`flex items-center justify-between pt-4 border-t ${dividerClass}`}>
-                <a
-                    href={item.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center gap-2 text-sm ${actionLinkClass} ${actionLinkHoverClass} transition-colors`}
-                >
-                    <BookOpen className="w-4 h-4" />
-                    {language === 'en' ? 'Read Full Article' : '阅读全文'}
-                    <ExternalLink className="w-3 h-3" />
-                </a>
+                {item.source_url ? (
+                    <a
+                        href={item.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-2 text-sm ${actionLinkClass} ${actionLinkHoverClass} transition-colors`}
+                    >
+                        <BookOpen className="w-4 h-4" />
+                        {language === 'en' ? 'Read Full Article' : '阅读全文'}
+                        <ExternalLink className="w-3 h-3" />
+                    </a>
+                ) : (
+                    <span className="text-sm opacity-50">Link unavailable</span>
+                )}
+
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => onFeedback(item.id, true)}
@@ -327,80 +323,35 @@ function AILoadingState({ language }: { language: string }) {
 
 export default function ScienceFeed() {
     const { language } = useI18n();
-    const [items, setItems] = useState<EnrichedFeedItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [isUnauthorized, setIsUnauthorized] = useState(false);
-    const hasFetchedRef = useRef(false);
+    const { refresh: refreshProfile, sync } = useProfileMaintenance();
 
-    useEffect(() => {
-        if (!hasFetchedRef.current) {
-            hasFetchedRef.current = true;
-            fetchFeed();
-        }
-    }, []);
+    // Domain Hook
+    const {
+        items,
+        isLoading,
+        error,
+        refresh,
+        feedback
+    } = useFeed();
 
-    const fetchFeed = async () => {
-        try {
-            setLoading(true);
-            setErrorMessage(null);
-            setIsUnauthorized(false);
-
-            const res = await fetch(`/api/feed?limit=5&lang=${language}`, { cache: 'no-store' });
-
-            if (res.status === 401) {
-                setItems([]);
-                setIsUnauthorized(true);
-                return;
-            }
-
-            if (!res.ok) {
-                throw new Error('Failed to fetch feed');
-            }
-
-            const data = await res.json();
-
-            if (data.items && data.items.length > 0) {
-                setItems(data.items);
-            } else {
-                setItems([]);
-            }
-        } catch (error) {
-            console.error('Failed to fetch feed:', error);
-            setErrorMessage(language === 'en' ? 'Unable to load feed right now.' : '暂时无法加载内容。');
-            setItems([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const submitFeedback = async (itemId: string | number, isPositive: boolean) => {
+    const submitFeedback = async (itemId: string, isPositive: boolean) => {
         try {
             const item = items.find(i => i.id === itemId);
-            await fetch('/api/feed-feedback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contentId: itemId,
-                    contentUrl: item?.source_url,
-                    contentTitle: item?.title?.slice(0, 80) || '',
-                    source: item?.source_type,
-                    feedbackType: isPositive ? 'like' : 'dislike',
-                }),
+            await feedback({
+                contentId: itemId,
+                contentUrl: item?.source_url,
+                contentTitle: item?.title?.slice(0, 80) || '',
+                source: item?.source_type,
+                feedbackType: isPositive ? 'like' : 'dislike',
             });
-            fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
-            fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
+            sync().catch(() => {});
+            refreshProfile().catch(() => {});
         } catch (error) {
             console.error('Failed to submit feedback:', error);
         }
     };
 
-    const handleRefresh = async () => {
-        hasFetchedRef.current = false;
-        await fetchFeed();
-    };
-
-    if (loading) {
+    if (isLoading && items.length === 0) {
         return <AILoadingState language={language} />;
     }
 
@@ -440,20 +391,18 @@ export default function ScienceFeed() {
                 {items.length === 0 ? (
                     <div className="bg-white/5 border border-white/10 p-8 text-center text-white/70">
                         <p className="mb-3 text-white/80">
-                            {isUnauthorized
-                                ? (language === 'en' ? 'Please sign in to see your personalized feed.' : '请先登录以查看个性化内容。')
-                                : (language === 'en' ? 'No personalized content yet.' : '暂时没有个性化内容。')}
+                            {language === 'en' ? 'No personalized content yet.' : '暂时没有个性化内容。'}
                         </p>
                         <p className="text-sm text-white/50 mb-6">
                             {language === 'en'
                                 ? 'Complete daily calibration to start receiving AI-curated research.'
                                 : '完成每日校准，即可开始接收 AI 精选研究。'}
                         </p>
-                        {errorMessage && (
-                            <p className="text-sm text-red-300 mb-4">{errorMessage}</p>
+                        {error && (
+                            <p className="text-sm text-red-300 mb-4">{error}</p>
                         )}
                         <button
-                            onClick={handleRefresh}
+                            onClick={() => refresh()}
                             className="px-5 py-2 border border-white/20 text-white hover:bg-white/5 transition-colors"
                         >
                             {language === 'en' ? 'Refresh' : '刷新'}
@@ -477,11 +426,11 @@ export default function ScienceFeed() {
                 {items.length > 0 && (
                     <div className="text-center mt-8">
                         <button
-                            onClick={handleRefresh}
-                            disabled={loading}
+                            onClick={() => refresh()}
+                            disabled={isLoading}
                             className="px-6 py-3 border border-white/20 text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                         >
-                            {loading
+                            {isLoading
                                 ? (language === 'en' ? 'Loading...' : '加载中...')
                                 : (language === 'en' ? 'Refresh Articles' : '刷新文章')}
                         </button>

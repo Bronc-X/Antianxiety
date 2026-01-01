@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
+import { useAssistantProfile } from '@/hooks/domain/useAssistantProfile';
+import type { AssistantProfileData } from '@/app/actions/assistant-profile';
 
 interface ProfileFormData {
   // 基本信息
@@ -69,10 +70,32 @@ interface ProfileUpdatePayload {
   ai_profile_completed: boolean;
 }
 
-interface UserMetadata {
-  username?: string;
-  [key: string]: unknown;
-}
+const buildFormData = (profile?: AssistantProfileData | null): ProfileFormData => ({
+  gender: profile?.gender || '',
+  age_range: profile?.age_range || '',
+  height_cm: profile?.height_cm ? String(profile.height_cm) : '',
+  weight_kg: profile?.weight_kg ? String(profile.weight_kg) : '',
+  sleep_hours: profile?.sleep_hours ? String(profile.sleep_hours) : '',
+  stress_level: profile?.stress_level ? String(profile.stress_level) : '',
+  energy_level: profile?.energy_level ? String(profile.energy_level) : '',
+  exercise_types: profile?.exercise_types || [],
+  exercise_frequency: profile?.exercise_frequency || '',
+  exercise_duration_minutes: profile?.exercise_duration_minutes ? String(profile.exercise_duration_minutes) : '',
+  has_fitness_app: Boolean(profile?.has_fitness_app),
+  fitness_app_name: profile?.fitness_app_name || '',
+  can_sync_fitness_data: Boolean(profile?.can_sync_fitness_data),
+  hobbies: profile?.hobbies || [],
+  work_schedule: profile?.work_schedule || '',
+  meal_pattern: profile?.meal_pattern || '',
+  caffeine_intake: profile?.caffeine_intake || '',
+  alcohol_intake: profile?.alcohol_intake || '',
+  smoking_status: profile?.smoking_status || '',
+  chronic_conditions: profile?.chronic_conditions || [],
+  primary_focus_topics: profile?.primary_focus_topics || [],
+  medical_conditions: profile?.medical_conditions || [],
+  medications: profile?.medications || [],
+  daily_checkin_time: profile?.daily_checkin_time ? profile.daily_checkin_time.slice(0, 5) : '',
+});
 
 /**
  * AI 助理资料收集表单
@@ -80,38 +103,27 @@ interface UserMetadata {
  */
 export default function AIAssistantProfileForm() {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
+  const {
+    data: assistantProfile,
+    isLoading: isProfileLoading,
+    isSaving,
+    error: profileError,
+    save: saveAssistantProfile,
+  } = useAssistantProfile();
   
   const [currentStep, setCurrentStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const [formData, setFormData] = useState<ProfileFormData>({
-    gender: '',
-    age_range: '',
-    height_cm: '',
-    weight_kg: '',
-    sleep_hours: '',
-    stress_level: '',
-    energy_level: '',
-    exercise_types: [],
-    exercise_frequency: '',
-    exercise_duration_minutes: '',
-    has_fitness_app: false,
-    fitness_app_name: '',
-    can_sync_fitness_data: false,
-    hobbies: [],
-    work_schedule: '',
-    meal_pattern: '',
-    caffeine_intake: '',
-    alcohol_intake: '',
-    smoking_status: '',
-    chronic_conditions: [],
-    primary_focus_topics: [],
-    medical_conditions: [],
-    medications: [],
-    daily_checkin_time: '',
-  });
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<ProfileFormData>(() => buildFormData(assistantProfile));
+  const hasHydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasHydratedRef.current || !assistantProfile) return;
+    const hydrateForm = () => {
+      setFormData(buildFormData(assistantProfile));
+      hasHydratedRef.current = true;
+    };
+    hydrateForm();
+  }, [assistantProfile]);
 
   const totalSteps = 5;
 
@@ -207,28 +219,20 @@ export default function AIAssistantProfileForm() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validateStep(currentStep)) {
-      setError('请完成当前步骤的所有必填项');
+      setValidationError('请完成当前步骤的所有必填项');
       return;
     }
 
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
-      setError(null);
+      setValidationError(null);
       return;
     }
 
     // 最后一步，提交数据
-    setIsLoading(true);
-    setError(null);
+    setValidationError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('请先登录');
-        setIsLoading(false);
-        return;
-      }
-
       // 准备更新数据
       const updateData: ProfileUpdatePayload = {
         gender: formData.gender || null,
@@ -258,38 +262,8 @@ export default function AIAssistantProfileForm() {
         ai_profile_completed: true,
       };
 
-      // 使用 upsert 避免 RLS 策略问题
-      const metadata = (user.user_metadata || {}) as UserMetadata;
-      const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
-      
-      const { error: upsertError, data: upserted } = await supabase
-        .from('profiles')
-        .upsert(
-          { id: user.id, username: fallbackUsername, ...updateData },
-          { 
-            onConflict: 'id',
-            ignoreDuplicates: false 
-          }
-        )
-        .select();
-
-      if (upsertError) {
-        console.error('保存资料时出错:', {
-          message: upsertError.message,
-          details: upsertError.details,
-          hint: upsertError.hint,
-          code: upsertError.code,
-          fullError: upsertError,
-        });
-        setError(`保存资料时出错: ${upsertError.message || '未知错误'}${upsertError.hint ? ` (提示: ${upsertError.hint})` : ''}`);
-        setIsLoading(false);
-        return;
-      }
-
-      if (!upserted || upserted.length === 0) {
-        console.error('保存资料失败: 没有返回数据');
-        setError('保存资料失败，请检查您的账户是否存在');
-        setIsLoading(false);
+      const success = await saveAssistantProfile(updateData);
+      if (!success) {
         return;
       }
 
@@ -298,16 +272,15 @@ export default function AIAssistantProfileForm() {
       router.refresh();
     } catch (err) {
       console.error('提交表单时出错:', err);
-      setError('提交时发生错误，请稍后重试');
-      setIsLoading(false);
+      setValidationError('提交时发生错误，请稍后重试');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
+    <form onSubmit={handleSubmit} className={`space-y-6 ${isProfileLoading ? 'animate-pulse' : ''}`}>
+      {validationError && (
         <div className="rounded-md bg-red-50 p-4 border border-red-200">
-          <p className="text-sm text-red-800">{error}</p>
+          <p className="text-sm text-red-800">{validationError}</p>
         </div>
       )}
 
@@ -844,7 +817,7 @@ export default function AIAssistantProfileForm() {
             type="button"
             onClick={() => {
               setCurrentStep(prev => prev - 1);
-              setError(null);
+              setValidationError(null);
             }}
             className="px-4 py-2 rounded-md border border-[#E7E1D6] bg-white text-[#0B3D2E] text-sm font-medium hover:bg-[#FAF6EF] transition-colors"
           >
@@ -854,13 +827,16 @@ export default function AIAssistantProfileForm() {
         <div className={currentStep === 1 ? 'ml-auto' : ''}>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSaving || isProfileLoading}
             className="px-6 py-2 rounded-md bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white text-sm font-medium shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/40 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isLoading ? '保存中...' : currentStep < totalSteps ? '下一步' : '完成并开始分析'}
+            {isSaving ? '保存中...' : currentStep < totalSteps ? '下一步' : '完成并开始分析'}
           </button>
         </div>
       </div>
+      {profileError && (
+        <p className="text-sm text-red-500">{profileError}</p>
+      )}
     </form>
   );
 }

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import type { AIAssistantProfile } from '@/types/assistant';
 import { MotionButton } from '@/components/motion/MotionButton';
 import MaxFeatureIntroModal from './MaxFeatureIntroModal';
+import { useAuth } from '@/hooks/domain/useAuth';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 // 使用 Next.js dynamic 懒加载浮窗聊天组件，减少初始 bundle
 const AIAssistantFloatingChat = dynamic(() => import('./AIAssistantFloatingChat'), {
@@ -21,86 +22,40 @@ const AIAssistantFloatingChat = dynamic(() => import('./AIAssistantFloatingChat'
 });
 
 export default function AIAssistantFloatingButton() {
-  const [isHovered, setIsHovered] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isIntroOpen, setIsIntroOpen] = useState(false);
   const pathname = usePathname();
   const isWelcomePage = pathname === '/welcome';
   const isMarketingPage = ['/unlearn', '/beta'].some(p => pathname?.startsWith(p));
-  const [profile, setProfile] = useState<AIAssistantProfile | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, isLoading: authLoading, error: authError } = useAuth();
+  const { profile, isLoading: profileLoading, error: profileError } = useProfile();
   const [isDragging, setIsDragging] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
+  const [showGuide, setShowGuide] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem('max_guide_dismissed');
+  });
   const constraintsRef = useRef<HTMLDivElement>(null);
-
-  // Check if guide was dismissed
-  useEffect(() => {
-    const dismissed = localStorage.getItem('max_guide_dismissed');
-    if (!dismissed) {
-      setShowGuide(true);
-    }
-  }, []);
-  const supabase = createClientSupabaseClient();
-
   // 拖动位置状态
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
-  // 检查用户登录状态
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setIsAuthenticated(!!user);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        setIsAuthenticated(false);
-      }
-    };
-
-    checkAuth();
-
-    // 监听登录状态变化
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  // 加载用户资料
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single<AIAssistantProfile>();
-
-        if (!error && data) {
-          setProfile(data);
-        }
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-      }
-    };
-
-    if (isChatOpen) {
-      loadProfile();
+  const assistantProfile: AIAssistantProfile | null = profile
+    ? {
+      id: profile.id,
+      full_name: profile.full_name,
+      username: profile.username,
+      email: profile.email,
     }
-  }, [isChatOpen, supabase]);
+    : null;
+
+  const isLoading = authLoading || profileLoading;
+  const errorMessage = isAuthenticated ? (authError || profileError) : null;
 
   // Check for mobile routes
   const isMobileRoute = pathname?.startsWith('/mobile');
 
   // 如果未登录且不在欢迎页，或者在营销页面，或者是移动端路由，不渲染按钮
-  if (isMarketingPage || isMobileRoute || (!isAuthenticated && !isWelcomePage)) {
+  if (isMarketingPage || isMobileRoute || (!isAuthenticated && !isWelcomePage && !authLoading)) {
     return null;
   }
 
@@ -119,8 +74,6 @@ export default function AIAssistantFloatingButton() {
         onDragEnd={() => setIsDragging(false)}
         style={{ x, y }}
         className="fixed bottom-6 right-6 z-50 cursor-move touch-none hidden md:block"
-        onHoverStart={() => setIsHovered(true)}
-        onHoverEnd={() => setIsHovered(false)}
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3, type: 'spring' }}
@@ -138,7 +91,7 @@ export default function AIAssistantFloatingButton() {
           }}
           variant="primary"
           size="lg"
-          className="flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-8 py-6 sm:px-10 sm:py-7 text-white shadow-lg min-h-[90px] sm:min-h-0 pointer-events-auto relative group/max"
+          className={`flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] px-8 py-6 sm:px-10 sm:py-7 text-white shadow-lg min-h-[90px] sm:min-h-0 pointer-events-auto relative group/max ${isLoading ? 'animate-pulse' : ''}`}
           hapticFeedback={true}
         >
           <span className="text-2xl sm:text-3xl font-semibold">Max</span>
@@ -182,11 +135,11 @@ export default function AIAssistantFloatingButton() {
 
                   <div className="flex gap-3 mb-2">
                     <span className="text-xl">👋</span>
-                    <h4 className="font-bold text-base">Hi, I'm Max</h4>
+                    <h4 className="font-bold text-base">Hi, I&apos;m Max</h4>
                   </div>
 
                   <p className="text-sm leading-relaxed font-medium text-emerald-50/90">
-                    I'm Max. I monitor your physiological signals in real-time, search global interventions, and dynamically optimize your wellness plan.
+                    I&apos;m Max. I monitor your physiological signals in real-time, search global interventions, and dynamically optimize your wellness plan.
                   </p>
                 </div>
               </motion.div>
@@ -198,7 +151,7 @@ export default function AIAssistantFloatingButton() {
       <AnimatePresence>
         {isChatOpen && (
           <AIAssistantFloatingChat
-            initialProfile={profile}
+            initialProfile={assistantProfile}
             onClose={() => setIsChatOpen(false)}
           />
         )}
@@ -208,6 +161,9 @@ export default function AIAssistantFloatingButton() {
         isOpen={isIntroOpen}
         onClose={() => setIsIntroOpen(false)}
       />
+      {errorMessage && (
+        <p className="mt-3 text-sm text-red-500">{errorMessage}</p>
+      )}
     </>
   );
 }

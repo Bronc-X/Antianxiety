@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Sparkles, ChevronRight, X, Brain, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { useInquiry } from '@/hooks/domain/useInquiry';
 
 interface InquiryOption {
     label: string;
@@ -25,6 +26,7 @@ interface AIInquiryPanelProps {
 
 export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProps) {
     const { language } = useI18n();
+    const { loadPending, respond } = useInquiry();
     const [inquiry, setInquiry] = useState<InquiryData | null>(null);
     const [loading, setLoading] = useState(true);
     const [responding, setResponding] = useState(false);
@@ -52,10 +54,9 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
     const fetchPendingInquiry = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`/api/inquiry/pending?language=${language}`);
-            const data = await res.json();
+            const data = await loadPending(language === 'zh-TW' ? 'zh' : language);
 
-            if (data.hasInquiry && data.inquiry) {
+            if (data?.hasInquiry && data.inquiry) {
                 setInquiry(data.inquiry);
                 setDismissed(false);
             } else {
@@ -75,17 +76,11 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
         setSelectedOption(response); // Track clicked option
         setResponding(true);
         try {
-            await fetch('/api/inquiry/respond', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    inquiryId: inquiry.id,
-                    response,
-                }),
-            });
-
-            setInquiry(null);
-            onInquiryComplete?.(response);
+            const ok = await respond(inquiry.id, response);
+            if (ok) {
+                setInquiry(null);
+                onInquiryComplete?.(response);
+            }
         } catch (error) {
             console.error('Failed to submit response:', error);
         } finally {

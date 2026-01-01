@@ -169,8 +169,8 @@ export function BarcodeChart() {
     return (
         <div className="flex items-end justify-between h-12 w-full gap-[2px]">
             {Array.from({ length: 40 }).map((_, i) => {
-                let height = 20 + Math.random() * 80; // random height
-                let active = i < 25; // simple logic
+                const height = 20 + Math.random() * 80; // random height
+                const active = i < 25; // simple logic
                 return (
                     <div
                         key={i}

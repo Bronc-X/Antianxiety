@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, Check, Lock, AlertCircle } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/navigation';
 import BrutalistNav from './BrutalistNav';
+import { useAuth } from '@/hooks/domain/useAuth';
 
 type AuthMode = 'signup' | 'login';
 
@@ -13,41 +12,26 @@ export default function BrutalistAuth() {
     const [mode, setMode] = useState<AuthMode>('signup');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
-    const supabase = createClientComponentClient();
-    const router = useRouter();
+    const { signIn, signUp, isSigningIn, isSigningUp, error } = useAuth();
+    const isSubmitting = mode === 'signup' ? isSigningUp : isSigningIn;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        setError(null);
 
         try {
             if (mode === 'signup') {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        emailRedirectTo: `${window.location.origin}/auth/callback`,
-                    },
+                const success = await signUp(email, password, {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                    shouldRedirect: false,
                 });
-                if (error) throw error;
-                setSuccess(true);
+                if (success) setSuccess(true);
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-                router.push('/brutalist/calibration');
+                const success = await signIn(email, password, '/brutalist/calibration');
             }
         } catch (err: any) {
-            setError(err.message || 'An error occurred');
-        } finally {
-            setLoading(false);
+            console.error(err);
         }
     };
 
@@ -101,7 +85,7 @@ export default function BrutalistAuth() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onSubmit={handleSubmit}
-                                className="brutalist-card p-8 space-y-6"
+                                className={`brutalist-card p-8 space-y-6 ${isSubmitting ? 'animate-pulse' : ''}`}
                             >
                                 {/* Email */}
                                 <div>
@@ -140,6 +124,22 @@ export default function BrutalistAuth() {
                                     </div>
                                 </div>
 
+                                {/* Submit */}
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="brutalist-cta brutalist-cta-filled w-full group disabled:opacity-50"
+                                >
+                                    {isSubmitting ? (
+                                        <span>Processing...</span>
+                                    ) : (
+                                        <>
+                                            <span>{mode === 'signup' ? 'Create Account' : 'Sign In'}</span>
+                                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                        </>
+                                    )}
+                                </button>
+
                                 {/* Error */}
                                 {error && (
                                     <motion.div
@@ -151,22 +151,6 @@ export default function BrutalistAuth() {
                                         <span className="text-sm">{error}</span>
                                     </motion.div>
                                 )}
-
-                                {/* Submit */}
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="brutalist-cta brutalist-cta-filled w-full group disabled:opacity-50"
-                                >
-                                    {loading ? (
-                                        <span>Processing...</span>
-                                    ) : (
-                                        <>
-                                            <span>{mode === 'signup' ? 'Create Account' : 'Sign In'}</span>
-                                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                                        </>
-                                    )}
-                                </button>
 
                                 {/* Toggle Mode */}
                                 <p className="text-center text-sm text-[#888]">

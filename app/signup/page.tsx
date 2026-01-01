@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import type { MouseEvent } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,14 +10,26 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { countryDialingCodes } from '@/data/countryDialingCodes';
 import { useI18n } from '@/lib/i18n';
 
+import { useAuth } from '@/hooks/domain/useAuth';
+
 export const dynamic = 'force-dynamic';
 
 export default function SignupPage() {
   const { t, language } = useI18n();
+  const {
+    signUp,
+    signInWithOAuth,
+    sendPhoneOtp,
+    verifyPhoneOtp,
+    isSigningUp: authLoading,
+    error: authError,
+    clearError,
+  } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [signupMode, setSignupMode] = useState<'email' | 'phone'>('email');
   const [selectedDialCode, setSelectedDialCode] = useState(
@@ -33,72 +44,73 @@ export default function SignupPage() {
   const [oauthProviderLoading, setOauthProviderLoading] = useState<'twitter' | 'github' | 'wechat' | null>(null);
   const wechatQrSrc = process.env.NEXT_PUBLIC_WECHAT_QR_URL || 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fmp.weixin.qq.com';
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
+
+  // Clear auth errors on unmount or retry
+  useEffect(() => {
+    return () => clearError();
+  }, [clearError]);
 
   const handleSignup = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLocalLoading(true);
     setMessage(null);
 
     // 验证密码匹配
     if (password !== confirmPassword) {
       setMessage({ type: 'error', text: t('signup.passwordMismatch') });
-      setIsLoading(false);
+      setLocalLoading(false);
       return;
     }
 
     // 验证密码长度
     if (password.length < 8) {
       setMessage({ type: 'error', text: t('signup.passwordTooShort') });
-      setIsLoading(false);
+      setLocalLoading(false);
       return;
     }
 
     try {
-      // 使用直接注册 API（绕过邮件验证）
-      const signupRes = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: email.trim(), 
-          password
-        }),
-      });
-      
-      const signupData = await signupRes.json();
-      
-      if (!signupRes.ok || !signupData.success) {
-        const errorMsg = signupData.error || 'Registration failed';
-        // 翻译常见错误
-        let displayError = errorMsg;
-        if (language === 'zh') {
-          if (errorMsg.includes('already registered') || errorMsg.includes('already exists')) {
-            displayError = '该邮箱已被注册';
-          }
-        }
-        setMessage({ type: 'error', text: displayError });
-        setIsLoading(false);
-        return;
-      }
+      const success = await signUp(email.trim(), password);
 
-      // 注册成功，直接登录
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (signInError) {
-        // 登录失败但账号已创建
-        setMessage({ type: 'success', text: language === 'en' ? 'Account created! Please log in.' : '账号创建成功！请登录。' });
-        setTimeout(() => { router.push('/login'); }, 1500);
-      } else {
-        // 登录成功，跳转到 onboarding
+      if (success) {
+        // useAuth handles redirection to /onboarding
         setMessage({ type: 'success', text: language === 'en' ? 'Registration successful, redirecting...' : '注册成功，正在跳转...' });
-        setTimeout(() => { router.push('/onboarding'); router.refresh(); }, 1500);
+      } else {
+        // Error is set in useAuth, but we can also use the return value
+        // The auth hook updates 'error' state which we can display, or we catch it here.
+        // Wait, signUp returns boolean. The 'error' state in hook is set.
+        // We'll trust the hook's error state or message. 
+        // Actually, let's look at useAuth again. It sets error state.
+        // But for immediate feedback in this form's message box:
+        // We might need to get the error from the hook's state. 
+        // However, since we are in an event handler, state updates might not be immediate. 
+        // Let's rely on the fact that if success is false, we show a generic error or the authError if available (but it might lag).
+        // Better: useAuth clears error on start.
+        setMessage({ type: 'error', text: '注册失败，请稍后重试' }); // We can improve this if we expose the error from the promise, but the hook doesn't currently return the error string.
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       setMessage({ type: 'error', text: t('error.unknown') });
-    } finally { 
-      setIsLoading(false); 
+    } finally {
+      setLocalLoading(false);
     }
   };
+
+  // Sync auth hook error to local message
+  useEffect(() => {
+    if (authError) {
+      // Filter specific messages for translation
+      let displayError = authError;
+      if (language === 'zh') {
+        if (authError.includes('already registered') || authError.includes('already exists') || authError.includes('User already registered')) {
+          displayError = '该邮箱已被注册';
+        }
+      }
+      setMessage({ type: 'error', text: displayError });
+    }
+  }, [authError, language]);
+
+  const isLoading = localLoading || authLoading;
 
   const handleSendPhoneOtp = async (event: FormEvent<HTMLFormElement> | MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -109,11 +121,11 @@ export default function SignupPage() {
     setIsSendingOtp(true);
     setMessage(null);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: fullPhoneNumber,
-        options: { shouldCreateUser: true, data: { signup_method: 'phone' } },
+      const success = await sendPhoneOtp(fullPhoneNumber, {
+        shouldCreateUser: true,
+        data: { signup_method: 'phone' },
       });
-      if (error) { setMessage({ type: 'error', text: error.message }); setIsSendingOtp(false); return; }
+      if (!success) { setMessage({ type: 'error', text: authError || t('error.unknown') }); setIsSendingOtp(false); return; }
       setOtpSent(true);
       setMessage({ type: 'success', text: t('signup.otpSent') });
     } catch (error) {
@@ -130,14 +142,10 @@ export default function SignupPage() {
     setIsVerifyingOtp(true);
     setMessage(null);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({ phone: fullPhoneNumber, token: otpCode.trim(), type: 'sms' });
-      if (error) { setMessage({ type: 'error', text: error.message }); setIsVerifyingOtp(false); return; }
-      if (data?.session) {
-        setMessage({ type: 'success', text: t('signup.redirecting') });
-        setTimeout(() => { router.push('/onboarding'); router.refresh(); }, 1500);
-      } else {
-        setMessage({ type: 'success', text: t('signup.otpSuccess') });
-      }
+      const success = await verifyPhoneOtp(fullPhoneNumber, otpCode.trim());
+      if (!success) { setMessage({ type: 'error', text: authError || t('error.unknown') }); setIsVerifyingOtp(false); return; }
+      setMessage({ type: 'success', text: t('signup.redirecting') });
+      setTimeout(() => { router.push('/onboarding'); router.refresh(); }, 1500);
     } catch (error) {
       setMessage({ type: 'error', text: t('error.unknown') });
     } finally { setIsVerifyingOtp(false); }
@@ -147,12 +155,10 @@ export default function SignupPage() {
     setOauthProviderLoading(provider);
     setMessage(null);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: provider as 'twitter' | 'github',
-        options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`, skipBrowserRedirect: false },
-      });
-      if (error) { setMessage({ type: 'error', text: error.message }); setOauthProviderLoading(null); }
-      if (data?.url) { window.location.assign(data.url); }
+      const redirectTo = `${window.location.origin}/auth/callback?next=/onboarding`;
+      const url = await signInWithOAuth(provider as 'twitter' | 'github', redirectTo);
+      if (!url) { setMessage({ type: 'error', text: authError || t('error.unknown') }); setOauthProviderLoading(null); return; }
+      window.location.assign(url);
     } catch (error) {
       setMessage({ type: 'error', text: t('error.unknown') });
       setOauthProviderLoading(null);

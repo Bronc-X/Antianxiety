@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Edit3, Loader2, Check, X, AlertCircle, Sparkles } from 'lucide-react';
 import type { PhaseGoal, GoalType } from '@/types/adaptive-interaction';
 import { useI18n } from '@/lib/i18n';
+import { usePhaseGoals } from '@/hooks/domain/usePhaseGoals';
 
 interface PhaseGoalsDisplayProps {
   userId: string;
@@ -30,6 +31,7 @@ const GOAL_ICONS: Record<GoalType, string> = {
 
 export default function PhaseGoalsDisplay({ userId, onGoalChange }: PhaseGoalsDisplayProps) {
   const { t } = useI18n();
+  const { fetchGoals: loadGoals, explainGoal, confirmGoal } = usePhaseGoals();
   const [goals, setGoals] = useState<PhaseGoal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,9 +51,8 @@ export default function PhaseGoalsDisplay({ userId, onGoalChange }: PhaseGoalsDi
     setError(null);
 
     try {
-      const response = await fetch(`/api/settings/phase-goals?userId=${userId}`);
-      if (response.ok) {
-        const data = await response.json();
+      const data = await loadGoals(userId);
+      if (data?.goals) {
         setGoals(data.goals || []);
       } else {
         setError(t('phase.error'));
@@ -70,14 +71,8 @@ export default function PhaseGoalsDisplay({ userId, onGoalChange }: PhaseGoalsDi
     setSelectedAlternative(null);
 
     try {
-      const response = await fetch('/api/onboarding/modify-goal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goalId: goal.id, action: 'explain' }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      const data = await explainGoal(goal.id);
+      if (data) {
         setExplanation(data.explanation);
         setAlternatives(data.alternativeGoals || []);
       }
@@ -94,18 +89,9 @@ export default function PhaseGoalsDisplay({ userId, onGoalChange }: PhaseGoalsDi
     setIsModifying(true);
 
     try {
-      const response = await fetch('/api/onboarding/modify-goal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          goalId: editingGoalId,
-          newGoalType: selectedAlternative,
-          action: 'confirm',
-        }),
-      });
+      const data = await confirmGoal(editingGoalId, selectedAlternative);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (data?.updatedGoal) {
         setGoals(prev => prev.map(g => g.id === editingGoalId ? data.updatedGoal : g));
         onGoalChange?.(goals.map(g => g.id === editingGoalId ? data.updatedGoal : g));
         setEditingGoalId(null);

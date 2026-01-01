@@ -61,14 +61,10 @@ export function isEnglishVersion(hostname?: string): boolean {
  * React hook to get current app region
  * Re-renders when hostname changes (useful for dev tools)
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export function useAppRegion(): AppRegion {
-    const [region, setRegion] = useState<AppRegion>('en');
-
-    useEffect(() => {
-        setRegion(getAppRegion());
-    }, []);
+    const [region] = useState<AppRegion>(() => getAppRegion());
 
     return region;
 }

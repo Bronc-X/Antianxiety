@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { Activity, CheckCircle, Loader2 } from 'lucide-react';
 import { syncHealthKitData, syncHealthConnectData } from '@/lib/services/wearables/client-sync';
+import { useWearables } from '@/hooks/domain/useWearables';
 
 // Apple Logo SVG
 function AppleLogo({ className }: { className?: string }) {
@@ -41,6 +42,7 @@ interface ProviderConnectionState {
 
 export default function WearableConnect() {
     const { language } = useI18n();
+    const { loadStatus: loadWearableStatus } = useWearables();
     const [platform, setPlatform] = useState<'ios' | 'android' | 'unknown'>('unknown');
     const [connections, setConnections] = useState<Record<string, ProviderConnectionState>>({});
     const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
@@ -53,16 +55,14 @@ export default function WearableConnect() {
 
     const checkConnections = useCallback(async () => {
         try {
-            const res = await fetch('/api/wearables/sync', { method: 'GET' });
-            const data = await res.json();
-
-            if (data.connections) {
+            const data = await loadWearableStatus();
+            if (data?.connections) {
                 setConnections(data.connections);
             }
         } catch (error) {
             console.error('Failed to check connections:', error);
         }
-    }, []);
+    }, [loadWearableStatus]);
 
     useEffect(() => {
         // Detect platform

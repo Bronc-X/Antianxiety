@@ -1,18 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-
-interface Plan {
-  id: string;
-  title: string;
-  content: any;
-  plan_type: string;
-  difficulty: number;
-  status: string;
-  created_at: string;
-}
+import { usePlans, type PlanData } from '@/hooks/domain/usePlans';
 
 interface DashboardPlansProps {
   userId?: string;
@@ -20,24 +11,20 @@ interface DashboardPlansProps {
 
 export default function DashboardPlans({ }: DashboardPlansProps) {
   const { t, language } = useI18n();
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { activePlans, isLoading, complete, refresh } = usePlans();
   const [selectedDate] = useState(new Date());
   const [completingPlanId, setCompletingPlanId] = useState<string | null>(null);
 
-  // 加载计划列表
   useEffect(() => {
-    loadPlans();
-
     // 每30秒自动刷新一次
     const interval = setInterval(() => {
-      loadPlans();
+      refresh();
     }, 30000);
 
     // 监听全局事件，当保存新计划时自动刷新
     const handlePlanSaved = (event: Event) => {
       console.log('🔔 DashboardPlans: 收到 planSaved 事件，刷新计划列表');
-      loadPlans();
+      refresh();
     };
 
     window.addEventListener('planSaved', handlePlanSaved);
@@ -46,51 +33,16 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
       clearInterval(interval);
       window.removeEventListener('planSaved', handlePlanSaved);
     };
-  }, []);
-
-  const loadPlans = async () => {
-    try {
-      setIsLoading(true);
-
-      const response = await fetch('/api/plans/list?status=active&limit=20');
-
-      const result = await response.json();
-
-      if (result.success) {
-        const plansList = result.data?.plans || [];
-        setPlans(plansList);
-      } else {
-        console.error('❌ 加载计划失败:', result.error);
-        setPlans([]);
-      }
-    } catch (error) {
-      console.error('❌ 加载计划失败:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [refresh]);
 
   // 记录计划完成情况
   const handleCompletePlan = async (planId: string) => {
     try {
       setCompletingPlanId(planId);
 
-      const response = await fetch('/api/plans/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          planId,
-          status: 'completed',
-          completionDate: new Date().toISOString().split('T')[0],
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || '记录失败');
+      const success = await complete(planId);
+      if (!success) {
+        throw new Error('记录失败');
       }
 
       console.log('✅ 计划完成记录成功');
@@ -137,6 +89,21 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
   const getDifficultyStars = (difficulty: number) => {
     return '⭐'.repeat(difficulty || 3);
   };
+
+  const plans = useMemo(() => {
+    return activePlans.map((plan: PlanData) => ({
+      id: plan.id,
+      title: plan.name,
+      content: {
+        description: plan.description || '',
+        items: plan.items,
+      },
+      plan_type: plan.plan_type || plan.category || 'plan',
+      difficulty: plan.difficulty || 3,
+      status: plan.status,
+      created_at: plan.created_at,
+    }));
+  }, [activePlans]);
 
   if (isLoading) {
     return (

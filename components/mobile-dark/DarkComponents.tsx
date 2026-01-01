@@ -30,12 +30,8 @@ export function MetricCard({ icon, label, value, subValue, color }: any) {
     );
 }
 
-// ----------------------------------------------------------------------
-// 2. Metric Bars (Segmented Progress)
-// ----------------------------------------------------------------------
-
-export function MetricBars({ recovery, strain, sleep }: any) {
-    const Bar = ({ label, value, color }: any) => (
+function DarkMetricBar({ label, value, color }: { label: string; value: number; color: string }) {
+    return (
         <div className="flex flex-col gap-1.5">
             <div className="flex justify-between text-xs">
                 <span className="text-[#888] font-medium">{label}</span>
@@ -52,12 +48,18 @@ export function MetricBars({ recovery, strain, sleep }: any) {
             </div>
         </div>
     );
+}
 
+// ----------------------------------------------------------------------
+// 2. Metric Bars (Segmented Progress)
+// ----------------------------------------------------------------------
+
+export function MetricBars({ recovery, strain, sleep }: any) {
     return (
         <div className="space-y-4">
-            <Bar label="Recovery" value={recovery} color="#007AFF" />
-            <Bar label="Strain" value={strain} color="#FF3B30" />
-            <Bar label="Sleep" value={sleep} color="#00FF94" />
+            <DarkMetricBar label="Recovery" value={recovery} color="#007AFF" />
+            <DarkMetricBar label="Strain" value={strain} color="#FF3B30" />
+            <DarkMetricBar label="Sleep" value={sleep} color="#00FF94" />
         </div>
     );
 }
@@ -202,8 +204,8 @@ export function StressBarcode() {
     return (
         <div className="flex items-end justify-between h-12 w-full gap-[2px] mt-4">
             {Array.from({ length: 40 }).map((_, i) => {
-                let height = 20 + Math.random() * 80;
-                let active = i > 15 && i < 30;
+                const height = 20 + Math.random() * 80;
+                const active = i > 15 && i < 30;
                 // Gradient effect logic simulated by color
                 let color = active ? '#FF3B30' : '#1A1A1A';
                 if (i > 30) color = '#00FF94'; // Recovering at end

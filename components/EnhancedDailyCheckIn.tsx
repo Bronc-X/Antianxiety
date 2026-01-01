@@ -2,20 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mic, MicOff, Send, Sparkles, TrendingUp, Calendar, Clock, Battery, Lightbulb, ChevronDown } from 'lucide-react';
+import { Mic, MicOff, Send, Sparkles, Calendar, Battery, Lightbulb } from 'lucide-react';
 import AnimatedSection from '@/components/AnimatedSection';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { calculateWeeklyBayesianConfidence, getCurrentWeekConfidence, formatConfidencePercentage, getConfidenceColor, getConfidenceIcon } from '@/lib/bayesian-confidence';
 import Slider from '@/components/ui/Slider';
 import ActivityRing, { calculateRingPercentages } from '@/components/ActivityRing';
+import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
+import { useVoiceAnalysis } from '@/hooks/domain/useVoiceAnalysis';
+import { useCalibrationLog } from '@/hooks/domain/useCalibrationLog';
 
 // 复用原有的类型定义
 type DailyWellnessLog = {
-  id?: number;
+  id?: number | string;
   log_date: string;
   sleep_duration_minutes: number | null;
   sleep_quality: string | null;
   exercise_duration_minutes: number | null;
+  exercise_type?: string | null;
   mood_status: string | null;
   stress_level: number | null;
   notes: string | null;
@@ -90,10 +93,28 @@ const stressLevelMarks = Array.from({ length: 10 }, (_, i) => ({
 
 export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: EnhancedDailyCheckInProps) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
+  const { today, history, isLoading, isSaving, error, loadToday, loadHistory, save } = useCalibrationLog();
+  const { refresh: refreshProfile, sync } = useProfileMaintenance();
+  const { analyze } = useVoiceAnalysis();
   const [logs, setLogs] = useState<DailyWellnessLog[]>(initialLogs || []);
   const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const todayLog = useMemo(() => logs.find((log) => log.log_date === todayKey) || null, [logs, todayKey]);
+
+  useEffect(() => {
+    loadHistory(7);
+    loadToday();
+  }, [loadHistory, loadToday]);
+
+  useEffect(() => {
+    if (!history.length && !today) return;
+    const normalizedHistory = history as unknown as DailyWellnessLog[];
+    const normalizedToday = today as unknown as DailyWellnessLog | null;
+    const historyWithoutToday = normalizedToday
+      ? normalizedHistory.filter((log) => log.log_date !== normalizedToday.log_date)
+      : normalizedHistory;
+    const mergedLogs = normalizedToday ? [normalizedToday, ...historyWithoutToday] : historyWithoutToday;
+    setLogs(mergedLogs);
+  }, [history, today]);
 
   // 表单状态
   const [formState, setFormState] = useState({
@@ -129,7 +150,6 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
   });
 
   // 其他状态
-  const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [aiSummary, setAiSummary] = useState<string>('');
 
@@ -246,22 +266,14 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
     try {
       // 调用AI分析语音内容
-      const response = await fetch('/api/ai/analyze-voice-input', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          transcript: voiceRecording.transcript,
-          currentFormState: formState
-        }),
+      const result = await analyze({
+        transcript: voiceRecording.transcript,
+        currentFormState: formState
       });
 
-      if (!response.ok) {
+      if (!result) {
         throw new Error('AI分析失败');
       }
-
-      const result = await response.json();
 
       // 更新表单数据
       if (result.formUpdates) {
@@ -292,13 +304,9 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
 
   // 保存日志
   const handleSaveLog = async () => {
-    if (!initialProfile?.id) return;
-    setIsSaving(true);
     setToast(null);
 
     const payload = {
-      user_id: initialProfile.id,
-      log_date: todayKey,
       sleep_duration_minutes: formState.sleepDuration ? Number(formState.sleepDuration) : null,
       sleep_quality: formState.sleepQuality || null,
       exercise_duration_minutes: formState.exerciseDuration ? Number(formState.exerciseDuration) : null,
@@ -308,30 +316,19 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
       notes: formState.notes || null,
     };
 
-    const { data, error } = await supabase
-      .from('daily_wellness_logs')
-      .upsert(payload, { onConflict: 'user_id,log_date' })
-      .select()
-      .single();
+    const saved = await save(payload);
 
-    if (error) {
-      setToast(`保存失败：${error.message || '请稍后重试'}`);
-      setIsSaving(false);
+    if (!saved) {
+      setToast(`保存失败：${error || '请稍后重试'}`);
       return;
     }
 
-    setLogs((prev) => {
-      const otherLogs = prev.filter((log) => log.log_date !== todayKey);
-      return [data, ...otherLogs].sort((a, b) => (a.log_date < b.log_date ? 1 : -1));
-    });
-
     setToast('✅ 保存成功！数据已更新');
     setShowActivityRing(true);  // 显示活动环
-    setIsSaving(false);
 
     // 后台刷新：让 AI 建议/文章推荐跟随今日数据更新
-    fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
-    fetch('/api/user/profile-sync', { method: 'POST' }).catch(() => { });
+    refreshProfile().catch(() => {});
+    sync().catch(() => {});
 
     // 延迟跳转，让用户看到活动环
     setTimeout(() => {
@@ -344,7 +341,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] p-4 font-sans text-[#0B3D2E]">
+    <div className={`min-h-screen bg-[#FDFBF7] p-4 font-sans text-[#0B3D2E] ${isLoading ? 'animate-pulse' : ''}`}>
       <div className="max-w-2xl mx-auto">
 
         {/* 贝叶斯信心统计卡片 */}
@@ -709,6 +706,10 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
               {toast}
             </div>
           </div>
+        )}
+
+        {error && (
+          <div className="mt-6 text-sm text-red-600">{error}</div>
         )}
       </div>
     </div>

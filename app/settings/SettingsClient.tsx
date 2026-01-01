@@ -3,37 +3,20 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2, Share2, Settings, Zap, Sparkles, Target } from 'lucide-react';
-import { updateSettings } from '../actions/settings';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import PhaseGoalsDisplay from '@/components/PhaseGoalsDisplay';
+import { useSettings } from '@/hooks/domain/useSettings';
+import { useMaxApi } from '@/hooks/domain/useMaxApi';
 
 // 懒加载 ImageComparisonSlider - 只在解锁页面需要时才加载
 const ImageComparisonSlider = lazy(() => import('@/components/ImageComparisonSlider'));
 
-
 interface SettingsClientProps {
   user: { id: string; email?: string };
-  profile: Profile;
+  profile: any; // Relaxed type to allow flexible profile data
 }
-
-type Profile = {
-  height?: number | string;
-  weight?: number | string;
-  age?: number | string;
-  gender?: string;
-  primary_goal?: string;
-  ai_personality?: string;
-  current_focus?: string;
-  full_name?: string;
-  avatar_url?: string;
-  ai_persona_context?: string | null;
-  ai_settings?: {
-    honesty_level?: number;
-    humor_level?: number;
-  };
-};
 
 type FormState = {
   height: string | number;
@@ -54,39 +37,40 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // Use Domain Hook
+  // We construct initial data from props to avoid flash
+  const initialSettings = {
+    height: profile?.height,
+    weight: profile?.weight,
+    age: profile?.age,
+    gender: profile?.gender,
+    primary_goal: profile?.primary_goal,
+    ai_personality: profile?.ai_personality,
+    current_focus: profile?.current_focus,
+    full_name: profile?.full_name,
+    avatar_url: profile?.avatar_url,
+    max_honesty: profile?.ai_settings?.honesty_level ?? 90,
+    max_humor: profile?.ai_settings?.humor_level ?? 65,
+  };
+
+  const { update: updateSettingsHook, isSaving: isHookSaving, error: hookError } = useSettings({
+    userId: user.id,
+    initialData: initialSettings
+  });
+  const { getResponse } = useMaxApi();
+
   // 滑动解锁状态 - 必须在所有其他 hooks 之前
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [sliderProgress, setSliderProgress] = useState(0);
   const [imageId] = useState(() => Math.floor(Math.random() * 1000) + 1);
-  
+
   const [activeTab, setActiveTab] = useState<'body' | 'ai' | 'account'>('body');
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Local loading state for UX feedback (success message timing)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // 从 ai_persona_context 解析诚实度和幽默感设置
-  const parseSettingsFromContext = (context: string | null): { honesty: number; humor: number } => {
-    if (!context) return { honesty: 90, humor: 65 };
-    const honestyMatch = context.match(/诚实度:\s*(\d+)%/);
-    const humorMatch = context.match(/幽默感:\s*(\d+)%/);
-    return {
-      honesty: honestyMatch ? parseInt(honestyMatch[1], 10) : 90,
-      humor: humorMatch ? parseInt(humorMatch[1], 10) : 65,
-    };
-  };
-
-  // 从 ai_settings JSON 或 ai_persona_context 获取设置
-  const getInitialSettings = () => {
-    if (profile?.ai_settings && typeof profile.ai_settings.honesty_level === 'number') {
-      return { honesty: profile.ai_settings.honesty_level, humor: profile.ai_settings.humor_level ?? 65 };
-    }
-    return parseSettingsFromContext(profile?.ai_persona_context ?? null);
-  };
-
-  const initialSettings = getInitialSettings();
-
-  // Form state - 必须在条件渲染之前声明
+  // Form state
   const [formData, setFormData] = useState<FormState>({
     height: profile?.height || '',
     weight: profile?.weight || '',
@@ -95,8 +79,8 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
     primary_goal: profile?.primary_goal || 'maintain_energy',
     ai_personality: profile?.ai_personality || 'max',
     current_focus: profile?.current_focus || '',
-    max_honesty: initialSettings.honesty ?? 90,
-    max_humor: initialSettings.humor ?? 65,
+    max_honesty: initialSettings.max_honesty,
+    max_humor: initialSettings.max_humor,
     full_name: profile?.full_name || '',
     avatar_url: profile?.avatar_url || '',
   });
@@ -111,14 +95,6 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
       setIsUnlocked(true);
     }
   }, [searchParams]);
-
-  // 检查是否已经解锁过（本次会话）- 暂时禁用，每次都显示滑动
-  // useEffect(() => {
-  //   const unlocked = sessionStorage.getItem('settings_unlocked');
-  //   if (unlocked === 'true') {
-  //     setIsUnlocked(true);
-  //   }
-  // }, []);
 
   const handleSliderComplete = () => {
     setIsUnlocked(true);
@@ -191,20 +167,24 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
     );
   }
 
-
-
   const handleSave = async () => {
     setIsSaving(true);
     setMessage(null);
 
     try {
-      const result = await updateSettings(user.id, formData);
-      
-      if (result.success) {
+      // Use hook update
+      const success = await updateSettingsHook({
+        ...formData, // Spread all form data
+        height: Number(formData.height),
+        weight: Number(formData.weight),
+        age: Number(formData.age),
+      });
+
+      if (success) {
         setMessage({ type: 'success', text: t('settings.saveSuccess') });
         router.refresh();
       } else {
-        setMessage({ type: 'error', text: result.error || t('settings.saveFail') });
+        setMessage({ type: 'error', text: hookError || t('settings.saveFail') });
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -270,11 +250,10 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
           {/* Message Banner */}
           {message && (
-            <div className={`mt-4 rounded-lg p-4 ${
-              message.type === 'success' 
-                ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' 
+            <div className={`mt-4 rounded-lg p-4 ${message.type === 'success'
+                ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
                 : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
-            }`}>
+              }`}>
               {message.text}
             </div>
           )}
@@ -287,22 +266,20 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
           <nav className="flex gap-8" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('body')}
-              className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'body'
+              className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'body'
                   ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
                   : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
-              }`}
+                }`}
             >
               <Activity className="w-4 h-4" />
               {t('settings.bodyProfile')}
             </button>
             <button
               onClick={() => setActiveTab('ai')}
-              className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'ai'
+              className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'ai'
                   ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
                   : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
-              }`}
+                }`}
             >
               <Brain className="w-4 h-4" />
               {t('settings.aiTuning')}
@@ -312,11 +289,10 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
             </button>
             <button
               onClick={() => setActiveTab('account')}
-              className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'account'
+              className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'account'
                   ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
                   : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
-              }`}
+                }`}
             >
               <User className="w-4 h-4" />
               {t('settings.accountMembership')}
@@ -327,7 +303,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
 
       {/* Tab Content */}
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Tab 1: Body Metrics */}
         {activeTab === 'body' && (
           <div className="space-y-6">
@@ -390,11 +366,10 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                         key={option.value}
                         type="button"
                         onClick={() => handleChange('gender', option.value)}
-                        className={`rounded-lg border-2 py-2.5 text-sm font-medium transition-all ${
-                          formData.gender === option.value
+                        className={`rounded-lg border-2 py-2.5 text-sm font-medium transition-all ${formData.gender === option.value
                             ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
                             : 'border-[#E7E1D6] bg-white text-[#0B3D2E] hover:border-[#0B3D2E]/50'
-                        }`}
+                          }`}
                       >
                         {option.label}
                       </button>
@@ -415,7 +390,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 </div>
               )}
             </div>
-            
+
             {/* Save Button for Body Tab */}
             <div className="flex justify-center">
               <button
@@ -463,7 +438,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
               </div>
 
               {/* MAX Settings Panel - 白色 UI 风格，幽默感自动决定人格 */}
-              <MaxSettingsPanelWhite 
+              <MaxSettingsPanelWhite
                 honestyLevel={formData.max_honesty || 90}
                 humorLevel={formData.max_humor || 65}
                 onHonestyChange={(v) => handleChange('max_honesty', v)}
@@ -499,7 +474,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 />
               </div>
             </div>
-            
+
             {/* Save Button for AI Tab */}
             <div className="flex justify-center">
               <button
@@ -616,7 +591,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
               <p className="text-sm text-[#0B3D2E]/70 mb-4">
                 {t('settings.upgradeHint')}
               </p>
-              <button 
+              <button
                 onClick={() => router.push('/onboarding/upgrade?from=settings')}
                 className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white hover:shadow-lg transition-all"
               >
@@ -650,11 +625,10 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                   <button
                     key={platform.name}
                     onClick={() => handleSocialConnect(platform.name)}
-                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                      platform.connected
+                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${platform.connected
                         ? 'border-green-200 bg-green-50'
                         : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/30 hover:bg-[#FAF6EF]'
-                    }`}
+                      }`}
                   >
                     <div className={`w-10 h-10 rounded-full ${platform.color} flex items-center justify-center text-white font-bold text-lg`}>
                       {platform.icon || platform.name.charAt(0)}
@@ -683,7 +657,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                 </div>
               </div>
             </div>
-            
+
             {/* Save Button for Account Tab */}
             <div className="flex justify-center">
               <button
@@ -737,17 +711,12 @@ function MaxSettingsPanelWhite({
   const fetchMaxFeedback = async (sliderType: 'honesty' | 'humor', value: number) => {
     setIsLoadingFeedback(true);
     try {
-      const res = await fetch('/api/max/response', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          context: 'slider_change',
-          sliderType,
-          value
-        })
+      const data = await getResponse({
+        context: 'slider_change',
+        sliderType,
+        value
       });
-      if (res.ok) {
-        const data = await res.json();
+      if (data) {
         setMaxFeedback(data.response?.text || data.message || getLocalFeedback(sliderType, value));
       } else {
         setMaxFeedback(getLocalFeedback(sliderType, value));
@@ -794,7 +763,7 @@ function MaxSettingsPanelWhite({
     } else {
       onHumorChange(value);
     }
-    
+
     // 防抖：500ms 后获取反馈
     if (feedbackTimeoutRef.current) {
       clearTimeout(feedbackTimeoutRef.current);
@@ -839,9 +808,8 @@ function MaxSettingsPanelWhite({
           className="bg-white rounded-lg p-4 border border-[#E7E1D6]"
         >
           <div className="flex items-start gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-              isLoadingFeedback ? 'bg-amber-100' : 'bg-[#F2F7F5]'
-            }`}>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isLoadingFeedback ? 'bg-amber-100' : 'bg-[#F2F7F5]'
+              }`}>
               {isLoadingFeedback ? (
                 <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
               ) : (
@@ -870,7 +838,7 @@ function MaxSettingsPanelWhite({
         </div>
         <div className="relative h-10 flex items-center">
           <div className="absolute inset-x-0 h-2 bg-[#E7E1D6] rounded-full overflow-hidden">
-            <motion.div 
+            <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[#C4A77D]/60 to-[#C4A77D]"
               initial={false}
               animate={{ width: `${honestyLevel}%` }}
@@ -885,7 +853,7 @@ function MaxSettingsPanelWhite({
             onChange={(e) => handleSliderChange('honesty', Number(e.target.value))}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
-          <motion.div 
+          <motion.div
             className="absolute w-5 h-5 rounded-full bg-white border-2 border-[#C4A77D] shadow-md pointer-events-none"
             initial={false}
             animate={{ left: `calc(${honestyLevel}% - 10px)` }}
@@ -913,16 +881,15 @@ function MaxSettingsPanelWhite({
         </div>
         <div className="relative h-10 flex items-center">
           <div className="absolute inset-x-0 h-2 bg-[#E7E1D6] rounded-full overflow-hidden">
-            <motion.div 
-              className={`h-full rounded-full ${
-                humorLevel >= 100 
-                  ? 'bg-gradient-to-r from-pink-400 via-amber-400 to-pink-400' 
+            <motion.div
+              className={`h-full rounded-full ${humorLevel >= 100
+                  ? 'bg-gradient-to-r from-pink-400 via-amber-400 to-pink-400'
                   : humorLevel < 33
                     ? 'bg-gradient-to-r from-[#C4A77D]/60 to-[#C4A77D]'
                     : humorLevel < 66
                       ? 'bg-gradient-to-r from-[#9CAF88]/60 to-[#9CAF88]'
                       : 'bg-gradient-to-r from-[#E8DFD0]/60 to-[#E8DFD0]'
-              }`}
+                }`}
               initial={false}
               animate={{ width: `${humorLevel}%` }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -936,10 +903,9 @@ function MaxSettingsPanelWhite({
             onChange={(e) => handleSliderChange('humor', Number(e.target.value))}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
-          <motion.div 
-            className={`absolute w-5 h-5 rounded-full bg-white border-2 shadow-md pointer-events-none ${
-              humorLevel >= 100 ? 'border-pink-500' : humorLevel < 33 ? 'border-[#C4A77D]' : humorLevel < 66 ? 'border-[#9CAF88]' : 'border-[#D4C4A8]'
-            }`}
+          <motion.div
+            className={`absolute w-5 h-5 rounded-full bg-white border-2 shadow-md pointer-events-none ${humorLevel >= 100 ? 'border-pink-500' : humorLevel < 33 ? 'border-[#C4A77D]' : humorLevel < 66 ? 'border-[#9CAF88]' : 'border-[#D4C4A8]'
+              }`}
             initial={false}
             animate={{ left: `calc(${humorLevel}% - 10px)` }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -949,7 +915,7 @@ function MaxSettingsPanelWhite({
           <span>{t('settings.serious')}</span>
           <span>{t('settings.witty')}</span>
         </div>
-        
+
         {/* 自动人格指示器 */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -958,21 +924,19 @@ function MaxSettingsPanelWhite({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.98 }}
             transition={{ duration: 0.25 }}
-            className={`mt-4 flex items-center justify-center gap-3 py-3 px-4 rounded-xl border ${
-              humorLevel < 33 
-                ? 'bg-[#C4A77D]/10 border-[#C4A77D]/30' 
-                : humorLevel < 66 
+            className={`mt-4 flex items-center justify-center gap-3 py-3 px-4 rounded-xl border ${humorLevel < 33
+                ? 'bg-[#C4A77D]/10 border-[#C4A77D]/30'
+                : humorLevel < 66
                   ? 'bg-[#9CAF88]/10 border-[#9CAF88]/30'
                   : 'bg-[#E8DFD0]/20 border-[#D4C4A8]/30'
-            }`}
+              }`}
           >
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-              humorLevel < 33 
-                ? 'bg-[#C4A77D]/20' 
-                : humorLevel < 66 
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${humorLevel < 33
+                ? 'bg-[#C4A77D]/20'
+                : humorLevel < 66
                   ? 'bg-[#9CAF88]/20'
                   : 'bg-[#E8DFD0]/30'
-            }`}>
+              }`}>
               <span className="text-lg">
                 {humorLevel < 33 ? '🏥' : humorLevel < 66 ? '🧘' : '⚡'}
               </span>
@@ -981,13 +945,12 @@ function MaxSettingsPanelWhite({
               <p className="text-sm font-medium text-[#0B3D2E]">
                 {humorLevel < 33 ? 'Dr. House' : humorLevel < 66 ? 'Zen Master' : 'MAX'}
               </p>
-              <p className={`text-xs ${
-                humorLevel < 33 
-                  ? 'text-[#C4A77D]' 
-                  : humorLevel < 66 
+              <p className={`text-xs ${humorLevel < 33
+                  ? 'text-[#C4A77D]'
+                  : humorLevel < 66
                     ? 'text-[#9CAF88]'
                     : 'text-[#B8A888]'
-              }`}>
+                }`}>
                 {humorLevel < 33 ? t('settings.drHouseStyle') : humorLevel < 66 ? t('settings.zenMasterStyle') : t('settings.maxStyle')}
               </p>
             </div>

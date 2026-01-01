@@ -1,20 +1,24 @@
 'use client';
 
 import { useState, FormEvent, Suspense, useEffect } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import AnimatedSection from '@/components/AnimatedSection';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/hooks/domain/useAuth';
 
 function UpdatePasswordContent() {
     const { t } = useI18n();
+    const { updatePassword, error: authError, clearError } = useAuth();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const router = useRouter();
-    const supabase = createClientSupabaseClient();
+
+    useEffect(() => {
+        return () => clearError();
+    }, [clearError]);
 
     const handleUpdatePassword = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -31,10 +35,9 @@ function UpdatePasswordContent() {
         setMessage(null);
 
         try {
-            const { error } = await supabase.auth.updateUser({ password: password });
-
-            if (error) {
-                setMessage({ type: 'error', text: error.message });
+            const success = await updatePassword(password);
+            if (!success) {
+                setMessage({ type: 'error', text: authError || t('error.unknown') });
                 setIsLoading(false);
                 return;
             }

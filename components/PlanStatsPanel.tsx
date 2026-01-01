@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { usePlans } from '@/hooks/domain/usePlans';
 
 interface PlanStats {
   todayPlans: {
@@ -23,6 +24,7 @@ interface PlanStats {
 export default function PlanStatsPanel() {
   const [stats, setStats] = useState<PlanStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { getStatsSummary } = usePlans();
 
   useEffect(() => {
     loadStats();
@@ -48,17 +50,10 @@ export default function PlanStatsPanel() {
 
   const loadStats = async () => {
     try {
-      // 获取执行统计
-      const statsResponse = await fetch('/api/plans/stats?days=7');
-      const statsResult = await statsResponse.json();
-
-      // 获取计划列表
-      const plansResponse = await fetch('/api/plans/list?status=active&limit=5');
-      const plansResult = await plansResponse.json();
-
-      if (statsResult.success && plansResult.success) {
-        const summary = statsResult.data?.summary || {};
-        const plans = plansResult.data?.plans || [];
+      const statsResult = await getStatsSummary(7);
+      if (statsResult) {
+        const summary = statsResult.summary || {};
+        const plans = statsResult.plans || [];
 
         setStats({
           todayPlans: {

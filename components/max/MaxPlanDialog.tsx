@@ -20,6 +20,9 @@ import {
   X, Loader2, Sparkles, RefreshCw, Check, MessageCircle,
   ChevronRight, Brain, Zap, Moon, Heart, Dumbbell, Apple, Smile, Target
 } from 'lucide-react';
+import { useMaxApi } from '@/hooks/domain/useMaxApi';
+import { usePlans } from '@/hooks/domain/usePlans';
+import type { ParsedPlan } from '@/lib/plan-parser';
 import type {
   ChatMessage,
   PlanItemDraft,
@@ -66,6 +69,8 @@ const DIFFICULTY_LABELS: Record<string, Record<string, string>> = {
 export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPlanDialogProps) {
   const { language } = useI18n();
   const { toast } = useToast();
+  const { planChat, planReplace } = useMaxApi();
+  const { createFromAI } = usePlans();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -138,20 +143,10 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     
     try {
       console.log('[MaxPlanDialog] Fetching /api/max/plan-chat...');
-      const res = await fetch('/api/max/plan-chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Language-Preference': sessionLang,
-        },
-        body: JSON.stringify({ action: 'init', language: sessionLang }),
-      });
+      const data = await planChat({ action: 'init', language: sessionLang });
 
-      console.log('[MaxPlanDialog] Response status:', res.status);
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('[MaxPlanDialog] API error:', errorText);
+      if (!data) {
+        console.error('[MaxPlanDialog] API error: empty response');
         // 即使失败也显示一条消息，不关闭对话框
         const errorMsg: ChatMessage = {
           id: `error_${Date.now()}`,
@@ -166,28 +161,28 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
         return;
       }
 
-      const data: PlanChatResponse = await res.json();
+      const dataResponse: PlanChatResponse = data;
       console.log('[MaxPlanDialog] Response data:', data);
       
-      if (data.success) {
-        setSessionId(data.sessionId);
-        setDataStatus(data.dataStatus);
-        setNextAction(data.nextAction);
+      if (dataResponse.success) {
+        setSessionId(dataResponse.sessionId);
+        setDataStatus(dataResponse.dataStatus);
+        setNextAction(dataResponse.nextAction);
         
         // 直接设置消息，不使用打字效果
-        console.log('[MaxPlanDialog] Setting messages:', data.messages);
-        setMessages(data.messages || []);
+        console.log('[MaxPlanDialog] Setting messages:', dataResponse.messages);
+        setMessages(dataResponse.messages || []);
 
         // 如果下一步是生成，自动触发
-        if (data.nextAction === 'generate') {
-          await handleGenerate(data.sessionId);
+        if (dataResponse.nextAction === 'generate') {
+          await handleGenerate(dataResponse.sessionId);
         }
       } else {
         // API 返回 success: false
         const errorMsg: ChatMessage = {
           id: `error_${Date.now()}`,
           role: 'max',
-          content: data.error || (sessionLang === 'zh' ? '初始化失败' : 'Initialization failed'),
+          content: dataResponse.error || (sessionLang === 'zh' ? '初始化失败' : 'Initialization failed'),
           timestamp: new Date(),
         };
         setMessages([errorMsg]);
@@ -249,33 +244,26 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     setLoading(true);
 
     try {
-      const res = await fetch('/api/max/plan-chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Language-Preference': sessionLang,
-        },
-        body: JSON.stringify({
-          action: 'respond',
-          sessionId,
-          questionId,
-          message: value,
-          language: sessionLang,
-        }),
+      const data = await planChat({
+        action: 'respond',
+        sessionId,
+        questionId,
+        message: value,
+        language: sessionLang,
       });
 
-      const data: PlanChatResponse = await res.json();
+      const response: PlanChatResponse | null = data || null;
 
-      if (data.success) {
-        setNextAction(data.nextAction);
+      if (response?.success) {
+        setNextAction(response.nextAction);
         
         // 过滤重复消息
-        const filteredMessages = filterDuplicateMessages(data.messages, deduplicatorRef.current);
+        const filteredMessages = filterDuplicateMessages(response.messages, deduplicatorRef.current);
         for (const msg of filteredMessages) {
           await showMessageWithTyping(msg);
         }
 
-        if (data.nextAction === 'generate') {
+        if (response.nextAction === 'generate') {
           await handleGenerate(sessionId);
         }
       }
@@ -295,32 +283,25 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     const sessionLang = getSessionLanguage();
     
     try {
-      const res = await fetch('/api/max/plan-chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Language-Preference': sessionLang,
-        },
-        body: JSON.stringify({
-          action: 'generate',
-          sessionId: sid,
-          language: sessionLang,
-        }),
+      const data = await planChat({
+        action: 'generate',
+        sessionId: sid,
+        language: sessionLang,
       });
 
-      const data: PlanChatResponse = await res.json();
+      const response: PlanChatResponse | null = data || null;
 
-      if (data.success) {
+      if (response?.success) {
         // 过滤重复消息
-        const filteredMessages = filterDuplicateMessages(data.messages, deduplicatorRef.current);
+        const filteredMessages = filterDuplicateMessages(response.messages, deduplicatorRef.current);
         for (const msg of filteredMessages) {
           await showMessageWithTyping(msg);
         }
         
-        if (data.planItems) {
-          setPlanItems(data.planItems);
+        if (response.planItems) {
+          setPlanItems(response.planItems);
         }
-        setNextAction(data.nextAction);
+        setNextAction(response.nextAction);
       }
     } catch (error) {
       console.error('[MaxPlanDialog] Generate error:', error);
@@ -339,29 +320,22 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     const sessionLang = getSessionLanguage();
 
     try {
-      const res = await fetch('/api/max/plan-chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Language-Preference': sessionLang,
-        },
-        body: JSON.stringify({
-          action: 'skip',
-          sessionId,
-          language: sessionLang,
-        }),
+      const data = await planChat({
+        action: 'skip',
+        sessionId,
+        language: sessionLang,
       });
 
-      const data: PlanChatResponse = await res.json();
+      const response: PlanChatResponse | null = data || null;
 
-      if (data.success) {
+      if (response?.success) {
         // 过滤重复消息
-        const filteredMessages = filterDuplicateMessages(data.messages, deduplicatorRef.current);
+        const filteredMessages = filterDuplicateMessages(response.messages, deduplicatorRef.current);
         for (const msg of filteredMessages) {
           await showMessageWithTyping(msg);
         }
         
-        if (data.nextAction === 'generate') {
+        if (response.nextAction === 'generate') {
           await handleGenerate(sessionId);
         }
       }
@@ -379,25 +353,18 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     setReplacingItemId(item.id);
 
     try {
-      const res = await fetch('/api/max/plan-replace', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Language-Preference': sessionLang,
-        },
-        body: JSON.stringify({
-          itemId: item.id,
-          currentItem: item,
-          sessionId,
-          language: sessionLang,
-        }),
+      const data = await planReplace({
+        itemId: item.id,
+        currentItem: item,
+        sessionId,
+        language: sessionLang,
       });
 
-      const data: PlanReplaceResponse = await res.json();
+      const response: PlanReplaceResponse | null = data || null;
 
-      if (data.success && data.newItem) {
+      if (response?.success && response.newItem) {
         setPlanItems(prev => prev.map(p => 
-          p.id === item.id ? data.newItem : p
+          p.id === item.id ? response.newItem : p
         ));
         
         toast({
@@ -424,27 +391,18 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     setSaving(true);
 
     try {
-      // 转换为 plans/create API 格式
-      const payload = {
-        plans: [{
-          title: sessionLang === 'zh' ? 'Max 个性化计划' : 'Max Personalized Plan',
-          content: planItems.map(item => item.action).join('\n'),
-          items: planItems.map(item => ({
-            text: `${item.title}: ${item.action}`,
-            category: item.category,
-            difficulty: item.difficulty,
-          })),
-        }],
-        sessionId,
+      const planPayload: ParsedPlan = {
+        title: sessionLang === 'zh' ? 'Max 个性化计划' : 'Max Personalized Plan',
+        content: planItems.map(item => item.action).join('\n'),
+        items: planItems.map(item => ({
+          text: `${item.title}: ${item.action}`,
+          status: 'pending',
+        })),
       };
 
-      const res = await fetch('/api/plans/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const created = await createFromAI([planPayload], sessionId || undefined);
 
-      if (!res.ok) {
+      if (!created) {
         throw new Error('Failed to save plan');
       }
 

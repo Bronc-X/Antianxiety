@@ -19,7 +19,7 @@ import {
     checkSafetyTrigger,
     logSafetyEvent,
 } from '@/lib/clinical-scales';
-import { getSleepDurationScore } from '@/lib/clinical-scales/daily-questions';
+import { getSleepDurationScore, getSleepHoursFromValue } from '@/lib/clinical-scales/daily-questions';
 import {
     calculateDailyStability,
     fetchUserStabilityData,
@@ -48,6 +48,18 @@ export interface DailyCalibrationResult {
     triggerFullScale: 'GAD7' | 'PHQ9' | null;
     safetyTriggered: boolean;
     stability: StabilityResult | null;
+}
+
+function mapSleepQuality(value?: number): string | null {
+    if (value === 0) return 'good';
+    if (value === 1) return 'average';
+    if (value === 2) return 'poor';
+    return null;
+}
+
+function mapStressLevel(value?: number): number | null {
+    if (value === undefined || value === null) return null;
+    return Math.min(10, Math.max(1, value * 3 + 3));
 }
 
 /**
@@ -149,6 +161,19 @@ export async function processDailyCalibration(
             daily_stability_streak: stability.consecutiveStableDays,
         })
         .eq('id', userId);
+
+    const responseDate = new Date().toISOString().split('T')[0];
+    const sleepHours = getSleepHoursFromValue(responses['daily_sleep_duration'] ?? 0);
+
+    await supabase
+        .from('daily_wellness_logs')
+        .upsert({
+            user_id: userId,
+            log_date: responseDate,
+            sleep_duration_minutes: Math.round(sleepHours * 60),
+            sleep_quality: mapSleepQuality(responses['daily_sleep_quality']),
+            stress_level: mapStressLevel(responses['daily_stress_level']),
+        }, { onConflict: 'user_id,log_date' });
 
     // Trigger digital twin analysis in background (non-blocking)
     onCalibrationComplete(userId);

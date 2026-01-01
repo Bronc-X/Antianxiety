@@ -6,9 +6,10 @@ interface CircularProgressProps {
     value: number; // 0-100 score
     label: string;
     subLabel: string;
+    isSkeleton?: boolean;
 }
 
-export const CircularProgress = ({ value, label, subLabel }: CircularProgressProps) => {
+export const CircularProgress = ({ value, label, subLabel, isSkeleton = false }: CircularProgressProps) => {
     const radius = 80;
     const strokeWidth = 12;
     const percentage = Math.min(Math.max(value, 0), 100);
@@ -17,7 +18,7 @@ export const CircularProgress = ({ value, label, subLabel }: CircularProgressPro
     const strokeDashoffset = arcLength - (percentage / 100) * arcLength;
 
     return (
-        <div className="relative flex flex-col items-center justify-center p-6 bg-white rounded-[2rem] shadow-sm">
+        <div className={`relative flex flex-col items-center justify-center p-6 bg-white rounded-[2rem] shadow-sm${isSkeleton ? ' animate-pulse' : ''}`}>
             <div className="relative w-48 h-32 flex items-center justify-center overflow-hidden">
                 <svg
                     width="200"
@@ -64,11 +65,13 @@ export const CircularProgress = ({ value, label, subLabel }: CircularProgressPro
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
-                        className="text-5xl font-bold text-slate-900 tracking-tight"
+                        className={`text-5xl font-bold text-slate-900 tracking-tight${isSkeleton ? ' text-transparent bg-slate-200 rounded px-4' : ''}`}
                     >
-                        {value}
+                        {isSkeleton ? 'loading' : value}
                     </motion.div>
-                    <div className="text-emerald-600 text-sm font-medium">{subLabel}</div>
+                    <div className={`text-emerald-600 text-sm font-medium${isSkeleton ? ' text-transparent bg-slate-200 rounded px-3 mt-1' : ''}`}>
+                        {isSkeleton ? 'loading' : subLabel}
+                    </div>
                 </div>
             </div>
 

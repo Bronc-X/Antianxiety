@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
-import { useRouter } from 'next/navigation';
+import { useAiReminders } from '@/hooks/domain/useAiReminders';
 
 // AI提醒数据类型
 interface AIReminder {
@@ -25,92 +23,16 @@ interface AIReminderListProps {
  * 显示AI生成的预测性提醒和建议
  */
 export default function AIReminderList({ userId }: AIReminderListProps) {
-  const router = useRouter();
-  const supabase = createClientSupabaseClient();
-  const [reminders, setReminders] = useState<AIReminder[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // 获取未读提醒
-  useEffect(() => {
-    async function fetchReminders() {
-      try {
-        const { data, error } = await supabase
-          .from('ai_reminders')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('dismissed', false)
-          .order('scheduled_at', { ascending: false })
-          .limit(5);
-
-        if (error) {
-          console.error('获取AI提醒失败:', error);
-        } else {
-          setReminders(data || []);
-        }
-      } catch (error) {
-        console.error('获取AI提醒时发生错误:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchReminders();
-
-    // 订阅实时更新
-    const channel = supabase
-      .channel(`ai-reminders-${userId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'ai_reminders', filter: `user_id=eq.${userId}` },
-        () => {
-          fetchReminders();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, supabase]);
+  const { reminders, isLoading, error, markRead, dismiss } = useAiReminders({ userId });
 
   // 标记为已读
   const markAsRead = async (reminderId: number) => {
-    try {
-      const { error } = await supabase
-        .from('ai_reminders')
-        .update({ read: true })
-        .eq('id', reminderId)
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('标记提醒为已读失败:', error);
-      } else {
-        setReminders((prev) =>
-          prev.map((r) => (r.id === reminderId ? { ...r, read: true } : r))
-        );
-      }
-    } catch (error) {
-      console.error('标记提醒为已读时发生错误:', error);
-    }
+    await markRead(reminderId);
   };
 
   // 忽略提醒
   const dismissReminder = async (reminderId: number) => {
-    try {
-      const { error } = await supabase
-        .from('ai_reminders')
-        .update({ dismissed: true })
-        .eq('id', reminderId)
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('忽略提醒失败:', error);
-      } else {
-        setReminders((prev) => prev.filter((r) => r.id !== reminderId));
-      }
-    } catch (error) {
-      console.error('忽略提醒时发生错误:', error);
-    }
+    await dismiss(reminderId);
   };
 
   // 提醒类型图标和颜色
@@ -147,17 +69,17 @@ export default function AIReminderList({ userId }: AIReminderListProps) {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-pulse text-sm text-gray-500">加载AI提醒中...</div>
+        <div className="flex items-center justify-center py-8 animate-pulse">
+          <div className="text-sm text-gray-500">加载AI提醒中...</div>
         </div>
       </div>
     );
   }
 
-  if (reminders.length === 0) {
+  if (reminders.length === 0 && !error) {
     return null; // 没有提醒时不显示组件
   }
 
@@ -215,6 +137,9 @@ export default function AIReminderList({ userId }: AIReminderListProps) {
           );
         })}
       </div>
+      {error && (
+        <div className="mt-4 text-sm text-red-600">{error}</div>
+      )}
     </div>
   );
 }

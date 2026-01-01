@@ -2,9 +2,36 @@
 
 import { motion } from "framer-motion";
 
-export const MacroBreakdown = () => {
+
+interface MacroBreakdownProps {
+    stats?: {
+        peaceful: number; // percentage 0-100
+        anxious: number;
+        focus: number;
+    };
+    isSkeleton?: boolean;
+}
+
+export const MacroBreakdown = ({
+    stats,
+    isSkeleton = false
+}: MacroBreakdownProps) => {
+    const safeStats = stats || { peaceful: 0, anxious: 0, focus: 0 };
+    // Calculate circumference for stroke-dasharray (r=40 -> C=251.32)
+    const C = 251;
+
+    // Calculate offsets based on previous segments
+    const peacefulDash = (safeStats.peaceful / 100) * C;
+    const anxiousDash = (safeStats.anxious / 100) * C;
+    const focusDash = (safeStats.focus / 100) * C;
+
+    const peacefulOffset = 0;
+    const anxiousOffset = -peacefulDash;
+    const focusOffset = -(peacefulDash + anxiousDash);
+
+
     return (
-        <div className="p-5 bg-white rounded-[2rem] shadow-sm">
+        <div className={`p-5 bg-white rounded-[2rem] shadow-sm${isSkeleton ? ' animate-pulse' : ''}`}>
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-violet-500" />
@@ -23,17 +50,23 @@ export const MacroBreakdown = () => {
                 <div className="flex gap-6">
                     <div>
                         <div className="text-xs text-slate-400 font-medium mb-1">平静</div>
-                        <div className="text-lg font-bold text-violet-500">50%</div>
+                        <div className={`text-lg font-bold text-violet-500${isSkeleton ? ' text-transparent bg-slate-200 rounded px-2' : ''}`}>
+                            {isSkeleton ? 'loading' : `${safeStats.peaceful}%`}
+                        </div>
                         <div className="text-xs text-slate-400 mt-1">占比</div>
                     </div>
                     <div>
                         <div className="text-xs text-slate-400 font-medium mb-1">焦虑</div>
-                        <div className="text-lg font-bold text-rose-400">30%</div>
+                        <div className={`text-lg font-bold text-rose-400${isSkeleton ? ' text-transparent bg-slate-200 rounded px-2' : ''}`}>
+                            {isSkeleton ? 'loading' : `${safeStats.anxious}%`}
+                        </div>
                         <div className="text-xs text-slate-400 mt-1">占比</div>
                     </div>
                     <div>
                         <div className="text-xs text-slate-400 font-medium mb-1">专注</div>
-                        <div className="text-lg font-bold text-sky-400">20%</div>
+                        <div className={`text-lg font-bold text-sky-400${isSkeleton ? ' text-transparent bg-slate-200 rounded px-2' : ''}`}>
+                            {isSkeleton ? 'loading' : `${safeStats.focus}%`}
+                        </div>
                         <div className="text-xs text-slate-400 mt-1">占比</div>
                     </div>
                 </div>
@@ -44,24 +77,24 @@ export const MacroBreakdown = () => {
                         <circle cx="50" cy="50" r="40" fill="none" stroke="#F1F5F9" strokeWidth="12" />
                         {/* Peaceful Segment */}
                         <motion.circle
-                            initial={{ strokeDasharray: "0 251" }}
-                            animate={{ strokeDasharray: "125 251" }} // 50%
+                            initial={{ strokeDasharray: `0 ${C}` }}
+                            animate={{ strokeDasharray: `${peacefulDash} ${C}` }}
                             transition={{ duration: 1, delay: 0.2 }}
-                            cx="50" cy="50" r="40" fill="none" stroke="#8b5cf6" strokeWidth="12" strokeDashoffset="0"
+                            cx="50" cy="50" r="40" fill="none" stroke="#8b5cf6" strokeWidth="12" strokeDashoffset={peacefulOffset}
                         />
                         {/* Anxious Segment */}
                         <motion.circle
-                            initial={{ strokeDasharray: "0 251" }}
-                            animate={{ strokeDasharray: "75 251" }} // 30%
+                            initial={{ strokeDasharray: `0 ${C}` }}
+                            animate={{ strokeDasharray: `${anxiousDash} ${C}` }}
                             transition={{ duration: 1, delay: 0.4 }}
-                            cx="50" cy="50" r="40" fill="none" stroke="#fb7185" strokeWidth="12" strokeDashoffset="-130"
+                            cx="50" cy="50" r="40" fill="none" stroke="#fb7185" strokeWidth="12" strokeDashoffset={anxiousOffset}
                         />
                         {/* Focus Segment */}
                         <motion.circle
-                            initial={{ strokeDasharray: "0 251" }}
-                            animate={{ strokeDasharray: "50 251" }} // 20%
+                            initial={{ strokeDasharray: `0 ${C}` }}
+                            animate={{ strokeDasharray: `${focusDash} ${C}` }}
                             transition={{ duration: 1, delay: 0.6 }}
-                            cx="50" cy="50" r="40" fill="none" stroke="#38bdf8" strokeWidth="12" strokeDashoffset="-205"
+                            cx="50" cy="50" r="40" fill="none" stroke="#38bdf8" strokeWidth="12" strokeDashoffset={focusOffset}
                         />
                     </svg>
                 </div>

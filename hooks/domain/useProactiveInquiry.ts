@@ -19,6 +19,7 @@ import {
     type DataGap,
 } from '@/lib/inquiry-engine';
 import type { InquiryQuestion } from '@/types/adaptive-interaction';
+import { createInquiry, respondToInquiry } from '@/app/actions/inquiry';
 
 // ============================================
 // Constants
@@ -87,12 +88,13 @@ export function useProactiveInquiry(
     const [dataGaps, setDataGaps] = useState<DataGap[]>([]);
     const [nextInquiryIn, setNextInquiryIn] = useState<number | null>(null);
     const [isPaused, setIsPaused] = useState(false);
+    const [inquiryRecordId, setInquiryRecordId] = useState<string | null>(null);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
     // Check for data gaps and generate inquiry
-    const checkAndGenerateInquiry = useCallback(() => {
+    const checkAndGenerateInquiry = useCallback(async () => {
         // Don't trigger during quiet hours
         if (isQuietHours()) {
             console.log('[ProactiveInquiry] Quiet hours, skipping');
@@ -115,7 +117,25 @@ export function useProactiveInquiry(
             return false;
         }
 
-        setCurrentInquiry(question);
+        let recordId: string | null = null;
+        try {
+            const recordResult = await createInquiry({
+                question_text: question.question_text,
+                question_type: question.question_type,
+                priority: question.priority,
+                data_gaps_addressed: question.data_gaps_addressed,
+                delivery_method: 'in_app',
+            });
+
+            if (recordResult.success && recordResult.data) {
+                recordId = recordResult.data.id;
+            }
+        } catch (error) {
+            console.warn('[ProactiveInquiry] Failed to persist inquiry:', error);
+        }
+
+        setInquiryRecordId(recordId);
+        setCurrentInquiry(recordId ? { ...question, id: recordId } : question);
         setIsInquiryVisible(true);
         setLastInquiryTime(Date.now());
 
@@ -125,12 +145,13 @@ export function useProactiveInquiry(
 
     // Show inquiry manually
     const showInquiry = useCallback(() => {
-        checkAndGenerateInquiry();
+        void checkAndGenerateInquiry();
     }, [checkAndGenerateInquiry]);
 
     // Dismiss inquiry
     const dismissInquiry = useCallback(() => {
         setIsInquiryVisible(false);
+        setInquiryRecordId(null);
         // Don't clear currentInquiry immediately for animation
         setTimeout(() => setCurrentInquiry(null), 300);
     }, []);
@@ -141,12 +162,17 @@ export function useProactiveInquiry(
 
         console.log('[ProactiveInquiry] Answer submitted:', currentInquiry.id, answer);
 
-        // TODO: Save answer to database via server action
-        // This would typically update the recentData which triggers re-evaluation
+        if (inquiryRecordId) {
+            try {
+                await respondToInquiry(inquiryRecordId, answer);
+            } catch (error) {
+                console.warn('[ProactiveInquiry] Failed to save response:', error);
+            }
+        }
 
         dismissInquiry();
         setLastInquiryTime(Date.now());
-    }, [currentInquiry, dismissInquiry]);
+    }, [currentInquiry, inquiryRecordId, dismissInquiry]);
 
     // Pause/Resume timer
     const pause = useCallback(() => {
@@ -161,6 +187,14 @@ export function useProactiveInquiry(
         setIsPaused(false);
     }, []);
 
+    // Use a ref to hold the latest callback to avoid resetting the timer when data changes
+    const checkCallbackRef = useRef(checkAndGenerateInquiry);
+
+    // Update ref on render
+    useEffect(() => {
+        checkCallbackRef.current = checkAndGenerateInquiry;
+    }, [checkAndGenerateInquiry]);
+
     // Setup interval timer
     useEffect(() => {
         if (!enabled || isPaused) {
@@ -168,6 +202,11 @@ export function useProactiveInquiry(
                 clearInterval(timerRef.current);
                 timerRef.current = null;
             }
+            if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+            }
+            setNextInquiryIn(null);
             return;
         }
 
@@ -179,25 +218,29 @@ export function useProactiveInquiry(
         // Set initial countdown
         setNextInquiryIn(timeUntilNext);
 
+        // Clear existing timers
+        if (timerRef.current) clearInterval(timerRef.current);
+        if (countdownRef.current) clearInterval(countdownRef.current);
+
         // First trigger after remaining time
         const firstTrigger = setTimeout(() => {
-            checkAndGenerateInquiry();
+            // Call the ref
+            void checkCallbackRef.current();
 
             // Then set up regular interval
             timerRef.current = setInterval(() => {
-                checkAndGenerateInquiry();
+                void checkCallbackRef.current();
             }, INQUIRY_INTERVAL_MS);
         }, timeUntilNext);
 
         // Update countdown every second
         countdownRef.current = setInterval(() => {
             setNextInquiryIn(prev => {
-                if (prev === null) return null;
+                if (prev === null) return INQUIRY_INTERVAL_MS;
                 const newValue = prev - 1000;
-                if (newValue <= 0) {
-                    return INQUIRY_INTERVAL_MS;
-                }
-                return newValue;
+                // If we hit 0, we don't reset here (the main timer handles the trigger)
+                // We just wrap around or hold at 0
+                return newValue <= 0 ? INQUIRY_INTERVAL_MS : newValue;
             });
         }, 1000);
 
@@ -206,7 +249,7 @@ export function useProactiveInquiry(
             if (timerRef.current) clearInterval(timerRef.current);
             if (countdownRef.current) clearInterval(countdownRef.current);
         };
-    }, [enabled, isPaused, checkAndGenerateInquiry]);
+    }, [enabled, isPaused]); // Removed checkAndGenerateInquiry dependency
 
     return {
         currentInquiry,

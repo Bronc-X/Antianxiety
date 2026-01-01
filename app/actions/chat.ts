@@ -31,6 +31,12 @@ export interface Conversation {
     message_count: number;
 }
 
+export interface AppendMessageInput {
+    conversation_id: string;
+    role: 'user' | 'assistant';
+    content: string;
+}
+
 // ============================================
 // Server Actions
 // ============================================
@@ -163,6 +169,72 @@ export async function createConversation(title?: string): Promise<ActionResult<C
     } catch (error) {
         console.error('[Chat Action] createConversation error:', error);
         return { success: false, error: 'Failed to create conversation' };
+    }
+}
+
+/**
+ * Append a message to a conversation and update metadata.
+ */
+export async function appendMessage(
+    input: AppendMessageInput
+): Promise<ActionResult<ChatMessage>> {
+    try {
+        const supabase = await createServerSupabaseClient();
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return { success: false, error: 'Please sign in' };
+        }
+
+        const { data: conversation, error: convError } = await supabase
+            .from('chat_conversations')
+            .select('id, message_count')
+            .eq('id', input.conversation_id)
+            .eq('user_id', user.id)
+            .single();
+
+        if (convError || !conversation) {
+            return { success: false, error: 'Conversation not found' };
+        }
+
+        const { data: message, error: insertError } = await supabase
+            .from('chat_messages')
+            .insert({
+                conversation_id: input.conversation_id,
+                role: input.role,
+                content: input.content,
+            })
+            .select('id, conversation_id, role, content, created_at')
+            .single();
+
+        if (insertError || !message) {
+            return { success: false, error: insertError?.message || 'Failed to save message' };
+        }
+
+        const nextCount = (conversation.message_count || 0) + 1;
+        await supabase
+            .from('chat_conversations')
+            .update({
+                last_message_at: new Date().toISOString(),
+                message_count: nextCount,
+            })
+            .eq('id', input.conversation_id)
+            .eq('user_id', user.id);
+
+        const saved: ChatMessage = {
+            id: message.id,
+            conversation_id: message.conversation_id,
+            role: message.role as 'user' | 'assistant',
+            content: message.content,
+            created_at: dateToISO(message.created_at) || new Date().toISOString(),
+        };
+
+        return toSerializable({ success: true, data: saved });
+
+    } catch (error) {
+        console.error('[Chat Action] appendMessage error:', error);
+        return { success: false, error: 'Failed to save message' };
     }
 }
 

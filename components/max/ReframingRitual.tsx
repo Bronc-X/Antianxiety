@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, FileText, Activity, ArrowRight, Check, X, Sparkles, Zap } from 'lucide-react';
 import { BeliefOutput, Paper, HRVData, MaxResponse } from '@/types/max';
 import { BayesianAnimation } from './BayesianAnimation';
+import { useMaxApi } from '@/hooks/domain/useMaxApi';
 
 type RitualStep = 'input' | 'evidence' | 'calculate' | 'result';
 
@@ -67,6 +68,7 @@ const MAX_STAGE_MESSAGES: Record<RitualStep, string[]> = {
 };
 
 export function ReframingRitual({ onComplete, onCancel, hrvData }: ReframingRitualProps) {
+  const { getResponse, submitBelief } = useMaxApi();
   const [step, setStep] = useState<RitualStep>('input');
   const [prior, setPrior] = useState(70);
   const [beliefText, setBeliefText] = useState('');
@@ -83,18 +85,12 @@ export function ReframingRitual({ onComplete, onCancel, hrvData }: ReframingRitu
   const fetchMaxResponse = useCallback(async (eventType: string, value: number, additionalData?: Record<string, unknown>) => {
     setIsMaxTyping(true);
     try {
-      const res = await fetch('/api/max/response', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          event_type: eventType, 
-          data: { value, ...additionalData } 
-        })
+      const data = await getResponse({ 
+        event_type: eventType, 
+        data: { value, ...additionalData } 
       });
-      if (res.ok) {
-        const data = await res.json();
+      if (data?.response) {
         const response: MaxResponse = data.response;
-        // Simulate typing delay for more natural feel
         await new Promise(resolve => setTimeout(resolve, 300));
         setMaxMessage(response?.text || '处理中...');
         setMaxTone(response?.tone || 'neutral');
@@ -133,19 +129,14 @@ export function ReframingRitual({ onComplete, onCancel, hrvData }: ReframingRitu
     setMaxMessage('Recalibrating belief parameters...');
 
     try {
-      const res = await fetch('/api/max/belief', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prior,
-          hrv_data: hrvData,
-          paper_ids: MOCK_PAPERS.map(p => p.id),
-          belief_text: beliefText
-        })
+      const data = await submitBelief({
+        prior,
+        hrv_data: hrvData,
+        paper_ids: MOCK_PAPERS.map(p => p.id),
+        belief_text: beliefText
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      if (data) {
         setResult(data.calculation);
         
         // Transition to result with Max conclusion

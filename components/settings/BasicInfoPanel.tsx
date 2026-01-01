@@ -2,8 +2,8 @@
 
 import { useState, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import Image from 'next/image';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 interface ProfileRecord {
   id?: string;
@@ -18,26 +18,26 @@ interface BasicInfoPanelProps {
 
 export default function BasicInfoPanel({ initialProfile }: BasicInfoPanelProps) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoading, isSaving, isUploading, error, update, uploadPhoto } = useProfile();
+  const [localError, setLocalError] = useState<string | null>(null);
   const [fullName, setFullName] = useState(initialProfile?.full_name || '');
   const [avatarUrl] = useState(initialProfile?.avatar_url || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(initialProfile?.avatar_url || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isPending = isLoading || isUploading;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // 验证文件类型
       if (!file.type.startsWith('image/')) {
-        setError('请选择图片文件');
+        setLocalError('请选择图片文件');
         return;
       }
       // 验证文件大小（限制5MB）
       if (file.size > 5 * 1024 * 1024) {
-        setError('图片大小不能超过5MB');
+        setLocalError('图片大小不能超过5MB');
         return;
       }
       setAvatarFile(file);
@@ -54,32 +54,7 @@ export default function BasicInfoPanel({ initialProfile }: BasicInfoPanelProps) 
     if (!avatarFile) return avatarUrl;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      // 上传到 Supabase Storage
-      const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile, {
-          cacheControl: '3600',
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error('上传头像失败:', uploadError);
-        return null;
-      }
-
-      // 获取公开URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
+      return await uploadPhoto(avatarFile);
     } catch (error) {
       console.error('上传头像时出错:', error);
       return null;
@@ -88,17 +63,9 @@ export default function BasicInfoPanel({ initialProfile }: BasicInfoPanelProps) 
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSaving(true);
-    setError(null);
+    setLocalError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('请先登录');
-        setIsSaving(false);
-        return;
-      }
-
       // 如果有新头像文件，先上传
       let finalAvatarUrl = avatarUrl;
       if (avatarFile) {
@@ -106,45 +73,26 @@ export default function BasicInfoPanel({ initialProfile }: BasicInfoPanelProps) 
         if (uploadedUrl) {
           finalAvatarUrl = uploadedUrl;
         } else {
-          setError('头像上传失败，请重试');
-          setIsSaving(false);
+          setLocalError('头像上传失败，请重试');
           return;
         }
       }
 
-      const metadata = (user.user_metadata || {}) as { username?: string };
-      const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
+      const success = await update({
+        full_name: fullName || null,
+        avatar_url: finalAvatarUrl || null,
+      });
 
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: user.id,
-            username: fallbackUsername,
-            full_name: fullName || null,
-            avatar_url: finalAvatarUrl || null,
-          },
-          {
-            onConflict: 'id',
-            ignoreDuplicates: false
-          }
-        );
-
-      if (upsertError) {
-        setError(`保存失败: ${upsertError.message}`);
-        setIsSaving(false);
+      if (!success) {
+        setLocalError(error || '保存失败，请稍后重试');
         return;
       }
 
       router.push('/unlearn/app');
       router.refresh();
-      setError(null);
     } catch (err) {
       console.error('保存设置时出错:', err);
-      setError('保存时发生错误，请稍后重试');
-      setIsSaving(false);
-    } finally {
-      setIsSaving(false);
+      setLocalError('保存时发生错误，请稍后重试');
     }
   };
 
@@ -161,12 +109,7 @@ export default function BasicInfoPanel({ initialProfile }: BasicInfoPanelProps) 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="rounded-md bg-red-50 p-4 border border-red-200">
-          <p className="text-sm text-red-800">{error}</p>
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className={`space-y-6 ${isPending ? 'animate-pulse' : ''}`}>
 
       {/* 头像上传 */}
       <div>
@@ -236,6 +179,11 @@ export default function BasicInfoPanel({ initialProfile }: BasicInfoPanelProps) 
           {isSaving ? '保存中...' : '保存'}
         </button>
       </div>
+      {(localError || error) && (
+        <div className="rounded-md bg-red-50 p-4 border border-red-200">
+          <p className="text-sm text-red-800">{localError || error}</p>
+        </div>
+      )}
     </form>
   );
 }

@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, ChevronRight, Moon, Activity, Brain, Heart, Zap, Send } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, Moon, Activity, Brain, Heart, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import BrutalistNav from './BrutalistNav';
+import { useAuth } from '@/hooks/domain/useAuth';
+import { useCalibrationLog } from '@/hooks/domain/useCalibrationLog';
 
 interface Question {
     id: string;
@@ -89,16 +90,18 @@ const CALIBRATION_QUESTIONS: Question[] = [
     },
 ];
 
-const getCategoryIcon = (category: string) => {
-    switch (category) {
-        case 'sleep': return Moon;
-        case 'energy': return Zap;
-        case 'stress': return Brain;
-        case 'body': return Heart;
-        case 'cognitive': return Activity;
-        default: return Activity;
-    }
+const CATEGORY_ICONS: Record<Question['category'], typeof Activity> = {
+    sleep: Moon,
+    energy: Zap,
+    stress: Brain,
+    body: Heart,
+    cognitive: Activity,
 };
+
+function CategoryIcon({ category, className }: { category: Question['category']; className?: string }) {
+    const Icon = CATEGORY_ICONS[category] ?? Activity;
+    return <Icon className={className} />;
+}
 
 const getCategoryColor = (category: string) => {
     switch (category) {
@@ -167,26 +170,19 @@ function calculateResult(answers: Record<string, number>): CalibrationResult {
 
 export default function BrutalistCalibration() {
     const router = useRouter();
-    const supabase = createClientComponentClient();
+    const { isLoading: authLoading, isAuthenticated, error: authError } = useAuth();
+    const { isSaving, error, save } = useCalibrationLog();
 
-    const [userId, setUserId] = useState<string | null>(null);
     const [currentStep, setCurrentStep] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [showResult, setShowResult] = useState(false);
     const [result, setResult] = useState<CalibrationResult | null>(null);
-    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        async function checkAuth() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                router.push('/brutalist/signup');
-            } else {
-                setUserId(user.id);
-            }
+        if (!authLoading && !isAuthenticated) {
+            router.push('/brutalist/signup');
         }
-        checkAuth();
-    }, [supabase, router]);
+    }, [authLoading, isAuthenticated, router]);
 
     const handleAnswer = (value: number) => {
         const question = CALIBRATION_QUESTIONS[currentStep];
@@ -204,34 +200,34 @@ export default function BrutalistCalibration() {
     };
 
     const saveCalibration = async (ans: Record<string, number>, res: CalibrationResult) => {
-        if (!userId) return;
-        setSaving(true);
-
         try {
-            await supabase.from('daily_wellness_logs').insert({
-                user_id: userId,
-                log_date: new Date().toISOString().split('T')[0],
+            await save({
                 sleep_quality: ans.sleep_quality,
                 sleep_duration_minutes: (ans.sleep_duration || 3) * 90,
                 morning_energy: ans.morning_energy,
                 stress_level: ans.stress_level,
-                body_tension: ans.body_soreness,
-                mental_clarity: ans.mental_clarity,
                 overall_readiness: res.score,
                 ai_recommendation: res.recommendation,
+                body_tension: ans.body_soreness,
+                mental_clarity: ans.mental_clarity,
             });
         } catch (err) {
             console.error('Failed to save calibration:', err);
-        } finally {
-            setSaving(false);
         }
     };
 
     const question = CALIBRATION_QUESTIONS[currentStep];
-    const Icon = getCategoryIcon(question?.category);
+
+    if (authLoading) {
+        return (
+            <div className="brutalist-page min-h-screen flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-[#00FF94] border-t-transparent rounded-full animate-spin animate-pulse" />
+            </div>
+        );
+    }
 
     return (
-        <div className="brutalist-page min-h-screen">
+        <div className={`brutalist-page min-h-screen ${isSaving ? 'animate-pulse' : ''}`}>
             <BrutalistNav />
 
             <main className="pt-24 pb-12 px-6">
@@ -273,7 +269,7 @@ export default function BrutalistCalibration() {
                                 {/* Question */}
                                 <div className="flex items-start gap-4 mb-8">
                                     <div className={`p-3 border border-[var(--brutalist-border)] ${getCategoryColor(question.category)}`}>
-                                        <Icon className="w-5 h-5" />
+                                        <CategoryIcon category={question.category} className="w-5 h-5" />
                                     </div>
                                     <div>
                                         <p className="text-xs text-[var(--brutalist-muted)] uppercase tracking-wider mb-2">
@@ -349,7 +345,7 @@ export default function BrutalistCalibration() {
                                     </button>
                                 </div>
 
-                                {saving && (
+                                {isSaving && (
                                     <p className="text-center mt-4 text-xs text-[#555]">
                                         Saving locally...
                                     </p>
@@ -358,6 +354,9 @@ export default function BrutalistCalibration() {
                         )}
                     </AnimatePresence>
                 </div>
+                {(error || authError) && (
+                    <div className="mt-6 text-center text-xs text-red-400">{error || authError}</div>
+                )}
             </main>
         </div>
     );

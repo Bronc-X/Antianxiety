@@ -13,35 +13,24 @@
  * Design Principle: "用真相打破焦虑" - Simple, focused, one entry point
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Sparkles, ChevronRight, Info, RefreshCw } from 'lucide-react';
-import { createClient } from '@/lib/supabase-client';
 import { useI18n } from '@/lib/i18n';
-import {
-    getDailyCalibrationQuestions,
-    processDailyCalibration,
-    getUserCalibrationFrequency,
-    resetToDailyFrequency,
-    shouldCalibrateToday,
-    type DailyCalibrationQuestion,
-    type DailyCalibrationResult,
-} from '@/lib/assessment';
-import { getSleepHoursFromValue } from '@/lib/clinical-scales/daily-questions';
+import type { DailyCalibrationResult } from '@/lib/assessment';
+import { useCalibration } from '@/hooks/domain/useCalibration';
 
 // ============ Types ============
 
 interface UnifiedDailyCalibrationProps {
-    userId: string;
-    userName?: string;
+    userId?: string;
+    userName?: string; // Optional if using hook
     onComplete?: (result: DailyCalibrationResult) => void;
 }
 
-type CalibrationStep = 'welcome' | 'questions' | 'analyzing' | 'result';
-
-type UserAnswers = Record<string, number>;
-
 // ============ Apple-style Animation Variants ============
+
+const easeApple = [0.25, 0.46, 0.45, 0.94] as any;
 
 const containerVariants = {
     hidden: { opacity: 0, scale: 0.96 },
@@ -50,7 +39,7 @@ const containerVariants = {
         scale: 1,
         transition: {
             duration: 0.5,
-            ease: [0.25, 0.46, 0.45, 0.94] // Apple easing
+            ease: easeApple
         }
     },
     exit: {
@@ -70,7 +59,7 @@ const slideVariants = {
         opacity: 1,
         transition: {
             duration: 0.4,
-            ease: [0.25, 0.46, 0.45, 0.94]
+            ease: easeApple
         }
     },
     exit: (direction: number) => ({
@@ -88,151 +77,43 @@ export function UnifiedDailyCalibration({
     onComplete,
 }: UnifiedDailyCalibrationProps) {
     const { t, language } = useI18n();
-    const supabase = createClient();
 
-    // State
-    const [step, setStep] = useState<CalibrationStep>('welcome');
-    const [questions, setQuestions] = useState<DailyCalibrationQuestion[]>([]);
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, number>>({});
-    const [assessmentResult, setAssessmentResult] = useState<DailyCalibrationResult | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [hasCompletedToday, setHasCompletedToday] = useState(false);
+    // Connect to Domain Hook (ViewModel)
+    const {
+        step,
+        questions,
+        currentQuestionIndex,
+        answers,
+        result,
+        isLoading,
+        frequency,
+        frequencyReason,
+        shouldShowToday,
+        hasCompletedToday,
+        isRestoringFrequency,
+        start,
+        answerQuestion,
+        resetFrequency,
+        progressPercent,
+        currentQuestion
+    } = useCalibration(userId);
+
+    // UI State for animations
     const [direction, setDirection] = useState(1);
-
-    // Frequency state
-    const [frequency, setFrequency] = useState<'daily' | 'every_other_day'>('daily');
-    const [frequencyReason, setFrequencyReason] = useState<string | undefined>();
     const [showFrequencyTooltip, setShowFrequencyTooltip] = useState(false);
-    const [isRestoringFrequency, setIsRestoringFrequency] = useState(false);
-    const [shouldShowToday, setShouldShowToday] = useState(true);
 
-    // Check if already completed today and load frequency
+    // Trigger onComplete when result is ready
     useEffect(() => {
-        const loadFrequencyAndCheckCompletion = async () => {
-            const today = new Date().toISOString().split('T')[0];
-            const storageKey = `calibration_${userId}_${today}`;
-            const completed = localStorage.getItem(storageKey);
-            if (completed) {
-                setHasCompletedToday(true);
-            }
-
-            // Load frequency preferences
-            try {
-                const freqData = await getUserCalibrationFrequency(userId);
-                setFrequency(freqData.dailyFrequency);
-                setFrequencyReason(freqData.frequencyReason);
-
-                // Check if should show today based on frequency
-                const shouldShow = await shouldCalibrateToday(userId);
-                setShouldShowToday(shouldShow);
-            } catch (e) {
-                // Default to daily if error
-                setFrequency('daily');
-            }
-        };
-        loadFrequencyAndCheckCompletion();
-    }, [userId]);
-
-    // Generate questions on start
-    const startCalibration = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            // 🆕 Use new clinical scales questions instead of goal-based questions
-            const dailyQuestions = getDailyCalibrationQuestions();
-            setQuestions(dailyQuestions);
-            setDirection(1);
-            setStep('questions');
-        } catch (error) {
-            console.error('Failed to start calibration:', error);
-        } finally {
-            setIsLoading(false);
+        if (step === 'result' && result && onComplete) {
+            onComplete(result);
         }
-    }, []);
+    }, [step, result, onComplete]);
 
-    // Handle answer submission
-    const handleAnswer = useCallback((questionId: string, value: number) => {
-        setAnswers(prev => ({ ...prev, [questionId]: value }));
-
-        setTimeout(() => {
-            if (currentQuestionIndex < questions.length - 1) {
-                setDirection(1);
-                setCurrentQuestionIndex(prev => prev + 1);
-            } else {
-                runAssessment();
-            }
-        }, 400);
-    }, [currentQuestionIndex, questions.length]);
-
-    // Run health assessment using new clinical assessment system
-    const runAssessment = useCallback(async () => {
-        setStep('analyzing');
-        setIsLoading(true);
-
-        try {
-            // 🆕 Use new processDailyCalibration for storing responses and calculating stability
-            const result = await processDailyCalibration(userId, answers);
-
-            // 🆕 Sync to daily_wellness_logs for AI chat integration
-            const today = new Date().toISOString().split('T')[0];
-
-            // Map clinical scale answers to wellness log fields using proper mappings
-            const sleepDuration = answers['daily_sleep_duration'];
-            const sleepQuality = answers['daily_sleep_quality'];
-            const stressLevel = answers['daily_stress_level'];
-
-            // Convert sleep duration value to minutes using getSleepHoursFromValue
-            const sleepHours = sleepDuration !== undefined ? getSleepHoursFromValue(sleepDuration) : 7;
-            const sleepMinutes = Math.round(sleepHours * 60);
-
-            // Map stress: 0=low, 1=medium, 2=high -> 1-10 scale
-            const stressScoreMap: Record<number, number> = { 0: 2, 1: 5, 2: 8 };
-            const stressScore = stressLevel !== undefined ? stressScoreMap[stressLevel] ?? 5 : null;
-
-            // Map sleep quality: 0=easy, 1=somewhat, 2=very difficult
-            const sleepQualityMap: Record<number, string> = {
-                0: 'easy',
-                1: 'somewhat',
-                2: 'difficult',
-            };
-            const sleepQualityLabel = sleepQuality !== undefined ? sleepQualityMap[sleepQuality] ?? null : null;
-
-            const wellnessData = {
-                user_id: userId,
-                log_date: today,
-                stress_level: stressScore,
-                sleep_duration_minutes: sleepMinutes,
-                sleep_quality: sleepQualityLabel,
-                mood_status: stressLevel === 0 ? '良好' : stressLevel === 1 ? '一般' : '低落',
-                notes: `每日校准完成 - GAD2=${result.gad2Score}, Index=${result.dailyIndex}`,
-            };
-
-            // Upsert to handle both insert and update cases
-            await supabase
-                .from('daily_wellness_logs')
-                .upsert(wellnessData, {
-                    onConflict: 'user_id,log_date',
-                    ignoreDuplicates: false
-                });
-
-            // 🆕 Trigger user refresh to update AI analysis and persona embedding
-            fetch('/api/user/refresh', { method: 'POST' }).catch(() => { });
-
-            localStorage.setItem(`calibration_${userId}_${today}`, 'true');
-
-            setAssessmentResult(result);
-            setStep('result');
-            if (onComplete) onComplete(result);
-        } catch (error) {
-            console.error('Assessment failed:', error);
-            setStep('result');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [answers, userId, supabase, onComplete]);
-
-    const currentQuestion = questions[currentQuestionIndex];
-    const progressPercent = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
+    // Handle Answer Wrapper to manage animation direction
+    const handleAnswerUI = (questionId: string, value: number) => {
+        setDirection(1);
+        answerQuestion(questionId, value);
+    };
 
     // ============ Render: Already Completed or Not Today ============
     if (hasCompletedToday || !shouldShowToday) {
@@ -261,16 +142,7 @@ export function UnifiedDailyCalibration({
                     {/* Restore button for reduced frequency */}
                     {!hasCompletedToday && frequency === 'every_other_day' && (
                         <button
-                            onClick={async () => {
-                                setIsRestoringFrequency(true);
-                                try {
-                                    await resetToDailyFrequency(userId);
-                                    setFrequency('daily');
-                                    setShouldShowToday(true);
-                                } finally {
-                                    setIsRestoringFrequency(false);
-                                }
-                            }}
+                            onClick={() => resetFrequency()}
                             disabled={isRestoringFrequency}
                             className="px-4 py-2 bg-neutral-100 text-neutral-700 rounded-xl text-sm font-medium hover:bg-neutral-200 transition-colors disabled:opacity-50"
                         >
@@ -310,7 +182,7 @@ export function UnifiedDailyCalibration({
                             <motion.div
                                 initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                                transition={{ delay: 0.2, duration: 0.5, ease: easeApple }}
                                 className="relative"
                             >
                                 <div className="w-20 h-20 rounded-[22px] bg-gradient-to-br from-neutral-900 to-neutral-800 flex items-center justify-center shadow-2xl shadow-neutral-900/20">
@@ -333,8 +205,8 @@ export function UnifiedDailyCalibration({
                             </h2>
                             <p className="text-neutral-500 text-base md:text-lg max-w-sm mx-auto leading-relaxed">
                                 {language === 'en'
-                                    ? `${getDailyCalibrationQuestions().length} quick questions to help Max understand you better.`
-                                    : `${getDailyCalibrationQuestions().length} 个问题，帮助 Max 更好地了解你`}
+                                    ? 'Quick check-in to help Max understand you better.'
+                                    : '简单问卷，帮助 Max 更好地了解你'}
                             </p>
 
                             {/* Frequency Badge */}
@@ -371,15 +243,9 @@ export function UnifiedDailyCalibration({
                                                     : '频率已根据你的设置降低。')}
                                         </p>
                                         <button
-                                            onClick={async () => {
-                                                setIsRestoringFrequency(true);
-                                                try {
-                                                    await resetToDailyFrequency(userId);
-                                                    setFrequency('daily');
-                                                    setShowFrequencyTooltip(false);
-                                                } finally {
-                                                    setIsRestoringFrequency(false);
-                                                }
+                                            onClick={() => {
+                                                resetFrequency();
+                                                setShowFrequencyTooltip(false);
                                             }}
                                             disabled={isRestoringFrequency}
                                             className="w-full py-2 bg-white text-neutral-900 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
@@ -417,7 +283,7 @@ export function UnifiedDailyCalibration({
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.6 }}
-                            onClick={startCalibration}
+                            onClick={() => start()}
                             disabled={isLoading}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -468,7 +334,7 @@ export function UnifiedDailyCalibration({
                                     className="h-full bg-neutral-900 rounded-full"
                                     initial={{ width: 0 }}
                                     animate={{ width: `${progressPercent}%` }}
-                                    transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                                    transition={{ duration: 0.4, ease: easeApple }}
                                 />
                             </div>
                         </div>
@@ -487,7 +353,7 @@ export function UnifiedDailyCalibration({
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.05 }}
-                                        onClick={() => handleAnswer(currentQuestion.id, option.value)}
+                                        onClick={() => handleAnswerUI(currentQuestion.id, option.value)}
                                         whileHover={{ scale: 1.01 }}
                                         whileTap={{ scale: 0.99 }}
                                         className={`w-full p-5 text-left rounded-2xl border-2 transition-all duration-200 ${answers[currentQuestion.id] === option.value
@@ -510,7 +376,7 @@ export function UnifiedDailyCalibration({
                                         min={currentQuestion.min || 0}
                                         max={currentQuestion.max || 10}
                                         value={answers[currentQuestion.id] as number || currentQuestion.min || 0}
-                                        onChange={(e) => handleAnswer(currentQuestion.id, parseInt(e.target.value))}
+                                        onChange={(e) => handleAnswerUI(currentQuestion.id, parseInt(e.target.value))}
                                         className="w-full h-2 bg-neutral-200 rounded-full appearance-none cursor-pointer slider-apple"
                                     />
                                     <div className="absolute -top-1 left-1/2 -translate-x-1/2">
@@ -577,7 +443,7 @@ export function UnifiedDailyCalibration({
                 )}
 
                 {/* ============ Result Step ============ */}
-                {step === 'result' && assessmentResult && (
+                {step === 'result' && result && (
                     <motion.div
                         key="result"
                         variants={slideVariants}
@@ -614,7 +480,7 @@ export function UnifiedDailyCalibration({
                         <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="bg-neutral-50 rounded-2xl p-4 text-center">
                                 <div className="text-2xl font-bold text-neutral-900 mb-1">
-                                    {assessmentResult.dailyIndex}
+                                    {result.dailyIndex}
                                 </div>
                                 <div className="text-xs text-neutral-500">
                                     {language === 'en' ? 'Daily Index' : '今日指数'}
@@ -622,7 +488,7 @@ export function UnifiedDailyCalibration({
                             </div>
                             <div className="bg-neutral-50 rounded-2xl p-4 text-center">
                                 <div className="text-lg font-semibold text-neutral-900 mb-1">
-                                    {assessmentResult.stability?.recommendation === 'every_other_day'
+                                    {result.stability?.recommendation === 'every_other_day'
                                         ? (language === 'en' ? 'Every other day' : '隔日')
                                         : (language === 'en' ? 'Daily' : '每日')}
                                 </div>
@@ -633,16 +499,16 @@ export function UnifiedDailyCalibration({
                         </div>
 
                         {/* Red Flag Alert */}
-                        {assessmentResult.stability?.hasRedFlag && (
+                        {result.stability?.hasRedFlag && (
                             <div className="p-4 bg-rose-50 rounded-2xl text-sm text-rose-700 mb-4">
                                 {language === 'en'
-                                    ? `A few signals may need attention: ${assessmentResult.stability.redFlagReasons.join(' / ')}`
-                                    : `有些状态值得留意：${assessmentResult.stability.redFlagReasons.join(' / ')}`}
+                                    ? `A few signals may need attention: ${result.stability.redFlagReasons.join(' / ')}`
+                                    : `有些状态值得留意：${result.stability.redFlagReasons.join(' / ')}`}
                             </div>
                         )}
 
                         {/* Full Scale Trigger */}
-                        {assessmentResult.triggerFullScale && (
+                        {result.triggerFullScale && (
                             <div className="p-4 bg-amber-50 rounded-2xl text-sm text-amber-700">
                                 {language === 'en'
                                     ? 'If you\'d like, we can do a fuller check for better clarity.'

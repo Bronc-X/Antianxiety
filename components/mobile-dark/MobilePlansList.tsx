@@ -1,54 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Clock, Activity, Coffee, Moon, Clipboard } from 'lucide-react';
-
-interface Plan {
-    id: string;
-    title: string;
-    plan_type: string;
-    difficulty: number;
-    status: string;
-    content: any;
-    created_at: string;
-}
+import { usePlans, type PlanData } from '@/hooks/domain/usePlans';
 
 export function MobilePlansList() {
-    const [plans, setPlans] = useState<Plan[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { activePlans, isLoading, complete } = usePlans();
     const [completingId, setCompletingId] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadPlans();
-    }, []);
-
-    const loadPlans = async () => {
-        try {
-            const res = await fetch('/api/plans/list?status=active&limit=10');
-            const result = await res.json();
-            if (result.success) {
-                setPlans(result.data.plans || []);
-            }
-        } catch (e) {
-            console.error('Failed to load plans', e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const plans = useMemo(() => {
+        return activePlans.map((plan: PlanData) => ({
+            id: plan.id,
+            title: plan.name,
+            plan_type: plan.plan_type || plan.category || 'plan',
+            difficulty: plan.difficulty || 3,
+            status: plan.status,
+            content: {
+                description: plan.description || '',
+                items: plan.items,
+            },
+            created_at: plan.created_at,
+        }));
+    }, [activePlans]);
 
     const handleComplete = async (id: string) => {
         setCompletingId(id);
         try {
-            const res = await fetch('/api/plans/complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ planId: id, status: 'completed', completionDate: new Date().toISOString() })
-            });
-            if (res.ok) {
-                // Remove efficiently
-                setPlans(prev => prev.filter(p => p.id !== id));
-            }
+            await complete(id);
         } catch (e) {
             console.error(e);
         } finally {

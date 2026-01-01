@@ -318,7 +318,7 @@ describe('Feature: max-plan-creation-dialog, Property 7: Save Data Integrity', (
         fc.array(planItemArb, { minLength: 1, maxLength: 3 }),
         (sessionId, userId, originalItems, replacementItems) => {
           // Start with original items
-          let session: SessionState = {
+          const session: SessionState = {
             sessionId,
             userId,
             planItems: [...originalItems],

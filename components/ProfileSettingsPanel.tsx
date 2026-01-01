@@ -2,8 +2,8 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientSupabaseClient } from '@/lib/supabase-client';
 import AnimatedSection from '@/components/AnimatedSection';
+import { useProfile } from '@/hooks/domain/useProfile';
 
 interface ProfileRecord {
   id?: string;
@@ -32,9 +32,8 @@ interface ProfileFormState {
 
 export default function ProfileSettingsPanel({ initialProfile }: ProfileSettingsPanelProps) {
   const router = useRouter();
-  const supabase = createClientSupabaseClient();
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoading, isSaving, error, update } = useProfile();
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<ProfileFormState>({
     height: initialProfile?.height ? String(initialProfile.height) : '',
@@ -52,43 +51,21 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSaving(true);
-    setError(null);
+    setLocalError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('请先登录');
-        setIsSaving(false);
-        return;
-      }
+      const success = await update({
+        height: formData.height ? parseFloat(formData.height) : null,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
+        birth_date: formData.birth_date || null,
+        location: formData.location || null,
+        daily_checkin_time: formData.daily_checkin_time ? `${formData.daily_checkin_time}:00` : null,
+        notification_enabled: formData.notification_enabled,
+        notification_email: formData.notification_email || null,
+      });
 
-      const metadata = (user.user_metadata || {}) as { username?: string };
-      const fallbackUsername = metadata.username || user.email || user.id.slice(0, 8);
-
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: user.id,
-            username: fallbackUsername,
-            height: formData.height ? parseFloat(formData.height) : null,
-            weight: formData.weight ? parseFloat(formData.weight) : null,
-            birth_date: formData.birth_date || null,
-            location: formData.location || null,
-            daily_checkin_time: formData.daily_checkin_time ? `${formData.daily_checkin_time}:00` : null,
-            notification_enabled: formData.notification_enabled,
-            notification_email: formData.notification_email || null,
-          },
-          {
-            onConflict: 'id',
-            ignoreDuplicates: false
-          }
-        );
-
-      if (upsertError) {
-        setError(`保存失败: ${upsertError.message}`);
-        setIsSaving(false);
+      if (!success) {
+        setLocalError(error || '保存失败，请稍后重试');
         return;
       }
 
@@ -96,8 +73,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
       router.refresh();
     } catch (err) {
       console.error('保存设置时出错:', err);
-      setError('保存时发生错误，请稍后重试');
-      setIsSaving(false);
+      setLocalError('保存时发生错误，请稍后重试');
     }
   };
 
@@ -107,12 +83,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-[#0B3D2E] mb-2">设置</h2>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="rounded-md bg-red-50 p-4 border border-red-200">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className={`space-y-6 ${isLoading ? 'animate-pulse' : ''}`}>
 
           {/* 个人生理指标 */}
           <div>
@@ -232,6 +203,11 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
               {isSaving ? '保存中...' : '保存并返回首页'}
             </button>
           </div>
+          {(localError || error) && (
+            <div className="rounded-md bg-red-50 p-4 border border-red-200">
+              <p className="text-sm text-red-800">{localError || error}</p>
+            </div>
+          )}
         </form>
       </div>
     </AnimatedSection>
