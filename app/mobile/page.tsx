@@ -18,7 +18,11 @@ import {
     ViewAssessment,
     ViewHabits,
     ViewAnalysis,
-    ViewAiReminders
+    ViewAiReminders,
+    ViewLogin,
+    ViewRegister,
+    ViewProfileSetup,
+    ViewMembership
 } from "@/components/mobile/MobileViews";
 import {
     LayoutDashboard,
@@ -34,7 +38,7 @@ import { cn } from "@/lib/utils";
 import MaxAvatar from "@/components/max/MaxAvatar";
 
 // --- Types ---
-type ViewType = "home" | "max" | "plan" | "profile" | "science" | "settings" | "calibration" | "digital-twin" | "wearables" | "goals" | "onboarding" | "assessment" | "habits" | "analysis" | "reminders";
+type ViewType = "home" | "max" | "plan" | "profile" | "science" | "settings" | "calibration" | "digital-twin" | "wearables" | "goals" | "onboarding" | "assessment" | "habits" | "analysis" | "reminders" | "login" | "register" | "profile-setup" | "membership";
 
 // --- Components ---
 
@@ -65,12 +69,18 @@ const BottomNav = ({ activeView, onViewChange }: { activeView: ViewType; onViewC
         { id: "profile", icon: User, label: "Profile" },
     ];
 
-    if (activeView === 'settings' || activeView === 'calibration') {
+    const fullScreenViews = [
+        'login',
+        'register',
+        'onboarding'
+    ];
+
+    if (fullScreenViews.includes(activeView as string)) {
         return null; // Hide nav for full-screen views
     }
 
     return (
-        <div className="absolute bottom-6 left-4 right-4 h-[70px] bg-white/90 dark:bg-black/80 backdrop-blur-2xl rounded-[2rem] border border-stone-200 dark:border-white/10 shadow-2xl flex items-center justify-around px-2 z-50">
+        <div className="absolute bottom-4 left-4 right-4 h-[70px] bg-white/90 dark:bg-black/80 backdrop-blur-2xl rounded-[2rem] border border-stone-200 dark:border-white/10 shadow-2xl flex items-center justify-around px-2 z-50">
             {navItems.map((item) => {
                 const isActive = activeView === item.id;
                 return (
@@ -123,10 +133,11 @@ export default function MobileSimulatorPage() {
         "home", "max", "plan", "profile", "science",
         "settings", "calibration", "digital-twin",
         "wearables", "goals", "onboarding",
-        "assessment", "habits", "analysis", "reminders"
+        "assessment", "habits", "analysis", "reminders",
+        "login", "register", "profile-setup", "membership"
     ].includes(viewParam) ? viewParam : "home";
 
-    const handleViewChange = (view: ViewType) => {
+    const handleViewChange = (view: ViewType | string) => {
         const params = new URLSearchParams(searchParams);
         params.set('view', view);
         router.push(`${pathname}?${params.toString()}`);
@@ -150,7 +161,7 @@ export default function MobileSimulatorPage() {
                 <StatusBar />
 
                 {/* Content Area */}
-                <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-6 pt-2">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-6 pt-2 pb-28">
                     <AnimatePresence mode="wait">
                         {currentView === "home" && <ViewDashboard key="home" onNavigate={handleViewChange} />}
                         {currentView === "science" && <ViewScience key="science" />}
@@ -167,11 +178,15 @@ export default function MobileSimulatorPage() {
                         {currentView === "digital-twin" && <ViewDigitalTwin key="digital-twin" />}
                         {currentView === "wearables" && <ViewWearables key="wearables" onBack={() => handleViewChange('profile')} />}
                         {currentView === "goals" && <ViewGoals key="goals" onBack={() => handleViewChange('plan')} />}
-                        {currentView === "onboarding" && <ViewOnboarding key="onboarding" onComplete={() => handleViewChange('home')} />}
+                        {currentView === "onboarding" && <ViewOnboarding key="onboarding" onComplete={() => handleViewChange('profile-setup')} />}
                         {currentView === "assessment" && <ViewAssessment key="assessment" onBack={() => handleViewChange('home')} />}
                         {currentView === "habits" && <ViewHabits key="habits" onBack={() => handleViewChange('home')} />}
                         {currentView === "analysis" && <ViewAnalysis key="analysis" onBack={() => handleViewChange('home')} />}
                         {currentView === "reminders" && <ViewAiReminders key="reminders" onBack={() => handleViewChange('home')} />}
+                        {currentView === "login" && <ViewLogin key="login" onNavigate={handleViewChange} />}
+                        {currentView === "register" && <ViewRegister key="register" onNavigate={handleViewChange} />}
+                        {currentView === "profile-setup" && <ViewProfileSetup key="profile-setup" onNavigate={handleViewChange} />}
+                        {currentView === "membership" && <ViewMembership key="membership" onNavigate={handleViewChange} />}
                     </AnimatePresence>
                 </main>
 

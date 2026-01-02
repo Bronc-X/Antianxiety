@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CardGlass } from "@/components/mobile/HealthWidgets";
 import {
@@ -16,9 +16,8 @@ import {
     Settings,
     Bell,
     Smartphone,
-    Moon,
     Volume2,
-    Clock
+    Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ViewProfileEdit } from "./ViewProfileEdit";
@@ -36,8 +35,7 @@ const pageTransition = {
 } as const;
 
 import { useProfile } from "@/hooks/domain/useProfile";
-
-// ... (keep pageVariants/transitions)
+import { useAuth } from "@/hooks/domain/useAuth";
 
 interface ViewProfileProps {
     onNavigate?: (view: string) => void;
@@ -45,18 +43,38 @@ interface ViewProfileProps {
 
 export const ViewProfile = ({ onNavigate }: ViewProfileProps) => {
     const { profile } = useProfile();
+    const { signOut, isSigningOut } = useAuth();
+
+    const [mounted, setMounted] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
 
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const handleLogout = async () => {
+        const success = await signOut('/mobile?view=login');
+        if (success) {
+            onNavigate?.('login');
+        }
+    };
+
+    if (!mounted) return null;
+
     const userName = profile?.full_name || profile?.nickname || "User";
-    const userRole = "Pro Member";
-    const joinDate = profile?.member_since ? `Joined ${new Date(profile.member_since).getFullYear()}` : "Joined 2024";
-    const avatarUrl = profile?.avatar_url || "https://i.pravatar.cc/150?u=admin";
+    const userRole = (profile as any)?.subscription_status === 'pro' || (profile as any)?.subscription_status === 'founding'
+        ? "Pro Member"
+        : "Free Member";
+
+    const joinDate = profile?.member_since
+        ? `Joined ${new Date(profile.member_since).getFullYear()}`
+        : "Joined 2026";
+
+    const avatarUrl = "https://i.pravatar.cc/150?u=admin";
 
     const stats = [
         { label: "Streak", value: `${profile?.streak_days || 0}`, icon: Zap, color: "text-amber-600", bg: "bg-amber-100 dark:bg-amber-500/20" },
         { label: "Logs", value: `${profile?.total_logs || 0}`, icon: Brain, color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-500/20" },
-        { label: "Focus", value: "85%", icon: Moon, color: "text-indigo-600", bg: "bg-indigo-100 dark:bg-indigo-500/20" }, // Mock
-        { label: "Hours", value: "48", icon: Clock, color: "text-rose-600", bg: "bg-rose-100 dark:bg-rose-500/20" }, // Mock
     ];
 
     const menuGroups = [
@@ -122,7 +140,7 @@ export const ViewProfile = ({ onNavigate }: ViewProfileProps) => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
                 {stats.map((stat, i) => (
                     <CardGlass key={i} className="p-3 flex flex-col items-center justify-center gap-2 border-stone-100 dark:border-white/5 !rounded-2xl">
                         <div className={cn("p-2 rounded-full", stat.bg, stat.color)}>
@@ -166,8 +184,22 @@ export const ViewProfile = ({ onNavigate }: ViewProfileProps) => {
                     </div>
                 ))}
 
-                <button className="w-full py-4 text-center text-red-500 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-colors">
-                    Log Out
+                <button
+                    onClick={handleLogout}
+                    disabled={isSigningOut}
+                    className="w-full py-4 text-center text-red-500 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                    {isSigningOut ? (
+                        <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Logging out...
+                        </>
+                    ) : (
+                        <>
+                            <LogOut size={16} />
+                            Log Out
+                        </>
+                    )}
                 </button>
 
                 <p className="text-center text-[10px] text-stone-300 dark:text-stone-600 pb-4">

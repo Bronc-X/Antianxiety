@@ -148,10 +148,10 @@ function StepQuestions({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="flex-1 flex flex-col p-6 pb-24 max-w-lg mx-auto w-full"
+            className="flex-1 flex flex-col p-4 max-w-lg mx-auto w-full h-full overflow-hidden"
         >
             {/* Progress */}
-            <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mb-8 overflow-hidden">
+            <div className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full mb-4 overflow-hidden flex-shrink-0">
                 <motion.div
                     className="h-full bg-emerald-500 rounded-full"
                     initial={{ width: 0 }}
@@ -160,33 +160,34 @@ function StepQuestions({
                 />
             </div>
 
-            <div className="mb-6">
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full">
+            <div className="mb-3 flex-shrink-0">
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
                     {scaleName}
                 </span>
             </div>
 
-            <div className="flex-1 space-y-8 overflow-y-auto pb-8 relative">
+            {/* Questions - scrollable area */}
+            <div className="flex-1 overflow-y-auto space-y-4 pb-2">
                 {questions.map((q: any) => (
-                    <div key={q.id} className="space-y-4">
-                        <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 leading-snug">
+                    <div key={q.id} className="space-y-2">
+                        <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 leading-tight">
                             {q.text}
                         </h3>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             {q.options.map((opt: any) => (
                                 <button
                                     key={opt.value}
                                     onClick={() => onAnswer(q.id, opt.value)}
                                     className={cn(
-                                        "w-full p-4 rounded-xl text-left border-2 transition-all flex items-center justify-between group",
+                                        "w-full p-3 rounded-xl text-left border-2 transition-all flex items-center justify-between group",
                                         answers[q.id] === opt.value
                                             ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100"
-                                            : "border-transparent bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10"
+                                            : "border-transparent bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 active:bg-slate-50 dark:active:bg-white/10"
                                     )}
                                 >
-                                    <span className="font-medium text-sm">{opt.label}</span>
+                                    <span className="font-medium text-xs">{opt.label}</span>
                                     {answers[q.id] === opt.value && (
-                                        <Check size={18} className="text-emerald-500" />
+                                        <Check size={16} className="text-emerald-500" />
                                     )}
                                 </button>
                             ))}
@@ -195,25 +196,26 @@ function StepQuestions({
                 ))}
             </div>
 
-            {/* Sticky Actions */}
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-indigo-50 via-indigo-50 to-transparent dark:from-slate-900 dark:via-slate-900 pt-12 flex items-center justify-between max-w-lg mx-auto">
+            {/* Actions - sticky to bottom within container */}
+            <div className="flex-shrink-0 pt-3 pb-2 bg-gradient-to-t from-indigo-50 via-indigo-50/80 to-transparent dark:from-slate-900 dark:via-slate-900/80 flex items-center justify-between">
                 <button
                     onClick={onPrev}
-                    className="p-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                 >
-                    <ChevronLeft size={24} />
+                    <ChevronLeft size={20} />
                 </button>
                 <button
                     onClick={onNext}
                     disabled={!canNext}
-                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-8 py-3 rounded-xl font-bold font-sm disabled:opacity-30 disabled:translate-y-2 transition-all active:scale-95 shadow-xl"
+                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-2.5 rounded-xl font-bold text-sm disabled:opacity-30 transition-all active:scale-95 shadow-lg"
                 >
-                    Next Question
+                    Next
                 </button>
             </div>
         </motion.div>
     );
 }
+
 
 function StepEncouragement({ onContinue }: { onContinue: () => void }) {
     return (

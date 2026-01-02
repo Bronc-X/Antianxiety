@@ -27,3 +27,10 @@ export { ViewHabits } from "./views/ViewHabits";
 export { ViewAnalysis } from "./views/ViewAnalysis";
 export { ViewAiReminders } from "./views/ViewAiReminders";
 
+// Phase 3: Auth Views
+export { ViewLogin } from "./views/ViewLogin";
+export { ViewRegister } from "./views/ViewRegister";
+
+// Phase 4: User Journey Views
+export { ViewProfileSetup } from "./views/ViewProfileSetup";
+export { ViewMembership } from "./views/ViewMembership";
