@@ -1,15 +1,14 @@
 'use client';
 
 /**
- * useProactiveInquiry Domain Hook
+ * useProactiveInquiry Domain Hook (The Bridge)
  * 
- * 管理 Max AI 主动问询功能（40分钟间隔）
- * 
- * 核心功能：
- * 1. 定时检查数据缺口
- * 2. 生成个性化问询问题
- * 3. 触发问询弹窗
- * 4. 记录用户回答
+ * Enhanced Max AI proactive inquiry system with:
+ * - 40-minute interval timer
+ * - AI-generated personalized questions
+ * - Inquiry history tracking
+ * - Adaptive frequency based on user engagement
+ * - Quiet hours detection
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -25,14 +24,48 @@ import { createInquiry, respondToInquiry } from '@/app/actions/inquiry';
 // Constants
 // ============================================
 
-const INQUIRY_INTERVAL_MS = 40 * 60 * 1000; // 40 minutes
+const DEFAULT_INQUIRY_INTERVAL_MS = 40 * 60 * 1000; // 40 minutes
+const MIN_INQUIRY_INTERVAL_MS = 20 * 60 * 1000; // 20 minutes (high engagement)
+const MAX_INQUIRY_INTERVAL_MS = 120 * 60 * 1000; // 2 hours (low engagement)
 const QUIET_HOURS_START = 22; // 10 PM
 const QUIET_HOURS_END = 8; // 8 AM
 const STORAGE_KEY = 'proactive_inquiry_last_time';
+const HISTORY_STORAGE_KEY = 'proactive_inquiry_history';
+const ENGAGEMENT_STORAGE_KEY = 'proactive_inquiry_engagement';
 
 // ============================================
 // Types
 // ============================================
+
+export interface InquiryHistoryItem {
+    id: string;
+    questionText: string;
+    questionType: string;
+    answer: string | null;
+    answeredAt: string | null;
+    createdAt: string;
+    responseTimeMs: number | null;
+    dismissed: boolean;
+}
+
+export interface ResponsePattern {
+    totalInquiries: number;
+    answeredCount: number;
+    dismissedCount: number;
+    responseRate: number; // 0-1
+    avgResponseTimeMs: number;
+    preferredTopics: string[];
+    engagementLevel: 'high' | 'medium' | 'low';
+}
+
+export interface UserContext {
+    recentData: Record<string, { value: string; timestamp: string }>;
+    dataGaps: DataGap[];
+    timeOfDay: 'morning' | 'afternoon' | 'evening';
+    dayOfWeek: number;
+    lastInquiryTopic?: string;
+    userMood?: string;
+}
 
 export interface UseProactiveInquiryReturn {
     // Current inquiry state
@@ -42,16 +75,30 @@ export interface UseProactiveInquiryReturn {
     // Data gaps
     dataGaps: DataGap[];
 
-    // Actions
+    // Core Actions
     showInquiry: () => void;
     dismissInquiry: () => void;
     submitAnswer: (answer: string) => Promise<void>;
 
     // Timer info
-    nextInquiryIn: number | null; // ms until next inquiry
+    nextInquiryIn: number | null;
+    currentInterval: number;
     isPaused: boolean;
     pause: () => void;
     resume: () => void;
+
+    // NEW: AI-generated questions
+    generateAIQuestion: (context?: Partial<UserContext>) => Promise<InquiryQuestion | null>;
+    isGeneratingAI: boolean;
+
+    // NEW: History & Analytics
+    getInquiryHistory: (limit?: number) => InquiryHistoryItem[];
+    getResponsePatterns: () => ResponsePattern;
+    clearHistory: () => void;
+
+    // NEW: Adaptive frequency
+    adjustFrequency: (engagement: 'high' | 'medium' | 'low') => void;
+    engagementLevel: 'high' | 'medium' | 'low';
 }
 
 // ============================================
@@ -63,6 +110,13 @@ function isQuietHours(): boolean {
     return hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END;
 }
 
+function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 18) return 'afternoon';
+    return 'evening';
+}
+
 function getLastInquiryTime(): number {
     if (typeof window === 'undefined') return 0;
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -72,6 +126,45 @@ function getLastInquiryTime(): number {
 function setLastInquiryTime(time: number): void {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, time.toString());
+}
+
+function getStoredHistory(): InquiryHistoryItem[] {
+    if (typeof window === 'undefined') return [];
+    try {
+        const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveToHistory(item: InquiryHistoryItem): void {
+    if (typeof window === 'undefined') return;
+    const history = getStoredHistory();
+    history.unshift(item);
+    // Keep only last 100 items
+    const trimmed = history.slice(0, 100);
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(trimmed));
+}
+
+function getStoredEngagement(): 'high' | 'medium' | 'low' {
+    if (typeof window === 'undefined') return 'medium';
+    const stored = localStorage.getItem(ENGAGEMENT_STORAGE_KEY);
+    if (stored === 'high' || stored === 'medium' || stored === 'low') return stored;
+    return 'medium';
+}
+
+function saveEngagement(level: 'high' | 'medium' | 'low'): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(ENGAGEMENT_STORAGE_KEY, level);
+}
+
+function getIntervalForEngagement(engagement: 'high' | 'medium' | 'low'): number {
+    switch (engagement) {
+        case 'high': return MIN_INQUIRY_INTERVAL_MS;
+        case 'low': return MAX_INQUIRY_INTERVAL_MS;
+        default: return DEFAULT_INQUIRY_INTERVAL_MS;
+    }
 }
 
 // ============================================
@@ -89,19 +182,73 @@ export function useProactiveInquiry(
     const [nextInquiryIn, setNextInquiryIn] = useState<number | null>(null);
     const [isPaused, setIsPaused] = useState(false);
     const [inquiryRecordId, setInquiryRecordId] = useState<string | null>(null);
+    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+    const [engagementLevel, setEngagementLevel] = useState<'high' | 'medium' | 'low'>('medium');
+    const [currentInterval, setCurrentInterval] = useState(DEFAULT_INQUIRY_INTERVAL_MS);
+    const [inquiryStartTime, setInquiryStartTime] = useState<number | null>(null);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Initialize engagement from storage
+    useEffect(() => {
+        const stored = getStoredEngagement();
+        setEngagementLevel(stored);
+        setCurrentInterval(getIntervalForEngagement(stored));
+    }, []);
+
+    // NEW: Generate AI-powered question using LLM
+    const generateAIQuestion = useCallback(async (contextOverride?: Partial<UserContext>): Promise<InquiryQuestion | null> => {
+        setIsGeneratingAI(true);
+
+        try {
+            const gaps = identifyDataGaps(recentData, 24);
+            setDataGaps(gaps);
+
+            const context: UserContext = {
+                recentData,
+                dataGaps: gaps,
+                timeOfDay: getTimeOfDay(),
+                dayOfWeek: new Date().getDay(),
+                ...contextOverride,
+            };
+
+            // Call AI API for personalized question
+            const response = await fetch('/api/ai/generate-inquiry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    context,
+                    language,
+                    history: getStoredHistory().slice(0, 5), // Send recent history for context
+                }),
+            });
+
+            if (!response.ok) {
+                // Fallback to template-based generation
+                console.warn('[ProactiveInquiry] AI generation failed, using template');
+                return generateInquiryQuestion(gaps, [], language);
+            }
+
+            const data = await response.json();
+            return data.question as InquiryQuestion;
+        } catch (error) {
+            console.error('[ProactiveInquiry] AI generation error:', error);
+            // Fallback to template-based generation
+            const gaps = identifyDataGaps(recentData, 24);
+            return generateInquiryQuestion(gaps, [], language);
+        } finally {
+            setIsGeneratingAI(false);
+        }
+    }, [recentData, language]);
+
     // Check for data gaps and generate inquiry
     const checkAndGenerateInquiry = useCallback(async () => {
-        // Don't trigger during quiet hours
         if (isQuietHours()) {
             console.log('[ProactiveInquiry] Quiet hours, skipping');
             return false;
         }
 
-        // Identify data gaps
-        const gaps = identifyDataGaps(recentData, 24); // 24 hour staleness threshold
+        const gaps = identifyDataGaps(recentData, 24);
         setDataGaps(gaps);
 
         if (gaps.length === 0) {
@@ -109,8 +256,15 @@ export function useProactiveInquiry(
             return false;
         }
 
-        // Generate inquiry question
-        const question = generateInquiryQuestion(gaps, [], language);
+        // Try AI generation first, fall back to template
+        let question: InquiryQuestion | null = null;
+
+        try {
+            question = await generateAIQuestion();
+        } catch {
+            question = generateInquiryQuestion(gaps, [], language);
+        }
+
         if (!question) {
             console.log('[ProactiveInquiry] Could not generate question');
             return false;
@@ -136,11 +290,24 @@ export function useProactiveInquiry(
         setInquiryRecordId(recordId);
         setCurrentInquiry(recordId ? { ...question, id: recordId } : question);
         setIsInquiryVisible(true);
+        setInquiryStartTime(Date.now());
         setLastInquiryTime(Date.now());
+
+        // Save to history
+        saveToHistory({
+            id: recordId || question.id,
+            questionText: question.question_text,
+            questionType: question.question_type,
+            answer: null,
+            answeredAt: null,
+            createdAt: new Date().toISOString(),
+            responseTimeMs: null,
+            dismissed: false,
+        });
 
         console.log('[ProactiveInquiry] Generated inquiry:', question.id);
         return true;
-    }, [recentData, language]);
+    }, [recentData, language, generateAIQuestion]);
 
     // Show inquiry manually
     const showInquiry = useCallback(() => {
@@ -150,15 +317,27 @@ export function useProactiveInquiry(
     // Dismiss inquiry
     const dismissInquiry = useCallback(() => {
         setIsInquiryVisible(false);
+
+        // Update history to mark as dismissed
+        if (currentInquiry) {
+            const history = getStoredHistory();
+            const updated = history.map(h =>
+                h.id === (inquiryRecordId || currentInquiry.id)
+                    ? { ...h, dismissed: true }
+                    : h
+            );
+            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
+        }
+
         setInquiryRecordId(null);
-        // Don't clear currentInquiry immediately for animation
         setTimeout(() => setCurrentInquiry(null), 300);
-    }, []);
+    }, [currentInquiry, inquiryRecordId]);
 
     // Submit answer
     const submitAnswer = useCallback(async (answer: string) => {
         if (!currentInquiry) return;
 
+        const responseTimeMs = inquiryStartTime ? Date.now() - inquiryStartTime : null;
         console.log('[ProactiveInquiry] Answer submitted:', currentInquiry.id, answer);
 
         if (inquiryRecordId) {
@@ -169,9 +348,26 @@ export function useProactiveInquiry(
             }
         }
 
+        // Update history with answer
+        const history = getStoredHistory();
+        const updated = history.map(h =>
+            h.id === (inquiryRecordId || currentInquiry.id)
+                ? { ...h, answer, answeredAt: new Date().toISOString(), responseTimeMs }
+                : h
+        );
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
+
         dismissInquiry();
         setLastInquiryTime(Date.now());
-    }, [currentInquiry, inquiryRecordId, dismissInquiry]);
+
+        // Auto-adjust engagement based on response patterns
+        const patterns = getResponsePatternsFromHistory(updated);
+        if (patterns.responseRate > 0.8) {
+            adjustFrequency('high');
+        } else if (patterns.responseRate < 0.3) {
+            adjustFrequency('low');
+        }
+    }, [currentInquiry, inquiryRecordId, inquiryStartTime, dismissInquiry]);
 
     // Pause/Resume timer
     const pause = useCallback(() => {
@@ -186,15 +382,83 @@ export function useProactiveInquiry(
         setIsPaused(false);
     }, []);
 
-    // Use a ref to hold the latest callback to avoid resetting the timer when data changes
+    // NEW: Get inquiry history
+    const getInquiryHistory = useCallback((limit: number = 50): InquiryHistoryItem[] => {
+        return getStoredHistory().slice(0, limit);
+    }, []);
+
+    // Helper to calculate patterns from history
+    const getResponsePatternsFromHistory = (history: InquiryHistoryItem[]): ResponsePattern => {
+        const total = history.length;
+        const answered = history.filter(h => h.answer !== null).length;
+        const dismissed = history.filter(h => h.dismissed).length;
+        const responseTimes = history
+            .filter(h => h.responseTimeMs !== null)
+            .map(h => h.responseTimeMs!);
+
+        const avgResponseTime = responseTimes.length > 0
+            ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+            : 0;
+
+        const responseRate = total > 0 ? answered / total : 0;
+
+        let engLevel: 'high' | 'medium' | 'low' = 'medium';
+        if (responseRate > 0.7) engLevel = 'high';
+        else if (responseRate < 0.3) engLevel = 'low';
+
+        // Find preferred topics from answered questions
+        const topics = history
+            .filter(h => h.answer !== null)
+            .map(h => h.questionType);
+        const topicCounts = topics.reduce((acc, t) => {
+            acc[t] = (acc[t] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        const preferredTopics = Object.entries(topicCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([topic]) => topic);
+
+        return {
+            totalInquiries: total,
+            answeredCount: answered,
+            dismissedCount: dismissed,
+            responseRate,
+            avgResponseTimeMs: avgResponseTime,
+            preferredTopics,
+            engagementLevel: engLevel,
+        };
+    };
+
+    // NEW: Get response patterns
+    const getResponsePatterns = useCallback((): ResponsePattern => {
+        return getResponsePatternsFromHistory(getStoredHistory());
+    }, []);
+
+    // NEW: Clear history
+    const clearHistory = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(HISTORY_STORAGE_KEY);
+        }
+    }, []);
+
+    // NEW: Adjust frequency based on engagement
+    const adjustFrequency = useCallback((engagement: 'high' | 'medium' | 'low') => {
+        setEngagementLevel(engagement);
+        const newInterval = getIntervalForEngagement(engagement);
+        setCurrentInterval(newInterval);
+        saveEngagement(engagement);
+        console.log(`[ProactiveInquiry] Adjusted frequency to ${engagement}: ${newInterval}ms`);
+    }, []);
+
+    // Ref for latest callback
     const checkCallbackRef = useRef(checkAndGenerateInquiry);
 
-    // Update ref on render
     useEffect(() => {
         checkCallbackRef.current = checkAndGenerateInquiry;
     }, [checkAndGenerateInquiry]);
 
-    // Setup interval timer
+    // Setup interval timer with adaptive frequency
     useEffect(() => {
         if (!enabled || isPaused) {
             if (timerRef.current) {
@@ -205,48 +469,62 @@ export function useProactiveInquiry(
             return;
         }
 
-        // Calculate time until next inquiry
         const lastTime = getLastInquiryTime();
         const timeSinceLast = Date.now() - lastTime;
-        const timeUntilNext = Math.max(0, INQUIRY_INTERVAL_MS - timeSinceLast);
+        const timeUntilNext = Math.max(0, currentInterval - timeSinceLast);
 
-        // Set initial countdown
         setNextInquiryIn(timeUntilNext);
 
-        // Clear existing timers
         if (timerRef.current) clearInterval(timerRef.current);
 
-        // First trigger after remaining time
         const firstTrigger = setTimeout(() => {
-            // Call the ref
             void checkCallbackRef.current();
-            setNextInquiryIn(INQUIRY_INTERVAL_MS);
+            setNextInquiryIn(currentInterval);
 
-            // Then set up regular interval
             timerRef.current = setInterval(() => {
                 void checkCallbackRef.current();
-                setNextInquiryIn(INQUIRY_INTERVAL_MS);
-            }, INQUIRY_INTERVAL_MS);
+                setNextInquiryIn(currentInterval);
+            }, currentInterval);
         }, timeUntilNext);
 
         return () => {
             clearTimeout(firstTrigger);
             if (timerRef.current) clearInterval(timerRef.current);
         };
-    }, [enabled, isPaused]); // Removed checkAndGenerateInquiry dependency
+    }, [enabled, isPaused, currentInterval]);
 
     return {
+        // Current inquiry state
         currentInquiry,
         isInquiryVisible,
         dataGaps,
+
+        // Core Actions
         showInquiry,
         dismissInquiry,
         submitAnswer,
+
+        // Timer info
         nextInquiryIn,
+        currentInterval,
         isPaused,
         pause,
         resume,
+
+        // AI-generated questions
+        generateAIQuestion,
+        isGeneratingAI,
+
+        // History & Analytics
+        getInquiryHistory,
+        getResponsePatterns,
+        clearHistory,
+
+        // Adaptive frequency
+        adjustFrequency,
+        engagementLevel,
     };
 }
 
 export type { InquiryQuestion, DataGap };
+export default useProactiveInquiry;

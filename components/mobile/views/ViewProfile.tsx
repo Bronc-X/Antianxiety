@@ -33,39 +33,53 @@ const pageTransition = {
     type: "tween",
     ease: "anticipate",
     duration: 0.3
-};
+} as const;
 
-export const ViewProfile = () => {
+import { useProfile } from "@/hooks/domain/useProfile";
+
+// ... (keep pageVariants/transitions)
+
+interface ViewProfileProps {
+    onNavigate?: (view: string) => void;
+}
+
+export const ViewProfile = ({ onNavigate }: ViewProfileProps) => {
+    const { profile } = useProfile();
     const [showEdit, setShowEdit] = useState(false);
 
+    const userName = profile?.full_name || profile?.nickname || "User";
+    const userRole = "Pro Member";
+    const joinDate = profile?.member_since ? `Joined ${new Date(profile.member_since).getFullYear()}` : "Joined 2024";
+    const avatarUrl = profile?.avatar_url || "https://i.pravatar.cc/150?u=admin";
+
     const stats = [
-        { label: "Streak", value: "12", icon: Zap, color: "text-amber-600", bg: "bg-amber-100 dark:bg-amber-500/20" },
-        { label: "Level", value: "3", icon: Brain, color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-500/20" },
-        { label: "Focus", value: "85%", icon: Moon, color: "text-indigo-600", bg: "bg-indigo-100 dark:bg-indigo-500/20" },
-        { label: "Hours", value: "48", icon: Clock, color: "text-rose-600", bg: "bg-rose-100 dark:bg-rose-500/20" },
+        { label: "Streak", value: `${profile?.streak_days || 0}`, icon: Zap, color: "text-amber-600", bg: "bg-amber-100 dark:bg-amber-500/20" },
+        { label: "Logs", value: `${profile?.total_logs || 0}`, icon: Brain, color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-500/20" },
+        { label: "Focus", value: "85%", icon: Moon, color: "text-indigo-600", bg: "bg-indigo-100 dark:bg-indigo-500/20" }, // Mock
+        { label: "Hours", value: "48", icon: Clock, color: "text-rose-600", bg: "bg-rose-100 dark:bg-rose-500/20" }, // Mock
     ];
 
     const menuGroups = [
         {
             title: "General",
             items: [
-                { icon: User, label: "Account Settings", value: "" },
-                { icon: Bell, label: "Notifications", value: "On" },
-                { icon: Smartphone, label: "Devices", value: "2 Active" },
+                { icon: User, label: "Account Settings", value: "", action: () => onNavigate?.("settings") },
+                { icon: Bell, label: "Notifications", value: "On", action: () => { } },
+                { icon: Smartphone, label: "Devices", value: "2 Active", action: () => onNavigate?.("wearables") },
             ]
         },
         {
             title: "Health & Privacy",
             items: [
-                { icon: Heart, label: "Health Data Connect", value: "Synced" },
-                { icon: Shield, label: "Privacy & Security", value: "" },
+                { icon: Heart, label: "Health Data Connect", value: "Synced", action: () => { } },
+                { icon: Shield, label: "Privacy & Security", value: "", action: () => { } },
             ]
         },
         {
             title: "Preferences",
             items: [
-                { icon: Volume2, label: "Sound & Haptics", value: "" },
-                { icon: HelpCircle, label: "Support", value: "" },
+                { icon: Volume2, label: "Sound & Haptics", value: "", action: () => { } },
+                { icon: HelpCircle, label: "Support", value: "", action: () => { } },
             ]
         }
     ];
@@ -77,7 +91,10 @@ export const ViewProfile = () => {
         >
             <div className="flex justify-between items-center mb-2">
                 <h2 className="text-2xl font-bold text-emerald-950 dark:text-emerald-50">Profile</h2>
-                <button className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-500">
+                <button
+                    onClick={() => onNavigate?.("settings")}
+                    className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-500"
+                >
                     <Settings size={20} />
                 </button>
             </div>
@@ -86,15 +103,15 @@ export const ViewProfile = () => {
             <div className="flex items-center gap-5 mb-4 px-2">
                 <div className="relative group cursor-pointer" onClick={() => setShowEdit(true)}>
                     <div className="h-24 w-24 rounded-full bg-stone-200 p-1 shadow-lg shadow-emerald-900/10">
-                        <img src="https://i.pravatar.cc/150?u=admin" alt="User" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-black" />
+                        <img src={avatarUrl} alt={userName} className="w-full h-full rounded-full object-cover border-4 border-white dark:border-black" />
                     </div>
                     <div className="absolute bottom-0 right-0 p-2 bg-emerald-600 text-white rounded-full shadow-md hover:scale-105 transition-transform">
                         <Camera size={14} />
                     </div>
                 </div>
                 <div>
-                    <h3 className="text-2xl font-bold text-emerald-950 dark:text-emerald-50">Dr. Broncin</h3>
-                    <p className="text-stone-500 dark:text-stone-400 text-sm mb-2">Pro Member • Joined 2024</p>
+                    <h3 className="text-2xl font-bold text-emerald-950 dark:text-emerald-50">{userName}</h3>
+                    <p className="text-stone-500 dark:text-stone-400 text-sm mb-2">{userRole} • {joinDate}</p>
                     <button
                         onClick={() => setShowEdit(true)}
                         className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800/50"
@@ -126,10 +143,13 @@ export const ViewProfile = () => {
                         <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 ml-2 mb-2">{group.title}</h4>
                         <CardGlass className="p-0 overflow-hidden !rounded-3xl border-stone-100 dark:border-white/5">
                             {group.items.map((item, i) => (
-                                <div key={i} className={cn(
-                                    "flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 dark:hover:bg-white/5 transition-colors active:bg-stone-100",
-                                    i !== group.items.length - 1 && "border-b border-stone-100 dark:border-white/5"
-                                )}>
+                                <div
+                                    key={i}
+                                    onClick={item.action}
+                                    className={cn(
+                                        "flex items-center justify-between p-4 cursor-pointer hover:bg-stone-50 dark:hover:bg-white/5 transition-colors active:bg-stone-100",
+                                        i !== group.items.length - 1 && "border-b border-stone-100 dark:border-white/5"
+                                    )}>
                                     <div className="flex items-center gap-3">
                                         <div className="text-stone-400 dark:text-stone-500">
                                             <item.icon size={18} />

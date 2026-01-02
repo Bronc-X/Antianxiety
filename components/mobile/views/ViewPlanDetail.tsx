@@ -14,14 +14,21 @@ import {
     CheckCircle2,
     Circle
 } from "lucide-react";
+import { usePlans, type PlanData } from "@/hooks/domain/usePlans";
 import { cn } from "@/lib/utils";
 
 interface ViewPlanDetailProps {
     onClose: () => void;
-    plan: any; // Mock type for demo
+    plan: PlanData;
 }
 
 export const ViewPlanDetail = ({ onClose, plan }: ViewPlanDetailProps) => {
+    // Helper to get logic for colors/labels
+    const uiType = plan.plan_type === 'exercise' ? 'Body' :
+        plan.plan_type === 'diet' ? 'Nutrition' :
+            plan.plan_type === 'sleep' ? 'Sleep' :
+                plan.plan_type === 'comprehensive' ? 'Mind' : 'General';
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -48,10 +55,10 @@ export const ViewPlanDetail = ({ onClose, plan }: ViewPlanDetailProps) => {
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-stone-100 text-stone-600 mb-3 uppercase tracking-wide">
-                                {plan?.type || "Activity"}
+                                {uiType}
                             </span>
                             <h2 className="text-3xl font-bold text-emerald-950 dark:text-emerald-50 leading-tight">
-                                {plan?.title || "Workout"}
+                                {plan.name}
                             </h2>
                         </div>
                         <button className="p-2 bg-stone-100 dark:bg-white/10 rounded-full" onClick={onClose}>
@@ -59,7 +66,8 @@ export const ViewPlanDetail = ({ onClose, plan }: ViewPlanDetailProps) => {
                         </button>
                     </div>
 
-                    {/* Stats Row */}
+                    {/* Stats Row - Placeholder for now as PlanData doesn't have these */}
+                    {/* 
                     <div className="flex items-center gap-6 mb-8 text-stone-500 text-sm font-medium">
                         <div className="flex items-center gap-2">
                             <Clock size={16} /> 30 min
@@ -67,23 +75,20 @@ export const ViewPlanDetail = ({ onClose, plan }: ViewPlanDetailProps) => {
                         <div className="flex items-center gap-2">
                             <Calendar size={16} /> Daily
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Zap size={16} className="text-amber-500" /> 150 exp
-                        </div>
                     </div>
+                    */}
 
                     {/* Subtasks */}
                     <div className="space-y-4 mb-8">
                         <h3 className="font-bold text-stone-800 dark:text-stone-200">Session Breakdown</h3>
                         <div className="space-y-3">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-100 dark:border-white/5">
-                                    <div className="text-stone-300">
-                                        <Circle size={20} />
+                            {plan.items && plan.items.map((item, i) => (
+                                <div key={item.id || i} className="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-100 dark:border-white/5">
+                                    <div className={cn("text-stone-300", item.completed && "text-emerald-500")}>
+                                        {item.completed ? <CheckCircle2 size={20} /> : <Circle size={20} />}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="font-medium text-stone-700 dark:text-stone-300">Phase {i}</p>
-                                        <p className="text-xs text-stone-400">5 minutes</p>
+                                        <p className="font-medium text-stone-700 dark:text-stone-300">{item.text}</p>
                                     </div>
                                 </div>
                             ))}

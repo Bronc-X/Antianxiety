@@ -12,12 +12,12 @@ import {
     ThumbsUp,
     ThumbsDown,
     History,
-    Languages,
-    RotateCcw,
-    X
+    X,
+    MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MaxAvatar from "@/components/max/MaxAvatar";
+import { useMax } from "@/hooks/domain/useMax";
 
 const pageVariants = {
     initial: { opacity: 0, x: 10 },
@@ -31,73 +31,41 @@ const pageTransition = {
     duration: 0.3
 };
 
-interface Tool {
-    type: string;
-    title: string;
-    time: string;
-    action: string;
-}
-
-interface Message {
-    id: number | string;
-    role: "user" | "assistant";
-    content: string;
-    tools?: Tool[];
-    isStreaming?: boolean;
-}
-
 export const ViewMax = () => {
+    const {
+        messages,
+        conversations,
+        isSending,
+        sendMessage,
+        switchConversation,
+        newConversation,
+        isLoading
+    } = useMax();
+
     const [input, setInput] = useState("");
-    const [isStreaming, setIsStreaming] = useState(false);
     const [language, setLanguage] = useState<'zh' | 'en'>('zh');
     const [showHistory, setShowHistory] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Simulated Messages with "Streaming" state
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: 1,
-            role: "assistant",
-            content: "Hi Dr. Broncin. I've analyzed your sleep data. It looks like you had 8h 20m of quality sleep. How are you feeling today?",
-            tools: []
-        },
-        {
-            id: 2,
-            role: "user",
-            content: "I feel pretty energized, actually. Ready for the workout.",
-            tools: []
-        },
-        {
-            id: 3,
-            role: "assistant",
-            content: "That's great! Based on your recovery score (92%), I've customized today's plan.",
-            tools: [
-                { type: "plan_card", title: "HIIT Session", time: "30 min", action: "Review" }
-            ]
+    // Scroll to bottom on new messages
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    ]);
+    }, [messages, isSending]);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!input.trim()) return;
-
-        // Add User Message
-        const tempUserMsg: Message = { id: Date.now(), role: "user", content: input };
-        setMessages(prev => [...prev, tempUserMsg]);
-        setInput("");
-        setIsStreaming(true);
-
-        // Simulate AI Response (Mocking the hook behavior)
-        setTimeout(() => {
-            setIsStreaming(false);
-            const tempAiMsg: Message = {
-                id: Date.now() + 1,
-                role: "assistant",
-                content: language === 'zh' ? "好的，我已经收到您的反馈。正在调整今天的计划..." : "Okay, I've received your feedback. Adjusting today's plan...",
-                tools: []
-            };
-            setMessages(prev => [...prev, tempAiMsg]);
-        }, 1500);
+        const success = await sendMessage(input, language);
+        if (success) {
+            setInput("");
+        }
     };
+
+    const handleNewChat = async () => {
+        await newConversation();
+        setShowHistory(false);
+    }
 
     return (
         <motion.div
@@ -128,12 +96,19 @@ export const ViewMax = () => {
 
             {/* Chat Thread */}
             <div className="flex-1 overflow-y-auto px-4 pb-24 space-y-6" ref={scrollRef}>
+                {messages.length === 0 && !isLoading && (
+                    <div className="flex flex-col items-center justify-center h-full text-stone-400 opacity-60">
+                        <MaxAvatar state="idle" size={80} className="mb-4 opacity-50 grayscale" />
+                        <p>How can I help you today?</p>
+                    </div>
+                )}
+
                 {messages.map((msg, i) => (
-                    <div key={msg.id} className={cn("flex gap-3", msg.role === 'user' ? "flex-row-reverse group" : "")}>
+                    <div key={msg.id || i} className={cn("flex gap-3", msg.role === 'user' ? "flex-row-reverse group" : "")}>
 
                         {/* Avatar */}
                         {msg.role === 'assistant' ? (
-                            <MaxAvatar state={isStreaming && i === messages.length - 1 ? "thinking" : "idle"} size={32} className="mt-1 shadow-sm flex-shrink-0" />
+                            <MaxAvatar state={msg.isStreaming ? "thinking" : "idle"} size={32} className="mt-1 shadow-sm flex-shrink-0" />
                         ) : (
                             <div className="h-8 w-8 rounded-full bg-stone-200 overflow-hidden flex-shrink-0 mt-1">
                                 <img src="https://i.pravatar.cc/150?u=admin" alt="User" />
@@ -144,7 +119,7 @@ export const ViewMax = () => {
                         <div className={cn("flex flex-col gap-1 max-w-[85%]", msg.role === 'user' ? "items-end" : "items-start")}>
                             {/* Message Bubble/Text */}
                             <div className={cn(
-                                "text-[15px] leading-relaxed py-1.5 px-2 rounded-2xl",
+                                "text-[15px] leading-relaxed py-1.5 px-2 rounded-2xl whitespace-pre-wrap",
                                 msg.role === 'user'
                                     ? "bg-stone-200/50 dark:bg-white/10 text-emerald-950 dark:text-slate-200 rounded-tr-md"
                                     : "text-emerald-950 dark:text-slate-200 rounded-tl-md"
@@ -152,30 +127,6 @@ export const ViewMax = () => {
                                 {msg.content}
                                 {msg.isStreaming && <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-emerald-500 animate-pulse" />}
                             </div>
-
-                            {/* Tools / Artifacts */}
-                            {msg.tools && msg.tools.length > 0 && (
-                                <div className="mt-1 w-full space-y-2">
-                                    {msg.tools.map((tool: any, idx) => (
-                                        <div key={idx} className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-white/5 p-3 flex items-center justify-between shadow-sm cursor-pointer hover:border-emerald-500/30 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-lg bg-emerald-50 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600">
-                                                    <Activity size={20} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-semibold text-emerald-950 dark:text-white">{tool.title}</p>
-                                                    <p className="text-xs text-stone-500 flex items-center gap-1">
-                                                        <Activity size={10} /> {tool.time}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <button className="px-3 py-1.5 text-xs font-medium bg-emerald-700 dark:bg-white text-white dark:text-black rounded-lg hover:bg-emerald-800 transition-colors shadow-sm shadow-emerald-700/20">
-                                                {tool.action}
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
 
                             {/* Actions */}
                             {msg.role === 'assistant' && !msg.isStreaming && (
@@ -192,7 +143,7 @@ export const ViewMax = () => {
                     </div>
                 ))}
 
-                {isStreaming && (
+                {isSending && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
                     <div className="flex gap-3">
                         <div className="h-8 w-8 rounded-full bg-emerald-700 dark:bg-emerald-600 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
                             <Sparkles size={14} className="text-white animate-pulse" />
@@ -213,7 +164,10 @@ export const ViewMax = () => {
                     input ? "shadow-lg shadow-emerald-500/10" : "shadow-xl shadow-stone-200/50 dark:shadow-black/50"
                 )}>
 
-                    <button className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-400 transition-colors">
+                    <button
+                        onClick={handleNewChat}
+                        className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-400 transition-colors"
+                    >
                         <Plus size={20} />
                     </button>
 
@@ -222,8 +176,9 @@ export const ViewMax = () => {
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Message Max..."
                         rows={1}
-                        className="flex-1 bg-transparent border-none focus:ring-0 py-3 text-[15px] resize-none max-h-32 text-emerald-950 dark:text-white placeholder:text-stone-400"
+                        className="flex-1 bg-transparent border-none focus:ring-0 py-3 text-[15px] resize-none max-h-32 text-emerald-950 dark:text-white placeholder:text-stone-400 disabled:opacity-50"
                         style={{ minHeight: "24px" }}
+                        disabled={isSending}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
@@ -235,7 +190,8 @@ export const ViewMax = () => {
                     {input ? (
                         <button
                             onClick={handleSend}
-                            className="p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md active:scale-95"
+                            disabled={isSending}
+                            className="p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                         >
                             <Send size={18} className="translate-x-0.5" />
                         </button>
@@ -250,7 +206,7 @@ export const ViewMax = () => {
                 </p>
             </div>
 
-            {/* History Overlay (Simple simulation) */}
+            {/* History Overlay */}
             <AnimatePresence>
                 {showHistory && (
                     <motion.div
@@ -260,7 +216,7 @@ export const ViewMax = () => {
                     >
                         <motion.div
                             initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-                            className="absolute left-0 top-0 bottom-0 w-[70%] bg-[#F9F9F7] dark:bg-[#0A0A0A] shadow-2xl p-6"
+                            className="absolute left-0 top-0 bottom-0 w-[80%] bg-[#F9F9F7] dark:bg-[#0A0A0A] shadow-2xl p-6 flex flex-col"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex justify-between items-center mb-6">
@@ -269,15 +225,42 @@ export const ViewMax = () => {
                                     <X size={20} className="text-stone-400" />
                                 </button>
                             </div>
-                            <div className="space-y-4">
-                                <div className="p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-200 dark:border-white/10 cursor-pointer hover:border-emerald-500/50 transition-colors">
-                                    <p className="font-medium text-sm mb-1 text-emerald-950 dark:text-white">Sleep Analysis</p>
-                                    <p className="text-xs text-stone-400">Yesterday</p>
-                                </div>
-                                <div className="p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-200 dark:border-white/10 cursor-pointer hover:border-emerald-500/50 transition-colors">
-                                    <p className="font-medium text-sm mb-1 text-emerald-950 dark:text-white">Workout Plan</p>
-                                    <p className="text-xs text-stone-400">2 days ago</p>
-                                </div>
+
+                            <div className="flex-1 overflow-y-auto space-y-2">
+                                <button
+                                    onClick={handleNewChat}
+                                    className="w-full p-3 rounded-xl bg-emerald-600 text-white flex items-center gap-3 mb-4 shadow-lg shadow-emerald-500/20"
+                                >
+                                    <Plus size={20} />
+                                    <span className="font-medium">New Chat</span>
+                                </button>
+
+                                {conversations.map(chat => (
+                                    <div
+                                        key={chat.id}
+                                        onClick={() => {
+                                            switchConversation(chat.id);
+                                            setShowHistory(false);
+                                        }}
+                                        className="p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-200 dark:border-white/10 cursor-pointer hover:border-emerald-500/50 transition-colors group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <MessageSquare size={16} className="text-stone-400 group-hover:text-emerald-500" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm text-emerald-950 dark:text-white truncate">
+                                                    {chat.title || "New Conversation"}
+                                                </p>
+                                                <p className="text-xs text-stone-400">
+                                                    {new Date(chat.created_at).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {conversations.length === 0 && (
+                                    <p className="text-center text-stone-400 text-sm py-4">No history yet</p>
+                                )}
                             </div>
                         </motion.div>
                     </motion.div>

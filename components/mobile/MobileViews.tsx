@@ -13,3 +13,17 @@ export { ViewPlanCreator } from "./views/ViewPlanCreator";
 export { ViewPlanDetail } from "./views/ViewPlanDetail";
 export { ViewArticleReader } from "./views/ViewArticleReader";
 export { ViewProfileEdit } from "./views/ViewProfileEdit";
+export { ViewSettings } from "./views/ViewSettings";
+export { ViewCalibration } from "./views/ViewCalibration";
+export { ViewScience } from "./views/ViewScience";
+export { ViewWearables } from "./views/ViewWearables";
+export { ViewGoals } from "./views/ViewGoals";
+export { ViewOnboarding } from "./views/ViewOnboarding";
+export { ViewDigitalTwin } from "./views/ViewDigitalTwin";
+
+// Phase 2: New Hook-Connected Views
+export { ViewAssessment } from "./views/ViewAssessment";
+export { ViewHabits } from "./views/ViewHabits";
+export { ViewAnalysis } from "./views/ViewAnalysis";
+export { ViewAiReminders } from "./views/ViewAiReminders";
+

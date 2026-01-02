@@ -1,12 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     ViewDashboard,
     ViewMax,
     ViewPlan,
-    ViewProfile
+    ViewProfile,
+    ViewScience,
+    ViewSettings,
+    ViewCalibration,
+    ViewDigitalTwin,
+    ViewWearables,
+    ViewGoals,
+    ViewOnboarding,
+    ViewAssessment,
+    ViewHabits,
+    ViewAnalysis,
+    ViewAiReminders
 } from "@/components/mobile/MobileViews";
 import {
     LayoutDashboard,
@@ -15,13 +27,14 @@ import {
     User,
     Wifi,
     Battery,
-    Signal
+    Signal,
+    FlaskConical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MaxAvatar from "@/components/max/MaxAvatar";
 
 // --- Types ---
-type ViewType = "home" | "max" | "plan" | "profile";
+type ViewType = "home" | "max" | "plan" | "profile" | "science" | "settings" | "calibration" | "digital-twin" | "wearables" | "goals" | "onboarding" | "assessment" | "habits" | "analysis" | "reminders";
 
 // --- Components ---
 
@@ -37,12 +50,24 @@ const StatusBar = () => (
 );
 
 const BottomNav = ({ activeView, onViewChange }: { activeView: ViewType; onViewChange: (view: ViewType) => void }) => {
+    // Hide bottom nav in deep views if desired, or keep it.
+    // Usually Settings doesn't have bottom nav, but let's keep it for easy navigation unless requested otherwise.
+    // Actually, "Settings" usually is a pushed view.
+    // If activeView is 'settings' or 'calibration', maybe we still show nav to allow jumping back?
+    // Let's hide it for 'settings' and 'calibration' to focus user or make it modal-like.
+    // But for simplicity in this "OS" simulation, let's keep it or just render it.
+
     const navItems = [
         { id: "home", icon: LayoutDashboard, label: "Home" },
+        { id: "science", icon: FlaskConical, label: "Science" },
         { id: "max", icon: Sparkles, label: "Max" },
         { id: "plan", icon: Calendar, label: "Plan" },
         { id: "profile", icon: User, label: "Profile" },
     ];
+
+    if (activeView === 'settings' || activeView === 'calibration') {
+        return null; // Hide nav for full-screen views
+    }
 
     return (
         <div className="absolute bottom-6 left-4 right-4 h-[70px] bg-white/90 dark:bg-black/80 backdrop-blur-2xl rounded-[2rem] border border-stone-200 dark:border-white/10 shadow-2xl flex items-center justify-around px-2 z-50">
@@ -89,7 +114,23 @@ const BottomNav = ({ activeView, onViewChange }: { activeView: ViewType; onViewC
 
 // --- Main Page ---
 export default function MobileSimulatorPage() {
-    const [currentView, setCurrentView] = useState<ViewType>("home");
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const viewParam = searchParams.get('view') as ViewType;
+    const currentView = viewParam && [
+        "home", "max", "plan", "profile", "science",
+        "settings", "calibration", "digital-twin",
+        "wearables", "goals", "onboarding",
+        "assessment", "habits", "analysis", "reminders"
+    ].includes(viewParam) ? viewParam : "home";
+
+    const handleViewChange = (view: ViewType) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('view', view);
+        router.push(`${pathname}?${params.toString()}`);
+    };
 
     return (
         <div className="min-h-screen w-full bg-[#EAE9E5] dark:bg-[#050505] flex items-center justify-center p-4 md:p-8 font-sans">
@@ -111,15 +152,31 @@ export default function MobileSimulatorPage() {
                 {/* Content Area */}
                 <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-6 pt-2">
                     <AnimatePresence mode="wait">
-                        {currentView === "home" && <ViewDashboard key="home" />}
+                        {currentView === "home" && <ViewDashboard key="home" onNavigate={handleViewChange} />}
+                        {currentView === "science" && <ViewScience key="science" />}
                         {currentView === "max" && <ViewMax key="max" />}
-                        {currentView === "plan" && <ViewPlan key="plan" />}
-                        {currentView === "profile" && <ViewProfile key="profile" />}
+                        {currentView === "plan" && <ViewPlan key="plan" onNavigate={handleViewChange} />}
+                        {currentView === "profile" && (
+                            <ViewProfile
+                                key="profile"
+                                onNavigate={handleViewChange}
+                            />
+                        )}
+                        {currentView === "settings" && <ViewSettings key="settings" />}
+                        {currentView === "calibration" && <ViewCalibration key="calibration" />}
+                        {currentView === "digital-twin" && <ViewDigitalTwin key="digital-twin" />}
+                        {currentView === "wearables" && <ViewWearables key="wearables" onBack={() => handleViewChange('profile')} />}
+                        {currentView === "goals" && <ViewGoals key="goals" onBack={() => handleViewChange('plan')} />}
+                        {currentView === "onboarding" && <ViewOnboarding key="onboarding" onComplete={() => handleViewChange('home')} />}
+                        {currentView === "assessment" && <ViewAssessment key="assessment" onBack={() => handleViewChange('home')} />}
+                        {currentView === "habits" && <ViewHabits key="habits" onBack={() => handleViewChange('home')} />}
+                        {currentView === "analysis" && <ViewAnalysis key="analysis" onBack={() => handleViewChange('home')} />}
+                        {currentView === "reminders" && <ViewAiReminders key="reminders" onBack={() => handleViewChange('home')} />}
                     </AnimatePresence>
                 </main>
 
                 {/* Bottom Navigation */}
-                <BottomNav activeView={currentView} onViewChange={setCurrentView} />
+                <BottomNav activeView={currentView} onViewChange={handleViewChange} />
 
                 {/* Home Indicator */}
                 <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-black/10 dark:bg-white/20 rounded-full z-50 pointer-events-none" />
@@ -139,6 +196,9 @@ export default function MobileSimulatorPage() {
                     </div>
                     <div className="flex items-center gap-3 text-sm text-emerald-800 dark:text-emerald-400">
                         <Calendar size={16} className="text-emerald-600" /> 自适应计划系统
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-emerald-800 dark:text-emerald-400">
+                        <FlaskConical size={16} className="text-emerald-600" /> 科学模块与校准
                     </div>
                 </div>
             </div>

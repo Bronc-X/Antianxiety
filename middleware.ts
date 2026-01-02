@@ -136,8 +136,10 @@ export function middleware(req: NextRequest) {
   const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname.startsWith('/onboarding') || pathname.startsWith('/auth');
   const isUnlearnRoute = pathname === '/unlearn' || pathname.startsWith('/unlearn/');
   const isMobileRoute = pathname === '/mobile' || pathname.startsWith('/mobile/');
+  const isTestRoute = pathname.startsWith('/test/'); // Allow test pages
+  const isDigitalTwinRoute = pathname === '/digital-twin' || pathname.startsWith('/digital-twin/');
 
-  if (!isUnlearnRoute && !isAuthRoute && !isMobileRoute) {
+  if (!isUnlearnRoute && !isAuthRoute && !isMobileRoute && !isTestRoute && !isDigitalTwinRoute) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/unlearn';
     redirectUrl.search = '';

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultra Poster 01 - Global Wisdom</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&family=Noto+Serif+SC:wght@300;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #poster {
+            width: 1080px;
+            height: 1920px;
+            background: radial-gradient(circle at 50% 40%, #051020 0%, #000 70%);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+            color: #fff;
+        }
+
+        #canvas-container {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        .content-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            padding: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .days {
+            font-family: 'Playfair Display', serif;
+            font-size: 80px;
+            line-height: 1;
+            color: #4488ff;
+            font-style: italic;
+            text-shadow: 0 0 30px rgba(68, 136, 255, 0.4);
+        }
+
+        .days span {
+            font-size: 32px;
+            font-family: 'Inter', sans-serif;
+            font-style: normal;
+            font-weight: 300;
+            color: #fff;
+            margin-left: 10px;
+            text-shadow: none;
+        }
+
+        .date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 2px;
+            text-align: right;
+        }
+
+        .hero-text {
+            text-align: center;
+            mix-blend-mode: screen;
+            margin-top: 200px;
+        }
+
+        .hero-line {
+            font-size: 110px;
+            line-height: 0.9;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            display: block;
+            text-shadow: 0 0 30px rgba(68, 136, 255, 0.3);
+        }
+
+        .serif-italic {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            color: #4488ff;
+        }
+
+        .cn-subtitle {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 20px;
+            margin-top: 30px;
+            margin-left: 20px;
+            /* Offset for spacing */
+            color: rgba(255, 255, 255, 0.6);
+            text-shadow: 0 0 10px rgba(68, 136, 255, 0.3);
+        }
+
+        .sub-text-container {
+            position: absolute;
+            bottom: 280px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        .sub-text {
+            font-size: 32px;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.9);
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        .highlight {
+            font-size: 1.5em;
+            color: #4488ff;
+            font-weight: 700;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 60px;
+        }
+
+        .footer-center {
+            text-align: center;
+        }
+
+        .max-tag {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 56px;
+            color: #4488ff;
+            line-height: 1;
+        }
+
+        .footer-desc {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 26px;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 4px;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="poster">
+        <div id="canvas-container"></div>
+
+        <div class="content-layer">
+            <div class="header">
+                <div>
+                    <svg width="330" height="60" viewBox="0 0 220 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="10" cy="22" r="4" fill="#4488ff" />
+                        <text x="24" y="26" font-family="'Playfair Display', serif" font-weight="700"
+                            font-style="italic" font-size="20" fill="#4488ff" letter-spacing="-0.02em">
+                            AntiAnxiety<tspan fill="#ffffff" font-size="12" dy="-5">™</tspan>
+                        </text>
+                    </svg>
+                </div>
+                <div class="countdown">
+                    <div class="date">2026.01.01</div>
+                    <div class="days">03 <span>DAYS</span></div>
+                </div>
+            </div>
+
+            <div class="hero-text">
+                <span class="hero-line">GLOBAL</span>
+                <span class="hero-line serif-italic">Wisdom.</span>
+                <span class="hero-line"
+                    style="font-size: 80px; letter-spacing: 10px; margin-top: 20px; color: #eef;">DISTILLED.</span>
+                <!-- Profound Translation: All phenomena return to one -->
+                <div class="cn-subtitle">万象归一</div>
+            </div>
+
+            <div class="sub-text-container">
+                <div class="sub-text">汲取全球医学研究 · 只为 <span class="highlight">你</span></div>
+            </div>
+
+            <div class="footer">
+                <div class="footer-center">
+                    <div class="max-tag">Max.</div>
+                    <div class="footer-desc">全球首个「个人健康智能体」</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(75, 1080 / 1920, 0.1, 1000);
+        camera.position.z = 50;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(1080, 1920);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // TRAILS SYSTEM
+        const particleCount = 2000;
+        const linesGeometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 2 * 3);
+        const colors = new Float32Array(particleCount * 2 * 3);
+
+        const particlesData = [];
+
+        const colorBlue = new THREE.Color(0x4488ff);
+        const colorCyan = new THREE.Color(0x00ffff);
+
+        for (let i = 0; i < particleCount; i++) {
+            const r = 25 + Math.random() * 5;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+
+            const velocity = new THREE.Vector3(-y, x, 0).normalize().multiplyScalar(0.2 + Math.random() * 0.3);
+
+            particlesData.push({
+                position: new THREE.Vector3(x, y, z),
+                velocity: velocity,
+                radius: r,
+                speed: 0.1 + Math.random() * 0.2
+            });
+
+            const col = Math.random() > 0.5 ? colorBlue : colorCyan;
+
+            colors[i * 6] = col.r; colors[i * 6 + 1] = col.g; colors[i * 6 + 2] = col.b;
+            colors[i * 6 + 3] = col.r * 0.5; colors[i * 6 + 4] = col.g * 0.5; colors[i * 6 + 5] = col.b * 0.5;
+        }
+
+        linesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        linesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const material = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            opacity: 0.6
+        });
+
+        const lines = new THREE.LineSegments(linesGeometry, material);
+        scene.add(lines);
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            const time = clock.getElapsedTime();
+
+            const posAttr = linesGeometry.attributes.position;
+
+            // Increased rotation for "storm" feel
+            lines.rotation.z = time * 0.2;
+            lines.rotation.y = time * 0.1;
+
+            for (let i = 0; i < particleCount; i++) {
+                const data = particlesData[i];
+                const oldX = data.position.x;
+                const oldZ = data.position.z;
+
+                // More dynamic speed based on position (swirling storm)
+                const speed = data.speed * (1 + Math.sin(time + data.position.y * 0.05));
+                const angle = speed * 0.15; // Faster orbit
+
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+
+                const newX = data.position.x * cos - data.position.z * sin;
+                const newZ = data.position.x * sin + data.position.z * cos;
+
+                data.position.x = newX;
+                data.position.z = newZ;
+
+                // Add vertical subtle wave (breathing storm)
+                data.position.y += Math.sin(time * 2 + data.position.x * 0.1) * 0.05;
+
+                posAttr.setXYZ(i * 2, data.position.x, data.position.y, data.position.z);
+
+                const tailLen = 3.0; // Longer trails for speed impression
+                posAttr.setXYZ(i * 2 + 1,
+                    data.position.x - (newX - oldX) * 8, // More exaggerated tail lag
+                    data.position.y,
+                    data.position.z - (newZ - oldZ) * 8
+                );
+            }
+
+            posAttr.needsUpdate = true;
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        function scalePoster() {
+            const poster = document.getElementById('poster');
+            const scale = Math.min(window.innerWidth / 1080, window.innerHeight / 1920) * 0.95;
+            poster.style.transform = `scale(${scale})`;
+        }
+        window.addEventListener('resize', scalePoster);
+        scalePoster();
+    </script>
+</body>
+
+</html>

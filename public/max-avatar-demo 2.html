@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Max Avatar Demo - Internal Power</title>
+    <style>
+        /* 基础环境 */
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f8f9fa;
+            /* 保持干净的背景 */
+            margin: 0;
+            font-family: -apple-system, sans-serif;
+        }
+
+        /* ----------------------
+     Max 核心容器 
+     ---------------------- */
+        .avatar-stage {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 实体容器 (The Orb) */
+        .max-orb-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            /* 关键：限制所有效果在球体内 */
+            overflow: hidden;
+            z-index: 10;
+            background: #fff;
+            /* 仅保留非常贴合的物理阴影，不发散光 */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+            transform: scale(0);
+            /* 初始关机 */
+            opacity: 0;
+        }
+
+        /* 
+     1. 基础图片 (The Image)
+  */
+        .max-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            position: relative;
+            z-index: 1;
+            transition: filter 0.3s;
+        }
+
+        /* 
+     2. 内部能量扫描 (Scanning/Thinking)
+     直接作用在球体表面的光效
+  */
+        .orb-energy-scan {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            /* 强烈的扫光 */
+            background: conic-gradient(from 0deg,
+                    transparent 0%,
+                    rgba(255, 255, 255, 0) 10%,
+                    rgba(0, 190, 255, 0.4) 40%,
+                    rgba(255, 255, 255, 0.8) 50%,
+                    rgba(0, 190, 255, 0.4) 60%,
+                    rgba(255, 255, 255, 0) 90%);
+            z-index: 2;
+            mix-blend-mode: soft-light;
+            /* 柔光混合，让颜色融合进图片 */
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 
+     3. 核心闪烁 (Activity)
+     模拟球体中心的反应堆效果
+  */
+        .orb-core-activity {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.7) 0%, transparent 70%);
+            z-index: 3;
+            mix-blend-mode: overlay;
+            opacity: 0;
+        }
+
+        /* ----------------------
+     状态：待机 (Idle)
+     球体轻轻呼吸，没有任何外部光圈
+     ---------------------- */
+        .state-idle .max-orb-container {
+            animation: idleFloat 6s ease-in-out infinite;
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .state-idle .orb-energy-scan {
+            opacity: 0.1;
+            /* 极微弱的流转 */
+            animation: slowSpin 10s linear infinite;
+        }
+
+        /* ----------------------
+     状态：思考 (Thinking) 
+     球体自身发生剧烈变化：
+     1. 内部光速旋转
+     2. 球体本身快速缩放/震动
+     3. 颜色/亮度稍微变化
+     ---------------------- */
+        .state-thinking .max-orb-container {
+            animation: thinkingPulse 1.2s ease-in-out infinite;
+            transform: scale(1);
+            opacity: 1;
+            /* 思考时加一点点内部高亮滤镜 */
+            filter: brightness(1.1);
+        }
+
+        /* 光效全开 - 内部 */
+        .state-thinking .orb-energy-scan {
+            opacity: 1;
+            /* 明显可见 */
+            animation: fastSpin 1.5s linear infinite;
+            /* 混合模式加强 */
+            mix-blend-mode: overlay;
+        }
+
+        .state-thinking .orb-core-activity {
+            animation: coreFlicker 0.2s infinite alternate;
+            /* 快速闪烁 */
+            opacity: 0.4;
+        }
+
+
+        /* ----------------------
+     Keyframes
+     ---------------------- */
+        @keyframes slowSpin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fastSpin {
+            0% {
+                transform: rotate(0deg) scale(1.5);
+            }
+
+            100% {
+                transform: rotate(360deg) scale(1.5);
+            }
+        }
+
+        @keyframes idleFloat {
+
+            0%,
+            100% {
+                transform: scale(1) translateY(0);
+            }
+
+            50% {
+                transform: scale(1.02) translateY(-2px);
+            }
+        }
+
+        @keyframes thinkingPulse {
+            0% {
+                transform: scale(0.98);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(0.98);
+            }
+        }
+
+        @keyframes coreFlicker {
+            0% {
+                opacity: 0.2;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+
+            100% {
+                opacity: 0.6;
+                transform: translate(-50%, -50%) scale(1.1);
+            }
+        }
+
+        /* 开机动画：从 0 弹出来 */
+        @keyframes bootUp {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            60% {
+                transform: scale(1.1);
+                opacity: 1;
+                filter: blur(0);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* ----------------------
+     Controls
+     ---------------------- */
+        .controls {
+            margin-top: 60px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #f0f0f0;
+        }
+
+        button.active {
+            background: #000;
+            color: #fff;
+            border-color: #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="avatar-stage">
+
+        <!-- 球体容器 (无外发光) -->
+        <div class="max-orb-container" id="orb">
+
+            <!-- 内部光扫过球体表面 -->
+            <div class="orb-energy-scan"></div>
+
+            <!-- 内部核心闪烁 -->
+            <div class="orb-core-activity"></div>
+
+            <!-- 图片 -->
+            <img src="./max-avatar.png" class="max-avatar-img" alt="Max">
+        </div>
+
+    </div>
+
+    <div class="controls">
+        <button onclick="boot()" id="btn-boot">开机</button>
+        <button onclick="thinking()" id="btn-think">思考中</button>
+        <button onclick="idle()" id="btn-idle">待机</button>
+    </div>
+
+    <script>
+        const orb = document.getElementById('orb');
+        const body = document.body;
+
+        function setActiveBtn(id) {
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            document.getElementById(id)?.classList.add('active');
+        }
+
+        function boot() {
+            body.className = ''; // clear states
+            // Reset animation
+            orb.style.animation = 'none';
+            void orb.offsetHeight;
+            orb.style.animation = 'bootUp 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+            setActiveBtn('btn-boot');
+
+            // Auto idle after boot
+            setTimeout(() => {
+                idle();
+            }, 1000);
+        }
+
+        function thinking() {
+            body.className = 'state-thinking';
+            orb.style.animation = ''; // use CSS class animation
+            setActiveBtn('btn-think');
+        }
+
+        function idle() {
+            body.className = 'state-idle';
+            orb.style.animation = ''; // use CSS class animation
+            setActiveBtn('btn-idle');
+        }
+
+        // Auto Start
+        setTimeout(boot, 500);
+
+    </script>
+</body>
+
+</html>

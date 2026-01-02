@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -30,14 +30,22 @@ export default function AIAssistantFloatingButton() {
   const { isAuthenticated, isLoading: authLoading, error: authError } = useAuth();
   const { profile, isLoading: profileLoading, error: profileError } = useProfile();
   const [isDragging, setIsDragging] = useState(false);
-  const [showGuide, setShowGuide] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !localStorage.getItem('max_guide_dismissed');
-  });
+  // Initialize as false to avoid hydration mismatch, set in useEffect
+  const [showGuide, setShowGuide] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
   // 拖动位置状态
   const x = useMotionValue(0);
   const y = useMotionValue(0);
+
+  // Check localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+    const dismissed = localStorage.getItem('max_guide_dismissed');
+    if (!dismissed) {
+      setShowGuide(true);
+    }
+  }, []);
 
   const assistantProfile: AIAssistantProfile | null = profile
     ? {
