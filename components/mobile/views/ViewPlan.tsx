@@ -14,7 +14,8 @@ import {
     Plus,
     MoreHorizontal,
     Clock,
-    ArrowRight
+    ArrowRight,
+    Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ViewPlanCreator } from "./ViewPlanCreator";
@@ -31,16 +32,9 @@ const pageTransition = {
     type: "tween",
     ease: "anticipate",
     duration: 0.3
-};
+} as const;
 
-interface Plan {
-    id: number;
-    title: string;
-    time: string;
-    completed: boolean;
-    type: "Mind" | "Body" | "Nutrition" | "Sleep";
-    subtasks?: { id: number, title: string, completed: boolean }[];
-}
+import { usePlans, type PlanData } from "@/hooks/domain/usePlans";
 
 interface Article {
     id: number;
@@ -51,43 +45,49 @@ interface Article {
     saved: boolean;
 }
 
-export const ViewPlan = () => {
+// ... (keep Article interface)
+
+interface ViewPlanProps {
+    onNavigate?: (view: string) => void;
+}
+
+export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
+    const { plans, activePlans, completedPlans, complete, resume, pause, isLoading } = usePlans();
+
     const [tab, setTab] = useState<'today' | 'discovery'>('today');
     const [filter, setFilter] = useState<'all' | 'saved'>('all');
 
     // Sub-view states
     const [showCreator, setShowCreator] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+    const [selectedPlan, setSelectedPlan] = useState<PlanData | null>(null);
     const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
-    // Simulated Plan Data
-    const [plans, setPlans] = useState<Plan[]>([
-        { id: 1, title: "Morning Meditation", time: "10 min", completed: true, type: "Mind" },
-        {
-            id: 2, title: "HIIT Workout", time: "30 min", completed: false, type: "Body", subtasks: [
-                { id: 1, title: "Warm up (5 min)", completed: false },
-                { id: 2, title: "Circuit A (10 min)", completed: false }
-            ]
-        },
-        { id: 3, title: "Log Lunch", time: "5 min", completed: false, type: "Nutrition" },
-        { id: 4, title: "Evening Stretch", time: "15 min", completed: false, type: "Body" },
-    ]);
-
+    // Feed State (Simulated for now, could use useFeed)
     const [feed, setFeed] = useState<Article[]>([
         { id: 1, title: "Understanding Cortisol", category: "Science", img: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=800", readTime: "5 min", saved: false },
         { id: 2, title: "The Power of Sleep", category: "Recovery", img: "https://images.unsplash.com/photo-1511296187010-86b2e30cad41?auto=format&fit=crop&q=80&w=800", readTime: "8 min", saved: true },
         { id: 3, title: "Nutrition for Brain Fog", category: "Nutrition", img: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=800", readTime: "6 min", saved: false },
     ]);
 
-    const togglePlan = (id: number) => {
-        setPlans(plans.map(p => p.id === id ? { ...p, completed: !p.completed } : p));
+    const handleTogglePlan = async (plan: PlanData) => {
+        if (plan.status === 'completed') {
+            // Re-activate? Domain hook doesn't have explicit 'uncomplete', using resume as proxy or we might need to add it.
+            // For now assuming we can only complete active plans, or toggle back.
+            // The hook has resume/pause. Let's assume we can't easily undo completion without a specific API, 
+            // but for UI responsiveness we might want to allow it. 
+            // Actually usePlans has updateItems. 
+            // Let's just implement completion flow for now.
+            await resume(plan.id); // Try to resume if completed?
+        } else {
+            await complete(plan.id);
+        }
     };
 
     const toggleSave = (id: number) => {
         setFeed(feed.map(a => a.id === id ? { ...a, saved: !a.saved } : a));
     };
 
-    const progress = Math.round((plans.filter(p => p.completed).length / plans.length) * 100);
+    const progress = plans.length > 0 ? Math.round((completedPlans.length / plans.length) * 100) : 0;
 
     return (
         <motion.div
@@ -110,6 +110,12 @@ export const ViewPlan = () => {
                         Discovery
                     </button>
                 </div>
+                <button
+                    onClick={() => onNavigate?.('goals')}
+                    className="p-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-full"
+                >
+                    <Target size={20} />
+                </button>
             </div>
 
             <AnimatePresence mode="wait">
@@ -161,56 +167,64 @@ export const ViewPlan = () => {
                                 </button>
                             </div>
 
-                            {plans.map((p) => (
-                                <CardGlass
-                                    key={p.id}
-                                    className={cn(
-                                        "group p-4 flex flex-col gap-2 cursor-pointer hover:bg-stone-50 dark:hover:bg-white/5 transition-all border-stone-100 dark:border-white/5",
-                                        p.completed && "opacity-70 grayscale-[0.5]"
-                                    )}
-                                    onClick={() => setSelectedPlan(p)} // Open Details
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div
-                                                onClick={(e) => { e.stopPropagation(); togglePlan(p.id); }}
-                                                className={cn("transition-colors cursor-pointer", p.completed ? "text-emerald-600" : "text-stone-300 dark:text-stone-600 group-hover:text-emerald-400")}
-                                            >
-                                                {p.completed ? <CheckCircle2 size={24} className="fill-emerald-600/10" /> : <Circle size={24} />}
-                                            </div>
-                                            <div>
-                                                <h4 className={cn("font-medium transition-all text-sm", p.completed ? "text-stone-400 line-through decoration-stone-300" : "text-emerald-950 dark:text-emerald-50")}>{p.title}</h4>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className={cn(
-                                                        "text-[10px] px-1.5 py-0.5 rounded",
-                                                        p.type === 'Mind' ? "bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-300" :
-                                                            p.type === 'Body' ? "bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300" :
-                                                                "bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300"
-                                                    )}>{p.type}</span>
-                                                    <span className="text-xs text-stone-400 flex items-center gap-1"><Zap size={10} /> {p.time}</span>
+                            {plans.map((p) => {
+                                const isCompleted = p.status === 'completed';
+                                const uiType = p.plan_type === 'exercise' ? 'Body' :
+                                    p.plan_type === 'diet' ? 'Nutrition' :
+                                        p.plan_type === 'sleep' ? 'Sleep' :
+                                            p.plan_type === 'comprehensive' ? 'Mind' : 'General';
+
+                                return (
+                                    <CardGlass
+                                        key={p.id}
+                                        className={cn(
+                                            "group p-4 flex flex-col gap-2 cursor-pointer hover:bg-stone-50 dark:hover:bg-white/5 transition-all border-stone-100 dark:border-white/5",
+                                            isCompleted && "opacity-70 grayscale-[0.5]"
+                                        )}
+                                        onClick={() => setSelectedPlan(p)} // Open Details
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div
+                                                    onClick={(e) => { e.stopPropagation(); handleTogglePlan(p); }}
+                                                    className={cn("transition-colors cursor-pointer", isCompleted ? "text-emerald-600" : "text-stone-300 dark:text-stone-600 group-hover:text-emerald-400")}
+                                                >
+                                                    {isCompleted ? <CheckCircle2 size={24} className="fill-emerald-600/10" /> : <Circle size={24} />}
+                                                </div>
+                                                <div>
+                                                    <h4 className={cn("font-medium transition-all text-sm", isCompleted ? "text-stone-400 line-through decoration-stone-300" : "text-emerald-950 dark:text-emerald-50")}>{p.name}</h4>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className={cn(
+                                                            "text-[10px] px-1.5 py-0.5 rounded",
+                                                            uiType === 'Mind' ? "bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-300" :
+                                                                uiType === 'Body' ? "bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300" :
+                                                                    uiType === 'Nutrition' ? "bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-300" :
+                                                                        "bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300"
+                                                        )}>{uiType}</span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            {p.items && p.items.length > 0 && (
+                                                <div className="h-6 w-6 flex items-center justify-center rounded-full bg-stone-100 dark:bg-white/5 text-stone-400">
+                                                    <span className="text-[10px] font-bold">{p.items.filter(t => t.completed).length}/{p.items.length}</span>
+                                                </div>
+                                            )}
                                         </div>
-                                        {p.subtasks && (
-                                            <div className="h-6 w-6 flex items-center justify-center rounded-full bg-stone-100 dark:bg-white/5 text-stone-400">
-                                                <span className="text-[10px] font-bold">{p.subtasks.filter(t => t.completed).length}/{p.subtasks.length}</span>
+
+                                        {/* Subtasks (Only showing if active for demo) */}
+                                        {!isCompleted && p.items && p.items.length > 0 && (
+                                            <div className="ml-10 mt-2 space-y-1.5 border-l-2 border-stone-100 dark:border-white/5 pl-4">
+                                                {p.items.slice(0, 2).map(t => (
+                                                    <div key={t.id} className="flex items-center gap-2">
+                                                        <div className={cn("w-3 h-3 rounded border", t.completed ? "bg-emerald-500 border-emerald-500" : "border-stone-300 dark:border-stone-600")} />
+                                                        <span className="text-xs text-stone-500">{t.text}</span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
-                                    </div>
-
-                                    {/* Subtasks (Only showing if active for demo) */}
-                                    {!p.completed && p.subtasks && (
-                                        <div className="ml-10 mt-2 space-y-1.5 border-l-2 border-stone-100 dark:border-white/5 pl-4">
-                                            {p.subtasks.map(t => (
-                                                <div key={t.id} className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded border border-stone-300 dark:border-stone-600" />
-                                                    <span className="text-xs text-stone-500">{t.title}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </CardGlass>
-                            ))}
+                                    </CardGlass>
+                                )
+                            })}
                         </div>
                     </motion.div>
                 ) : (

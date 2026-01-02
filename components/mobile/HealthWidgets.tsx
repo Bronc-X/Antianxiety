@@ -20,13 +20,14 @@ interface HealthMetricProps {
 
 // --- Components ---
 
-export const CardGlass = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+export const CardGlass = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
     return (
         <div
             className={cn(
                 "group relative overflow-hidden rounded-[2rem] border border-white/40 bg-white/70 p-6 backdrop-blur-xl transition-all duration-300 hover:bg-white/80 hover:shadow-lg dark:border-white/10 dark:bg-black/40 dark:hover:bg-black/50 shadow-sm shadow-stone-200/50",
                 className
             )}
+            {...props}
         >
             {children}
         </div>
@@ -81,7 +82,9 @@ const mockData = [
     { time: "Sun", value: 60 },
 ];
 
-export const MoodWaveChart = () => {
+export const MoodWaveChart = ({ data }: { data?: any[] }) => {
+    const chartData = data && data.length > 0 ? data : mockData;
+
     return (
         <CardGlass className="col-span-2 h-[300px] flex flex-col">
             <div className="flex justify-between items-center mb-4">

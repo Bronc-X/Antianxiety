@@ -1,4 +1,4 @@
 {
     "cursor.general.disableHttp2": true,
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "automatic"
 }

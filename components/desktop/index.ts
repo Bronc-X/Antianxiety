@@ -28,3 +28,6 @@ export { DesktopFeed } from './Feed';
 
 // Profile
 export { DesktopProfile } from './Profile';
+
+// Digital Twin
+export { DesktopDigitalTwin } from './DigitalTwin';

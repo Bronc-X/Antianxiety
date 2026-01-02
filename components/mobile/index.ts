@@ -29,8 +29,13 @@ export { MobileFeed } from './Feed';
 // Profile
 export { MobileProfile } from './Profile';
 
+// Digital Twin
+export { ViewDigitalTwin } from './views/ViewDigitalTwin';
+export { ViewDigitalTwinDetail } from './views/ViewDigitalTwinDetail';
+
 // Layout Components
 export { default as MobileLayout } from './MobileLayout';
 export { default as MobileBottomNav } from './MobileBottomNav';
 export { default as SwipeGoBack } from './SwipeGoBack';
 export { Icons3D } from './Icons3D';
+

@@ -36,6 +36,18 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
     }, [hasInteracted, isOpen]);
 
     useEffect(() => {
+        if (!showTooltip) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setShowTooltip(false);
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [showTooltip]);
+
+    useEffect(() => {
         if (isOpen) {
             setHasInteracted(true);
             setShowTooltip(false);

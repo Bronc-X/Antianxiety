@@ -160,3 +160,12 @@ export type { UseAiRemindersReturn, AiReminder } from './useAiReminders';
 // Scale Calibration
 export { useScaleCalibration } from './useScaleCalibration';
 export type { UseScaleCalibrationReturn, WeeklyCalibrationInput, MonthlyCalibrationInput } from './useScaleCalibration';
+
+// Digital Twin Curve
+export { useDigitalTwinCurve, getCurrentWeekIndex, getMetricPredictions, getCurrentMilestone, getNextMilestone, getDataQualityStatus } from './useDigitalTwinCurve';
+export type { UseDigitalTwinCurveReturn, CurveApiResponse } from './useDigitalTwinCurve';
+
+// Ask Max Explain (Recommendation Explanations)
+export { useAskMaxExplain } from './useAskMaxExplain';
+export type { UseAskMaxExplainReturn, AskMaxParams, AskMaxState } from './useAskMaxExplain';
+
