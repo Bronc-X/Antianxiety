@@ -11,6 +11,8 @@ import {
     ChevronRight, AlertCircle
 } from 'lucide-react';
 import { useHaptics, ImpactStyle } from '@/hooks/useHaptics';
+import { useAuth } from '@/hooks/domain/useAuth';
+import { processDailyCalibration } from '@/lib/assessment';
 import type { UseCalibrationReturn } from '@/hooks/domain/useCalibration';
 
 interface MobileCalibrationProps {
@@ -83,7 +85,8 @@ function MetricSlider({
 }
 
 export function MobileCalibration({ calibration: hook }: MobileCalibrationProps) {
-    const { todayData, isLoading, isSaving, isOffline, error, save } = hook;
+    const { todayData, isLoading, isOffline, error } = hook as any; // removed save/isSaving dependency
+    const { user } = useAuth();
     const { impact, notification } = useHaptics();
 
     const [formData, setFormData] = useState({
@@ -94,7 +97,7 @@ export function MobileCalibration({ calibration: hook }: MobileCalibrationProps)
         stress_level: 5,
         anxiety_level: 5,
     });
-    const [step, setStep] = useState(0);
+    const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
     useEffect(() => {
@@ -116,11 +119,29 @@ export function MobileCalibration({ calibration: hook }: MobileCalibrationProps)
     };
 
     const handleSave = async () => {
+        if (!user?.id) return;
+
         await impact(ImpactStyle.Medium);
-        const success = await save(formData);
-        if (success) {
+        setIsSaving(true);
+
+        try {
+            const moodMap: Record<string, number> = { 'bad': 1, 'low': 2, 'okay': 3, 'good': 4, 'great': 5 };
+            const numericPayload = {
+                sleep_quality: formData.sleep_quality,
+                sleep_duration_minutes: formData.sleep_duration_minutes,
+                energy_level: formData.energy_level,
+                stress_level: formData.stress_level,
+                anxiety_level: formData.anxiety_level,
+                mood_score: moodMap[formData.mood_status] || 3
+            };
+
+            await processDailyCalibration(user.id, numericPayload);
             await notification('success');
             setSaveSuccess(true);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -170,7 +191,7 @@ export function MobileCalibration({ calibration: hook }: MobileCalibrationProps)
     const sleepHours = Math.floor(formData.sleep_duration_minutes / 60);
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 relative">
             {/* Offline Banner */}
             <AnimatePresence>
                 {isOffline && (
@@ -219,8 +240,8 @@ export function MobileCalibration({ calibration: hook }: MobileCalibrationProps)
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handleMoodSelect(mood.value)}
                                 className={`flex-1 py-3 rounded-xl transition-all ${formData.mood_status === mood.value
-                                        ? mood.bg + ' ring-2 ring-offset-2 ring-gray-400'
-                                        : 'bg-gray-50'
+                                    ? mood.bg + ' ring-2 ring-offset-2 ring-gray-400'
+                                    : 'bg-gray-50'
                                     }`}
                             >
                                 <span className="text-2xl block">{mood.emoji}</span>
@@ -309,7 +330,7 @@ export function MobileCalibration({ calibration: hook }: MobileCalibrationProps)
             </motion.div>
 
             {/* Save Button */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t">
+            <div className="p-4 pt-6 pb-32">
                 <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSave}

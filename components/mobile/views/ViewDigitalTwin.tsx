@@ -138,22 +138,28 @@ function GlassCard({ children, className, onClick }: GlassCardProps) {
 
 interface MetricCardProps {
     metricKey: keyof typeof METRIC_LABELS;
-    value: number;
-    confidence: string;
+    value: number | null;
+    confidence: string | null;
     isNegative?: boolean;
-    week0Value?: number;
+    week0Value?: number | null;
     onClick?: () => void;
 }
+
 
 function MetricCard({ metricKey, value, confidence, isNegative, week0Value, onClick }: MetricCardProps) {
     const Icon = METRIC_ICONS[metricKey];
     const label = METRIC_LABELS[metricKey];
 
+    // Handle null/undefined values
+    const safeValue = value ?? 0;
+    const safeConfidence = confidence ?? '±8.0';
+    const safeWeek0Value = week0Value ?? safeValue;
+
     // Calculate trend
     const trend = week0Value !== undefined
         ? isNegative
-            ? value < week0Value ? 'improving' : value > week0Value ? 'declining' : 'stable'
-            : value > week0Value ? 'improving' : value < week0Value ? 'declining' : 'stable'
+            ? safeValue < safeWeek0Value ? 'improving' : safeValue > safeWeek0Value ? 'declining' : 'stable'
+            : safeValue > safeWeek0Value ? 'improving' : safeValue < safeWeek0Value ? 'declining' : 'stable'
         : 'stable';
 
     const trendColors = {
@@ -181,13 +187,14 @@ function MetricCard({ metricKey, value, confidence, isNegative, week0Value, onCl
 
             <p className="text-xs text-white/60 mb-1">{label}</p>
             <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-white">{value.toFixed(1)}</span>
+                <span className="text-2xl font-bold text-white">{safeValue.toFixed(1)}</span>
                 <span className="text-xs text-white/40">/ 100</span>
             </div>
-            <p className="text-xs text-white/40 mt-1">置信区间 {confidence.split('±')[1]?.trim() || '±8.0'}</p>
+            <p className="text-xs text-white/40 mt-1">置信区间 {safeConfidence.split('±')[1]?.trim() || '±8.0'}</p>
         </GlassCard>
     );
 }
+
 
 // ============================================
 // Timeline Component
@@ -404,10 +411,54 @@ function SummaryStats({ summaryStats }: SummaryStatsProps) {
 // ============================================
 
 interface BaselineScalesProps {
-    scales: DigitalTwinCurveOutput['C_participantBaselineData']['scales'];
+    scales: unknown;
+}
+
+// Safe stringify function that handles objects
+function safeStringify(val: unknown): string {
+    if (val === null || val === undefined) return 'N/A';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'number') return String(val);
+    if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+    if (typeof val === 'object') {
+        const obj = val as Record<string, unknown>;
+        if ('interpretation' in obj && typeof obj.interpretation === 'string') return obj.interpretation;
+        if ('value' in obj && (typeof obj.value === 'string' || typeof obj.value === 'number')) return String(obj.value);
+        if ('score' in obj && (typeof obj.score === 'string' || typeof obj.score === 'number')) return String(obj.score);
+        return 'N/A';
+    }
+    return 'N/A';
+}
+
+function safeNumber(val: unknown): number | null {
+    if (val === null || val === undefined) return null;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'object' && val !== null) {
+        const obj = val as Record<string, unknown>;
+        if ('score' in obj && typeof obj.score === 'number') return obj.score;
+        if ('value' in obj && typeof obj.value === 'number') return obj.value;
+    }
+    const parsed = Number(val);
+    return isNaN(parsed) ? null : parsed;
 }
 
 function BaselineScales({ scales }: BaselineScalesProps) {
+    let scaleArray: Array<{ name: string; value: number | null; interpretation: string }> = [];
+
+    if (Array.isArray(scales)) {
+        scaleArray = scales.map((item, idx) => ({
+            name: typeof item?.name === 'string' ? item.name : `Scale ${idx + 1}`,
+            value: safeNumber(item?.value ?? item?.score),
+            interpretation: safeStringify(item?.interpretation),
+        }));
+    } else if (scales && typeof scales === 'object') {
+        scaleArray = Object.entries(scales as Record<string, unknown>).map(([name, data]) => ({
+            name,
+            value: safeNumber(data),
+            interpretation: safeStringify(data),
+        }));
+    }
+
     return (
         <GlassCard className="p-4">
             <div className="flex items-center gap-2 mb-4">
@@ -416,8 +467,8 @@ function BaselineScales({ scales }: BaselineScalesProps) {
             </div>
 
             <div className="space-y-3">
-                {scales.map(scale => (
-                    <div key={scale.name} className="flex items-center justify-between">
+                {scaleArray.length > 0 ? scaleArray.map((scale, index) => (
+                    <div key={scale.name || index} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-white/80 font-medium">{scale.name}</span>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/60">
@@ -425,14 +476,18 @@ function BaselineScales({ scales }: BaselineScalesProps) {
                             </span>
                         </div>
                         <span className="text-lg font-bold text-white">
-                            {scale.value ?? 'N/A'}
+                            {scale.value !== null ? scale.value : 'N/A'}
                         </span>
                     </div>
-                ))}
+                )) : (
+                    <p className="text-sm text-white/50">暂无基线量表数据</p>
+                )}
             </div>
         </GlassCard>
     );
 }
+
+
 
 // ============================================
 // Data Quality Banner
