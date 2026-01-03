@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Twitter, Linkedin, Youtube } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import Logo from './Logo';
+import TermPopover from './TermPopover';
 
 interface FooterLink {
     label: string;
@@ -140,30 +141,35 @@ export default function UnlearnFooter({
                             <ul className="space-y-4">
                                 {section.links.map((link, linkIdx) => (
                                     <li key={linkIdx} className="relative group">
-                                        <span
-                                            className={`${textColor} ${hoverColor} text-sm transition-colors cursor-pointer block`}
-                                            onClick={(e) => e.preventDefault()}
-                                        >
-                                            {link.label}
-                                        </span>
-
-                                        {/* Special Thanks Popover */}
-                                        {link.href === '/thanks' && (
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-                                                <div className="bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-xl border border-[#0B3D2E]/10 flex flex-col items-center gap-3">
-                                                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#D4AF37] shadow-sm">
-                                                        <img
-                                                            src="/images/ni-baobao.jpg"
-                                                            alt="Ni Baobao"
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <span className="font-serif italic text-lg font-bold text-[#0B3D2E]">妮宝宝</span>
-                                                    </div>
-                                                    <div className="w-2 h-2 bg-white rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-[#0B3D2E]/10"></div>
-                                                </div>
+                                        {link.href === '/thanks' ? (
+                                            <div className="text-sm inline-block">
+                                                <TermPopover
+                                                    term={link.label}
+                                                    title="特别鸣谢 (Special Thanks)"
+                                                    description={
+                                                        <div className="flex flex-col items-center gap-3 pt-2">
+                                                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#D4AF37] shadow-sm shrink-0">
+                                                                <img
+                                                                    src="/images/ni-baobao.jpg"
+                                                                    alt="Ni Baobao"
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            </div>
+                                                            <div className="text-center w-full">
+                                                                <span className="font-serif italic text-lg font-bold text-[#0B3D2E]">妮宝宝</span>
+                                                                <p className="text-xs text-[#0B3D2E]/60 mt-1">首席精神支持官 (Chief Support Officer)</p>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                />
                                             </div>
+                                        ) : (
+                                            <Link
+                                                href={link.href}
+                                                className={`${textColor} ${hoverColor} text-sm transition-colors cursor-pointer block`}
+                                            >
+                                                {link.label}
+                                            </Link>
                                         )}
                                     </li>
                                 ))}

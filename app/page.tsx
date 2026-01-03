@@ -545,7 +545,7 @@ export default function EarlyAccessPage() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8 mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mx-auto max-w-6xl">
               {[
                 {
                   icon: Brain,
@@ -582,11 +582,34 @@ export default function EarlyAccessPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="p-4 md:p-8 rounded-2xl bg-white shadow-lg border border-stone-100 flex flex-col items-center text-center hover:shadow-xl transition-shadow duration-300"
+                  className="relative p-4 md:p-8 rounded-2xl overflow-hidden border border-[#0B3D2E]/5 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-500 group h-full"
                 >
-                  <feature.icon className="w-8 h-8 md:w-10 md:h-10 text-[#059669] mb-3 md:mb-4" strokeWidth={1.5} />
-                  <h3 className="text-base md:text-xl font-bold text-[#0B3D2E] mb-2 font-serif leading-tight">{feature.title}</h3>
-                  <p className="text-stone-600 leading-relaxed text-xs md:text-sm">{feature.desc}</p>
+                  {/* Dynamic Gradient Background (Puzzle Effect) */}
+                  <div
+                    className="absolute inset-0 z-0 opacity-100 transition-opacity duration-500"
+                    style={{
+                      background: i === 0 ? 'linear-gradient(135deg, #DCFCE7 0%, #F0FDF4 100%)' :
+                        i === 1 ? 'linear-gradient(225deg, #DCFCE7 0%, #F0FDF4 100%)' :
+                          i === 2 ? 'linear-gradient(45deg, #DCFCE7 0%, #F0FDF4 100%)' :
+                            'linear-gradient(315deg, #DCFCE7 0%, #F0FDF4 100%)'
+                    }}
+                  />
+
+                  {/* Glass Shine */}
+                  <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-0 group-hover:bg-white/20 transition-colors duration-500" />
+
+                  {/* Noise Texture */}
+                  <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-multiply z-0 pointer-events-none" />
+
+                  {/* Content */}
+                  <div className="relative z-10 flex flex-col items-center h-full">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-white/60 shadow-sm flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-300">
+                      <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-[#059669]" strokeWidth={1.5} />
+                    </div>
+
+                    <h3 className="text-base md:text-lg font-bold text-[#0B3D2E] mb-3 font-serif leading-tight">{feature.title}</h3>
+                    <p className="text-[#0B3D2E]/70 leading-relaxed text-xs md:text-sm">{feature.desc}</p>
+                  </div>
                 </motion.div>
               ))}
             </div>
