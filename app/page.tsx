@@ -17,8 +17,8 @@ import {
   Logo
 } from '@/components/unlearn';
 
-// Campaign config: starts at 2026-01-03 00:00:00 CST (UTC+8)
-const CAMPAIGN_START = new Date('2026-01-03T00:00:00+08:00').getTime();
+// Campaign config: Reset for demo (Starts near current time)
+const CAMPAIGN_START = new Date('2026-01-04T04:00:00+08:00').getTime();
 const CAMPAIGN_DURATION_MS = 60 * 60 * 60 * 1000; // 60 hours (was 48)
 
 function formatCountdown(ms: number): { hours: string; minutes: string; seconds: string } {
@@ -55,16 +55,7 @@ export default function EarlyAccessPage() {
   const [error, setError] = useState('');
   const [registrationCount, setRegistrationCount] = useState(33);
   const [remainingMs, setRemainingMs] = useState(CAMPAIGN_DURATION_MS);
-  const [showVideo, setShowVideo] = useState(false);
-
-  // Video check
-  useEffect(() => {
-    // Check if video seen in this session
-    const seen = sessionStorage.getItem('seenIntro');
-    if (!seen) {
-      setShowVideo(true);
-    }
-  }, []);
+  // Video check removed
 
   // Fetch initial count and update countdown
   useEffect(() => {
@@ -130,7 +121,8 @@ export default function EarlyAccessPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Re-sync count periodically
+  // Re-sync disabled to maintain "Simulator Mode" (33 start)
+  /*
   useEffect(() => {
     const syncInterval = setInterval(async () => {
       try {
@@ -146,6 +138,7 @@ export default function EarlyAccessPage() {
 
     return () => clearInterval(syncInterval);
   }, []);
+  */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -485,6 +478,22 @@ export default function EarlyAccessPage() {
                           ? 'Limited bandwidth during early access, capped at first 1000 users.'
                           : '项目初期带宽有限，仅限前1000名用户'}
                       </p>
+
+                      {/* Embedded Intro Video */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="mt-8 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 aspect-video bg-black relative group"
+                      >
+                        <video
+                          src="/intro.mp4"
+                          className="w-full h-full object-cover"
+                          controls
+                          playsInline
+                          preload="metadata"
+                        />
+                      </motion.div>
                     </div>
                     {error && (
                       <motion.p
@@ -536,7 +545,7 @@ export default function EarlyAccessPage() {
               </h2>
             </div>
 
-            <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-6 md:pb-0 -mx-6 px-6 md:mx-0 md:px-0 scrollbar-hide">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8 mx-auto">
               {[
                 {
                   icon: Brain,
@@ -573,11 +582,11 @@ export default function EarlyAccessPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="min-w-[85vw] md:min-w-0 snap-center p-8 rounded-2xl bg-white shadow-xl border border-stone-100 flex flex-col items-center text-center md:block md:text-left hover:shadow-2xl transition-shadow duration-300"
+                  className="p-4 md:p-8 rounded-2xl bg-white shadow-lg border border-stone-100 flex flex-col items-center text-center hover:shadow-xl transition-shadow duration-300"
                 >
-                  <feature.icon className="w-10 h-10 text-[#059669] mb-4" strokeWidth={1.5} />
-                  <h3 className="text-xl font-bold text-[#0B3D2E] mb-2 font-serif">{feature.title}</h3>
-                  <p className="text-stone-600 leading-relaxed text-sm">{feature.desc}</p>
+                  <feature.icon className="w-8 h-8 md:w-10 md:h-10 text-[#059669] mb-3 md:mb-4" strokeWidth={1.5} />
+                  <h3 className="text-base md:text-xl font-bold text-[#0B3D2E] mb-2 font-serif leading-tight">{feature.title}</h3>
+                  <p className="text-stone-600 leading-relaxed text-xs md:text-sm">{feature.desc}</p>
                 </motion.div>
               ))}
             </div>
@@ -600,45 +609,6 @@ export default function EarlyAccessPage() {
         }}
       />
 
-      {/* Intro Video Overlay */}
-      <AnimatePresence>
-        {showVideo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.8 } }}
-            className="fixed inset-0 z-[200] bg-black flex items-center justify-center w-full h-full"
-          >
-            <video
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-              onEnded={() => {
-                setShowVideo(false);
-                try { sessionStorage.setItem('seenIntro', 'true'); } catch (e) { }
-              }}
-            >
-              <source src="/intro.mp4" type="video/mp4" />
-              <source src="/intro.mov" type="video/quicktime" />
-            </video>
-
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 }}
-              onClick={() => {
-                setShowVideo(false);
-                try { sessionStorage.setItem('seenIntro', 'true'); } catch (e) { }
-              }}
-              className="absolute bottom-10 right-8 px-8 py-3 bg-black/30 hover:bg-black/50 backdrop-blur-md text-white/90 rounded-full text-sm font-medium transition-all border border-white/20 hover:border-white/40 tracking-wider uppercase group"
-            >
-              <span className="group-hover:mr-2 transition-all">{language === 'en' ? 'Skip Intro' : '跳过视频'}</span>
-              <span className="hidden group-hover:inline transition-all">→</span>
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

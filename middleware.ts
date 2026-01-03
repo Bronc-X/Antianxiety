@@ -162,6 +162,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - 公共资源文件
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|html)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|html|mp4|mov)$).*)',
   ],
 };
