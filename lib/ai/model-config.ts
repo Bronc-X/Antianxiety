@@ -45,8 +45,8 @@ export type AIModelName = (typeof AI_MODELS)[keyof typeof AI_MODELS];
  * 聊天/对话模型优先级（平行选择，都可用）
  */
 export const CHAT_MODEL_PRIORITY: AIModelName[] = [
-  AI_MODELS.GEMINI_FLASH, // 🚀 首选稳定且快
-  AI_MODELS.DEEPSEEK_V3_EXP,
+  AI_MODELS.DEEPSEEK_V3_EXP, // 🚀 首选稳定 (Substitute for Gemini)
+  AI_MODELS.GEMINI_FLASH,
   AI_MODELS.CLAUDE_SONNET,
   AI_MODELS.GEMINI_PRO_THINKING,
   AI_MODELS.DEEPSEEK_V3_THINKING,

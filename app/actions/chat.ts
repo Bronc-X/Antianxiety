@@ -148,6 +148,8 @@ export async function createConversation(title?: string): Promise<ActionResult<C
                 title: title || 'New Chat',
                 last_message_at: new Date().toISOString(),
                 message_count: 0,
+                role: 'user', // 'max' failed check constraint, trying 'user'
+                content: 'New Chat', // 'content' cannot be empty? or just value
             })
             .select()
             .single();

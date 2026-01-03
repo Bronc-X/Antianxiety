@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { OpenAI } from 'openai';
-import { getModelPriority, getOpenAIConfig } from '@/lib/ai/model-config';
+import { getModelPriority } from '@/lib/ai/model-config';
 import { generateInquiryQuestion } from '@/lib/inquiry-engine';
 
 export async function POST(req: NextRequest) {
@@ -19,9 +19,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Initialize AI client
-        const config = getOpenAIConfig();
-        const client = new OpenAI(config);
+        // Initialize AI client with API base from env
+        const client = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+            baseURL: process.env.OPENAI_API_BASE || 'https://aicanapi.com/v1',
+        });
 
         // Prioritize DeepSeek for reasoning
         const model = 'deepseek-v3.2-exp'; // Use deepseek as preferred model
