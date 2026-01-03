@@ -610,7 +610,6 @@ export default function EarlyAccessPage() {
             className="fixed inset-0 z-[200] bg-black flex items-center justify-center w-full h-full"
           >
             <video
-              src="/intro.mov"
               autoPlay
               muted
               playsInline
@@ -619,7 +618,10 @@ export default function EarlyAccessPage() {
                 setShowVideo(false);
                 try { sessionStorage.setItem('seenIntro', 'true'); } catch (e) { }
               }}
-            />
+            >
+              <source src="/intro.mp4" type="video/mp4" />
+              <source src="/intro.mov" type="video/quicktime" />
+            </video>
 
             <motion.button
               initial={{ opacity: 0, y: 20 }}
