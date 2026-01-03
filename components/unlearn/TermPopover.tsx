@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
 
 interface TermPopoverProps {
     term: string;
@@ -35,13 +36,20 @@ export default function TermPopover({ term, title, description }: TermPopoverPro
             onMouseLeave={() => setIsOpen(false)}
         >
             <span
-                className="cursor-pointer border-b border-[#0B3D2E]/20 hover:border-[#D4AF37] transition-colors duration-300 pb-0.5"
-                onClick={() => setIsOpen(!isOpen)}
+                className="cursor-pointer inline-flex items-baseline border-b-[1.5px] border-dotted border-[#D4AF37]/60 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 transition-all duration-300 pb-0.5 select-none gap-1 group relative"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(!isOpen);
+                }}
             >
-                {term}
-                <sup className="text-[10px] ml-0.5 text-[#D4AF37] font-serif italic select-none">
-                    +
-                </sup>
+                <span className="font-medium text-[#0B3D2E] group-hover:text-[#D4AF37] transition-colors">{term}</span>
+                <motion.span
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#D4AF37]/10 text-[#D4AF37] group-hover:bg-[#D4AF37] group-hover:text-white transition-colors transform translate-y-0.5"
+                >
+                    <ChevronDown className="w-2.5 h-2.5" strokeWidth={3} />
+                </motion.span>
             </span>
 
             <AnimatePresence>
@@ -51,7 +59,7 @@ export default function TermPopover({ term, title, description }: TermPopoverPro
                         animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
                         exit={{ opacity: 0, y: -10, scale: 0.95, filter: 'blur(10px)' }}
                         transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                        className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-3 w-[280px] md:w-[360px]"
+                        className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-3 w-[320px] max-w-[92vw] md:w-[380px]"
                     >
                         <div className="relative group/card cursor-default">
                             {/* Premium Gradient Border */}
@@ -61,9 +69,9 @@ export default function TermPopover({ term, title, description }: TermPopoverPro
                                 {/* Decorative elements */}
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#D4AF37]/10 to-transparent rounded-full blur-xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-                                <h4 className="font-serif italic font-bold text-lg text-[#0B3D2E] mb-2 pb-2 border-b border-[#0B3D2E]/10 flex items-center justify-between">
-                                    {title}
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+                                <h4 className="font-serif italic font-bold text-lg text-[#0B3D2E] mb-2 pb-2 border-b border-[#0B3D2E]/10 flex items-start justify-between gap-2">
+                                    <span className="flex-1 break-words hyphens-auto leading-tight min-w-0 pr-1">{title}</span>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] mt-2 shrink-0" />
                                 </h4>
 
                                 <div className="text-xs text-[#0B3D2E]/80 leading-relaxed font-sans text-justify space-y-2 relative z-10 whitespace-normal break-words">

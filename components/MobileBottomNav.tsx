@@ -63,8 +63,9 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
 
   // 在这些页面隐藏底部导航
+  // Hide on Root (/) and other auth/landing pages
   const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta', '/unlearn', '/mobile'];
-  const shouldHideNav = hideNavPages.some(page => pathname?.startsWith(page));
+  const shouldHideNav = pathname === '/' || hideNavPages.some(page => pathname?.startsWith(page));
 
   if (shouldHideNav) {
     return null;
