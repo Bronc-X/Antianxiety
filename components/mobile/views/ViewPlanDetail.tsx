@@ -78,20 +78,35 @@ export const ViewPlanDetail = ({ onClose, plan }: ViewPlanDetailProps) => {
                     </div>
                     */}
 
-                    {/* Subtasks */}
+                    {/* Subtasks / Session Breakdown */}
                     <div className="space-y-4 mb-8">
-                        <h3 className="font-bold text-stone-800 dark:text-stone-200">Session Breakdown</h3>
+                        <h3 className="font-bold text-stone-800 dark:text-stone-200">执行细项</h3>
                         <div className="space-y-3">
-                            {plan.items && plan.items.map((item, i) => (
-                                <div key={item.id || i} className="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-100 dark:border-white/5">
-                                    <div className={cn("text-stone-300", item.completed && "text-emerald-500")}>
-                                        {item.completed ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+                            {plan.items && plan.items.length > 0 ? (
+                                plan.items.map((item, i) => (
+                                    <div key={item.id || i} className="flex items-start gap-4 p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-100 dark:border-white/5">
+                                        <div className={cn("flex-shrink-0 mt-0.5 text-stone-300", item.completed && "text-emerald-500")}>
+                                            {item.completed ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-medium text-stone-700 dark:text-stone-300">{item.text}</p>
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-stone-700 dark:text-stone-300">{item.text}</p>
-                                    </div>
+                                ))
+                            ) : plan.description ? (
+                                // Fallback: Show description as content
+                                <div className="p-4 rounded-xl bg-white dark:bg-white/5 border border-stone-100 dark:border-white/5">
+                                    <p className="text-stone-600 dark:text-stone-400 whitespace-pre-wrap leading-relaxed">
+                                        {plan.description}
+                                    </p>
                                 </div>
-                            ))}
+                            ) : (
+                                // Empty state
+                                <div className="p-4 rounded-xl bg-stone-50 dark:bg-white/5 text-center">
+                                    <p className="text-stone-400 text-sm">暂无执行细项</p>
+                                    <p className="text-stone-400 text-xs mt-1">可以在 Max 聊天中让 AI 生成更详细的方案</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 

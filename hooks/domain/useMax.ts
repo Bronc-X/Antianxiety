@@ -30,6 +30,8 @@ export interface LocalMessage extends ChatMessage {
     isPending?: boolean;
 }
 
+export type ModelMode = 'fast' | 'pro';
+
 export interface UseMaxReturn {
     // Data
     messages: LocalMessage[];
@@ -41,6 +43,7 @@ export interface UseMaxReturn {
     isSending: boolean;
     isOffline: boolean;
     error: string | null;
+    modelMode: ModelMode;
 
     // Actions
     addMessage: (message: LocalMessage) => void;
@@ -51,6 +54,7 @@ export interface UseMaxReturn {
     sendMessage: (content: string, language?: 'zh' | 'en') => Promise<boolean>;
     clearMessages: () => void;
     refresh: () => Promise<void>;
+    setModelMode: (mode: ModelMode) => void;
 }
 
 // ============================================
@@ -66,6 +70,7 @@ export function useMax(): UseMaxReturn {
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [modelMode, setModelMode] = useState<ModelMode>('fast');
 
     const fetchingRef = useRef(false);
 
@@ -166,6 +171,7 @@ export function useMax(): UseMaxReturn {
 
         let conversationId = currentConversationId;
 
+        // If no conversation, create one first
         if (!conversationId) {
             const created = await createConversation();
             if (!created.success || !created.data) {
@@ -178,6 +184,7 @@ export function useMax(): UseMaxReturn {
             setCurrentConversationId(created.data.id);
         }
 
+        // 1. Save User Message
         const userResult = await appendMessage({
             conversation_id: conversationId,
             role: 'user',
@@ -192,6 +199,7 @@ export function useMax(): UseMaxReturn {
 
         setMessages(prev => [...prev, userResult.data!]);
 
+        // 2. Add Placeholder for Assistant
         const placeholderId = `assistant-${Date.now()}`;
         setMessages(prev => ([
             ...prev,
@@ -207,7 +215,9 @@ export function useMax(): UseMaxReturn {
 
         let assistantContent = '';
 
+        // 3. Generate Response
         try {
+            // Build simple history for AI context
             const chatHistory = [...messages, { role: 'user', content: content.trim() }]
                 .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
@@ -227,11 +237,11 @@ export function useMax(): UseMaxReturn {
         }
 
         let parsedContent = assistantContent.trim();
-
         if (!parsedContent) {
             parsedContent = language === 'en' ? 'I understand.' : '我明白了。';
         }
 
+        // 4. Save Assistant Response
         const assistantResult = await appendMessage({
             conversation_id: conversationId,
             role: 'assistant',
@@ -302,6 +312,7 @@ export function useMax(): UseMaxReturn {
         isSending,
         isOffline: !isOnline,
         error,
+        modelMode,
         addMessage,
         updateLastMessage,
         newConversation,
@@ -310,6 +321,7 @@ export function useMax(): UseMaxReturn {
         sendMessage,
         clearMessages,
         refresh,
+        setModelMode,
     };
 }
 

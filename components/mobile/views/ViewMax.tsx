@@ -1,271 +1,602 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+/**
+ * ViewMax - Mobile Max Chat Component
+ * 
+ * Features:
+ * - Voice input support
+ * - Fast/Pro model selection
+ * - Plan detection and saving
+ * - Conversation history with summaries
+ */
+
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    Sparkles,
     Send,
-    Brain,
     Plus,
-    Activity,
-    Copy,
-    ThumbsUp,
-    ThumbsDown,
-    History,
     X,
-    MessageSquare
+    MessageSquare,
+    Trash2,
+    RefreshCw,
+    Menu,
+    Mic,
+    MicOff,
+    Zap,
+    Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MaxAvatar from "@/components/max/MaxAvatar";
-import { useMax } from "@/hooks/domain/useMax";
+import { useMax, type LocalMessage, type ModelMode } from "@/hooks/domain/useMax";
+import { useChatToPlan } from "@/hooks/domain/useChatToPlan";
+import ChatPlanSelector from "@/components/chat/ChatPlanSelector";
 
-const pageVariants = {
-    initial: { opacity: 0, x: 10 },
-    in: { opacity: 1, x: 0 },
-    out: { opacity: 0, x: -10 }
+// ============================================
+// Voice Input Hook
+// ============================================
+
+function useVoiceInput() {
+    const [isListening, setIsListening] = useState(false);
+    const [transcript, setTranscript] = useState("");
+    const [isSupported, setIsSupported] = useState(false);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        setIsSupported(!!SpeechRecognition);
+
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'zh-CN';
+
+            recognition.onresult = (event) => {
+                const result = event.results[event.results.length - 1];
+                setTranscript(result[0].transcript);
+            };
+
+            recognition.onend = () => setIsListening(false);
+            recognition.onerror = () => setIsListening(false);
+
+            recognitionRef.current = recognition;
+        }
+
+        return () => {
+            recognitionRef.current?.abort();
+        };
+    }, []);
+
+    const startListening = useCallback(() => {
+        if (recognitionRef.current && !isListening) {
+            setTranscript("");
+            recognitionRef.current.start();
+            setIsListening(true);
+        }
+    }, [isListening]);
+
+    const stopListening = useCallback(() => {
+        if (recognitionRef.current && isListening) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+        }
+    }, [isListening]);
+
+    return { isListening, transcript, isSupported, startListening, stopListening };
+}
+
+// ============================================
+// Animation Variants  
+// ============================================
+
+const messageVariants = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+    exit: { opacity: 0, y: -10 }
 };
 
-const pageTransition = {
-    type: "tween",
-    ease: "anticipate",
-    duration: 0.3
-};
+// ============================================
+// Thinking Process Component - Better explanation
+// ============================================
+
+function ThinkingIndicator() {
+    const steps = [
+        "正在调用您的健康档案...",
+        "检索历史对话记忆...",
+        "查询最新科学文献...",
+        "Max 正在深思熟虑..."
+    ];
+    const [currentStep, setCurrentStep] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
+        }, 1500);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="flex flex-col gap-1 py-2">
+            <div className="flex items-center gap-2 text-xs text-stone-500">
+                <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full"
+                />
+                <span>{steps[currentStep]}</span>
+            </div>
+            <p className="text-[10px] text-stone-400 pl-5">为您定制专属方案需要一点时间 ☕</p>
+        </div>
+    );
+}
+
+// ============================================
+// Plan Content Filter - Remove plan details from chat display
+// ============================================
+
+function filterPlanContent(content: string): string {
+    // If message contains plans, only show the intro text before "方案1："
+    const planStartIndex = content.indexOf('方案1：');
+    if (planStartIndex === -1) {
+        // Also check for "方案1:"
+        const altIndex = content.indexOf('方案1:');
+        if (altIndex === -1) return content;
+        // Return only the text before the plan
+        const beforePlan = content.substring(0, altIndex).trim();
+        return beforePlan || '已为您生成方案，请在下方查看和选择 👇';
+    }
+    // Return only the text before the plan
+    const beforePlan = content.substring(0, planStartIndex).trim();
+    return beforePlan || '已为您生成方案，请在下方查看和选择 👇';
+}
+
+// ============================================
+// Message Bubble Component
+// ============================================
+
+function MessageBubble({ message, isLatest }: { message: LocalMessage; isLatest: boolean }) {
+    const isUser = message.role === 'user';
+    const isAssistant = message.role === 'assistant';
+    const isEmpty = !message.content?.trim();
+
+    // Filter plan content from assistant messages (plans show in ChatPlanSelector)
+    const displayContent = isAssistant && message.content
+        ? filterPlanContent(message.content)
+        : message.content;
+
+    return (
+        <motion.div
+            variants={isLatest ? messageVariants : undefined}
+            initial={isLatest ? "initial" : false}
+            animate="animate"
+            className={cn(
+                "flex gap-2.5 px-3 py-2",
+                isUser ? "justify-end" : "justify-start"
+            )}
+        >
+            {isAssistant && (
+                <div className="flex-shrink-0 w-7 h-7">
+                    <MaxAvatar size={28} state={message.isStreaming ? 'thinking' : 'idle'} />
+                </div>
+            )}
+
+            <div className={cn(
+                "max-w-[80%] rounded-2xl px-3 py-2",
+                isUser
+                    ? "bg-emerald-600 text-white rounded-br-sm"
+                    : "bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-100 rounded-bl-sm"
+            )}>
+                {isEmpty && message.isStreaming ? (
+                    <ThinkingIndicator />
+                ) : (
+                    <div className="text-[13px] leading-relaxed whitespace-pre-wrap">
+                        {displayContent}
+                        {message.isStreaming && (
+                            <motion.span
+                                animate={{ opacity: [0, 1, 0] }}
+                                transition={{ duration: 0.8, repeat: Infinity }}
+                                className="inline-block w-0.5 h-3.5 bg-emerald-500 ml-1 align-middle"
+                            />
+                        )}
+                    </div>
+                )}
+            </div>
+        </motion.div>
+    );
+}
+
+// ============================================
+// Empty State Component
+// ============================================
+
+function EmptyState({ onSuggestionClick }: { onSuggestionClick: (text: string) => void }) {
+    const suggestions = [
+        "帮我制定一个睡眠改善计划",
+        "我最近压力很大",
+        "分析我的健康数据"
+    ];
+
+    return (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="mb-4">
+                <MaxAvatar size={64} state="idle" />
+            </motion.div>
+
+            <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 mb-1">Hi, I'm Max</h2>
+            <p className="text-sm text-stone-500 text-center mb-6">你的个人健康 AI 助手</p>
+
+            <div className="w-full max-w-xs space-y-2">
+                {suggestions.map((text, idx) => (
+                    <motion.button
+                        key={idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        onClick={() => onSuggestionClick(text)}
+                        className="w-full p-2.5 text-left text-sm text-stone-600 dark:text-stone-300 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl hover:border-emerald-400 transition-all"
+                    >
+                        {text}
+                    </motion.button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ============================================
+// History Sidebar with Summaries
+// ============================================
+
+function HistorySidebar({
+    conversations,
+    currentId,
+    onSelect,
+    onNew,
+    onDelete,
+    onClose
+}: {
+    conversations: Array<{ id: string; title: string; last_message_at: string; message_count: number }>;
+    currentId: string | null;
+    onSelect: (id: string) => void;
+    onNew: () => void;
+    onDelete: (id: string) => void;
+    onClose: () => void;
+}) {
+    // Generate summary from title or use message count
+    const getSummary = (conv: { title: string; message_count: number }) => {
+        if (conv.title && conv.title !== 'New Chat' && conv.title.length > 2) {
+            return conv.title.length > 30 ? conv.title.slice(0, 30) + '...' : conv.title;
+        }
+        return `${conv.message_count} 条消息`;
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-40 bg-black/40"
+            onClick={onClose}
+        >
+            <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="absolute left-0 top-0 bottom-0 w-[260px] bg-white dark:bg-stone-900 shadow-2xl flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between p-3 border-b border-stone-200 dark:border-stone-700">
+                    <h3 className="font-bold">历史对话</h3>
+                    <button onClick={onClose} className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="p-2">
+                    <button
+                        onClick={onNew}
+                        className="w-full p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 text-sm"
+                    >
+                        <Plus size={16} />
+                        <span className="font-medium">新对话</span>
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-1">
+                    {conversations.length === 0 ? (
+                        <p className="text-center text-stone-400 text-xs py-6">暂无对话记录</p>
+                    ) : (
+                        conversations.map((chat) => (
+                            <div
+                                key={chat.id}
+                                onClick={() => onSelect(chat.id)}
+                                className={cn(
+                                    "p-2.5 rounded-xl cursor-pointer group flex items-start gap-2",
+                                    chat.id === currentId
+                                        ? "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700"
+                                        : "hover:bg-stone-50 dark:hover:bg-stone-800"
+                                )}
+                            >
+                                <MessageSquare size={14} className="text-stone-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-xs truncate">{getSummary(chat)}</p>
+                                    <p className="text-[10px] text-stone-400">{new Date(chat.last_message_at).toLocaleDateString()}</p>
+                                </div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onDelete(chat.id); }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+}
+
+// ============================================
+// Model Toggle Component
+// ============================================
+
+function ModelToggle({ mode, onChange }: { mode: ModelMode; onChange: (m: ModelMode) => void }) {
+    return (
+        <div className="flex items-center bg-stone-200 dark:bg-stone-700 rounded-lg p-0.5 text-[10px] font-medium">
+            <button
+                onClick={() => onChange('fast')}
+                className={cn(
+                    "px-2 py-1 rounded-md transition-all flex items-center gap-1",
+                    mode === 'fast' ? "bg-white dark:bg-stone-600 text-emerald-600 shadow-sm" : "text-stone-500"
+                )}
+            >
+                <Zap size={10} />
+                快速
+            </button>
+            <button
+                onClick={() => onChange('pro')}
+                className={cn(
+                    "px-2 py-1 rounded-md transition-all flex items-center gap-1",
+                    mode === 'pro' ? "bg-white dark:bg-stone-600 text-purple-600 shadow-sm" : "text-stone-500"
+                )}
+            >
+                <Sparkles size={10} />
+                Pro
+            </button>
+        </div>
+    );
+}
+
+// ============================================
+// Main Component
+// ============================================
 
 export const ViewMax = () => {
     const {
         messages,
         conversations,
+        currentConversationId,
+        isLoading,
         isSending,
+        error,
+        modelMode,
         sendMessage,
         switchConversation,
         newConversation,
-        isLoading
+        deleteChat,
+        setModelMode
     } = useMax();
 
+    const chatToPlan = useChatToPlan();
+    const voice = useVoiceInput();
+    const [showPlanSelector, setShowPlanSelector] = useState(false);
     const [input, setInput] = useState("");
-    const [language, setLanguage] = useState<'zh' | 'en'>('zh');
     const [showHistory, setShowHistory] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    // Scroll to bottom on new messages
+    // Auto-scroll
     useEffect(() => {
         if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
         }
-    }, [messages, isSending]);
+    }, [messages]);
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
-        const success = await sendMessage(input, language);
-        if (success) {
-            setInput("");
+    // Voice transcript -> input
+    useEffect(() => {
+        if (voice.transcript) {
+            setInput(prev => prev + voice.transcript);
         }
-    };
+    }, [voice.transcript]);
 
-    const handleNewChat = async () => {
-        await newConversation();
-        setShowHistory(false);
+    // Plan detection
+    useEffect(() => {
+        if (messages.length === 0) return;
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage.role === 'assistant' && !lastMessage.isStreaming && lastMessage.content) {
+            chatToPlan.detectPlansFromMessage(lastMessage.content);
+        }
+    }, [messages]);
+
+    useEffect(() => {
+        if (chatToPlan.hasPlans && !showPlanSelector) setShowPlanSelector(true);
+    }, [chatToPlan.hasPlans]);
+
+    const handleSend = useCallback(async () => {
+        if (!input.trim() || isSending) return;
+        const content = input.trim();
+        setInput("");
+        await sendMessage(content, 'zh');
+    }, [input, isSending, sendMessage]);
+
+    const handleSuggestionClick = useCallback((text: string) => {
+        setInput(text);
+        inputRef.current?.focus();
+    }, []);
+
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    }, [handleSend]);
+
+    const handleSavePlans = useCallback(async () => {
+        const success = await chatToPlan.saveSelectedPlans();
+        if (success) setShowPlanSelector(false);
+    }, [chatToPlan]);
+
+    const handleDismissPlans = useCallback(() => {
+        setShowPlanSelector(false);
+        chatToPlan.clearDetectedPlans();
+    }, [chatToPlan]);
+
+    if (isLoading && messages.length === 0) {
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
+                    <RefreshCw size={24} className="text-emerald-500" />
+                </motion.div>
+            </div>
+        );
     }
 
     return (
-        <motion.div
-            initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}
-            className="flex flex-col h-full relative"
-        >
-            {/* Header (Floating) */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 dark:border-white/5 mb-2 sticky top-0 bg-[#F9F9F7]/90 dark:bg-[#0A0A0A]/90 backdrop-blur-md z-10">
-                <button
-                    onClick={() => setShowHistory(!showHistory)}
-                    className="p-2 -ml-2 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-500 transition-colors"
-                >
-                    <History size={18} />
+        <div className="flex flex-col h-full bg-white dark:bg-stone-900 relative overflow-hidden">
+            {/* Header */}
+            <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b border-stone-100 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm">
+                <button onClick={() => setShowHistory(true)} className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg">
+                    <Menu size={18} className="text-stone-600 dark:text-stone-400" />
                 </button>
 
                 <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-emerald-950 dark:text-emerald-50">Max</span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">Beta</span>
+                    <MaxAvatar size={24} state={isSending ? 'thinking' : 'idle'} />
+                    <span className="font-bold text-sm text-stone-800 dark:text-white">Max</span>
+                    <ModelToggle mode={modelMode} onChange={setModelMode} />
                 </div>
 
-                <button
-                    onClick={() => setLanguage(prev => prev === 'zh' ? 'en' : 'zh')}
-                    className="p-2 -mr-2 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-500 transition-colors font-mono text-xs font-bold"
-                >
-                    {language.toUpperCase()}
+                <button onClick={() => newConversation()} className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg">
+                    <Plus size={18} className="text-stone-600 dark:text-stone-400" />
                 </button>
             </div>
 
-            {/* Chat Thread */}
-            <div className="flex-1 overflow-y-auto px-4 pb-24 space-y-6" ref={scrollRef}>
-                {messages.length === 0 && !isLoading && (
-                    <div className="flex flex-col items-center justify-center h-full text-stone-400 opacity-60">
-                        <MaxAvatar state="idle" size={80} className="mb-4 opacity-50 grayscale" />
-                        <p>How can I help you today?</p>
-                    </div>
-                )}
+            {/* Messages Area */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto">
+                {messages.length === 0 ? (
+                    <EmptyState onSuggestionClick={handleSuggestionClick} />
+                ) : (
+                    <div className="py-2">
+                        <AnimatePresence mode="popLayout">
+                            {messages.map((msg, idx) => (
+                                <MessageBubble key={msg.id} message={msg} isLatest={idx === messages.length - 1} />
+                            ))}
+                        </AnimatePresence>
 
-                {messages.map((msg, i) => (
-                    <div key={msg.id || i} className={cn("flex gap-3", msg.role === 'user' ? "flex-row-reverse group" : "")}>
-
-                        {/* Avatar */}
-                        {msg.role === 'assistant' ? (
-                            <MaxAvatar state={msg.isStreaming ? "thinking" : "idle"} size={32} className="mt-1 shadow-sm flex-shrink-0" />
-                        ) : (
-                            <div className="h-8 w-8 rounded-full bg-stone-200 overflow-hidden flex-shrink-0 mt-1">
-                                <img src="https://i.pravatar.cc/150?u=admin" alt="User" />
+                        {showPlanSelector && chatToPlan.hasPlans && (
+                            <div className="px-3 py-2">
+                                <ChatPlanSelector
+                                    plans={chatToPlan.detectedPlans}
+                                    isSaving={chatToPlan.isSaving}
+                                    error={chatToPlan.error}
+                                    onTogglePlan={chatToPlan.togglePlanSelection}
+                                    onToggleItem={chatToPlan.toggleItemSelection}
+                                    onUpdateItem={chatToPlan.updateItemText}
+                                    onAddItem={chatToPlan.addItemToPlan}
+                                    onRemoveItem={chatToPlan.removeItemFromPlan}
+                                    onSave={handleSavePlans}
+                                    onDismiss={handleDismissPlans}
+                                    variant="mobile"
+                                />
                             </div>
                         )}
-
-                        {/* Content */}
-                        <div className={cn("flex flex-col gap-1 max-w-[85%]", msg.role === 'user' ? "items-end" : "items-start")}>
-                            {/* Message Bubble/Text */}
-                            <div className={cn(
-                                "text-[15px] leading-relaxed py-1.5 px-2 rounded-2xl whitespace-pre-wrap",
-                                msg.role === 'user'
-                                    ? "bg-stone-200/50 dark:bg-white/10 text-emerald-950 dark:text-slate-200 rounded-tr-md"
-                                    : "text-emerald-950 dark:text-slate-200 rounded-tl-md"
-                            )}>
-                                {msg.content}
-                                {msg.isStreaming && <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-emerald-500 animate-pulse" />}
-                            </div>
-
-                            {/* Actions */}
-                            {msg.role === 'assistant' && !msg.isStreaming && (
-                                <div className="flex gap-4 mt-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Copy size={14} className="text-stone-300 cursor-pointer hover:text-stone-500 transition-colors" />
-                                    <RotateCcw size={14} className="text-stone-300 cursor-pointer hover:text-stone-500 transition-colors" />
-                                    <div className="flex gap-2">
-                                        <ThumbsUp size={14} className="text-stone-300 cursor-pointer hover:text-emerald-500 transition-colors" />
-                                        <ThumbsDown size={14} className="text-stone-300 cursor-pointer hover:text-red-500 transition-colors" />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ))}
-
-                {isSending && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-                    <div className="flex gap-3">
-                        <div className="h-8 w-8 rounded-full bg-emerald-700 dark:bg-emerald-600 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
-                            <Sparkles size={14} className="text-white animate-pulse" />
-                        </div>
-                        <div className="flex items-center gap-1 h-8">
-                            <div className="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                            <div className="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                            <div className="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce" />
-                        </div>
                     </div>
                 )}
             </div>
 
-            {/* Composer Area (Fixed Bottom) */}
-            <div className="absolute bottom-[70px] left-0 right-0 p-4 bg-gradient-to-t from-[#F9F9F7] via-[#F9F9F7] to-transparent dark:from-[#0A0A0A] dark:via-[#0A0A0A] pt-10">
-                <div className={cn(
-                    "relative bg-white dark:bg-[#1A1A1A] rounded-[24px] border border-stone-200 dark:border-white/10 p-2 flex items-end gap-2 group focus-within:ring-2 focus-within:ring-emerald-500/10 transition-all",
-                    input ? "shadow-lg shadow-emerald-500/10" : "shadow-xl shadow-stone-200/50 dark:shadow-black/50"
-                )}>
-
-                    <button
-                        onClick={handleNewChat}
-                        className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-400 transition-colors"
-                    >
-                        <Plus size={20} />
-                    </button>
-
-                    <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Message Max..."
-                        rows={1}
-                        className="flex-1 bg-transparent border-none focus:ring-0 py-3 text-[15px] resize-none max-h-32 text-emerald-950 dark:text-white placeholder:text-stone-400 disabled:opacity-50"
-                        style={{ minHeight: "24px" }}
-                        disabled={isSending}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
-                        }}
-                    />
-
-                    {input ? (
-                        <button
-                            onClick={handleSend}
-                            disabled={isSending}
-                            className="p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:active:scale-100"
-                        >
-                            <Send size={18} className="translate-x-0.5" />
-                        </button>
-                    ) : (
-                        <button className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-400 transition-colors">
-                            <Brain size={20} />
-                        </button>
-                    )}
-                </div>
-                <p className="text-[10px] text-center text-stone-400 mt-2 font-medium">
-                    Max can make mistakes. Consider checking important info.
-                </p>
-            </div>
-
-            {/* History Overlay */}
+            {/* Error Banner */}
             <AnimatePresence>
-                {showHistory && (
+                {error && (
                     <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-20 bg-black/20 backdrop-blur-sm"
-                        onClick={() => setShowHistory(false)}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="mx-3 mb-2 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-xs"
                     >
-                        <motion.div
-                            initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-                            className="absolute left-0 top-0 bottom-0 w-[80%] bg-[#F9F9F7] dark:bg-[#0A0A0A] shadow-2xl p-6 flex flex-col"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="font-bold text-lg text-emerald-950 dark:text-emerald-50">History</h3>
-                                <button onClick={() => setShowHistory(false)}>
-                                    <X size={20} className="text-stone-400" />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto space-y-2">
-                                <button
-                                    onClick={handleNewChat}
-                                    className="w-full p-3 rounded-xl bg-emerald-600 text-white flex items-center gap-3 mb-4 shadow-lg shadow-emerald-500/20"
-                                >
-                                    <Plus size={20} />
-                                    <span className="font-medium">New Chat</span>
-                                </button>
-
-                                {conversations.map(chat => (
-                                    <div
-                                        key={chat.id}
-                                        onClick={() => {
-                                            switchConversation(chat.id);
-                                            setShowHistory(false);
-                                        }}
-                                        className="p-3 rounded-xl bg-white dark:bg-white/5 border border-stone-200 dark:border-white/10 cursor-pointer hover:border-emerald-500/50 transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <MessageSquare size={16} className="text-stone-400 group-hover:text-emerald-500" />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-sm text-emerald-950 dark:text-white truncate">
-                                                    {chat.title || "New Conversation"}
-                                                </p>
-                                                <p className="text-xs text-stone-400">
-                                                    {new Date(chat.created_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {conversations.length === 0 && (
-                                    <p className="text-center text-stone-400 text-sm py-4">No history yet</p>
-                                )}
-                            </div>
-                        </motion.div>
+                        {error}
                     </motion.div>
                 )}
             </AnimatePresence>
-        </motion.div>
+
+            {/* Input Area with Voice */}
+            <div className="flex-shrink-0 px-3 py-2 border-t border-stone-100 dark:border-stone-800 bg-white dark:bg-stone-900">
+                <div className="flex items-end gap-2 bg-stone-100 dark:bg-stone-800 rounded-xl p-1.5">
+                    {/* Voice Button */}
+                    {voice.isSupported && (
+                        <button
+                            onClick={voice.isListening ? voice.stopListening : voice.startListening}
+                            className={cn(
+                                "p-2 rounded-lg transition-all",
+                                voice.isListening
+                                    ? "bg-red-500 text-white animate-pulse"
+                                    : "text-stone-400 hover:text-emerald-600 hover:bg-stone-200 dark:hover:bg-stone-700"
+                            )}
+                        >
+                            {voice.isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                        </button>
+                    )}
+
+                    <textarea
+                        ref={inputRef}
+                        value={input}
+                        onChange={(e) => {
+                            setInput(e.target.value);
+                            // Auto-resize
+                            e.target.style.height = 'auto';
+                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                        }}
+                        onKeyDown={handleKeyDown}
+                        placeholder={voice.isListening ? "正在听..." : "输入消息..."}
+                        rows={1}
+                        className="flex-1 bg-transparent resize-none outline-none text-[14px] text-stone-800 dark:text-white placeholder-stone-400 px-2 py-2.5 leading-normal"
+                        style={{ minHeight: '40px', maxHeight: '120px', lineHeight: '1.5' }}
+                    />
+
+                    <button
+                        onClick={handleSend}
+                        disabled={!input.trim() || isSending}
+                        className={cn(
+                            "p-2 rounded-lg transition-all",
+                            input.trim() && !isSending
+                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                : "bg-stone-200 dark:bg-stone-700 text-stone-400"
+                        )}
+                    >
+                        {isSending ? (
+                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                                <RefreshCw size={18} />
+                            </motion.div>
+                        ) : (
+                            <Send size={18} />
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* History Sidebar */}
+            <AnimatePresence>
+                {showHistory && (
+                    <HistorySidebar
+                        conversations={conversations}
+                        currentId={currentConversationId}
+                        onSelect={(id) => { switchConversation(id); setShowHistory(false); }}
+                        onNew={() => { newConversation(); setShowHistory(false); }}
+                        onDelete={deleteChat}
+                        onClose={() => setShowHistory(false)}
+                    />
+                )}
+            </AnimatePresence>
+        </div>
     );
 }

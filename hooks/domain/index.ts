@@ -169,3 +169,6 @@ export type { UseDigitalTwinCurveReturn, CurveApiResponse } from './useDigitalTw
 export { useAskMaxExplain } from './useAskMaxExplain';
 export type { UseAskMaxExplainReturn, AskMaxParams, AskMaxState } from './useAskMaxExplain';
 
+// Chat to Plan (Save AI suggestions to plans)
+export { useChatToPlan } from './useChatToPlan';
+export type { UseChatToPlanReturn, EditablePlan, EditablePlanItem } from './useChatToPlan';

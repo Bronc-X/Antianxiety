@@ -3,6 +3,7 @@
 
 export { default as UnlearnNav } from './UnlearnNav';
 export { default as UnlearnHero } from './UnlearnHero';
+export { default as PremiumUnlearnHero } from './PremiumUnlearnHero';
 export { default as UnlearnSection, UnlearnSectionHeader, UnlearnGrid } from './UnlearnSection';
 export { default as UnlearnButton } from './UnlearnButton';
 export { default as UnlearnCard, UnlearnBentoCard } from './UnlearnCard';

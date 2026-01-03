@@ -17,11 +17,14 @@ export default function UnlearnAppLayoutClient({
     const router = useRouter();
     const { user, isLoading: authLoading } = useAuth();
     const [chatOpen, setChatOpen] = useState(false);
+    const isMarketingPage = pathname === '/unlearn/app';
     const hideChrome = pathname?.startsWith('/unlearn/login')
         || pathname?.startsWith('/unlearn/signup')
         || pathname?.startsWith('/unlearn/onboarding')
-        || pathname?.startsWith('/unlearn/update-password');
-    const isAuthPage = hideChrome || pathname?.startsWith('/auth');
+        || pathname?.startsWith('/unlearn/update-password')
+        || isMarketingPage;
+    const isPublicPage = isMarketingPage || pathname?.startsWith('/auth');
+    const isAuthPage = hideChrome || isPublicPage;
 
     useEffect(() => {
         if (!authLoading && !user && !isAuthPage) {
