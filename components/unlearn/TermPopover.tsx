@@ -13,6 +13,7 @@ interface TermPopoverProps {
 export default function TermPopover({ term, title, description }: TermPopoverProps) {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLSpanElement>(null);
+    const isTouch = useRef(false);
 
     // Close on click outside
     useEffect(() => {
@@ -32,14 +33,15 @@ export default function TermPopover({ term, title, description }: TermPopoverPro
         <span
             className="relative inline-block"
             ref={containerRef}
-            onMouseEnter={() => setIsOpen(true)}
+            onTouchStart={() => { isTouch.current = true; }}
+            onMouseEnter={() => { if (!isTouch.current) setIsOpen(true); }}
             onMouseLeave={() => setIsOpen(false)}
         >
             <span
-                className="cursor-pointer inline-flex items-baseline border-b-[1.5px] border-dotted border-[#D4AF37]/60 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 transition-all duration-300 pb-0.5 select-none gap-1 group relative"
+                className="cursor-pointer inline-flex items-center border-b-[1.5px] border-dotted border-[#D4AF37]/60 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 transition-all duration-300 pb-0.5 select-none gap-1 group relative leading-none"
                 onClick={(e) => {
                     e.stopPropagation();
-                    setIsOpen(!isOpen);
+                    setIsOpen((prev) => !prev);
                 }}
             >
                 <span className="font-medium text-[#0B3D2E] group-hover:text-[#D4AF37] transition-colors">{term}</span>
