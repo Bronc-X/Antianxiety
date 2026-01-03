@@ -50,3 +50,4 @@ export { default as Logo } from './Logo';
 
 // Utility
 export { default as ScrollToTop } from './ScrollToTop';
+export { default as TermPopover } from './TermPopover';

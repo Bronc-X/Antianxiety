@@ -17,7 +17,8 @@ export default function UnlearnAppLayoutClient({
     const router = useRouter();
     const { user, isLoading: authLoading } = useAuth();
     const [chatOpen, setChatOpen] = useState(false);
-    const isMarketingPage = pathname === '/unlearn/app';
+    // Determine if we are on the Marketing Page (/unlearn/app or /e)
+    const isMarketingPage = pathname === '/unlearn/app' || pathname === '/e' || pathname === '/e/';
     const hideChrome = pathname?.startsWith('/unlearn/login')
         || pathname?.startsWith('/unlearn/signup')
         || pathname?.startsWith('/unlearn/onboarding')
@@ -37,7 +38,7 @@ export default function UnlearnAppLayoutClient({
     }
 
     return (
-        <div className="min-h-screen pb-safe" style={{ backgroundColor: '#FAF6EF' }}>
+        <div className="min-h-screen pb-safe" style={{ backgroundColor: isMarketingPage ? 'transparent' : '#FAF6EF' }}>
             {/* App Navigation - Desktop only */}
             {!hideChrome && (
                 <div className="hidden md:block">

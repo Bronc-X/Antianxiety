@@ -61,7 +61,7 @@ export default function AboutStory() {
                             ) : (
                                 <>我们致力于开启一场<span className="italic text-3xl md:text-4xl relative inline-block mx-2" style={{ color: '#D4AF37' }}>生理节律
                                     <svg className="absolute -bottom-2 w-full h-3" viewBox="0 0 100 10" preserveAspectRatio="none">
-                                        <path d="M0 5 Q 50 10 100 5" stroke="#0B3D2E" strokeOpacity="0.4" strokeWidth="2" fill="none" />
+                                        <path d="M0 5 Q 50 10 100 5" stroke="#D4AF37" strokeOpacity="0.6" strokeWidth="2" fill="none" />
                                     </svg>
                                 </span>的新范式。</>
                             )}

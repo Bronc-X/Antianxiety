@@ -2,8 +2,9 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Activity, Brain, AlertTriangle, Heart } from 'lucide-react';
+import { Activity, Brain, AlertTriangle, Heart, Signal, Wifi, Battery } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import TermPopover from './TermPopover';
 
 export default function ProblemSolution() {
     const { language } = useI18n();
@@ -41,7 +42,8 @@ export default function ProblemSolution() {
     return (
         <>
             {/* Problem Section - Light Background */}
-            <section className="py-24 px-6 md:px-12 overflow-hidden" style={{ backgroundColor: '#FAF6EF' }}>
+            {/* Problem Section - Light Background */}
+            <section className="py-24 px-6 md:px-12 relative z-20" style={{ backgroundColor: '#FAF6EF' }}>
                 <div className="max-w-[1400px] mx-auto">
                     {/* Spotlight */}
                     <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-red-900/5 rounded-full blur-[100px] pointer-events-none" />
@@ -65,7 +67,9 @@ export default function ProblemSolution() {
                                     <div className="absolute top-0 left-0 right-0 h-12 flex justify-between items-center px-5 text-white/80 text-xs z-20">
                                         <span>9:41</span>
                                         <div className="flex gap-1.5">
-                                            <div className="w-4 h-2.5 border border-white/30 rounded-[2px]" />
+                                            <Signal className="w-3 h-3 fill-current" />
+                                            <Wifi className="w-3 h-3" />
+                                            <Battery className="w-3.5 h-3.5 fill-current" />
                                         </div>
                                     </div>
 
@@ -252,17 +256,13 @@ export default function ProblemSolution() {
                             </motion.div>
 
                             <motion.blockquote
-                                className="text-3xl md:text-4xl font-serif font-medium text-[#1A1A1A] leading-tight mb-10"
+                                className="text-3xl md:text-5xl font-serif font-bold text-[#0B3D2E] leading-tight mb-10"
                                 initial={{ opacity: 0, x: 50 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.8 }}
                             >
-                                <span className="text-[#1A1A1A]/20 mr-2">"</span>
-                                {language === 'en'
-                                    ? <>Your health apps don&apos;t seem<br />to understand your <em className="italic text-[#C4A77D]">fatigue</em>.</>
-                                    : <>现在的健康App，<br />似乎不太懂你的<em className="italic text-[#C4A77D]">疲惫</em>。</>}
-                                <span className="text-[#1A1A1A]/20 ml-2">"</span>
+                                "现在的健康App，似乎不太懂你的疲惫。"
                             </motion.blockquote>
 
                             <motion.div
@@ -284,10 +284,22 @@ export default function ProblemSolution() {
                                     </div>
                                     <p>{language === 'en' ? "They sell anxiety disguised as discipline." : "它们贩卖的不是自律，而是包装精美的焦虑。"}</p>
                                 </div>
-                                <div className="pl-4 border-l-2 border-[#C4A77D]/30">
-                                    <p className="text-[#1A1A1A] font-medium text-xl font-serif">
-                                        {language === 'en' ? "Data without context is cruelty." : "没有上下文的数据，就是一种敷衍。"}
-                                    </p>
+                                <div className="pl-4 border-l-2 border-[#C4A77D]/30 relative z-20">
+                                    <div className="text-[#1A1A1A] font-medium text-xl font-serif leading-relaxed">
+                                        没有
+                                        <TermPopover
+                                            term="上下文"
+                                            title="上下文工程 (Context Engineering)"
+                                            description={
+                                                <>
+                                                    <p><strong>没有语境的数据，只是噪音。</strong></p>
+                                                    <p>我们参考了 Manus (Context Engineering 领域的先行者) 的理念：Max 不仅记录你走了 5000 步，更知道这是你在焦虑失眠一整夜后，为了缓解压力而走的散步。</p>
+                                                    <p>Max 能读懂数据背后的「语境」，所以他不会在你生病时催你闭环，也不会在你心碎时让你燃脂。</p>
+                                                </>
+                                            }
+                                        />
+                                        的数据，就是一种敷衍。
+                                    </div>
                                 </div>
                             </motion.div>
                         </div>
@@ -295,10 +307,10 @@ export default function ProblemSolution() {
                 </div>
             </section>
 
-            {/* Solution Section - Dark Background */}
-            <section className="py-24 px-6 md:px-12 relative overflow-hidden" style={{ backgroundColor: '#0B3D2E' }}>
+            {/* Solution Section - Light Background */}
+            <section className="py-24 px-6 md:px-12 relative z-20" style={{ backgroundColor: 'transparent' }}>
                 {/* Background Decor */}
-                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#D4AF37]/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none" />
 
                 <div className="max-w-[1400px] mx-auto">
                     <div className="grid md:grid-cols-2 gap-16 items-center relative z-10">
@@ -320,30 +332,35 @@ export default function ProblemSolution() {
                                 </span>
                             </motion.div>
 
-                            <h2 className="font-heading text-4xl md:text-5xl leading-tight mb-8 text-white">
+                            <h2 className="font-heading text-4xl md:text-5xl leading-tight mb-8 text-[#0B3D2E]">
                                 {language === 'en' ? (
                                     <>Rest is <span className="italic text-[#D4AF37]">Strategy.</span></>
                                 ) : (
-                                    <>这不叫偷懒，<br />叫<span className="italic text-[#D4AF37]">战术性撤退</span>。</>
+                                    <>收回拳头，是为了<span className="italic text-[#D4AF37]">下一记重击</span>。</>
                                 )}
                             </h2>
 
-                            <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-8 mb-8">
-                                <p className="text-xl font-light leading-relaxed mb-6 font-serif italic text-white">
+                            <div className="bg-white/40 backdrop-blur-sm border border-[#0B3D2E]/10 p-8 mb-8 rounded-2xl shadow-sm">
+                                <p className="text-xl font-light leading-relaxed mb-6 font-serif italic text-[#0B3D2E]">
                                     {language === 'en'
                                         ? '"Hey, the data sees your deep fatigue. Forcing a workout today will hurt your immunity. Your best task: Go home, take a hot bath, sleep 20 mins early."'
                                         : '"嘿，数据看到了你深层的疲惫。今天强行运动会伤害免疫系统。今天的最佳任务是：回家，洗个热水澡，早睡20分钟。"'}
                                 </p>
-                                <div className="flex items-center gap-3 opacity-50">
-                                    <Activity className="w-4 h-4 text-white" />
-                                    <span className="text-xs tracking-widest uppercase text-white">— Max, {language === 'en' ? 'Your Personal Health Agent' : '你的个人健康智能体'}</span>
+                                <div className="flex items-center gap-3 opacity-60">
+                                    <Activity className="w-4 h-4 text-[#0B3D2E]" />
+                                    <span className="text-xs tracking-widest uppercase text-[#0B3D2E]">— Max, {language === 'en' ? 'Your Personal Health Agent' : '你的个人健康智能体'}</span>
                                 </div>
                             </div>
 
-                            <p className="text-white/40 max-w-md leading-relaxed">
+                            <p className="text-[#0B3D2E]/80 max-w-md leading-relaxed font-medium">
                                 {language === 'en'
-                                    ? 'After 30, knowing when to stop requires more courage than blindly pushing through.'
-                                    : '30岁以后，敢于休息比盲目坚持更需要勇气。'}
+                                    ? 'After 30, knowing when to stop requires more courage than blindly pushing through. We give you the courage with science.'
+                                    : (
+                                        <>
+                                            敢于休息比盲目坚持更需要勇气。
+                                            <span className="block mt-2 font-bold text-[#0B3D2E] text-lg">我们用科学给你勇气。</span>
+                                        </>
+                                    )}
                             </p>
                         </motion.div>
 
@@ -356,8 +373,8 @@ export default function ProblemSolution() {
                                 className="relative w-72 h-72"
                             >
                                 <svg className="w-full h-full rotate-[-90deg]" viewBox="0 0 200 200">
-                                    <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-                                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" strokeLinecap="round" strokeDasharray="502" strokeDashoffset="0" opacity="0.2" />
+                                    <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(11, 61, 46, 0.05)" strokeWidth="1" />
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(11, 61, 46, 0.1)" strokeWidth="8" strokeLinecap="round" strokeDasharray="502" strokeDashoffset="0" opacity="0.3" />
 
                                     {/* Active arc */}
                                     <motion.circle
@@ -370,20 +387,22 @@ export default function ProblemSolution() {
                                 </svg>
 
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-6xl font-heading text-white">41</span>
-                                    <span className="text-xs tracking-[0.2em] text-yellow-500 mt-2 font-bold">HRV LOW</span>
+                                    <span className="text-6xl font-heading text-[#0B3D2E] drop-shadow-sm">41</span>
+                                    <div className="mt-2 px-3 py-1 bg-red-100 rounded-full border border-red-200">
+                                        <span className="text-xs tracking-[0.2em] text-red-600 font-bold block animate-pulse">HRV LOW</span>
+                                    </div>
                                     <div className="flex items-center gap-3 mt-4">
                                         <div className="flex items-center gap-1.5">
                                             <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                            <span className="text-[10px] text-white/50">&lt;40</span>
+                                            <span className="text-[10px] text-[#0B3D2E]/50">&lt;40</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                                            <span className="text-[10px] text-white/50">40-55</span>
+                                            <span className="text-[10px] text-[#0B3D2E]/50">40-55</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <span className="w-2 h-2 rounded-full bg-[#30D158]"></span>
-                                            <span className="text-[10px] text-white/50">&gt;55</span>
+                                            <span className="text-[10px] text-[#0B3D2E]/50">&gt;55</span>
                                         </div>
                                     </div>
                                 </div>

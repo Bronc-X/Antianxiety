@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Twitter, Linkedin, Youtube } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import Logo from './Logo';
 
@@ -18,12 +19,23 @@ interface SocialLink {
 
 interface UnlearnFooterProps {
     socialLinks?: SocialLink;
+    className?: string;
+    logoHref?: string;
+    theme?: 'dark' | 'light';
 }
 
 export default function UnlearnFooter({
     socialLinks = {},
+    className = "",
+    logoHref = "/unlearn",
+    theme = 'dark',
 }: UnlearnFooterProps) {
     const { language } = useI18n();
+
+    const textColor = theme === 'light' ? 'text-[#0B3D2E]/60' : 'text-white/60';
+    const hoverColor = theme === 'light' ? 'hover:text-[#0B3D2E]' : 'hover:text-white';
+    const headingColor = theme === 'light' ? 'text-[#0B3D2E]' : 'text-white';
+
     const footerSections: Array<{ title: string; links: FooterLink[] }> = language === 'en'
         ? [
             {
@@ -31,7 +43,7 @@ export default function UnlearnFooter({
                 links: [
                     { label: 'About', href: '/about' },
                     { label: 'Careers', href: '/careers' },
-                    { label: 'Press', href: '/press' },
+                    { label: 'Special Thanks', href: '/thanks' },
                     { label: 'Contact', href: '/contact' },
                 ],
             },
@@ -60,7 +72,7 @@ export default function UnlearnFooter({
                 links: [
                     { label: '关于我们', href: '/about' },
                     { label: '加入我们', href: '/careers' },
-                    { label: '媒体报道', href: '/press' },
+                    { label: '特别鸣谢', href: '/thanks' },
                     { label: '联系我们', href: '/contact' },
                 ],
             },
@@ -84,14 +96,16 @@ export default function UnlearnFooter({
             },
         ];
 
+    const footerBg = theme === 'light' ? 'transparent' : '#0B3D2E';
+
     return (
-        <footer style={{ backgroundColor: '#0B3D2E' }}>
+        <footer className={`relative z-10 ${className}`} style={{ backgroundColor: className.includes('bg-') ? undefined : footerBg }}>
             <div className="max-w-[1280px] mx-auto px-6 py-16">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
                     {/* Brand Column */}
                     <div className="col-span-2">
                         <div className="mb-4">
-                            <Logo variant="light" size="lg" href="/unlearn" />
+                            <Logo variant="light" size="lg" href={logoHref} />
                         </div>
                         <p className="text-white/60 text-sm leading-relaxed max-w-xs mb-6">
                             {language === 'en'
@@ -101,60 +115,56 @@ export default function UnlearnFooter({
 
                         {/* Social Links */}
                         <div className="flex items-center gap-4">
-                            {socialLinks.twitter && (
+                            {[
+                                { icon: Twitter, href: socialLinks.twitter },
+                                { icon: Linkedin, href: socialLinks.linkedin },
+                                { icon: Youtube, href: socialLinks.youtube }
+                            ].map((social, i) => social.href && (
                                 <a
-                                    href={socialLinks.twitter}
+                                    key={i}
+                                    href={social.href}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-[#D4AF37] hover:border-[#D4AF37] transition-colors"
+                                    className={`w-10 h-10 border ${theme === 'light' ? 'border-[#0B3D2E]/20' : 'border-white/20'} flex items-center justify-center ${textColor} ${hoverColor} hover:border-[#D4AF37] transition-colors`}
                                 >
-                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                                    </svg>
+                                    <social.icon size={20} />
                                 </a>
-                            )}
-                            {socialLinks.linkedin && (
-                                <a
-                                    href={socialLinks.linkedin}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-[#D4AF37] hover:border-[#D4AF37] transition-colors"
-                                >
-                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                                    </svg>
-                                </a>
-                            )}
-                            {socialLinks.youtube && (
-                                <a
-                                    href={socialLinks.youtube}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-10 h-10 border border-white/20 flex items-center justify-center text-white/60 hover:text-[#D4AF37] hover:border-[#D4AF37] transition-colors"
-                                >
-                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                                    </svg>
-                                </a>
-                            )}
+                            ))}
                         </div>
                     </div>
 
-                    {/* Link Columns */}
-                    {footerSections.map((section) => (
-                        <div key={section.title}>
-                            <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
-                                {section.title}
-                            </h4>
-                            <ul className="space-y-3">
-                                {section.links.map((link) => (
-                                    <li key={link.href}>
-                                        <Link
-                                            href={link.href}
-                                            className="text-white/60 hover:text-[#D4AF37] transition-colors text-sm"
+                    {/* Links Columns */}
+                    {footerSections.map((section, idx) => (
+                        <div key={idx} className="col-span-1">
+                            <h4 className={`${headingColor} font-bold mb-6`}>{section.title}</h4>
+                            <ul className="space-y-4">
+                                {section.links.map((link, linkIdx) => (
+                                    <li key={linkIdx} className="relative group">
+                                        <span
+                                            className={`${textColor} ${hoverColor} text-sm transition-colors cursor-pointer block`}
+                                            onClick={(e) => e.preventDefault()}
                                         >
                                             {link.label}
-                                        </Link>
+                                        </span>
+
+                                        {/* Special Thanks Popover */}
+                                        {link.href === '/thanks' && (
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+                                                <div className="bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-xl border border-[#0B3D2E]/10 flex flex-col items-center gap-3">
+                                                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#D4AF37] shadow-sm">
+                                                        <img
+                                                            src="/images/ni-baobao.jpg"
+                                                            alt="Ni Baobao"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <span className="font-serif italic text-lg font-bold text-[#0B3D2E]">妮宝宝</span>
+                                                    </div>
+                                                    <div className="w-2 h-2 bg-white rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-[#0B3D2E]/10"></div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
@@ -163,20 +173,23 @@ export default function UnlearnFooter({
                 </div>
 
                 {/* Bottom Bar */}
-                <div
-                    className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4"
-                    style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
-                >
-                    <p className="text-white/40 text-sm">
-                        © {new Date().getFullYear()} AntiAnxiety™. {language === 'en' ? 'All rights reserved.' : '保留所有权利。'}
+                <div className={`pt-8 border-t ${theme === 'light' ? 'border-[#0B3D2E]/10' : 'border-white/10'} flex flex-col md:flex-row justify-between items-center gap-4`}>
+                    <p className={`${textColor} text-sm`}>
+                        © 2024 Antianxiety Inc.
                     </p>
-                    <div className="flex items-center gap-6">
-                        <Link href="/privacy" className="text-white/40 hover:text-white/60 text-sm transition-colors">
-                            {language === 'en' ? 'Privacy Policy' : '隐私政策'}
-                        </Link>
-                        <Link href="/terms" className="text-white/40 hover:text-white/60 text-sm transition-colors">
-                            {language === 'en' ? 'Terms of Service' : '服务条款'}
-                        </Link>
+                    <div className="flex gap-8">
+                        <span className={`${textColor} ${hoverColor} text-sm transition-colors cursor-pointer`} onClick={(e) => e.preventDefault()}>
+                            {language === 'en' ? 'Privacy' : '隐私政策'}
+                        </span>
+                        <span className={`${textColor} ${hoverColor} text-sm transition-colors cursor-pointer`} onClick={(e) => e.preventDefault()}>
+                            {language === 'en' ? 'Terms' : '服务条款'}
+                        </span>
+                        <span className={`${textColor} ${hoverColor} text-sm transition-colors cursor-pointer`} onClick={(e) => e.preventDefault()}>
+                            {language === 'en' ? 'Security' : '安全'}
+                        </span>
+                        <span className={`${textColor} ${hoverColor} text-sm transition-colors cursor-pointer`} onClick={(e) => e.preventDefault()}>
+                            {language === 'en' ? 'HIPAA' : 'HIPAA'}
+                        </span>
                     </div>
                 </div>
             </div>

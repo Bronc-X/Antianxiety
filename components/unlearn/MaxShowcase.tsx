@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
+import MaxAvatar from '../max/MaxAvatar';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/domain/useAuth';
 import { Sparkles, MessageCircle, Brain, Heart, Star, ArrowRight, X } from 'lucide-react';
@@ -70,58 +71,91 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
         { role: 'user', text: '我今天感觉压力很大...' },
         { role: 'max', text: '我注意到你今早的心率变异性下降了百分之十五。我们慢慢来。做个五分钟的呼吸练习怎么样？' },
         { role: 'user', text: '听起来不错。' },
-        { role: 'max', text: '很好。我会调整你下午的任务。记住，战略性休息不是软弱——而是智慧。' },
+        { role: 'max', text: '很好。我会调整你下午的任务。记住，战术性撤退不叫偷懒——收回拳头，是为了下一记重击。' },
     ];
 
     return (
-        <section id="max" className="py-24 px-6 relative overflow-hidden scroll-mt-24" style={{ backgroundColor: '#0B3D2E' }}>
+        <section id="max" className="py-24 px-6 relative overflow-hidden scroll-mt-24" style={{ backgroundColor: '#FAF6EF' }}>
             {/* Background Gradient */}
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#D4AF37]/5 rounded-full blur-[150px] pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#D4AF37]/3 rounded-full blur-[120px] pointer-events-none" />
 
             <div className="max-w-[1200px] mx-auto relative z-10">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="text-center mb-16"
-                >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 mb-6" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
-                        <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-                        <span className="text-sm text-[#D4AF37] font-medium tracking-wider uppercase">
-                            {language === 'en' ? 'Meet Max' : '认识 Max'}
-                        </span>
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-serif text-white leading-tight mb-6">
-                        {language === 'en' ? (
-                            <>Your Personal Health Agent That <span className="italic text-[#D4AF37]">Actually Cares</span></>
-                        ) : (
-                            <>你的个人健康智能体，<span className="italic text-[#D4AF37]">真正关心你</span></>
-                        )}
-                    </h2>
-                    <p className="text-xl text-white/80 max-w-2xl mx-auto font-serif">
-                        {language === 'en'
-                            ? 'Max combines clinical expertise with emotional intelligence to guide you toward lasting calm.'
-                            : 'Max 将临床专业知识与情感智能相结合，引导你走向持久的平静。'}
-                    </p>
-                </motion.div>
+                <div className="grid lg:grid-cols-2 gap-16 items-start">
+                    {/* Left Column: Text & Features */}
+                    <div className="space-y-12 order-2 lg:order-1">
+                        {/* Header Content */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -30 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            className="text-left"
+                        >
+                            <div className="inline-flex items-center gap-2 px-4 py-2 mb-6" style={{ backgroundColor: 'rgba(11, 61, 46, 0.05)', border: '1px solid rgba(11, 61, 46, 0.1)' }}>
+                                <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                                <span className="text-sm text-[#0B3D2E] font-medium tracking-wider uppercase">
+                                    {language === 'en' ? 'Meet Max' : '认识 Max'}
+                                </span>
+                            </div>
+                            <h2 className="text-4xl md:text-5xl font-serif text-[#0B3D2E] leading-tight mb-6">
+                                {language === 'en' ? (
+                                    <>Your Personal Health Agent That <span className="italic text-[#D4AF37]">Actually Cares</span></>
+                                ) : (
+                                    <>你的个人健康智能体，<span className="italic text-[#D4AF37]">真正关心你</span></>
+                                )}
+                            </h2>
+                            <p className="text-xl text-[#0B3D2E]/80 max-w-xl font-serif leading-relaxed">
+                                {language === 'en'
+                                    ? 'Max combines clinical expertise with emotional intelligence to guide you toward lasting calm.'
+                                    : 'Max 将临床专业知识与情感智能相结合，引导你走向持久的平静。'}
+                            </p>
+                        </motion.div>
 
-                {/* Main Content Grid */}
-                <div className="grid lg:grid-cols-2 gap-12 items-center">
-                    {/* Chat Demo */}
+                        {/* Features List */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
+                            className="space-y-4"
+                        >
+                            {features.map((feature, i) => (
+                                <motion.div
+                                    key={i}
+                                    onMouseEnter={() => setActiveFeature(i)}
+                                    className={`p-5 cursor-pointer transition-all rounded-xl ${activeFeature === i
+                                        ? 'bg-white border-l-4 border-[#0B3D2E] shadow-md'
+                                        : 'bg-transparent border-l-4 border-transparent hover:bg-white/50'
+                                        }`}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className={`w-10 h-10 flex items-center justify-center shrink-0 rounded-full transition-colors ${activeFeature === i ? 'bg-[#0B3D2E] text-[#D4AF37]' : 'bg-[#0B3D2E]/5 text-[#0B3D2E]'
+                                            }`}>
+                                            <feature.icon className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[#0B3D2E] font-semibold font-serif text-lg mb-1">{feature.title}</h4>
+                                            <p className="text-[#0B3D2E]/70 font-serif text-sm leading-relaxed">{feature.description}</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </div>
+
+                    {/* Right Column: Chat Demo */}
                     <motion.div
-                        initial={{ opacity: 0, x: -50 }}
+                        initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        transition={{ delay: 0.2 }}
-                        className="relative"
+                        transition={{ delay: 0.3 }}
+                        className="relative lg:h-full flex items-center order-1 lg:order-2"
                     >
-                        <div className="p-6 bg-white rounded-lg shadow-xl">
+                        <div className="w-full p-6 bg-white rounded-2xl shadow-xl border border-[#0B3D2E]/5">
                             {/* Chat Header */}
                             <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-100">
-                                <div className="w-12 h-12 bg-[#0B3D2E] rounded-full flex items-center justify-center">
-                                    <Sparkles className="w-6 h-6 text-[#D4AF37]" />
+                                <div className="flex items-center justify-center">
+                                    <MaxAvatar size={48} className="shadow-none" />
                                 </div>
                                 <div>
                                     <h4 className="text-[#1A1A1A] font-semibold font-serif">Max</h4>
@@ -147,14 +181,14 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
                                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         {msg.role === 'max' && (
-                                            <div className="w-8 h-8 bg-[#0B3D2E] rounded-full flex items-center justify-center mr-3 shrink-0">
-                                                <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                                            <div className="flex items-center justify-center mr-3 shrink-0">
+                                                <MaxAvatar size={32} className="shadow-none" />
                                             </div>
                                         )}
                                         <div
-                                            className={`max-w-[75%] p-4 font-serif rounded-lg ${msg.role === 'user'
-                                                ? 'text-[#1A1A1A]'
-                                                : 'bg-[#0B3D2E]/5 text-[#1A1A1A]'
+                                            className={`max-w-[75%] p-4 font-serif rounded-lg border ${msg.role === 'user'
+                                                ? 'bg-white border-gray-100 text-[#1A1A1A] shadow-sm'
+                                                : 'bg-[#F0FDF4] border-[#DCFCE7] text-[#0B3D2E]'
                                                 }`}
                                         >
                                             {msg.text}
@@ -165,44 +199,13 @@ export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
 
                             {/* CTA */}
                             <button
-                                onClick={handleChatClick}
-                                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#0B3D2E] text-white font-semibold hover:bg-[#0B3D2E]/90 transition-colors text-sm rounded-lg"
+                                onClick={() => document.getElementById('reservation-status')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                                className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-[#0B3D2E] text-white font-semibold hover:bg-[#064e3b] transition-all text-sm rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                             >
                                 <MessageCircle className="w-4 h-4" />
                                 {language === 'en' ? 'Talk to Max' : '和 Max 聊聊'}
                             </button>
                         </div>
-                    </motion.div>
-
-                    {/* Features List */}
-                    <motion.div
-                        initial={{ opacity: 0, x: 50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.3 }}
-                        className="space-y-6"
-                    >
-                        {features.map((feature, i) => (
-                            <motion.div
-                                key={i}
-                                onMouseEnter={() => setActiveFeature(i)}
-                                className={`p-6 cursor-pointer transition-all ${activeFeature === i
-                                    ? 'bg-[#D4AF37]/10 border-l-4 border-[#D4AF37]'
-                                    : 'bg-white/5 border-l-4 border-transparent hover:bg-white/10'
-                                    }`}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className={`w-12 h-12 flex items-center justify-center shrink-0 ${activeFeature === i ? 'bg-[#D4AF37] text-[#0B3D2E]' : 'bg-white/10 text-white'
-                                        }`}>
-                                        <feature.icon className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-white font-semibold font-serif text-lg mb-2">{feature.title}</h4>
-                                        <p className="text-white/80 font-serif">{feature.description}</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
                     </motion.div>
                 </div>
             </div>
