@@ -53,7 +53,7 @@ export default function EarlyAccessPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [registrationCount, setRegistrationCount] = useState(81);
+  const [registrationCount, setRegistrationCount] = useState(33);
   const [remainingMs, setRemainingMs] = useState(CAMPAIGN_DURATION_MS);
   const [showVideo, setShowVideo] = useState(false);
 
@@ -79,8 +79,8 @@ export default function EarlyAccessPage() {
       const currentHourIndex = Math.floor(elapsed / HOURS_MS);
       const msInCurrentHour = elapsed % HOURS_MS;
 
-      // Base: 81 + 9 per full hour
-      const base = 81 + (currentHourIndex * 9);
+      // Base: 33 + 9 per full hour
+      const base = 33 + (currentHourIndex * 9);
 
       // Deterministic Random Offsets for current hour
       let seed = currentHourIndex * 49297 + 12345;
@@ -105,8 +105,8 @@ export default function EarlyAccessPage() {
         const res = await fetch('/api/early-access');
         if (res.ok) {
           const data = await res.json();
-          // Use the greater of Real DB or Virtual Simulation
-          setRegistrationCount(Math.max(data.totalCount, calculateVirtualCount()));
+          // Use Virtual Simulation only (User requested start at 33, ignoring DB count of 613)
+          setRegistrationCount(calculateVirtualCount());
           setRemainingMs(data.remainingMs);
         }
       } catch (e) {
