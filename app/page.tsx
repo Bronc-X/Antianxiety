@@ -53,46 +53,78 @@ export default function EarlyAccessPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [registrationCount, setRegistrationCount] = useState(55);
+  const [registrationCount, setRegistrationCount] = useState(81);
   const [remainingMs, setRemainingMs] = useState(CAMPAIGN_DURATION_MS);
+  const [showVideo, setShowVideo] = useState(false);
+
+  // Video check
+  useEffect(() => {
+    // Check if video seen in this session
+    const seen = sessionStorage.getItem('seenIntro');
+    if (!seen) {
+      setShowVideo(true);
+    }
+  }, []);
 
   // Fetch initial count and update countdown
   useEffect(() => {
+    // Deterministic "Random" Counter Logic
+    // Rules: Random 1-10 min intervals, Max ~9 per hour (safe under 10)
+    const calculateVirtualCount = () => {
+      const now = Date.now();
+      const elapsed = now - CAMPAIGN_START;
+      if (elapsed < 0) return 0;
+
+      const HOURS_MS = 3600000;
+      const currentHourIndex = Math.floor(elapsed / HOURS_MS);
+      const msInCurrentHour = elapsed % HOURS_MS;
+
+      // Base: 81 + 9 per full hour
+      const base = 81 + (currentHourIndex * 9);
+
+      // Deterministic Random Offsets for current hour
+      let seed = currentHourIndex * 49297 + 12345;
+      const rnd = () => {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+      };
+
+      // Generate 9 random timestamps within the hour
+      const timestamps = Array(9).fill(0).map(() => rnd() * HOURS_MS);
+      // Sort them to simulate timeline
+      timestamps.sort((a, b) => a - b);
+
+      // Count how many we have passed in this hour
+      const passedInHour = timestamps.filter(t => msInCurrentHour >= t).length;
+
+      return base + passedInHour;
+    };
+
     const fetchCount = async () => {
       try {
         const res = await fetch('/api/early-access');
         if (res.ok) {
           const data = await res.json();
-          setRegistrationCount(data.totalCount);
+          // Use the greater of Real DB or Virtual Simulation
+          setRegistrationCount(Math.max(data.totalCount, calculateVirtualCount()));
           setRemainingMs(data.remainingMs);
         }
       } catch (e) {
-        // Fallback to local calculation
-        const elapsed = Date.now() - CAMPAIGN_START;
-        const virtualCount = Math.floor(elapsed / (3 * 60 * 1000));
-        setRegistrationCount(55 + Math.max(0, virtualCount));
+        setRegistrationCount(calculateVirtualCount());
       }
     };
 
     fetchCount();
 
-    // Update countdown every second
+    // Update countdown & count every second
     const interval = setInterval(() => {
       const now = Date.now();
       const campaignEnd = CAMPAIGN_START + CAMPAIGN_DURATION_MS;
       const remaining = Math.max(0, campaignEnd - now);
       setRemainingMs(remaining);
 
-      // Increment count every 3 minutes (virtual)
-      const elapsed = now - CAMPAIGN_START;
-      if (elapsed > 0) {
-        const baseVirtual = Math.floor(elapsed / (3 * 60 * 1000));
-        // We add to the current real count, not replace
-        setRegistrationCount(prev => {
-          const realCount = prev - Math.floor((elapsed - 1000) / (3 * 60 * 1000));
-          return 55 + baseVirtual + Math.max(0, realCount - 55 - Math.floor((elapsed - 1000) / (3 * 60 * 1000)));
-        });
-      }
+      // Update count using deterministic logic
+      setRegistrationCount(prev => Math.max(prev, calculateVirtualCount()));
     }, 1000);
 
     return () => clearInterval(interval);
@@ -567,6 +599,44 @@ export default function EarlyAccessPage() {
           youtube: 'https://youtube.com/@antianxiety',
         }}
       />
+
+      {/* Intro Video Overlay */}
+      <AnimatePresence>
+        {showVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.8 } }}
+            className="fixed inset-0 z-[200] bg-black flex items-center justify-center w-full h-full"
+          >
+            <video
+              src="/intro.mov"
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              onEnded={() => {
+                setShowVideo(false);
+                try { sessionStorage.setItem('seenIntro', 'true'); } catch (e) { }
+              }}
+            />
+
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+              onClick={() => {
+                setShowVideo(false);
+                try { sessionStorage.setItem('seenIntro', 'true'); } catch (e) { }
+              }}
+              className="absolute bottom-10 right-8 px-8 py-3 bg-black/30 hover:bg-black/50 backdrop-blur-md text-white/90 rounded-full text-sm font-medium transition-all border border-white/20 hover:border-white/40 tracking-wider uppercase group"
+            >
+              <span className="group-hover:mr-2 transition-all">{language === 'en' ? 'Skip Intro' : '跳过视频'}</span>
+              <span className="hidden group-hover:inline transition-all">→</span>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
