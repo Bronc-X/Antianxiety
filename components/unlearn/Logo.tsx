@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import MaxAvatar from '../max/MaxAvatar';
 
 interface LogoProps {
     /** Color variant: 'dark' for black text (light backgrounds), 'light' for white text (dark backgrounds) */
     variant?: 'dark' | 'light';
-    /** Size: 'sm' | 'md' | 'lg' */
-    size?: 'sm' | 'md' | 'lg';
+    /** Size: 'sm' | 'md' | 'lg' | 'xl' */
+    size?: 'sm' | 'md' | 'lg' | 'xl';
     /** Optional link href */
     href?: string;
     /** Additional className */
@@ -14,9 +15,10 @@ interface LogoProps {
 }
 
 const sizeMap = {
-    sm: { dot: 'w-2 h-2', text: 'text-sm', sup: 'text-[6px]' },
-    md: { dot: 'w-3 h-3', text: 'text-base', sup: 'text-[8px]' },
-    lg: { dot: 'w-4 h-4', text: 'text-xl', sup: 'text-[10px]' },
+    sm: { avatarSize: 24, height: 16 },
+    md: { avatarSize: 32, height: 20 },
+    lg: { avatarSize: 40, height: 26 },
+    xl: { avatarSize: 56, height: 38 },
 };
 
 /**
@@ -35,26 +37,50 @@ export default function Logo({
 
     // Colors based on variant
     const textColor = variant === 'dark' ? 'text-[#1A1A1A]' : 'text-white';
-    const dotColor = 'bg-emerald-500'; // Emerald dot always stays green
 
     const logoContent = (
-        <div className={`flex items-center gap-2 ${className}`}>
-            {/* Emerald Dot */}
-            <div className={`${sizes.dot} rounded-full ${dotColor}`} />
+        <div className={`flex items-center gap-2.5 ${className}`}>
+            {/* Max Avatar Logic */}
+            <MaxAvatar size={sizes.avatarSize} state="thinking" className="shrink-0" />
 
-            {/* Text - Playfair Display italic serif */}
-            <span
-                className={`font-serif font-bold italic ${sizes.text} ${textColor} tracking-tight`}
+            {/* Vector Text */}
+            <svg
+                height={sizes.height}
+                viewBox="0 0 165 34"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className={`${textColor} w-auto overflow-visible`}
                 style={{ fontFamily: "'Playfair Display', serif" }}
             >
-                AntiAnxiety<sup className={sizes.sup}>™</sup>
-            </span>
+                <text
+                    x="0"
+                    y="25"
+                    fontWeight="700"
+                    fontStyle="italic"
+                    fontSize="26"
+                    fill="currentColor"
+                    letterSpacing="-0.03em"
+                >
+                    AntiAnxiety
+                    <tspan
+                        fontSize="10"
+                        dy="-10"
+                        dx="1"
+                        fill="currentColor"
+                        opacity="0.6"
+                        fontWeight="500"
+                        fontStyle="normal"
+                    >
+                        ™
+                    </tspan>
+                </text>
+            </svg>
         </div>
     );
 
     if (href) {
         return (
-            <Link href={href} className="shrink-0">
+            <Link href={href} className="shrink-0 group">
                 {logoContent}
             </Link>
         );
