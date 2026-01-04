@@ -138,7 +138,7 @@ export function middleware(req: NextRequest) {
   const isMobileRoute = pathname === '/mobile' || pathname.startsWith('/mobile/');
   const isTestRoute = pathname.startsWith('/test/'); // Allow test pages
   const isDigitalTwinRoute = pathname === '/digital-twin' || pathname.startsWith('/digital-twin/');
-  const isMarketingRoute = pathname === '/unlearn/app' || pathname === '/thanks'; // Public marketing landing page
+  const isMarketingRoute = pathname === '/unlearn/app' || pathname === '/thanks' || pathname.startsWith('/poster'); // Public marketing landing page
   const isERoute = pathname === '/e' || pathname.startsWith('/e/');
   const isRoot = pathname === '/';
 

@@ -21,11 +21,12 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/lib/i18n';
 import { useClinicalOnboarding, type OnboardingProgress } from '@/hooks/domain/useClinicalOnboarding';
 import { GAD7, PHQ9, ISI, type ScaleDefinition } from '@/lib/clinical-scales';
+import MaxAvatar from '@/components/max/MaxAvatar';
 
 // Scale Definitions for UI Rendering (Pills)
 const SCALES_DISPLAY: ScaleDefinition[] = [GAD7, PHQ9, ISI];
 const TOTAL_PAGES = Math.ceil(23 / 4); // Hardcoded matching hook config
-const ESTIMATED_MINUTES = 4;
+const ESTIMATED_MINUTES = 3;
 
 // ============ Scale Info Metadata ============
 const SCALE_INFO: Record<string, {
@@ -108,6 +109,7 @@ export function ClinicalOnboarding({
 }: ClinicalOnboardingProps) {
     const { t, language } = useI18n();
     const [showIntroInfo, setShowIntroInfo] = React.useState(false);
+    const [activeScaleTooltip, setActiveScaleTooltip] = React.useState<string | null>(null);
 
     // Using the Hook (Bridge)
     const {
@@ -117,10 +119,14 @@ export function ClinicalOnboarding({
         currentQuestions,
         progressPercent,
         isPageComplete,
+        safetyMessage,
         start,
         handleAnswer,
         nextPage,
         prevPage,
+        continueAfterSafety,
+        goBackFromSafety,
+        goBackFromEncouragement,
         continueFromEncouragement,
         pause,
         loadSaved
@@ -132,6 +138,16 @@ export function ClinicalOnboarding({
             loadSaved(savedProgress);
         }
     }, [savedProgress, loadSaved]);
+
+    // Auto-close scale tooltip after 10 seconds
+    useEffect(() => {
+        if (activeScaleTooltip) {
+            const timer = setTimeout(() => {
+                setActiveScaleTooltip(null);
+            }, 10000);
+            return () => clearTimeout(timer);
+        }
+    }, [activeScaleTooltip]);
 
     // Handle pause (wrapper for prop callback compat) - actually hook handles pause internally using localStorage
     // But if we want to trigger parent onPause, hook does that too.
@@ -246,13 +262,64 @@ export function ClinicalOnboarding({
                             </div>
                         </div>
 
-                        {/* Scales preview */}
+                        {/* Scales preview - with authoritative tooltips */}
                         <div className="flex justify-center gap-3 mb-10">
-                            {SCALES_DISPLAY.map((scale, i) => (
-                                <span key={i} className="px-3 py-1.5 rounded-full bg-emerald-50 text-xs font-medium text-emerald-700">
-                                    {language === 'en' ? scale.id.replace(/([A-Z]+)(\d+)/, '$1-$2') : scale.name.split('-')[0].trim()}
-                                </span>
-                            ))}
+                            {SCALES_DISPLAY.map((scale, i) => {
+                                const info = SCALE_INFO[scale.id];
+                                const showTooltip = activeScaleTooltip === scale.id;
+                                return (
+                                    <div key={i} className="relative">
+                                        <button
+                                            onClick={() => setActiveScaleTooltip(showTooltip ? null : scale.id)}
+                                            className="px-3 py-1.5 rounded-full bg-emerald-50 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            {language === 'en' ? scale.id.replace(/([A-Z]+)(\d+)/, '$1-$2') : scale.name.split('-')[0].trim()}
+                                            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-200/60 text-emerald-700 text-[9px] font-bold">?</span>
+                                        </button>
+                                        <AnimatePresence>
+                                            {showTooltip && info && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                                                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-80 z-50"
+                                                >
+                                                    <div className="bg-white/98 backdrop-blur-xl p-4 rounded-xl border border-emerald-100 shadow-[0_8px_30px_rgba(0,0,0,0.12)] text-left">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setActiveScaleTooltip(null); }}
+                                                            className="absolute top-2 right-2 p-1 text-neutral-300 hover:text-neutral-600 transition-colors"
+                                                        >
+                                                            <span className="text-xs">✕</span>
+                                                        </button>
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-xs font-bold">{info.abbreviation}</span>
+                                                            <span className="text-xs font-semibold text-[#0B3D2E]">{info.fullName}</span>
+                                                        </div>
+                                                        <p className="text-xs text-neutral-600 leading-relaxed mb-3">{info.description}</p>
+                                                        <div className="space-y-2 text-[10px]">
+                                                            <div className="flex items-start gap-2 p-2 rounded-lg bg-emerald-50/80">
+                                                                <span className="font-bold text-emerald-700 shrink-0">📖</span>
+                                                                <div>
+                                                                    <p className="text-neutral-600">{info.authors} ({info.year})</p>
+                                                                    <p className="text-emerald-600 font-medium italic">{info.journal}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50/80">
+                                                                <span className="font-bold text-amber-600 shrink-0">✓</span>
+                                                                <p className="text-neutral-600">{info.validation}</p>
+                                                            </div>
+                                                            <div className="flex items-start gap-2 p-2 rounded-lg bg-blue-50/80">
+                                                                <span className="font-bold text-blue-600 shrink-0">🌍</span>
+                                                                <p className="text-neutral-600">{info.usage}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         <button
@@ -300,23 +367,52 @@ export function ClinicalOnboarding({
                                     <p className="text-emerald-800/60 text-base md:text-lg leading-relaxed max-w-md mx-auto mb-4">
                                         {language === 'en'
                                             ? "You're doing wonderfully. Your honest answers help us understand you better."
-                                            : '你做得很棒。你的真实回答帮助我们更好地了解你。'}
+                                            : '你做得很棒。感谢你的耐心和真诚，帮助Max更好地了解你。'}
                                     </p>
                                 </>
                             )}
                             {currentPage === 4 && (
                                 <>
-                                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                                        <CheckCircle2 className="w-8 h-8 text-white" />
+                                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center">
+                                        <Sparkles className="w-8 h-8 text-white" />
                                     </div>
                                     <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-4">
-                                        {language === 'en' ? 'Almost There!' : '马上就好！'}
+                                        {language === 'en' ? "Don't Worry" : '别担心'}
                                     </h2>
                                     <p className="text-emerald-800/60 text-base md:text-lg leading-relaxed max-w-md mx-auto mb-4">
                                         {language === 'en'
-                                            ? "You're in the final stretch. Thank you for your patience and honesty."
-                                            : '最后一小段了。感谢你的耐心和真诚。'}
+                                            ? "Anxiety often comes from your sympathetic nervous system, not from your current situation. It's not your fault."
+                                            : '焦虑往往来源于交感神经系统的反应，与你正在经历的事情和状态没有关系。不要责怪自己。'}
                                     </p>
+                                    <div className="bg-sky-50/80 rounded-xl p-4 max-w-md mx-auto mb-4">
+                                        <p className="text-sky-800 text-sm font-medium">
+                                            {language === 'en'
+                                                ? "✨ Max knows exactly how to help with this feeling. You're in good hands."
+                                                : '✨ 况且，Max 完全知道该怎么帮助你处理这种感觉。'}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+                            {currentPage === 5 && (
+                                <>
+                                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center">
+                                        <Sparkles className="w-8 h-8 text-white" />
+                                    </div>
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-4">
+                                        {language === 'en' ? "Don't Worry" : '别担心'}
+                                    </h2>
+                                    <p className="text-emerald-800/60 text-base md:text-lg leading-relaxed max-w-md mx-auto mb-4">
+                                        {language === 'en'
+                                            ? "Anxiety often comes from your sympathetic nervous system, not from your current situation. It's not your fault."
+                                            : '焦虑往往来源于交感神经系统的反应，与你正在经历的事情和状态没有关系。不要责怪自己。'}
+                                    </p>
+                                    <div className="bg-sky-50/80 rounded-xl p-4 max-w-md mx-auto mb-4">
+                                        <p className="text-sky-800 text-sm font-medium">
+                                            {language === 'en'
+                                                ? "✨ Max knows exactly how to help with this feeling. You're in good hands."
+                                                : '✨ 况且，Max 完全知道该怎么帮助你处理这种感觉。'}
+                                        </p>
+                                    </div>
                                 </>
                             )}
 
@@ -332,13 +428,22 @@ export function ClinicalOnboarding({
                                 </div>
                             </div>
 
-                            <button
-                                onClick={continueFromEncouragement}
-                                className="w-full max-w-xs mx-auto h-14 bg-[#0B3D2E] text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-[#06261c] transition-colors shadow-lg shadow-emerald-900/10"
-                            >
-                                <span>{language === 'en' ? 'Continue' : '继续'}</span>
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
+                            <div className="flex gap-3 max-w-xs mx-auto">
+                                <button
+                                    onClick={goBackFromEncouragement}
+                                    className="flex-1 h-14 border border-emerald-200 text-emerald-700 rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-emerald-50 transition-colors"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                    <span>{language === 'en' ? 'Back' : '返回'}</span>
+                                </button>
+                                <button
+                                    onClick={continueFromEncouragement}
+                                    className="flex-1 h-14 bg-[#0B3D2E] text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-[#06261c] transition-colors shadow-lg shadow-emerald-900/10"
+                                >
+                                    <span>{language === 'en' ? 'Continue' : '继续'}</span>
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
                 )}
@@ -487,6 +592,159 @@ export function ClinicalOnboarding({
                             >
                                 <span>{currentPage < TOTAL_PAGES - 1 ? t('assessment.nextPage') : t('assessment.complete')}</span>
                                 <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Safety - Q9 Self-harm trigger */}
+                {step === 'safety' && (
+                    <motion.div
+                        key="safety"
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        custom={direction}
+                        className="relative p-10 md:p-12 overflow-hidden"
+                    >
+                        {/* Warm hugging background */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-pink-50/50 to-orange-50/30 pointer-events-none" />
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-rose-200/40 to-transparent rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-amber-200/30 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+                        <div className="relative text-center">
+                            <div className="w-28 h-28 mx-auto mb-6 rounded-full overflow-hidden shadow-lg shadow-rose-200/50">
+                                <img src="/images/hug-embrace.png" alt="Embrace" className="w-full h-full object-cover" />
+                            </div>
+                            <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-4">
+                                {language === 'en' ? 'We Care About You' : '我们关心你'}
+                            </h2>
+
+                            {/* Safety message with proper line breaks */}
+                            <div className="text-emerald-800/70 text-sm md:text-base leading-relaxed max-w-md mx-auto mb-6 whitespace-pre-line text-left bg-white/60 backdrop-blur-sm p-4 rounded-xl">
+                                {safetyMessage || (language === 'en'
+                                    ? "Your feelings matter.\n\nIf you're experiencing difficult thoughts, please know that support is available.\n\nWould you like to continue?"
+                                    : '你的感受很重要。\n\n如果你正在经历困难的想法，请知道你并不孤单，有人愿意倾听。\n\n你想继续吗？')}
+                            </div>
+
+                            {/* Crisis hotlines - cleaner design */}
+                            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 mb-8 text-left max-w-md mx-auto border border-rose-100 shadow-sm">
+                                <p className="text-sm text-rose-700 font-bold mb-3 flex items-center gap-2">
+                                    <span className="text-lg">📞</span>
+                                    {language === 'en' ? '24/7 Crisis Support' : '24小时危机热线'}
+                                </p>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 p-2 rounded-lg bg-rose-50/80">
+                                        <span className="text-sm">🇨🇳</span>
+                                        <div className="text-xs">
+                                            <p className="font-semibold text-rose-800">北京心理危机研究与干预中心</p>
+                                            <p className="text-rose-600">010-82951332</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 p-2 rounded-lg bg-rose-50/80">
+                                        <span className="text-sm">🇨🇳</span>
+                                        <div className="text-xs">
+                                            <p className="font-semibold text-rose-800">全国心理援助热线</p>
+                                            <p className="text-rose-600">400-161-9995</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 p-2 rounded-lg bg-rose-50/80">
+                                        <span className="text-sm">🌍</span>
+                                        <div className="text-xs">
+                                            <p className="font-semibold text-rose-800">International</p>
+                                            <p className="text-rose-600">findahelpline.com</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 max-w-xs mx-auto">
+                                <button
+                                    onClick={goBackFromSafety}
+                                    className="flex-1 h-14 border border-rose-200 text-rose-700 rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-rose-50 transition-colors"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                    <span>{language === 'en' ? 'Back' : '返回'}</span>
+                                </button>
+                                <button
+                                    onClick={continueAfterSafety}
+                                    className="flex-1 h-14 bg-[#0B3D2E] text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-[#06261c] transition-colors shadow-lg shadow-emerald-900/10"
+                                >
+                                    <span>{language === 'en' ? 'Continue' : '继续'}</span>
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Analyzing */}
+                {step === 'analyzing' && (
+                    <motion.div
+                        key="analyzing"
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        custom={direction}
+                        className="relative p-10 md:p-12"
+                    >
+                        <div className="text-center">
+                            <div className="w-24 h-24 mx-auto mb-8">
+                                <MaxAvatar size={96} state="thinking" className="shadow-lg shadow-emerald-500/20" />
+                            </div>
+                            <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-4">
+                                {language === 'en' ? 'Analyzing Your Responses' : 'Max 正在分析你的回答'}
+                            </h2>
+                            <p className="text-emerald-800/60 text-base md:text-lg leading-relaxed max-w-md mx-auto mb-8">
+                                {language === 'en'
+                                    ? 'Creating your personalized mental wellness profile...'
+                                    : '正在为你创建个性化的心理健康画像...'}
+                            </p>
+                            <div className="max-w-xs mx-auto">
+                                <div className="h-2 bg-emerald-100 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: '100%' }}
+                                        transition={{ duration: 2, ease: 'easeInOut' }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Result */}
+                {step === 'result' && (
+                    <motion.div
+                        key="result"
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        custom={direction}
+                        className="relative p-10 md:p-12"
+                    >
+                        <div className="text-center">
+                            <div className="w-20 h-20 mx-auto mb-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                                <CheckCircle2 className="w-10 h-10 text-white" />
+                            </div>
+                            <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-4">
+                                {language === 'en' ? 'Assessment Complete!' : '评估完成！'}
+                            </h2>
+                            <p className="text-emerald-800/60 text-base md:text-lg leading-relaxed max-w-md mx-auto mb-8">
+                                {language === 'en'
+                                    ? 'Your personalized journey with Max begins now.'
+                                    : '你与 Max 的个性化旅程现在开始。'}
+                            </p>
+                            <button
+                                onClick={() => window.location.href = '/unlearn'}
+                                className="w-full max-w-xs mx-auto h-14 bg-[#0B3D2E] text-white rounded-2xl font-medium flex items-center justify-center gap-2 hover:bg-[#06261c] transition-colors shadow-lg shadow-emerald-900/10"
+                            >
+                                <Sparkles className="w-5 h-5" />
+                                <span>{language === 'en' ? 'Start Your Journey' : '开始你的旅程'}</span>
                             </button>
                         </div>
                     </motion.div>

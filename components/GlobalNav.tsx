@@ -16,7 +16,7 @@ export default function GlobalNav() {
   const { profile, isLoading: profileLoading, error: profileError } = useProfile();
 
   // Hide nav on auth pages and marketing pages (which have their own nav)
-  const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta', '/brutalist', '/unlearn', '/mobile', '/unlearn/app', '/e'];
+  const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta', '/brutalist', '/unlearn', '/mobile', '/unlearn/app', '/e', '/poster'];
   const shouldHideNav = hideNavPages.some(page => pathname?.startsWith(page));
 
   if (shouldHideNav) {

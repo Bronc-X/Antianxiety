@@ -58,6 +58,11 @@ export class HealthConnectBridge {
     provider: WearableProvider = 'health_connect';
 
     async isAvailable(): Promise<boolean> {
+        // 模拟环境支持
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            return true;
+        }
+
         if (Capacitor.getPlatform() !== 'android') {
             return false;
         }
@@ -71,6 +76,12 @@ export class HealthConnectBridge {
     }
 
     async requestAuthorization(): Promise<boolean> {
+        // 模拟授权
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return true;
+        }
+
         try {
             await HealthPlugin.requestHealthPermissions({ permissions: REQUIRED_PERMISSIONS });
             return true;
@@ -81,6 +92,19 @@ export class HealthConnectBridge {
     }
 
     async fetchLatestSnapshot(): Promise<HealthConnectSnapshot> {
+        // 模拟数据
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            return {
+                hrv: 55 + Math.random() * 10,
+                resting_heart_rate: 62 + Math.random() * 5,
+                sleep_minutes: 450, // 7.5 hours
+                rem_sleep_minutes: 90,
+                steps: 7500 + Math.round(Math.random() * 2000),
+                active_calories: 400 + Math.round(Math.random() * 100),
+                recorded_at: new Date().toISOString(),
+            };
+        }
+
         const snapshot: HealthConnectSnapshot = {};
         let latestTimestamp = 0;
 

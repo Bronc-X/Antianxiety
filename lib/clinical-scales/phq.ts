@@ -88,7 +88,7 @@ export const PHQ9: ScaleDefinition = {
         },
         {
             id: 'phq9_q7',
-            text: '对事物专注有困难，例如阅读报纸或看电视',
+            text: '对事物专注有困难，例如阅读、长文、长视频或看电影',
             textEn: 'Trouble concentrating on things, such as reading the newspaper or watching television',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },
@@ -110,7 +110,7 @@ export const PHQ9: ScaleDefinition = {
         },
         {
             id: 'phq9_q9',
-            text: '有自残的念头来对抗痛苦',
+            text: '有轻微自残的念头来对抗痛苦',
             textEn: 'Thoughts that you would be better off dead or of hurting yourself in some way',
             options: [
                 { value: 0, label: '完全没有', labelEn: 'Not at all' },

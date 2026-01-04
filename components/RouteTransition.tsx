@@ -6,6 +6,11 @@ import type { PropsWithChildren } from 'react';
 
 export default function RouteTransition({ children }: PropsWithChildren) {
   const pathname = usePathname();
+
+  if (pathname?.startsWith('/poster')) {
+    return <>{children}</>;
+  }
+
   return (
     <motion.main
       key={pathname}
