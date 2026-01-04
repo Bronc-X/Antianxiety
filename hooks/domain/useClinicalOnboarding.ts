@@ -85,6 +85,8 @@ export interface UseClinicalOnboardingReturn {
     nextPage: () => void;
     prevPage: () => void;
     continueAfterSafety: () => void;
+    goBackFromSafety: () => void;
+    goBackFromEncouragement: () => void;
     continueFromEncouragement: () => void;
     pause: () => void;
     loadSaved: (saved: OnboardingProgress) => void;
@@ -142,6 +144,11 @@ export function useClinicalOnboarding(
 
     const continueAfterSafety = useCallback(() => {
         setPendingSafetyQuestion(null);
+        setStep('questions');
+    }, []);
+
+    const goBackFromSafety = useCallback(() => {
+        // Just go back to questions, keep answers preserved
         setStep('questions');
     }, []);
 
@@ -203,8 +210,8 @@ export function useClinicalOnboarding(
             }
 
             // Trigger background syncs (fire-and-forget)
-            refreshUserProfile().catch(() => {});
-            syncUserProfile().catch(() => {});
+            refreshUserProfile().catch(() => { });
+            syncUserProfile().catch(() => { });
 
             setTimeout(() => {
                 setResult(resultData);
@@ -221,20 +228,31 @@ export function useClinicalOnboarding(
     }, [answers, userId, onComplete]);
 
     const nextPage = useCallback(() => {
+        // Check if we should show encouragement
+        if (ENCOURAGEMENT_PAGES.includes(currentPage)) {
+            setStep('encouragement');
+            return;
+        }
+
         if (currentPage < TOTAL_PAGES - 1) {
-            // Check encouragement
-            if (ENCOURAGEMENT_PAGES.includes(currentPage)) {
-                setStep('encouragement');
-            } else {
-                setCurrentPage(prev => prev + 1);
-            }
+            setCurrentPage(prev => prev + 1);
         } else {
             completeOnboarding();
         }
     }, [currentPage, completeOnboarding]);
 
     const continueFromEncouragement = useCallback(() => {
-        setCurrentPage(prev => prev + 1);
+        // If we're on the last page's encouragement, complete the onboarding
+        if (currentPage >= TOTAL_PAGES - 1) {
+            completeOnboarding();
+        } else {
+            setCurrentPage(prev => prev + 1);
+            setStep('questions');
+        }
+    }, [currentPage, completeOnboarding]);
+
+    const goBackFromEncouragement = useCallback(() => {
+        // Just go back to questions, keep answers preserved
         setStep('questions');
     }, []);
 
@@ -279,6 +297,8 @@ export function useClinicalOnboarding(
         nextPage,
         prevPage,
         continueAfterSafety,
+        goBackFromSafety,
+        goBackFromEncouragement,
         continueFromEncouragement,
         pause,
         loadSaved

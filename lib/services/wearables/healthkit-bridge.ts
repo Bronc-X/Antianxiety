@@ -44,6 +44,11 @@ export class HealthKitBridge {
      * 检查HealthKit是否可用（仅iOS）
      */
     async isAvailable(): Promise<boolean> {
+        // 在开发环境或非iOS环境下，允许使用模拟数据进行演示
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            return true;
+        }
+
         if (Capacitor.getPlatform() !== 'ios') {
             return false;
         }
@@ -61,6 +66,12 @@ export class HealthKitBridge {
      * 请求HealthKit权限
      */
     async requestAuthorization(): Promise<boolean> {
+        // 模拟授权
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟延迟
+            return true;
+        }
+
         try {
             const plugin = await this.getPlugin();
             await plugin.requestAuthorization({
@@ -82,6 +93,11 @@ export class HealthKitBridge {
         endDate: Date,
         dataTypes: HealthDataType[] = ['sleep', 'hrv', 'heart_rate', 'steps', 'active_calories']
     ): Promise<NormalizedHealthData[]> {
+        // 模拟数据生成
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            return this.generateMockData(startDate, endDate, dataTypes);
+        }
+
         const results: NormalizedHealthData[] = [];
         const plugin = await this.getPlugin();
 
@@ -113,6 +129,72 @@ export class HealthKitBridge {
         return results;
     }
 
+    private generateMockData(startDate: Date, endDate: Date, dataTypes: HealthDataType[]): NormalizedHealthData[] {
+        const results: NormalizedHealthData[] = [];
+        const now = new Date();
+        const baseTime = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24小时前
+
+        if (dataTypes.includes('sleep')) {
+            const sleepDuration = 7.5 * 60; // 7.5小时
+            results.push({
+                source: 'healthkit',
+                dataType: 'sleep',
+                recordedAt: now,
+                value: sleepDuration,
+                quality: 'good',
+                metadata: { sleepType: 'asleep' }
+            });
+        }
+
+        if (dataTypes.includes('hrv')) {
+            // 生成几个 HRV 样本
+            for (let i = 0; i < 5; i++) {
+                const time = new Date(baseTime.getTime() + i * 4 * 60 * 60 * 1000);
+                const hrv = 45 + Math.random() * 20; // 45-65ms
+                results.push({
+                    source: 'healthkit',
+                    dataType: 'hrv',
+                    recordedAt: time,
+                    value: Math.round(hrv),
+                    quality: this.getHRVQuality(hrv)
+                });
+            }
+        }
+
+        if (dataTypes.includes('heart_rate')) {
+            const hr = 60 + Math.random() * 10;
+            results.push({
+                source: 'healthkit',
+                dataType: 'heart_rate',
+                recordedAt: now,
+                value: Math.round(hr),
+                quality: 'good'
+            });
+        }
+
+        if (dataTypes.includes('steps')) {
+            const steps = 5000 + Math.random() * 5000;
+            results.push({
+                source: 'healthkit',
+                dataType: 'steps',
+                recordedAt: now,
+                value: Math.round(steps)
+            });
+        }
+
+        if (dataTypes.includes('active_calories')) {
+            const cals = 300 + Math.random() * 200;
+            results.push({
+                source: 'healthkit',
+                dataType: 'active_calories',
+                recordedAt: now,
+                value: Math.round(cals)
+            });
+        }
+
+        return results;
+    }
+
     // ============================================================================
     // 数据获取方法
     // ============================================================================
@@ -130,23 +212,23 @@ export class HealthKitBridge {
         return result.samples
             .filter((sample: HealthKitSleepSample) => sample.value === 'asleep')
             .map((sample: HealthKitSleepSample) => {
-            const durationMinutes = (new Date(sample.endDate).getTime() -
-                new Date(sample.startDate).getTime()) / 60000;
+                const durationMinutes = (new Date(sample.endDate).getTime() -
+                    new Date(sample.startDate).getTime()) / 60000;
 
-            return {
-                source: 'healthkit' as WearableProvider,
-                dataType: 'sleep' as HealthDataType,
-                recordedAt: new Date(sample.startDate),
-                value: durationMinutes,
-                quality: this.getSleepQuality(durationMinutes),
-                metadata: {
-                    sleepType: sample.value, // 'asleep', 'inbed', 'awake'
-                    startTime: sample.startDate,
-                    endTime: sample.endDate,
-                },
-                rawData: sample,
-            };
-        });
+                return {
+                    source: 'healthkit' as WearableProvider,
+                    dataType: 'sleep' as HealthDataType,
+                    recordedAt: new Date(sample.startDate),
+                    value: durationMinutes,
+                    quality: this.getSleepQuality(durationMinutes),
+                    metadata: {
+                        sleepType: sample.value, // 'asleep', 'inbed', 'awake'
+                        startTime: sample.startDate,
+                        endTime: sample.endDate,
+                    },
+                    rawData: sample,
+                };
+            });
     }
 
     private async fetchHRVData(
@@ -247,7 +329,7 @@ export class HealthKitBridge {
         // 动态导入Capacitor HealthKit插件
         // 使用 try-catch 处理模块不存在的情况（服务端构建时）
         try {
-             
+
             const mod = require('@followathletics/capacitor-healthkit');
             const HealthKit = mod.CapacitorHealthkit;
             this.plugin = HealthKit;

@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { MessageCircle, X, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/domain/useAuth';
 import MaxChatPanel from './MaxChatPanel';
+import MaxAvatar from '@/components/max/MaxAvatar';
 
 interface MaxFloatingButtonProps {
     isOpen?: boolean;
@@ -115,7 +116,7 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
 
                 <motion.button
                     onClick={handleClick}
-                    className="relative w-16 h-16 flex items-center justify-center shadow-lg transition-colors"
+                    className="relative flex items-center gap-2 px-4 h-14 shadow-lg transition-colors rounded-full"
                     style={{
                         backgroundColor: isOpen ? '#0B3D2E' : '#D4AF37',
                     }}
@@ -130,19 +131,18 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
                                 animate={{ rotate: 0, opacity: 1 }}
                                 exit={{ rotate: 90, opacity: 0 }}
                             >
-                                <X className="w-7 h-7 text-[#D4AF37]" />
+                                <X className="w-6 h-6 text-[#D4AF37]" />
                             </motion.div>
                         ) : (
                             <motion.div
                                 key="open"
-                                initial={{ rotate: 90, opacity: 0 }}
-                                animate={{ rotate: 0, opacity: 1 }}
-                                exit={{ rotate: -90, opacity: 0 }}
-                                className="relative"
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                className="flex items-center gap-2"
                             >
-                                <Sparkles className="w-7 h-7 text-[#0B3D2E]" />
-                                {/* Pulse animation */}
-                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+                                <MaxAvatar size={32} state="thinking" />
+                                <span className="text-[#0B3D2E] font-bold text-base">Max</span>
                             </motion.div>
                         )}
                     </AnimatePresence>

@@ -26,7 +26,7 @@ export default function AIAssistantFloatingButton() {
   const [isIntroOpen, setIsIntroOpen] = useState(false);
   const pathname = usePathname();
   const isWelcomePage = pathname === '/welcome';
-  const isMarketingPage = ['/unlearn', '/beta', '/e', '/unlearn/app'].some(p => pathname?.startsWith(p));
+  const isMarketingPage = ['/unlearn', '/beta', '/e', '/unlearn/app', '/poster'].some(p => pathname?.startsWith(p));
   const { isAuthenticated, isLoading: authLoading, error: authError } = useAuth();
   const { profile, isLoading: profileLoading, error: profileError } = useProfile();
   const [isDragging, setIsDragging] = useState(false);

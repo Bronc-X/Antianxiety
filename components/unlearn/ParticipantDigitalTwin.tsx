@@ -400,6 +400,15 @@ export default function ParticipantDigitalTwin() {
 
     // Extract data from curveData
     const rawTimepoints = curveData?.A_predictedLongitudinalOutcomes?.timepoints || [];
+
+    // Debug logging
+    useEffect(() => {
+        if (curveData) {
+            console.log('📈 Curve Data:', curveData);
+            console.log('📊 Raw Timepoints:', rawTimepoints);
+        }
+    }, [curveData, rawTimepoints]);
+
     const timepoints = rawTimepoints.map((tp: any) => ({
         ...tp,
         metrics: Object.fromEntries(

@@ -16,11 +16,19 @@ import {
     ParticipantDigitalTwin,
 } from '@/components/unlearn';
 import ProactiveInquiryManager from '@/components/max/ProactiveInquiryManager';
+import SpotlightTour from '@/components/SpotlightTour';
 
 export default function AppDashboard() {
     const { language } = useI18n();
     const [showCalibration, setShowCalibration] = useState(false);
     const [showMax, setShowMax] = useState(false);
+    const [showTour, setShowTour] = useState(() => {
+        // Show tour only if user hasn't seen it
+        if (typeof window !== 'undefined') {
+            return !localStorage.getItem('hasSeenTour');
+        }
+        return false;
+    });
     const [weather, setWeather] = useState<{
         temperature: number;
         high?: number;
@@ -225,6 +233,7 @@ export default function AppDashboard() {
                         </div>
                         <button
                             onClick={() => setShowCalibration(!showCalibration)}
+                            data-tour-id="tour-calibration"
                             className="flex items-center gap-2 px-5 py-3 bg-[#D4AF37] text-[#0B3D2E] font-semibold font-serif hover:bg-[#E5C158] transition-colors"
                         >
                             <Sparkles className="w-5 h-5" />
@@ -241,10 +250,14 @@ export default function AppDashboard() {
             <ProactiveInquiryManager />
 
             {/* Participant Digital Twin (Added back) */}
-            <ParticipantDigitalTwin />
+            <div data-tour-id="tour-digital-twin">
+                <ParticipantDigitalTwin />
+            </div>
 
             {/* HRV Dashboard */}
-            <HRVDashboard />
+            <div data-tour-id="tour-hrv">
+                <HRVDashboard />
+            </div>
 
             {/* Wearable Connections */}
             <WearableConnect />
@@ -268,7 +281,23 @@ export default function AppDashboard() {
             />
 
             {/* Max AI Chat */}
-            <MaxFloatingButton isOpen={showMax} onOpenChange={setShowMax} />
+            <div data-tour-id="tour-max-chat">
+                <MaxFloatingButton isOpen={showMax} onOpenChange={setShowMax} />
+            </div>
+
+            {/* Spotlight Tour for first-time users */}
+            {showTour && (
+                <SpotlightTour
+                    onComplete={() => {
+                        localStorage.setItem('hasSeenTour', 'true');
+                        setShowTour(false);
+                    }}
+                    onSkip={() => {
+                        localStorage.setItem('hasSeenTour', 'true');
+                        setShowTour(false);
+                    }}
+                />
+            )}
         </main>
     );
 }

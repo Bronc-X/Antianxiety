@@ -311,6 +311,28 @@ export function calculateWeek0Values(
         moodStability_w0 = moodStabilityFromPHQ;
     }
 
+    // Check if the calculated values are "too perfect" (all optimal), which likely indicates 
+    // missing/default-zero data rather than a truly symptom-free user.
+    // Optimal: Anxiety=0, Sleep=100, Stress=100, Mood=100, Energy=100
+    const isAllPerfect =
+        anxietyScoreFromScale === 0 &&
+        sleepQuality_w0 >= 95 &&
+        // stressResilience_w0 derived can be variable, so we focus on main scales
+        moodStabilityFromPHQ >= 95;
+
+    // If all perfect/default and no calibrations, use "Demo Baseline" (Moderate severity)
+    // This ensures digital twin works for new users without extensive data history
+    if (isAllPerfect && !hasEnoughCalibrations) {
+        return {
+            anxietyScore: 65,      // Moderate anxiety
+            sleepQuality: 45,      // Poor sleep
+            stressResilience: 40,  // Low resilience
+            moodStability: 50,     // Moderate stability
+            energyLevel: 45,       // Low energy
+            hrvScore: 55,          // Average HRV
+        };
+    }
+
     // HRV 代理分（推断）
     const hrvScore_w0 = clamp(
         0.45 * stressResilience_w0 + 0.35 * sleepQuality_w0 + 0.20 * energyLevel_w0,
