@@ -66,6 +66,34 @@ const PSS10_INTERPRETATIONS: Record<string, string> = {
   high: '高压力',
 };
 
+type ScoreLookup = Record<string, unknown>;
+
+function parseScoreValue(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  if (typeof value === 'object') {
+    const candidate = (value as { score?: unknown; value?: unknown; raw?: unknown }).score
+      ?? (value as { value?: unknown }).value
+      ?? (value as { raw?: unknown }).raw;
+    return parseScoreValue(candidate);
+  }
+  return null;
+}
+
+function getScaleScore(scores: ScoreLookup, keys: string[]): number | null {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(scores, key)) {
+      const parsed = parseScoreValue(scores[key]);
+      if (parsed !== null) return parsed;
+    }
+  }
+  return null;
+}
+
 function getGAD7Interpretation(score: number): string {
   if (score <= 4) return GAD7_INTERPRETATIONS.minimal;
   if (score <= 9) return GAD7_INTERPRETATIONS.mild;
@@ -138,13 +166,17 @@ async function fetchBaselineData(supabase: any, userId: string): Promise<Baselin
     return null;
   }
 
-  const scores = profile.inferred_scale_scores as Record<string, number>;
+  if (typeof profile.inferred_scale_scores !== 'object') {
+    return null;
+  }
+
+  const scores = profile.inferred_scale_scores as ScoreLookup;
 
   // 检查是否有完整的基线数据
-  const gad7Score = scores.gad7 ?? scores.GAD7 ?? null;
-  const phq9Score = scores.phq9 ?? scores.PHQ9 ?? null;
-  const isiScore = scores.isi ?? scores.ISI ?? null;
-  const pss10Score = scores.pss10 ?? scores.PSS10 ?? null;
+  const gad7Score = getScaleScore(scores, ['gad7', 'GAD7', 'gad7Score', 'GAD7Score', 'gad-7', 'GAD-7']);
+  const phq9Score = getScaleScore(scores, ['phq9', 'PHQ9', 'phq9Score', 'PHQ9Score', 'phq-9', 'PHQ-9']);
+  const isiScore = getScaleScore(scores, ['isi', 'ISI', 'isiScore', 'ISIScore']);
+  const pss10Score = getScaleScore(scores, ['pss10', 'PSS10', 'pss10Score', 'PSS10Score', 'pss-10', 'PSS-10']);
 
   if (gad7Score === null && phq9Score === null && isiScore === null && pss10Score === null) {
     return null;
