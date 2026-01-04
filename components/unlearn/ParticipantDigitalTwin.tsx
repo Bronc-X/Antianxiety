@@ -325,11 +325,9 @@ export default function ParticipantDigitalTwin() {
     const [notifications, setNotifications] = useState(true);
 
     // NEW: Selected metrics for curve chart
-    const [selectedMetrics, setSelectedMetrics] = useState<(keyof typeof METRIC_LABELS)[]>([
-        'anxietyScore',
-        'sleepQuality',
-        'moodStability',
-    ]);
+    const [selectedMetrics, setSelectedMetrics] = useState<(keyof typeof METRIC_LABELS)[]>(() =>
+        Object.keys(METRIC_LABELS) as (keyof typeof METRIC_LABELS)[]
+    );
 
     // Handle metric toggle
     const handleMetricToggle = useCallback((metric: keyof typeof METRIC_LABELS) => {
@@ -2188,6 +2186,11 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
                     {language === 'en' ? 'Prediction Curves' : '预测曲线'}
                 </h3>
             </div>
+            <p className="text-white/60 text-xs mb-4">
+                {language === 'en'
+                    ? 'Curves combine baseline questionnaires with recent check-ins using an exponential recovery model. Use the metric chips to show/hide curves; wearables improve HRV accuracy.'
+                    : '曲线基于问卷基线 + 最近校准数据，采用指数恢复模型预测。可用下方指标按钮显示/隐藏曲线；接入穿戴设备可提升 HRV 精度。'}
+            </p>
 
             {/* Metric Toggle Buttons */}
             <div className="flex flex-wrap gap-2 mb-6">
@@ -2555,4 +2558,3 @@ function MethodologySection({ language }: MethodologySectionProps) {
         </motion.div>
     );
 }
-
