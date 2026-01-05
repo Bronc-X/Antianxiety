@@ -238,7 +238,7 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
         />
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
+        <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative transition-all duration-300 ${sidebarOpen ? 'md:blur-0 blur-sm pointer-events-none md:pointer-events-auto opacity-50 md:opacity-100' : ''}`}>
 
           {/* Floating Menu Button (Mobile) */}
           <button
