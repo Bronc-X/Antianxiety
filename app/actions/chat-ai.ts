@@ -11,13 +11,14 @@ interface ChatMessageInput {
 
 export async function generateChatResponse(
   messages: ChatMessageInput[],
-  language: 'zh' | 'en' = 'zh'
+  language: 'zh' | 'en' = 'zh',
+  mode: 'fast' | 'think' = 'fast'
 ): Promise<ActionResult<string>> {
   try {
     const request = new Request('http://chat.local', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, stream: false, language }),
+      body: JSON.stringify({ messages, stream: false, language, mode }),
     });
 
     const response = await chatRoute(request);

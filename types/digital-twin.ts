@@ -34,6 +34,12 @@ export interface CalibrationData {
   moodScore: number;
   stressLevel: number;
   energyLevel: number;
+  // Wearable Data (Optional)
+  restingHeartRate?: number; // bpm
+  hrv?: number; // ms (RMSSD)
+  stepCount?: number;
+  deviceSleepScore?: number; // 0-100
+  activityScore?: number; // 0-100
 }
 
 /** 主动问询洞察 */

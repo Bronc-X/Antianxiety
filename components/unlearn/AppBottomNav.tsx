@@ -7,8 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import {
   LayoutDashboard,
   Sparkles,
-  Target,
-  Settings
+  Target
 } from 'lucide-react';
 
 /**
@@ -16,14 +15,10 @@ import {
  * 
  * 四个主要入口：
  * 1. 仪表盘 - Dashboard
- * 2. Max - AI 助理 (opens chat panel)
+ * 2. Max - AI 助理
  * 3. 计划 - Plans
  * 4. 设置 - Settings
  */
-
-interface AppBottomNavProps {
-  onMaxClick?: () => void;
-}
 
 interface NavItem {
   id: string;
@@ -32,7 +27,6 @@ interface NavItem {
   icon: React.ReactNode;
   href?: string;
   activeRoutes?: string[];
-  isAction?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -49,7 +43,8 @@ const navItems: NavItem[] = [
     labelEn: 'Max',
     labelZh: 'Max',
     icon: <Sparkles className="w-5 h-5" />,
-    isAction: true, // Opens chat panel instead of navigating
+    href: '/unlearn/max',
+    activeRoutes: ['/unlearn/max'],
   },
   {
     id: 'plans',
@@ -59,17 +54,9 @@ const navItems: NavItem[] = [
     href: '/unlearn/plans',
     activeRoutes: ['/unlearn/plans'],
   },
-  {
-    id: 'settings',
-    labelEn: 'Settings',
-    labelZh: '设置',
-    icon: <Settings className="w-5 h-5" />,
-    href: '/unlearn/settings',
-    activeRoutes: ['/unlearn/settings'],
-  },
 ];
 
-export default function AppBottomNav({ onMaxClick }: AppBottomNavProps) {
+export default function AppBottomNav() {
   const pathname = usePathname();
   const { language } = useI18n();
 
@@ -110,33 +97,6 @@ export default function AppBottomNav({ onMaxClick }: AppBottomNavProps) {
             const active = isActive(item);
             const label = language === 'en' ? item.labelEn : item.labelZh;
 
-            // Max button - opens chat panel
-            if (item.isAction) {
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    handleClick(item, false);
-                    onMaxClick?.();
-                  }}
-                  className="relative flex-1 flex flex-col items-center justify-center py-1"
-                >
-                  {/* Icon */}
-                  <motion.div
-                    className="relative z-10 text-[#D4AF37]"
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    {item.icon}
-                  </motion.div>
-
-                  {/* Label */}
-                  <span className="text-[10px] font-medium mt-1 text-[#D4AF37]">
-                    {label}
-                  </span>
-                </button>
-              );
-            }
-
             // Regular navigation link
             return (
               <Link
@@ -160,8 +120,8 @@ export default function AppBottomNav({ onMaxClick }: AppBottomNavProps) {
                     scale: active ? 1.05 : 1,
                   }}
                   className={`relative z-10 transition-colors ${active
-                      ? 'text-[#0B3D2E]'
-                      : 'text-[#1A1A1A]/40'
+                    ? 'text-[#0B3D2E]'
+                    : 'text-[#1A1A1A]/40'
                     }`}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -171,8 +131,8 @@ export default function AppBottomNav({ onMaxClick }: AppBottomNavProps) {
                 {/* Label */}
                 <span
                   className={`text-[10px] font-medium mt-1 transition-colors ${active
-                      ? 'text-[#0B3D2E]'
-                      : 'text-[#1A1A1A]/40'
+                    ? 'text-[#0B3D2E]'
+                    : 'text-[#1A1A1A]/40'
                     }`}
                 >
                   {label}

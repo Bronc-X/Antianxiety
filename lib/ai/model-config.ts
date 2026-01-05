@@ -68,11 +68,20 @@ export const REASONING_MODEL_PRIORITY: AIModelName[] = [
  * 快速响应模型优先级
  */
 export const FAST_MODEL_PRIORITY: AIModelName[] = [
-  AI_MODELS.GEMINI_FLASH, // 🚀 最快
-  AI_MODELS.DEEPSEEK_V3_EXP,
-  AI_MODELS.CLAUDE_SONNET,
-  AI_MODELS.DEEPSEEK_V3_THINKING,
+  AI_MODELS.DEEPSEEK_V3_EXP, // 暂时统一为稳定可用模型
 ];
+
+/**
+ * 🆕 思考模式模型优先级 (深度推理)
+ */
+export const THINK_MODEL_PRIORITY: AIModelName[] = [
+  AI_MODELS.DEEPSEEK_V3_EXP, // 暂时统一为稳定可用模型
+];
+
+/**
+ * 🆕 聊天模式类型
+ */
+export type ChatMode = 'fast' | 'think';
 
 // ============================================
 // OpenAI Compatible Client
@@ -163,6 +172,27 @@ export function getDefaultReasoningModel(): AIModelName {
  */
 export function getDefaultFastModel(): AIModelName {
   return getModelForUseCase('fast');
+}
+
+/**
+ * 🆕 根据聊天模式获取模型
+ * @param mode 'fast' | 'think'
+ */
+export function getModelForChatMode(mode: ChatMode): AIModelName {
+  if (mode === 'think') {
+    return THINK_MODEL_PRIORITY[0];
+  }
+  return FAST_MODEL_PRIORITY[0];
+}
+
+/**
+ * 🆕 获取聊天模式的模型优先级列表
+ */
+export function getChatModePriority(mode: ChatMode): AIModelName[] {
+  if (mode === 'think') {
+    return THINK_MODEL_PRIORITY;
+  }
+  return FAST_MODEL_PRIORITY;
 }
 
 // ============================================

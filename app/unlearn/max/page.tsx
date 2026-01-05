@@ -43,7 +43,7 @@ function MaxSkeleton() {
  */
 export default function MaxPage() {
   const router = useRouter();
-  const { user, isLoading: authLoading, error: authError } = useAuth();
+  const { user, isLoading: authLoading, error: authError, isAuthenticated } = useAuth();
   const { profile, isLoading: profileLoading, error: profileError } = useProfile();
   const { history, isLoading: logLoading, error: logError, loadHistory } = useCalibrationLog();
 
@@ -51,16 +51,16 @@ export default function MaxPage() {
   const error = authError || profileError || logError;
 
   useEffect(() => {
-    if (user) {
+    if (isAuthenticated) {
       loadHistory(7).catch(() => {});
     }
-  }, [user, loadHistory]);
+  }, [isAuthenticated, loadHistory]);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace('/unlearn');
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/unlearn/login');
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, isAuthenticated, router]);
 
   const dailyLogs: DailyLog[] = useMemo(() => {
     return (history || []).map(entry => ({
@@ -74,7 +74,7 @@ export default function MaxPage() {
     }));
   }, [history]);
 
-  if (!user && !authLoading) {
+  if (!isAuthenticated && !authLoading) {
     return null;
   }
 

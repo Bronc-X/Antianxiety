@@ -118,10 +118,15 @@ export function selectEndearment(turnCount: number, usedEndearments: string[]): 
     // 如果都用过了，重新开始但跳过最近用的
     const lastUsed = usedEndearments[usedEndearments.length - 1];
     const available = ENDEARMENT_POOL.filter(e => e !== lastUsed);
-    return available[Math.floor(Math.random() * available.length)] || null;
+    if (available.length === 0) {
+      return null;
+    }
+    const index = (turnCount + usedEndearments.length) % available.length;
+    return available[index] || null;
   }
   
-  return unused[Math.floor(Math.random() * unused.length)];
+  const index = (turnCount + usedEndearments.length) % unused.length;
+  return unused[index];
 }
 
 /**

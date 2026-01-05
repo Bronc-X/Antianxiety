@@ -45,6 +45,12 @@ export default function SignupPage() {
   const wechatQrSrc = process.env.NEXT_PUBLIC_WECHAT_QR_URL || 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fmp.weixin.qq.com';
   const router = useRouter();
 
+  // Phone beta waitlist modal state
+  const [showPhoneBetaModal, setShowPhoneBetaModal] = useState(false);
+  const [phoneBetaNumber, setPhoneBetaNumber] = useState('');
+  const [phoneBetaSubmitting, setPhoneBetaSubmitting] = useState(false);
+  const [phoneBetaResult, setPhoneBetaResult] = useState<'success' | 'already' | 'error' | null>(null);
+
   // Clear auth errors on unmount or retry
   useEffect(() => {
     return () => clearError();
@@ -165,6 +171,45 @@ export default function SignupPage() {
     }
   };
 
+  // Handle phone beta waitlist submission
+  const handlePhoneBetaSubmit = async () => {
+    if (!phoneBetaNumber.trim()) return;
+
+    setPhoneBetaSubmitting(true);
+    setPhoneBetaResult(null);
+
+    try {
+      const res = await fetch('/api/phone-waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneBetaNumber.trim() })
+      });
+
+      if (!res.ok) {
+        setPhoneBetaResult('error');
+        return;
+      }
+
+      const data = await res.json();
+      if (data.message === 'already_registered') {
+        setPhoneBetaResult('already');
+      } else {
+        setPhoneBetaResult('success');
+      }
+    } catch (error) {
+      setPhoneBetaResult('error');
+    } finally {
+      setPhoneBetaSubmitting(false);
+    }
+  };
+
+  // Open phone beta modal instead of disabled phone signup
+  const handlePhoneTabClick = () => {
+    setPhoneBetaNumber('');
+    setPhoneBetaResult(null);
+    setShowPhoneBetaModal(true);
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#FAF6EF] dark:bg-neutral-950 px-4 py-12 transition-colors relative">
       {/* Language Switcher */}
@@ -184,9 +229,8 @@ export default function SignupPage() {
               className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${signupMode === 'email' ? 'bg-[#0B3D2E]/10 dark:bg-white/10 text-[#0B3D2E] dark:text-white' : 'text-[#0B3D2E]/70 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white'}`}>
               {t('signup.emailSignup')}
             </button>
-            <button type="button" onClick={() => { setSignupMode('phone'); setMessage(null); }}
-              disabled={true}
-              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-not-allowed opacity-50 text-[#0B3D2E]/70 dark:text-neutral-400`}>
+            <button type="button" onClick={handlePhoneTabClick}
+              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors text-[#0B3D2E]/70 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white hover:bg-[#0B3D2E]/5 dark:hover:bg-white/5`}>
               {t('signup.phoneSignup')} {t('signup.betaTesting')}
             </button>
           </div>
@@ -309,6 +353,64 @@ export default function SignupPage() {
               </div>
               <p className="text-sm text-[#0B3D2E]/70 dark:text-neutral-400 text-center">{t('signup.wechatHint')}</p>
               <button onClick={() => setShowWechatModal(false)} className="mt-4 w-full py-2 rounded-xl border border-[#E7E1D6] dark:border-neutral-700 text-[#0B3D2E] dark:text-white text-sm font-medium hover:bg-[#FAF6EF] dark:hover:bg-neutral-800 transition-colors">
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Phone Beta Waitlist Modal */}
+        {showPhoneBetaModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPhoneBetaModal(false)}>
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="text-center mb-4">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">{t('signup.phoneBetaTitle')}</h3>
+              </div>
+
+              <p className="text-sm text-[#0B3D2E]/70 dark:text-neutral-400 text-center mb-5">
+                {t('signup.phoneBetaDesc')}
+              </p>
+
+              {phoneBetaResult ? (
+                <div className={`p-4 rounded-lg text-center mb-4 ${phoneBetaResult === 'error'
+                    ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                  }`}>
+                  <p className="text-sm">
+                    {phoneBetaResult === 'success' && t('signup.phoneBetaSuccess')}
+                    {phoneBetaResult === 'already' && t('signup.phoneBetaAlready')}
+                    {phoneBetaResult === 'error' && t('signup.phoneBetaError')}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <input
+                    type="tel"
+                    value={phoneBetaNumber}
+                    onChange={(e) => setPhoneBetaNumber(e.target.value)}
+                    placeholder={t('signup.phoneBetaPlaceholder')}
+                    className="w-full px-4 py-3 rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20 text-center"
+                    disabled={phoneBetaSubmitting}
+                  />
+                  <button
+                    onClick={handlePhoneBetaSubmit}
+                    disabled={phoneBetaSubmitting || !phoneBetaNumber.trim()}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 text-white text-sm font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {phoneBetaSubmitting ? t('signup.phoneBetaSubmitting') : t('signup.phoneBetaSubmit')}
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={() => setShowPhoneBetaModal(false)}
+                className="mt-4 w-full py-2 rounded-xl border border-[#E7E1D6] dark:border-neutral-700 text-[#0B3D2E] dark:text-white text-sm font-medium hover:bg-[#FAF6EF] dark:hover:bg-neutral-800 transition-colors"
+              >
                 {t('common.close')}
               </button>
             </div>

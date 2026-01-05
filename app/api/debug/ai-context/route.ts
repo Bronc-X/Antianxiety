@@ -2,6 +2,46 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { isAdminToken } from '@/lib/admin-auth';
 
+const CONTEXT_ENVELOPE_VERSION = 'v2';
+const EMPTY_CONTEXT_MARKER = 'NO_DATA';
+
+const PRIMARY_GOAL_MAP: Record<string, string> = {
+  lose_weight: '减脂塑形',
+  improve_sleep: '改善睡眠',
+  boost_energy: '提升精力',
+  maintain_energy: '保持健康',
+};
+
+function formatPromptBlock(label: string, content?: string): string {
+  const trimmed = content?.trim();
+  return `[${label}]\n${trimmed ? trimmed : EMPTY_CONTEXT_MARKER}`;
+}
+
+function buildContextEnvelope(blocks: Array<{ label: string; content?: string }>): string {
+  const body = blocks.map((block) => formatPromptBlock(block.label, block.content)).join('\n\n');
+  return `[CONTEXT ENVELOPE ${CONTEXT_ENVELOPE_VERSION}]\n<CONTEXT>\n${body}\n</CONTEXT>`;
+}
+
+function summarizeText(text?: string | null, maxLength: number = 200): string | null {
+  if (!text) return null;
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+}
+
+function buildFocusRecap(profile: {
+  current_focus?: string | null;
+  primary_goal?: string | null;
+}): string {
+  const parts: string[] = [];
+  if (profile.current_focus) {
+    parts.push(`健康限制: ${profile.current_focus}`);
+  }
+  if (profile.primary_goal) {
+    const goalName = PRIMARY_GOAL_MAP[profile.primary_goal] || profile.primary_goal;
+    parts.push(`主要目标: ${goalName}`);
+  }
+  return parts.join(' | ');
+}
+
 /**
  * Debug API: 检查用户的 AI 调优设置
  * GET /api/debug/ai-context
@@ -59,6 +99,36 @@ export async function GET(request: Request) {
     }
     
     // 构建诊断报告
+    const focusRecap = buildFocusRecap(profile || {});
+    const contextEnvelope = buildContextEnvelope([
+      {
+        label: 'AI TUNING',
+        content: [
+          `primary_goal: ${profile?.primary_goal || EMPTY_CONTEXT_MARKER}`,
+          `ai_personality: ${profile?.ai_personality || EMPTY_CONTEXT_MARKER}`,
+          `current_focus: ${profile?.current_focus || EMPTY_CONTEXT_MARKER}`,
+        ].join('\n'),
+      },
+      {
+        label: 'USER PROFILE',
+        content: [
+          `full_name: ${profile?.full_name || EMPTY_CONTEXT_MARKER}`,
+          `age: ${profile?.age || EMPTY_CONTEXT_MARKER}`,
+          `gender: ${profile?.gender || EMPTY_CONTEXT_MARKER}`,
+          `height: ${profile?.height || EMPTY_CONTEXT_MARKER}`,
+          `weight: ${profile?.weight || EMPTY_CONTEXT_MARKER}`,
+        ].join('\n'),
+      },
+      {
+        label: 'AI PERSONA CONTEXT',
+        content: summarizeText(profile?.ai_persona_context) || undefined,
+      },
+      {
+        label: 'FOCUS RECAP',
+        content: focusRecap || EMPTY_CONTEXT_MARKER,
+      },
+    ]);
+
     const diagnosis = {
       success: true,
       user_id: user.id,
@@ -96,6 +166,13 @@ export async function GET(request: Request) {
       // 最后更新时间
       last_updated: profile?.updated_at || '未知',
       
+      // 上下文调试输出
+      context_debug: {
+        context_envelope_version: CONTEXT_ENVELOPE_VERSION,
+        focus_recap: focusRecap || null,
+        context_envelope: contextEnvelope,
+      },
+
       // 建议
       recommendations: [] as string[],
     };

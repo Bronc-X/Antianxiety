@@ -57,10 +57,10 @@ const TOUR_STEPS: TourStep[] = [
     },
     {
         id: 'hrv',
-        targetId: 'tour-hrv',
+        targetId: 'tour-wearable',
         titleZh: '生理数据',
-        subtitleZh: '量化你的身体状态',
-        descriptionZh: '连接可穿戴设备后，这里会显示你的心率变异性（HRV）等生理指标，帮助 Max 更全面地了解你。',
+        subtitleZh: '连接你的可穿戴设备',
+        descriptionZh: '连接 Apple Watch、Oura Ring 等可穿戴设备后，Max 可以获取你的心率变异性（HRV）等生理指标，帮助更全面地了解你的身体状态。',
         position: 'top',
         icon: <Heart className="w-6 h-6 text-rose-500" />,
         color: 'rose',

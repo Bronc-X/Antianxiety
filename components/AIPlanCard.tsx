@@ -15,7 +15,7 @@ interface Plan {
 interface AIPlanCardProps {
   plans: Plan[];
   onConfirm: (selectedPlan: Plan) => void;
-  onConfirmWithModification?: (currentPlan: Plan, modification: string) => void; // 新增：带修改意见的确认
+  onConfirmWithModification?: (currentPlan: Plan, modification: string) => Promise<void> | void; // 新增：带修改意见的确认
   isReviewMode?: boolean; // 新增：是否为审核模式（修改后的方案）
   userContext?: {
     primaryConcern?: string;
@@ -79,6 +79,11 @@ export default function AIPlanCard({
   );
   const [modificationInput, setModificationInput] = useState(''); // 修改意见输入
   const [isProcessing, setIsProcessing] = useState(false); // 处理中状态
+  const quickAdjustments = [
+    { label: '🎲 平替一下', value: '请给这个方案一个平替版本，保持中强度。' },
+    { label: '强度提高', value: '请把方案强度提高一点，同时保持安全可执行。' },
+    { label: '强度降低', value: '请把方案强度稍微降低一点，但仍要有效。' },
+  ];
 
   // 为每个方案生成个性化名称
   const personalizedNames = useMemo<PersonalizedPlanName[]>(() => {
@@ -115,7 +120,8 @@ export default function AIPlanCard({
       console.log('🔘 用户确认保存（带修改意见）');
       console.log('📝 修改意见:', modificationInput);
       setIsProcessing(true);
-      onConfirmWithModification(selectedPlan, modificationInput.trim());
+      Promise.resolve(onConfirmWithModification(selectedPlan, modificationInput.trim()))
+        .finally(() => setIsProcessing(false));
     } else {
       // 没有修改意见，直接保存
       console.log('🔘 用户最终确认保存');
@@ -179,7 +185,8 @@ export default function AIPlanCard({
           onClick={() => {
             if (modificationInput.trim() && onConfirmWithModification) {
               setIsProcessing(true);
-              onConfirmWithModification(plan, modificationInput.trim());
+              Promise.resolve(onConfirmWithModification(plan, modificationInput.trim()))
+                .finally(() => setIsProcessing(false));
             } else {
               onConfirm(plan);
             }
@@ -275,6 +282,10 @@ export default function AIPlanCard({
 
   // 阶段2: 审核确认
   if (stage === 'review' && selectedPlan) {
+    const canModify = Boolean(onConfirmWithModification);
+    const hasModification = modificationInput.trim().length > 0;
+    const confirmLabel = hasModification && canModify ? '应用修改' : '保存方案';
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -312,6 +323,21 @@ export default function AIPlanCard({
             <p className="text-xs text-[#0B3D2E]/60 mb-2">
               如需修改，请在下方输入修改意见（可选）
             </p>
+            {canModify && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {quickAdjustments.map((adjustment) => (
+                  <button
+                    key={adjustment.label}
+                    type="button"
+                    onClick={() => setModificationInput(adjustment.value)}
+                    className="px-3 py-1.5 rounded-full text-[11px] border border-[#E7E1D6] text-[#0B3D2E] bg-white hover:bg-[#0B3D2E]/5 transition-colors"
+                    disabled={isProcessing}
+                  >
+                    {adjustment.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <textarea
               value={modificationInput}
               onChange={(e) => setModificationInput(e.target.value)}
@@ -329,7 +355,7 @@ export default function AIPlanCard({
           className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
         >
           <Save className="w-4 h-4" />
-          {isProcessing ? '正在保存...' : '保存方案'}
+          {isProcessing ? '正在保存...' : confirmLabel}
         </button>
       </motion.div>
     );

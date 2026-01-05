@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useFeed } from '@/hooks/domain/useFeed';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * 个性化信息流组件
@@ -15,6 +16,8 @@ export default function PersonalizedFeed({
   limit?: number;
   sourceType?: string;
 }) {
+  const { language } = useI18n();
+  const feedLanguage = language === 'en' ? 'en' : 'zh';
   const {
     items,
     personalization,
@@ -24,7 +27,7 @@ export default function PersonalizedFeed({
     loadMore,
     refresh,
     setFilters
-  } = useFeed();
+  } = useFeed({ language: feedLanguage, cacheDaily: true, cacheNamespace: 'personalized-feed' });
 
   // Update filters when props change
   useEffect(() => {

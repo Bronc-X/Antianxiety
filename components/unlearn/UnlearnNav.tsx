@@ -278,7 +278,7 @@ export default function UnlearnNav({
                                 </button>
                             ) : (
                                 <Link
-                            href="/unlearn/login"
+                                    href="/unlearn/login"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="text-lg font-medium text-[#1A1A1A]/70 py-2"
                                 >

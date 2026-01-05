@@ -131,6 +131,8 @@ interface ProfileData {
     current_focus?: string;
     stress_level?: number;
     sleep_hours?: number;
+    energy_level?: number;
+    language?: string;
 }
 
 interface ContentFeedVector {
@@ -144,6 +146,15 @@ interface ContentFeedVector {
     crawled_at?: string;
 }
 
+interface DailyWellnessLog {
+    sleep_hours?: number | null;
+    sleep_duration_minutes?: number | null;
+    stress_level?: number | null;
+    energy_level?: number | null;
+    morning_energy?: number | null;
+    log_date?: string | null;
+}
+
 // ============================================
 // Server Actions
 // ============================================
@@ -155,7 +166,8 @@ export async function getFeed(
     page = 1,
     limit = 20,
     filters?: FeedFilters,
-    enrich = true // Default to true to match previous API behavior
+    enrich = true, // Default to true to match previous API behavior
+    language?: 'zh' | 'en'
 ): Promise<ActionResult<FeedData>> {
     try {
         const supabase = await createServerSupabaseClient();
@@ -170,21 +182,46 @@ export async function getFeed(
         // 1. Get User Profile & Embedding
         const { data: profile, error: profileError } = await supabase
             .from(DB_TABLES.PROFILES)
-            .select('user_persona_embedding, primary_focus_topics, primary_concern, current_focus, stress_level, sleep_hours')
+            .select('user_persona_embedding, primary_focus_topics, primary_concern, current_focus, stress_level, sleep_hours, energy_level, language')
             .eq('id', user.id)
             .single<ProfileData>();
+
+        const { data: latestLog } = await supabase
+            .from('daily_wellness_logs')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('log_date', { ascending: false })
+            .limit(1)
+            .maybeSingle<DailyWellnessLog>();
+
+        const latestSleepHours = typeof latestLog?.sleep_hours === 'number'
+            ? latestLog.sleep_hours
+            : typeof latestLog?.sleep_duration_minutes === 'number'
+                ? latestLog.sleep_duration_minutes / 60
+                : null;
+        const latestStressLevel = typeof latestLog?.stress_level === 'number' ? latestLog.stress_level : null;
+        const latestEnergyLevel = typeof latestLog?.energy_level === 'number'
+            ? latestLog.energy_level
+            : typeof latestLog?.morning_energy === 'number'
+                ? latestLog.morning_energy
+                : null;
+
+        const resolvedLanguage: 'zh' | 'en' =
+            language === 'en' || language === 'zh'
+                ? language
+                : (profile?.language === 'en' ? 'en' : 'zh');
 
         let items: ContentFeedVector[] = [];
         let personalizationMeta: FeedResponseMeta = {
             ready: false,
-            reason: 'Service unavailable',
+            reason: resolvedLanguage === 'en' ? 'Service unavailable' : '服务不可用',
             fallback: 'none'
         };
 
         if (!adminSupabase) {
             // Fallback to basic DB query if admin client fails
             // (Logic matches original getFeed but simplified)
-            personalizationMeta.reason = 'Admin client unavailable';
+            personalizationMeta.reason = resolvedLanguage === 'en' ? 'Admin client unavailable' : '服务不可用';
         } else {
             // 2. Vector Search (if profile has embedding)
             if (profile?.user_persona_embedding) {
@@ -213,8 +250,8 @@ export async function getFeed(
                     items = scored;
                     personalizationMeta = {
                         ready: true,
-                        reason: 'Personalized based on profile',
-                        message: 'Personalization active'
+                        reason: resolvedLanguage === 'en' ? 'Personalized based on profile' : '基于用户画像个性化',
+                        message: resolvedLanguage === 'en' ? 'Personalization active' : '个性化筛选已启用'
                     };
                 }
             }
@@ -236,9 +273,11 @@ export async function getFeed(
                     items = latestContent.map((item: any) => ({ ...item, relevance_score: 0.1 })); // Low score
                     personalizationMeta = {
                         ready: false,
-                        reason: 'No personalized matches found',
+                        reason: resolvedLanguage === 'en' ? 'No personalized matches found' : '未找到高相关匹配',
                         fallback: 'latest',
-                        message: profile?.user_persona_embedding ? 'No high relevance matches, showing latest.' : 'Profile incomplete, showing latest.'
+                        message: profile?.user_persona_embedding
+                            ? (resolvedLanguage === 'en' ? 'No high relevance matches, showing latest.' : '未找到高相关内容，展示最新。')
+                            : (resolvedLanguage === 'en' ? 'Profile incomplete, showing latest.' : '画像不完整，展示最新。')
                     };
                 }
             }
@@ -252,8 +291,9 @@ export async function getFeed(
                 const userContext = {
                     primaryConcern: profile.primary_concern,
                     currentFocus: profile.current_focus,
-                    stressLevel: profile.stress_level,
-                    sleepHours: profile.sleep_hours,
+                    stressLevel: latestStressLevel ?? profile.stress_level,
+                    sleepHours: latestSleepHours ?? profile.sleep_hours,
+                    energyLevel: latestEnergyLevel ?? profile.energy_level,
                     focusTopics: profile.primary_focus_topics,
                 };
 
@@ -268,7 +308,7 @@ export async function getFeed(
                         relevance_score: i.relevance_score
                     })),
                     userContext,
-                    'en' // Default to English for now, pass logic later if needed
+                    resolvedLanguage
                 );
 
                 // Map enriched items to FeedItem
@@ -282,7 +322,7 @@ export async function getFeed(
                     image_url: null,
                     source: e.source_type, // or source_url
                     source_type: e.source_type,
-                    source_url: e.source_url,
+                    source_url: e.source_url?.trim(),
                     read_time_minutes: 3,
                     is_read: false, // We'll fetch interactions next
                     is_saved: false,
@@ -307,7 +347,7 @@ export async function getFeed(
                     image_url: null,
                     source: i.source_type,
                     source_type: i.source_type,
-                    source_url: i.source_url,
+                    source_url: i.source_url?.trim(),
                     read_time_minutes: 3,
                     is_read: false,
                     is_saved: false,
@@ -339,6 +379,10 @@ export async function getFeed(
                 };
             });
         }
+
+        finalItems = finalItems.filter(item =>
+            Boolean(item.source_url) && !item.source_url?.includes('/status/example')
+        );
 
         // Filter unread if requested
         if (filters?.unreadOnly) {

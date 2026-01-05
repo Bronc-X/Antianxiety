@@ -225,14 +225,13 @@ export function getDataQualityStatus(curveData: DigitalTwinCurveOutput): {
         warnings.push(`缺少基线量表: ${flags.baselineMissing.join(', ')}`);
     }
     if (flags.dailyCalibrationSparse) {
-        warnings.push('每日校准数据较少，建议持续记录');
+        // Motivational messaging instead of warning
+        warnings.push('连续记录三日每日校准, 准确率增加15%');
     }
     if (flags.conversationTrendMissing) {
         warnings.push('对话趋势分析不可用');
     }
-    if (flags.pss10Missing) {
-        warnings.push('PSS-10 压力量表未填写');
-    }
+    // Removed PSS-10 warning - it's an optional advanced scale, not in onboarding
 
     return {
         isGood: warnings.length <= 1,

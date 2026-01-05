@@ -85,6 +85,12 @@ export default function ProfileSetupPage() {
 
       // Success handled by hook's router push or side effect, but explicit for clarity
       console.log('✅ 个人资料保存成功，用户完成 onboarding');
+
+      // Clear hasSeenTour so new users see the feature tour on first visit
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('hasSeenTour');
+      }
+
       router.push('/unlearn');
       router.refresh();
 

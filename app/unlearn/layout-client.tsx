@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { UnlearnNav, MaxChatPanel } from '@/components/unlearn';
+import { UnlearnNav } from '@/components/unlearn';
 import { useI18n } from '@/lib/i18n';
 import AppBottomNav from '@/components/unlearn/AppBottomNav';
 import { useAuth } from '@/hooks/domain/useAuth';
@@ -16,7 +16,6 @@ export default function UnlearnAppLayoutClient({
     const pathname = usePathname();
     const router = useRouter();
     const { user, isLoading: authLoading } = useAuth();
-    const [chatOpen, setChatOpen] = useState(false);
     // Determine if we are on the Marketing Page (/unlearn/app or /e)
     const isMarketingPage = pathname === '/unlearn/app' || pathname === '/e' || pathname === '/e/';
     const hideChrome = pathname?.startsWith('/unlearn/login')
@@ -48,13 +47,11 @@ export default function UnlearnAppLayoutClient({
                                 { label: 'Dashboard', href: '/unlearn' },
                                 { label: 'Plans', href: '/unlearn/plans' },
                                 { label: 'Science', href: '/unlearn/insights' },
-                                { label: 'Settings', href: '/unlearn/settings' },
                             ]
                             : [
                                 { label: '仪表盘', href: '/unlearn' },
                                 { label: '计划', href: '/unlearn/plans' },
                                 { label: '科学', href: '/unlearn/insights' },
-                                { label: '设置', href: '/unlearn/settings' },
                             ]}
                         isAppNav={true}
                     />
@@ -72,11 +69,8 @@ export default function UnlearnAppLayoutClient({
 
             {children}
 
-            {/* Mobile Bottom Navigation with Max callback */}
-            {!hideChrome && <AppBottomNav onMaxClick={() => setChatOpen(true)} />}
-
-            {/* Max Chat Panel */}
-            {!hideChrome && <MaxChatPanel isOpen={chatOpen} onClose={() => setChatOpen(false)} />}
+            {/* Mobile Bottom Navigation */}
+            {!hideChrome && <AppBottomNav />}
         </div>
     );
 }

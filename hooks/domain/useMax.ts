@@ -16,10 +16,12 @@ import {
     createConversation,
     appendMessage,
     deleteConversation,
+    getStarterQuestions,
     type ChatMessage,
     type Conversation
 } from '@/app/actions/chat';
 import { generateChatResponse } from '@/app/actions/chat-ai';
+import { deriveConversationTitle, isDefaultConversationTitle } from '@/lib/chat-title';
 
 // ============================================
 // Types
@@ -30,7 +32,7 @@ export interface LocalMessage extends ChatMessage {
     isPending?: boolean;
 }
 
-export type ModelMode = 'fast' | 'pro';
+export type ModelMode = 'fast' | 'think';
 
 export interface UseMaxReturn {
     // Data
@@ -44,6 +46,7 @@ export interface UseMaxReturn {
     isOffline: boolean;
     error: string | null;
     modelMode: ModelMode;
+    starterQuestions: string[];
 
     // Actions
     addMessage: (message: LocalMessage) => void;
@@ -71,8 +74,32 @@ export function useMax(): UseMaxReturn {
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [modelMode, setModelMode] = useState<ModelMode>('fast');
+    const [starterQuestions, setStarterQuestions] = useState<string[]>([]);
 
     const fetchingRef = useRef(false);
+    const startersLoadingRef = useRef(false);
+    const startersTimestampRef = useRef(0);
+
+    const loadStarterQuestions = useCallback(async (force = false) => {
+        if (startersLoadingRef.current) return;
+        const now = Date.now();
+        if (!force && startersTimestampRef.current && now - startersTimestampRef.current < 2 * 60 * 1000) {
+            return;
+        }
+
+        startersLoadingRef.current = true;
+        try {
+            const result = await getStarterQuestions();
+            if (result.success && Array.isArray(result.data)) {
+                setStarterQuestions(result.data);
+                startersTimestampRef.current = Date.now();
+            }
+        } catch (err) {
+            console.warn('Failed to fetch starter questions:', err);
+        } finally {
+            startersLoadingRef.current = false;
+        }
+    }, []);
 
     // Fetch conversations on mount
     useEffect(() => {
@@ -95,6 +122,10 @@ export function useMax(): UseMaxReturn {
 
         fetchData();
     }, []);
+
+    useEffect(() => {
+        void loadStarterQuestions(true);
+    }, [loadStarterQuestions]);
 
     // Add a message (user or assistant start)
     const addMessage = useCallback((message: LocalMessage) => {
@@ -132,6 +163,7 @@ export function useMax(): UseMaxReturn {
                 setConversations(prev => [result.data!, ...prev]);
                 setCurrentConversationId(result.data.id);
                 setMessages([]);
+                void loadStarterQuestions(true);
                 return result.data.id;
             }
             return null;
@@ -151,12 +183,13 @@ export function useMax(): UseMaxReturn {
             if (result.success && result.data) {
                 setMessages(result.data);
             }
+            void loadStarterQuestions();
         } catch {
             setError('Failed to load conversation');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [loadStarterQuestions]);
 
     // Send message + persist
     const sendMessage = useCallback(async (
@@ -199,6 +232,12 @@ export function useMax(): UseMaxReturn {
 
         setMessages(prev => [...prev, userResult.data!]);
 
+        setConversations(prev => prev.map(conv => {
+            if (conv.id !== conversationId) return conv;
+            if (!isDefaultConversationTitle(conv.title)) return conv;
+            return { ...conv, title: deriveConversationTitle(content) };
+        }));
+
         // 2. Add Placeholder for Assistant
         const placeholderId = `assistant-${Date.now()}`;
         setMessages(prev => ([
@@ -221,7 +260,7 @@ export function useMax(): UseMaxReturn {
             const chatHistory = [...messages, { role: 'user', content: content.trim() }]
                 .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
-            const result = await generateChatResponse(chatHistory, language);
+            const result = await generateChatResponse(chatHistory, language, modelMode);
 
             if (!result.success) {
                 assistantContent = language === 'en'
@@ -262,7 +301,7 @@ export function useMax(): UseMaxReturn {
 
         setIsSending(false);
         return true;
-    }, [currentConversationId, isSending, messages]);
+    }, [currentConversationId, isSending, messages, modelMode]);
 
     // Delete a conversation
     const deleteChat = useCallback(async (id: string): Promise<boolean> => {
@@ -313,6 +352,7 @@ export function useMax(): UseMaxReturn {
         isOffline: !isOnline,
         error,
         modelMode,
+        starterQuestions,
         addMessage,
         updateLastMessage,
         newConversation,

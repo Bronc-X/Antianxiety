@@ -99,7 +99,7 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
               transition={{ duration: 0.25 }}
               className="text-center mb-3"
             >
-              <span className="text-xs font-medium text-[#0B3D2E]/80 tracking-wide">
+              <span className="text-xs font-medium text-white/90 tracking-wide">
                 <MatrixText text={currentStageData.label} speed={40} />
               </span>
             </motion.div>
@@ -110,12 +110,12 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
         {showProgress && (
           <div className="w-full px-2">
             {/* 进度条容器 - 胶囊形状 */}
-            <div className="relative h-2 bg-[#E7E1D6]/60 rounded-full overflow-hidden shadow-inner">
+            <div className="relative h-2 bg-white/10 rounded-full overflow-hidden shadow-inner">
               {/* 进度填充 - 渐变 + 光泽 */}
               <motion.div
                 className="absolute inset-y-0 left-0 rounded-full"
                 style={{
-                  background: 'linear-gradient(90deg, #0B3D2E 0%, #22c55e 50%, #10b981 100%)',
+                  background: 'linear-gradient(90deg, #2A9D8F 0%, #ffffff 100%)',
                 }}
                 initial={{ width: 0 }}
                 animate={{
@@ -133,10 +133,10 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
                 <motion.div
                   key={stage.id}
                   className={`w-1 h-1 rounded-full transition-colors duration-500 ${idx < currentStage
-                    ? 'bg-[#0B3D2E]'
+                    ? 'bg-[#2A9D8F]'
                     : idx === currentStage
-                      ? 'bg-[#22c55e]'
-                      : 'bg-[#E7E1D6]'
+                      ? 'bg-white'
+                      : 'bg-white/20'
                     }`}
                   animate={idx === currentStage ? {
                     scale: [1, 1.5, 1],
@@ -186,14 +186,14 @@ function AntiAnxietyBreathing() {
           }}
         />
         {/* 品牌文字 */}
-        <span className="text-sm font-bold tracking-tight text-[#0B3D2E]">
+        <span className="text-sm font-bold tracking-tight text-white/90">
           AntiAnxiety™
         </span>
       </motion.div>
 
       {/* 底部提示文字 */}
       <motion.p
-        className="text-[10px] text-[#0B3D2E]/50 mt-2"
+        className="text-[10px] text-white/60 mt-2"
         animate={{
           opacity: [0.3, 0.7, 0.3],
         }}

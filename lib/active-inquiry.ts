@@ -24,6 +24,8 @@ export interface PlanItem {
   id?: string;
   text: string;
   status?: 'pending' | 'completed' | 'skipped';
+  order?: number;
+  index?: number;
 }
 
 export interface ActivePlan {

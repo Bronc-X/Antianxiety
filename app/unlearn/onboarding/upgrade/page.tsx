@@ -155,7 +155,7 @@ export default function UpgradePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAF6EF] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-white p-6 md:p-12 relative overflow-hidden">
+    <div className="min-h-screen bg-[#FAF6EF] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-white p-6 md:p-12 relative overflow-hidden font-serif">
 
       {/* 背景装饰 */}
       <div className="absolute inset-0 opacity-5">
@@ -173,16 +173,16 @@ export default function UpgradePage() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#D4AF37]/10 backdrop-blur-sm border border-[#D4AF37]/20 rounded-full mb-6">
             <Crown className="w-4 h-4 text-[#D4AF37]" />
-            <span className="text-sm font-medium text-[#D4AF37]">
+            <span className="text-sm font-medium text-[#D4AF37] italic tracking-wide">
               {language === 'en' ? 'Unlock Full Potential' : '解锁全部潜能'}
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-serif font-medium leading-tight mb-4">
+          <h1 className="text-4xl md:text-5xl font-serif font-medium leading-tight mb-4 italic tracking-tight">
             {language === 'en' ? 'Choose Your Plan' : '选择适合你的方案'}
           </h1>
 
-          <p className="text-lg text-[#1A1A1A]/70 dark:text-white/70 max-w-2xl mx-auto">
+          <p className="text-lg text-[#1A1A1A]/70 dark:text-white/70 max-w-2xl mx-auto italic">
             {language === 'en'
               ? 'Start free, upgrade when you\'re ready for more.'
               : '免费开始，随时升级获取更多功能。'
@@ -205,8 +205,8 @@ export default function UpgradePage() {
                   <feature.icon className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
-                  <p className="text-sm text-[#1A1A1A]/70 dark:text-white/70 leading-relaxed">{feature.desc}</p>
+                  <h3 className="font-bold text-lg mb-2 font-serif">{feature.title}</h3>
+                  <p className="text-sm text-[#1A1A1A]/70 dark:text-white/70 leading-relaxed italic">{feature.desc}</p>
                 </div>
               </div>
             </motion.div>
@@ -227,9 +227,28 @@ export default function UpgradePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + idx * 0.1 }}
               whileHover={{ y: -5 }}
-              className={`relative p-6 rounded-2xl bg-white dark:bg-[#2C2C2C] border-2 ${plan.color} transition-shadow duration-300 hover:shadow-xl flex flex-col h-full`}
-              style={plan.popular ? { boxShadow: '0 0 40px rgba(212, 175, 55, 0.4)' } : { borderTopWidth: '3px', borderTopColor: plan.tierColor }}
+              onClick={() => setSelectedPlan(plan.id as 'free' | 'pro' | 'enterprise')}
+              className={`relative p-6 rounded-2xl bg-white dark:bg-[#2C2C2C] border-2 transition-all duration-300 hover:shadow-xl flex flex-col h-full cursor-pointer ${selectedPlan === plan.id
+                  ? `ring-4 ring-offset-2 ring-offset-[#FAF6EF] dark:ring-offset-[#1A1A1A] ${plan.id === 'pro' ? 'ring-[#D4AF37]/60' : plan.id === 'founding' ? 'ring-[#C4A77D]/60' : 'ring-[#9CAF88]/60'}`
+                  : ''
+                } ${plan.color}`}
+              style={{
+                boxShadow: selectedPlan === plan.id
+                  ? `0 0 60px ${plan.tierColor}50, 0 0 30px ${plan.tierColor}30`
+                  : plan.popular
+                    ? '0 0 40px rgba(212, 175, 55, 0.4)'
+                    : 'none',
+                borderTopWidth: !plan.popular ? '3px' : undefined,
+                borderTopColor: !plan.popular ? plan.tierColor : undefined
+              }}
             >
+              {/* Selected indicator */}
+              {selectedPlan === plan.id && (
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg z-10">
+                  <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                </div>
+              )}
+
               {/* Popular badge */}
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-white text-xs font-bold rounded-full shadow-lg">
@@ -245,19 +264,19 @@ export default function UpgradePage() {
               )}
 
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-2 font-serif">{plan.name}</h3>
+                <h3 className="text-xl font-bold mb-2 font-serif italic">{plan.name}</h3>
                 <div className="flex items-baseline justify-center gap-2">
                   {plan.originalPrice && (
                     <span className="text-lg line-through text-[#1A1A1A]/40 dark:text-white/40">
                       {plan.originalPrice}
                     </span>
                   )}
-                  <span className="text-4xl font-bold font-serif">{language === 'en' ? plan.priceEn : plan.price}</span>
+                  <span className="text-4xl font-bold font-serif italic">{language === 'en' ? plan.priceEn : plan.price}</span>
                   {plan.period && (
                     <span className="text-sm text-[#1A1A1A]/60 dark:text-white/60">{plan.period}</span>
                   )}
                 </div>
-                <p className="text-sm text-[#1A1A1A]/60 dark:text-white/60 mt-2 font-serif">{plan.desc}</p>
+                <p className="text-sm text-[#1A1A1A]/60 dark:text-white/60 mt-2 font-serif italic">{plan.desc}</p>
               </div>
 
               <ul className="space-y-3 flex-grow">
@@ -272,13 +291,19 @@ export default function UpgradePage() {
               </ul>
 
               <button
-                onClick={() => plan.id === 'free' ? handleSkip() : handleSubscribe(plan.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  plan.id === 'free' ? handleSkip() : handleSubscribe(plan.id);
+                }}
                 disabled={isSkipping}
-                className={`w-full py-3 rounded-xl font-semibold transition-all mt-6 font-serif ${plan.popular
-                  ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-white hover:shadow-lg hover:scale-105'
-                  : plan.id === 'free'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    : 'bg-[#0B3D2E] text-white hover:bg-[#0a3427]'
+                className={`w-full py-3 rounded-xl font-semibold transition-all mt-6 font-serif ${selectedPlan === plan.id
+                    ? 'scale-105 shadow-lg'
+                    : ''
+                  } ${plan.popular
+                    ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-white hover:shadow-lg hover:scale-105'
+                    : plan.id === 'free'
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      : 'bg-[#0B3D2E] text-white hover:bg-[#0a3427]'
                   } disabled:opacity-50`}
               >
                 {plan.cta}
@@ -297,15 +322,15 @@ export default function UpgradePage() {
           <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6 text-sm text-[#1A1A1A]/50 dark:text-white/50">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              <span>{language === 'en' ? 'SSL Encrypted' : 'SSL 加密'}</span>
+              <span className="italic">{language === 'en' ? 'SSL Encrypted' : 'SSL 加密'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4" />
-              <span>{language === 'en' ? 'Cancel Anytime' : '随时取消'}</span>
+              <span className="italic">{language === 'en' ? 'Cancel Anytime' : '随时取消'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              <span>{language === 'en' ? '7-Day Trial' : '7天免费试用'}</span>
+              <span className="italic">{language === 'en' ? '7-Day Trial' : '7天免费试用'}</span>
             </div>
           </div>
         </motion.div>
@@ -320,7 +345,7 @@ export default function UpgradePage() {
           <button
             onClick={handleSkip}
             disabled={isSkipping}
-            className="text-sm text-[#1A1A1A]/50 dark:text-white/50 hover:text-[#1A1A1A] dark:hover:text-white underline transition-colors disabled:opacity-50"
+            className="text-sm text-[#1A1A1A]/50 dark:text-white/50 hover:text-[#1A1A1A] dark:hover:text-white underline transition-colors disabled:opacity-50 italic"
           >
             {isSkipping
               ? (language === 'en' ? 'Loading...' : '加载中...')

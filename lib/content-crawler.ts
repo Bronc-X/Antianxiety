@@ -190,7 +190,7 @@ async function pubMedToContentItem(article: PubMedArticle): Promise<ContentFeedI
   if (!abstract || abstract.length < 100) return null;
 
   const contentText = `${article.title}\n\n${abstract}`;
-  
+
   return {
     source_url: `https://pubmed.ncbi.nlm.nih.gov/${article.uid}/`,
     source_type: 'pubmed',
@@ -213,6 +213,102 @@ function semanticScholarToContentItem(paper: SemanticScholarPaper): ContentFeedI
     content_text: contentText.slice(0, 2000),
     published_at: paper.year ? `${paper.year}-01-01` : null,
   };
+}
+
+// ============================================
+// Social Sources (Reddit / X)
+// ============================================
+
+async function crawlRedditContent(limit: number): Promise<ContentFeedItem[]> {
+  const results: ContentFeedItem[] = [];
+  const subreddits = [
+    'r/Anxiety',
+    'r/mentalhealth',
+    'r/getdisciplined',
+    'r/Habits',
+    'r/productivity',
+    'r/selfimprovement',
+  ];
+
+  for (const subreddit of subreddits.slice(0, Math.ceil(limit / subreddits.length))) {
+    try {
+      const response = await fetch(
+        `https://www.reddit.com/${subreddit}/hot.json?limit=5`,
+        {
+          headers: {
+            'User-Agent': 'Antianxiety-Bot/1.0',
+          },
+        }
+      );
+
+      if (!response.ok) continue;
+      const data = await response.json();
+      const posts = data.data?.children || [];
+
+      for (const post of posts.slice(0, limit)) {
+        const postData = post.data;
+        if (!postData || !postData.selftext || postData.selftext.length < 50) continue;
+
+        results.push({
+          source_url: `https://www.reddit.com${postData.permalink}`,
+          source_type: 'reddit',
+          content_text: `${postData.title}\n\n${postData.selftext}`.substring(0, 2000),
+          published_at: postData.created_utc ? new Date(postData.created_utc * 1000).toISOString() : null,
+        });
+      }
+    } catch (error) {
+      console.error(`Reddit crawl failed for ${subreddit}:`, error);
+    }
+  }
+
+  return results.slice(0, limit);
+}
+
+async function crawlXContent(limit: number): Promise<ContentFeedItem[]> {
+  const results: ContentFeedItem[] = [];
+  const twitterBearerToken = process.env.TWITTER_BEARER_TOKEN;
+
+  if (!twitterBearerToken) {
+    console.log('TWITTER_BEARER_TOKEN not configured, skipping X crawl');
+    return results;
+  }
+
+  try {
+    const searchQuery = encodeURIComponent(
+      '(anxiety OR stress OR sleep OR mindfulness OR habit) -is:retweet lang:en'
+    );
+
+    const response = await fetch(
+      `https://api.twitter.com/2/tweets/search/recent?query=${searchQuery}&max_results=${Math.min(limit, 20)}&tweet.fields=created_at`,
+      {
+        headers: {
+          Authorization: `Bearer ${twitterBearerToken}`,
+          'User-Agent': 'Antianxiety-Bot/1.0',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.warn('X search failed:', response.status);
+      return results;
+    }
+
+    const data = await response.json();
+    const tweets = data.data || [];
+
+    results.push(
+      ...tweets.map((tweet: { id: string; text: string; created_at?: string }) => ({
+        source_url: `https://x.com/i/web/status/${tweet.id}`,
+        source_type: 'x',
+        content_text: tweet.text.substring(0, 2000),
+        published_at: tweet.created_at || null,
+      }))
+    );
+  } catch (error) {
+    console.error('X crawl failed:', error);
+  }
+
+  return results.slice(0, limit);
 }
 
 // ============================================
@@ -240,12 +336,16 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
   success: boolean;
   pubmedCount: number;
   semanticCount: number;
+  redditCount: number;
+  xCount: number;
   errors: string[];
 }> {
   const supabase = getAdminSupabase();
   const errors: string[] = [];
   let pubmedCount = 0;
   let semanticCount = 0;
+  let redditCount = 0;
+  let xCount = 0;
 
   for (const query of SEARCH_QUERIES) {
     console.log(`🔍 Crawling: ${query}`);
@@ -353,12 +453,97 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
-  console.log(`✅ Crawl complete: ${pubmedCount} PubMed, ${semanticCount} Semantic Scholar`);
+  // 3. Social sources
+  const socialLimit = Math.min(6, maxPerQuery);
+
+  try {
+    const redditItems = await crawlRedditContent(socialLimit);
+    for (const item of redditItems) {
+      const { data: existing } = await supabase
+        .from('content_feed_vectors')
+        .select('id')
+        .eq('source_url', item.source_url)
+        .single();
+
+      if (existing) continue;
+
+      try {
+        item.embedding = await generateEmbedding(item.content_text);
+      } catch (e) {
+        console.warn('Embedding generation failed for Reddit item');
+      }
+
+      const { error } = await supabase
+        .from('content_feed_vectors')
+        .insert({
+          source_url: item.source_url,
+          source_type: item.source_type,
+          content_text: item.content_text,
+          published_at: item.published_at,
+          embedding: item.embedding,
+          crawled_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        errors.push(`Reddit insert error: ${error.message}`);
+      } else {
+        redditCount++;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  } catch (e) {
+    errors.push(`Reddit crawl error: ${e}`);
+  }
+
+  try {
+    const xItems = await crawlXContent(socialLimit);
+    for (const item of xItems) {
+      const { data: existing } = await supabase
+        .from('content_feed_vectors')
+        .select('id')
+        .eq('source_url', item.source_url)
+        .single();
+
+      if (existing) continue;
+
+      try {
+        item.embedding = await generateEmbedding(item.content_text);
+      } catch (e) {
+        console.warn('Embedding generation failed for X item');
+      }
+
+      const { error } = await supabase
+        .from('content_feed_vectors')
+        .insert({
+          source_url: item.source_url,
+          source_type: item.source_type,
+          content_text: item.content_text,
+          published_at: item.published_at,
+          embedding: item.embedding,
+          crawled_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        errors.push(`X insert error: ${error.message}`);
+      } else {
+        xCount++;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  } catch (e) {
+    errors.push(`X crawl error: ${e}`);
+  }
+
+  console.log(`✅ Crawl complete: ${pubmedCount} PubMed, ${semanticCount} Semantic Scholar, ${redditCount} Reddit, ${xCount} X`);
 
   return {
     success: errors.length === 0,
     pubmedCount,
     semanticCount,
+    redditCount,
+    xCount,
     errors,
   };
 }
@@ -369,11 +554,15 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
 export async function quickCrawl(): Promise<{
   success: boolean;
   count: number;
+  redditCount: number;
+  xCount: number;
   errors: string[];
 }> {
   const supabase = getAdminSupabase();
   const errors: string[] = [];
   let count = 0;
+  let redditCount = 0;
+  let xCount = 0;
 
   // 只用一个查询，快速获取一些文章
   const query = 'anxiety treatment mindfulness';
@@ -437,6 +626,90 @@ export async function quickCrawl(): Promise<{
     console.error('Quick crawl error:', e);
   }
 
-  console.log(`✅ Quick crawl complete: ${count} articles`);
-  return { success: errors.length === 0, count, errors };
+  const socialLimit = 4;
+
+  try {
+    const redditItems = await crawlRedditContent(socialLimit);
+    for (const item of redditItems) {
+      const { data: existing } = await supabase
+        .from('content_feed_vectors')
+        .select('id')
+        .eq('source_url', item.source_url)
+        .single();
+
+      if (existing) continue;
+
+      try {
+        item.embedding = await generateEmbedding(item.content_text);
+      } catch (e) {
+        console.warn('Embedding generation failed for Reddit item');
+      }
+
+      const { error } = await supabase
+        .from('content_feed_vectors')
+        .insert({
+          source_url: item.source_url,
+          source_type: item.source_type,
+          content_text: item.content_text,
+          published_at: item.published_at,
+          embedding: item.embedding,
+          crawled_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        errors.push(`Reddit insert error: ${error.message}`);
+      } else {
+        redditCount++;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  } catch (e) {
+    errors.push(`Reddit crawl error: ${e}`);
+  }
+
+  try {
+    const xItems = await crawlXContent(socialLimit);
+    for (const item of xItems) {
+      const { data: existing } = await supabase
+        .from('content_feed_vectors')
+        .select('id')
+        .eq('source_url', item.source_url)
+        .single();
+
+      if (existing) continue;
+
+      try {
+        item.embedding = await generateEmbedding(item.content_text);
+      } catch (e) {
+        console.warn('Embedding generation failed for X item');
+      }
+
+      const { error } = await supabase
+        .from('content_feed_vectors')
+        .insert({
+          source_url: item.source_url,
+          source_type: item.source_type,
+          content_text: item.content_text,
+          published_at: item.published_at,
+          embedding: item.embedding,
+          crawled_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        errors.push(`X insert error: ${error.message}`);
+      } else {
+        xCount++;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  } catch (e) {
+    errors.push(`X crawl error: ${e}`);
+  }
+
+  const totalCount = count + redditCount + xCount;
+  console.log(`✅ Quick crawl complete: ${totalCount} items (${count} scientific, ${redditCount} Reddit, ${xCount} X)`);
+
+  return { success: errors.length === 0, count: totalCount, redditCount, xCount, errors };
 }
