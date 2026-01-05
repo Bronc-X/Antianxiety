@@ -213,8 +213,8 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
     // Backdrop
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md sm:p-6 md:p-8 animate-in fade-in duration-300 font-sans text-sm">
 
-      {/* Modal Window */}
-      <div className="w-full h-full sm:h-[92vh] sm:max-w-[1400px] bg-gradient-to-br from-[#0B3D2E] to-[#020A08] text-white/90 sm:rounded-[2rem] shadow-2xl overflow-hidden flex relative ring-1 ring-white/10 animate-in zoom-in-95 duration-300">
+      {/* Modal Window - use dvh for keyboard-aware height on iOS */}
+      <div className="w-full h-[100dvh] sm:h-[92vh] sm:max-w-[1400px] bg-gradient-to-br from-[#0B3D2E] to-[#020A08] text-white/90 sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative ring-1 ring-white/10 animate-in zoom-in-95 duration-300">
 
         {/* Floating Close Button */}
         <button
@@ -406,8 +406,8 @@ export default function MaxPageClient({ initialProfile, dailyLogs = [] }: MaxPag
                 </AnimatePresence>
               </div>
 
-              {/* Bottom Input Area (Sticky) */}
-              <div className="flex-shrink-0 p-4 sm:p-6 bg-gradient-to-t from-black/40 to-transparent">
+              {/* Bottom Input Area (Sticky) - with keyboard safe area */}
+              <div className="flex-shrink-0 p-4 sm:p-6 bg-gradient-to-t from-black/40 to-transparent pb-safe">
                 <form onSubmit={handleSubmit} className="relative max-w-3xl mx-auto">
                   <div className="relative bg-[#2A9D8F]/20 rounded-[24px] border border-[#2A9D8F]/30 flex items-end gap-2 p-2 shadow-lg transition-colors hover:border-[#2A9D8F]/40 focus-within:border-[#2A9D8F]/40">
 
