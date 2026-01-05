@@ -23,7 +23,8 @@ import {
     Mic,
     MicOff,
     Zap,
-    Sparkles
+    Sparkles,
+    Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MaxAvatar from "@/components/max/MaxAvatar";
@@ -209,12 +210,19 @@ function MessageBubble({ message, isLatest }: { message: LocalMessage; isLatest:
 // Empty State Component
 // ============================================
 
-function EmptyState({ onSuggestionClick }: { onSuggestionClick: (text: string) => void }) {
-    const suggestions = [
+function EmptyState({
+    suggestions,
+    onSuggestionClick
+}: {
+    suggestions: string[];
+    onSuggestionClick: (text: string) => void;
+}) {
+    const fallback = [
         "帮我制定一个睡眠改善计划",
         "我最近压力很大",
         "分析我的健康数据"
     ];
+    const resolved = suggestions.length > 0 ? suggestions : fallback;
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
@@ -226,7 +234,7 @@ function EmptyState({ onSuggestionClick }: { onSuggestionClick: (text: string) =
             <p className="text-sm text-stone-500 text-center mb-6">你的个人健康 AI 助手</p>
 
             <div className="w-full max-w-xs space-y-2">
-                {suggestions.map((text, idx) => (
+                {resolved.map((text, idx) => (
                     <motion.button
                         key={idx}
                         initial={{ opacity: 0, y: 10 }}
@@ -356,14 +364,14 @@ function ModelToggle({ mode, onChange }: { mode: ModelMode; onChange: (m: ModelM
                 快速
             </button>
             <button
-                onClick={() => onChange('pro')}
+                onClick={() => onChange('think')}
                 className={cn(
                     "px-2 py-1 rounded-md transition-all flex items-center gap-1",
-                    mode === 'pro' ? "bg-white dark:bg-stone-600 text-purple-600 shadow-sm" : "text-stone-500"
+                    mode === 'think' ? "bg-white dark:bg-stone-600 text-purple-600 shadow-sm" : "text-stone-500"
                 )}
             >
-                <Sparkles size={10} />
-                Pro
+                <Brain size={10} />
+                思考
             </button>
         </div>
     );
@@ -382,6 +390,7 @@ export const ViewMax = () => {
         isSending,
         error,
         modelMode,
+        starterQuestions,
         sendMessage,
         switchConversation,
         newConversation,
@@ -436,6 +445,8 @@ export const ViewMax = () => {
         inputRef.current?.focus();
     }, []);
 
+    const showInlineStarters = starterQuestions.length > 0 && messages.length > 0;
+
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -485,7 +496,7 @@ export const ViewMax = () => {
             {/* Messages Area */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto">
                 {messages.length === 0 ? (
-                    <EmptyState onSuggestionClick={handleSuggestionClick} />
+                    <EmptyState suggestions={starterQuestions} onSuggestionClick={handleSuggestionClick} />
                 ) : (
                     <div className="py-2">
                         <AnimatePresence mode="popLayout">
@@ -531,6 +542,23 @@ export const ViewMax = () => {
 
             {/* Input Area with Voice */}
             <div className="flex-shrink-0 px-3 py-2 border-t border-stone-100 dark:border-stone-800 bg-white dark:bg-stone-900">
+                {showInlineStarters && (
+                    <div className="mb-2">
+                        <p className="text-[11px] text-stone-500 mb-1">个性化推荐问题</p>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                            {starterQuestions.map((q, i) => (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => handleSuggestionClick(q)}
+                                    className="shrink-0 px-3 py-1.5 text-[11px] rounded-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:border-emerald-400 transition-all"
+                                >
+                                    {q}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 <div className="flex items-end gap-2 bg-stone-100 dark:bg-stone-800 rounded-xl p-1.5">
                     {/* Voice Button */}
                     {voice.isSupported && (

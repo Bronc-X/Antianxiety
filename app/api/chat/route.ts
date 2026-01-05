@@ -14,7 +14,7 @@ import { optimizeContextInjection, buildOptimizedContextBlock } from '@/lib/cont
 import { buildFullPersonaSystemPrompt } from '@/lib/persona-prompt';
 
 // 🆕 使用统一的 AI 模型配置
-import { aiClient, getModelPriority, logModelCall } from '@/lib/ai/model-config';
+import { aiClient, getModelPriority, getChatModePriority, logModelCall, type ChatMode } from '@/lib/ai/model-config';
 
 // 🆕 导入 AI 记忆系统
 import {
@@ -107,6 +107,19 @@ const AI_PERSONALITY_MAP: Record<string, { name: string; style: string }> = {
     style: 'You are Dr. House AI. Be blunt and diagnostic. Cut through the noise with brutal honesty. Use medical expertise and evidence-based analysis. No sugar-coating, just facts and solutions.',
   },
 };
+
+const FINAL_ANSWER_INSTRUCTION = `
+[FINAL ANSWER ONLY]
+- 只输出最终回答（中文）
+- 不要输出思考过程、推理内容或分析步骤
+- 禁止输出 <think> 标签或 reasoning_content
+`.trim();
+
+const FINAL_ANSWER_STRICT_INSTRUCTION = `
+[FINAL ANSWER STRICT MODE]
+- 若无法输出最终回答，请改用更直接、更短的表述
+- 必须给出面向用户的最终答复
+`.trim();
 
 /**
  * 🆕 从 ai_persona_context 解析诚实度和幽默感设置
@@ -239,6 +252,25 @@ APPROVED PHRASES (USE these):
 
 VISUAL FORM:
 Max is formless. Represented only by UI elements (The BrainLoader, The Glow), never a human avatar.`;
+}
+
+function stripThoughtBlocks(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/?think>/gi, '');
+}
+
+function cleanAssistantOutput(text: string): string {
+  return stripThoughtBlocks(text).trim();
+}
+
+function shouldRetryFinalAnswer(raw: string, cleaned: string, userMessage: string): boolean {
+  if (!cleaned) return true;
+  if (/<think>/i.test(raw)) return true;
+  const userLen = userMessage.trim().length;
+  if (cleaned.length < 30 && userLen > 20) return true;
+  return false;
 }
 
 // 主要目标映射
@@ -533,7 +565,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { messages, stream = true, message, conversationHistory, trigger_checkin } = body; // 🆕 Added trigger_checkin
+    const { messages, stream = true, message, conversationHistory, trigger_checkin, mode = 'fast' } = body; // 🆕 Added trigger_checkin + mode
 
     // 🆕 兼容旧版 /api/ai/chat 的请求格式（Android 客户端）
     // 旧格式: { message: string, conversationHistory: [] }
@@ -1072,39 +1104,59 @@ PLAN GENERATION FORMAT (重要！):
 
 当用户请求制定计划、方案、建议时，你【必须】按以下步骤回复：
 
-【第一步】先用一句话简短回应用户，然后说："下面为你制定X个方案："（X是方案数量）
+【第一步】先用一句话简短回应用户，然后说："下面为你制定X个方案："\（X是方案数量）
 
 【第二步】输出方案（会被系统解析到选择器UI中显示）：
 
 方案1：[简短标题，不超过12字]
-[方案详细内容，包括具体执行步骤]
-难度：⭐⭐⭐
-预期：[预期效果]
+[方案详细内容，包括5个以上具体执行步骤]
+难度：⭐⭐⭐（默认中强度）
+预期：[预期效果和时间]
+🎲 平替选项：[如果用户觉得这个太难，可以用什么替代]
 
 方案2：[简短标题]
 [方案详细内容]
-难度：⭐⭐
+难度：⭐⭐⭐
 预期：[预期效果]
+🎲 平替选项：[替代方案]
 
 ⚠️ 格式规则：
 1. 【必须】以"方案1："开头，冒号后直接跟标题
 2. 【必须】提供2-3个方案供选择
 3. 【禁止】使用 markdown 格式（### 或 **）
 4. 标题要简短有力如"渐进式早睡法"
-5. 每个方案包含3-5个具体执行项
+5. 每个方案包含5个以上具体执行项
+6. 【必须】每个方案都有🎲平替选项
+
+⚠️ 强度规则：
+- 默认使用中强度 ⭐⭐⭐
+- 不要太轻！轻强度 ⭐⭐ 只用于身体状态不好的用户
+- 🎲平替选项用于用户说"太难了"或"做不到"时
 
 正确示例：
 "根据你的情况，我为你设计了几个方案。下面为你制定2个方案：
 
 方案1：渐进式早睡法
-每周提前15分钟入睡。执行项：1.睡前1小时关闭手机 2.10分钟拉伸放松 3.调暗灯光准备入睡
-难度：⭐⭐
+每周提前15分钟入睡。执行项：
+1. 睡前1小时关闭手机
+2. 10分钟拉伸放松
+3. 调暗灯光准备入睡
+4. 播放白噪音或冥想音频
+5. 设置固定起床时间
+难度：⭐⭐⭐
 预期：4周养成习惯
+🎲 平替选项：如果觉得整体太难，可以只从"关闭手机"这一项开始
 
 方案2：21天睡眠重塑
-固定10:30入睡，6:30起床。执行项：1.设置双闹钟提醒 2.午后禁咖啡因 3.睡前热水泡脚
+固定10:30入睡，6:30起床。执行项：
+1. 设置双闹钟提醒
+2. 午后禁咖啡因
+3. 睡前热水泡脚
+4. 卧室温度调到22°C
+5. 使用遮光窗帘
 难度：⭐⭐⭐
-预期：3周见效"
+预期：3周见效
+🎲 平替选项：可以先只固定起床时间，入睡时间慢慢调整"
 
 EASTER EGG (彩蛋):
 在每次对话中，随机选择一个彩蛋加入回复末尾（概率30%）：
@@ -1118,10 +1170,15 @@ INSTRUCTIONS:
 - Always use the "Comforting Truth" tone
 - Keep responses concise and actionable
 - IMPORTANT: Always consider user's health profile and current concerns in your response
-- IMPORTANT: Follow the variation instructions above to avoid repetitive responses`;
+- IMPORTANT: Follow the variation instructions above to avoid repetitive responses
 
-    // 使用统一的模型配置 + 多模型回退
-    const modelCandidates = getModelPriority('chat');
+${FINAL_ANSWER_INSTRUCTION}`;
+
+    // 🆕 使用聊天模式选择模型（快速 vs 思考）
+    const chatMode: ChatMode = mode === 'think' ? 'think' : 'fast';
+    const modelCandidates = getChatModePriority(chatMode);
+    console.log(`🎯 聊天模式: ${chatMode === 'think' ? '🧠 思考 (深度推理)' : '⚡ 快速 (低延迟)'}`);
+    console.log(`📋 模型候选: ${modelCandidates.slice(0, 2).join(', ')}`);
     const modelErrors: { model: string; message: string }[] = [];
 
     // 🆕 非流式响应模式（兼容 Android 客户端）
@@ -1139,7 +1196,31 @@ INSTRUCTIONS:
             system: systemPrompt,
           });
 
-          aiResponse = result.text;
+          let rawText = result.text;
+          let cleanedText = cleanAssistantOutput(rawText);
+
+          if (shouldRetryFinalAnswer(rawText, cleanedText, lastMessage)) {
+            const retry = await generateText({
+              model: aiClient(candidate),
+              messages: (chatMessages as ChatMessage[]).map(m => ({ role: m.role, content: m.content })),
+              system: `${systemPrompt}\n\n${FINAL_ANSWER_STRICT_INSTRUCTION}`,
+            });
+            const retryCleaned = cleanAssistantOutput(retry.text);
+            if (retryCleaned) {
+              rawText = retry.text;
+              cleanedText = retryCleaned;
+            }
+          }
+
+          const needsSubstantiveAnswer = lastMessage.trim().length > 20;
+          if (!cleanedText) {
+            throw new Error('Empty response after cleanup');
+          }
+          if (needsSubstantiveAnswer && cleanedText.length < 30) {
+            throw new Error('Response too short after cleanup');
+          }
+
+          aiResponse = cleanedText;
           modelUsed = candidate;
           break;
         } catch (error) {

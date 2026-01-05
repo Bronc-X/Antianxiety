@@ -19,7 +19,7 @@ export default function GlobalNav() {
   const hideNavPages = ['/login', '/signup', '/onboarding', '/auth', '/welcome', '/beta', '/brutalist', '/unlearn', '/mobile', '/unlearn/app', '/e', '/poster'];
   const shouldHideNav = hideNavPages.some(page => pathname?.startsWith(page));
 
-  if (shouldHideNav) {
+  if (shouldHideNav || pathname === '/') {
     return null;
   }
 

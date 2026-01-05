@@ -28,6 +28,7 @@ interface ProfileData {
   current_focus?: string;
   stress_level?: number;
   sleep_hours?: number;
+  energy_level?: number;
 }
 
 interface ContentFeedVector {
@@ -135,6 +136,7 @@ export async function GET(request: NextRequest) {
         currentFocus: profile.current_focus,
         stressLevel: profile.stress_level,
         sleepHours: profile.sleep_hours,
+        energyLevel: profile.energy_level,
         focusTopics: profile.primary_focus_topics,
       };
 

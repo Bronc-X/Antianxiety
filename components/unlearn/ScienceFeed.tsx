@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { ExternalLink, ThumbsUp, ThumbsDown, Loader2, Sparkles, BookOpen, Lightbulb, Tag, TrendingUp } from 'lucide-react';
+import { ExternalLink, ThumbsUp, ThumbsDown, Loader2, Sparkles, BookOpen, Lightbulb, Tag, TrendingUp, RefreshCw } from 'lucide-react';
 import { useFeed, type FeedItem } from '@/hooks/domain/useFeed';
 import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
 
@@ -19,6 +19,8 @@ function PlatformLogo({ sourceType, language }: { sourceType?: string; language:
         science: { nameEn: 'Science', nameZh: 'Science', color: '#1A5276', icon: '⚗️' },
         lancet: { nameEn: 'The Lancet', nameZh: 'The Lancet', color: '#00457C', icon: '🏥' },
         cell: { nameEn: 'Cell', nameZh: 'Cell', color: '#00A651', icon: '🔬' },
+        x: { nameEn: 'X', nameZh: 'X', color: '#111827', icon: 'X' },
+        reddit: { nameEn: 'Reddit', nameZh: 'Reddit', color: '#FF4500', icon: 'R' },
         default: { nameEn: 'Research', nameZh: '研究', color: '#6B7280', icon: '📄' },
     };
 
@@ -88,6 +90,8 @@ function FeedCard({
     const actionLinkHoverClass = isLightCard ? 'hover:text-[#0B3D2E]/70' : 'hover:text-[#E5C158]';
     const positiveActionClass = isLightCard ? 'text-[#0B3D2E]/40 hover:text-emerald-600' : 'text-white/30 hover:text-emerald-400';
     const negativeActionClass = isLightCard ? 'text-[#0B3D2E]/40 hover:text-red-500' : 'text-white/30 hover:text-red-400';
+    const summaryText = item.summary || (language === 'en' ? item.content?.slice(0, 200) : '');
+    const summaryFallback = summaryText || (language === 'en' ? 'Summary unavailable' : '摘要生成中');
 
     return (
         <motion.div
@@ -104,13 +108,25 @@ function FeedCard({
             </div>
 
             {/* Title */}
-            <h3 className={`${titleClass} font-semibold text-lg mb-3 leading-tight`}>
-                {item.title}
-            </h3>
+            {item.source_url ? (
+                <a
+                    href={item.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${titleClass} font-semibold text-lg mb-3 leading-tight inline-flex items-center gap-2 hover:opacity-80 transition-opacity`}
+                >
+                    {item.title}
+                    <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+            ) : (
+                <h3 className={`${titleClass} font-semibold text-lg mb-3 leading-tight`}>
+                    {item.title}
+                </h3>
+            )}
 
             {/* Summary */}
             <p className={`${summaryClass} text-sm mb-4 leading-relaxed line-clamp-3`}>
-                {item.summary || item.content?.slice(0, 200)}
+                {summaryFallback}
             </p>
 
             {/* Why Recommended */}
@@ -327,13 +343,15 @@ export default function ScienceFeed() {
     const { refresh: refreshProfile, sync } = useProfileMaintenance();
 
     // Domain Hook
+    const feedLanguage = language === 'en' ? 'en' : 'zh';
     const {
         items,
         isLoading,
+        isRefreshing,
         error,
         refresh,
         feedback
-    } = useFeed();
+    } = useFeed({ language: feedLanguage, cacheDaily: true, cacheNamespace: 'science-feed' });
 
     const submitFeedback = async (itemId: string, isPositive: boolean) => {
         try {
@@ -367,9 +385,23 @@ export default function ScienceFeed() {
             <div className="max-w-[900px] mx-auto">
                 {/* Header */}
                 <div className="text-center mb-12">
-                    <p className="text-sm uppercase tracking-widest font-medium mb-4 text-[#D4AF37]">
-                        {language === 'en' ? `Today's Research · ${dateStr}` : `今日精选 · ${dateStr}`}
-                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
+                        <p className="text-sm uppercase tracking-widest font-medium text-[#D4AF37]">
+                            {language === 'en' ? `Today's Research · ${dateStr}` : `今日精选 · ${dateStr}`}
+                        </p>
+                        <button
+                            onClick={() => refresh(true)}
+                            disabled={isRefreshing || isLoading}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#D4AF37]/40 text-[#D4AF37] text-xs uppercase tracking-widest hover:bg-[#D4AF37]/10 transition-colors disabled:opacity-50"
+                        >
+                            {isRefreshing ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                                <RefreshCw className="w-3.5 h-3.5" />
+                            )}
+                            {language === 'en' ? 'Refresh' : '刷新'}
+                        </button>
+                    </div>
                     <h2
                         className="text-white font-bold leading-[1.1] tracking-[-0.02em] mb-4"
                         style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}
@@ -403,10 +435,13 @@ export default function ScienceFeed() {
                             <p className="text-sm text-red-300 mb-4">{error}</p>
                         )}
                         <button
-                            onClick={() => refresh()}
-                            className="px-5 py-2 border border-white/20 text-white hover:bg-white/5 transition-colors"
+                            onClick={() => refresh(true)}
+                            disabled={isRefreshing || isLoading}
+                            className="px-5 py-2 border border-white/20 text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                         >
-                            {language === 'en' ? 'Refresh' : '刷新'}
+                            {isRefreshing
+                                ? (language === 'en' ? 'Refreshing...' : '刷新中...')
+                                : (language === 'en' ? 'Refresh' : '刷新')}
                         </button>
                     </div>
                 ) : (
@@ -427,13 +462,21 @@ export default function ScienceFeed() {
                 {items.length > 0 && (
                     <div className="text-center mt-8">
                         <button
-                            onClick={() => refresh()}
-                            disabled={isLoading}
-                            className="px-6 py-3 border border-white/20 text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                            onClick={() => refresh(true)}
+                            disabled={isRefreshing || isLoading}
+                            className="inline-flex items-center gap-2 px-6 py-3 border border-white/20 text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                         >
-                            {isLoading
-                                ? (language === 'en' ? 'Loading...' : '加载中...')
-                                : (language === 'en' ? 'Refresh Articles' : '刷新文章')}
+                            {isRefreshing ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    {language === 'en' ? 'Refreshing...' : '刷新中...'}
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw className="w-4 h-4" />
+                                    {language === 'en' ? 'Refresh Articles' : '刷新文章'}
+                                </>
+                            )}
                         </button>
                     </div>
                 )}

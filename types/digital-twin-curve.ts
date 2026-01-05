@@ -289,6 +289,6 @@ export interface ShockEvent {
 /** 曲线生成参数 */
 export interface CurveParams {
     improveFactor: number;
-    k: number;
+    k: Record<keyof Week0Values, number>;
     targets: Week0Values;
 }

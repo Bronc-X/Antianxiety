@@ -9,6 +9,8 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { toSerializable, dateToISO } from '@/lib/dto-utils';
+import { deriveConversationTitle, isDefaultConversationTitle } from '@/lib/chat-title';
+import { generatePersonalizedStarters } from '@/lib/max/starter-questions';
 import type { ActionResult } from '@/types/architecture';
 
 // ============================================
@@ -35,6 +37,23 @@ export interface AppendMessageInput {
     conversation_id: string;
     role: 'user' | 'assistant';
     content: string;
+}
+
+export async function getStarterQuestions(): Promise<ActionResult<string[]>> {
+    try {
+        const supabase = await createServerSupabaseClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return { success: false, error: 'Please sign in' };
+        }
+
+        const questions = await generatePersonalizedStarters(user.id);
+        return toSerializable({ success: true, data: questions });
+    } catch (error) {
+        console.error('[Chat Action] getStarterQuestions error:', error);
+        return { success: false, error: 'Failed to load starter questions' };
+    }
 }
 
 // ============================================
@@ -191,7 +210,7 @@ export async function appendMessage(
 
         const { data: conversation, error: convError } = await supabase
             .from('chat_conversations')
-            .select('id, message_count')
+            .select('id, message_count, title')
             .eq('id', input.conversation_id)
             .eq('user_id', user.id)
             .single();
@@ -215,12 +234,18 @@ export async function appendMessage(
         }
 
         const nextCount = (conversation.message_count || 0) + 1;
+        const updatePayload: Record<string, unknown> = {
+            last_message_at: new Date().toISOString(),
+            message_count: nextCount,
+        };
+
+        if (input.role === 'user' && isDefaultConversationTitle(conversation.title)) {
+            updatePayload.title = deriveConversationTitle(input.content);
+        }
+
         await supabase
             .from('chat_conversations')
-            .update({
-                last_message_at: new Date().toISOString(),
-                message_count: nextCount,
-            })
+            .update(updatePayload)
             .eq('id', input.conversation_id)
             .eq('user_id', user.id);
 

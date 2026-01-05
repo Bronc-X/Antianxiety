@@ -102,61 +102,63 @@ export default function UserProfileMenu({ user, profile }: UserProfileMenuProps)
             transition={{ duration: 0.2 }}
             className="absolute right-0 mt-2 w-64 rounded-lg border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg z-50"
           >
-              <div className="p-4 space-y-3">
-                <div className="flex items-center gap-3 pb-3 border-b border-[#E7E1D6] dark:border-neutral-700">
-                  {avatarUrl ? (
-                    <Image
-                      src={avatarUrl}
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-3 pb-3 border-b border-[#E7E1D6] dark:border-neutral-700">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
                     alt={displayName}
-                      className="h-12 w-12 rounded-full object-cover"
-                      width={48}
-                      height={48}
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0B3D2E] dark:bg-emerald-600 text-sm font-medium text-white">
-                      {getInitials()}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate flex items-center gap-1.5 text-[#0B3D2E] dark:text-white">
-                      <span>{displayName || t('userMenu.noName')}</span>
-                      <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded shadow-sm flex-shrink-0">
-                        PRO
-                      </span>
-                    </div>
-                    <div className="text-xs truncate text-[#0B3D2E]/60 dark:text-neutral-400">{user.email}</div>
+                    className="h-12 w-12 rounded-full object-cover"
+                    width={48}
+                    height={48}
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0B3D2E] dark:bg-emerald-600 text-sm font-medium text-white">
+                    {getInitials()}
                   </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate flex items-center gap-1.5 text-[#0B3D2E] dark:text-white">
+                    <span>{displayName || t('userMenu.noName')}</span>
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded shadow-sm flex-shrink-0">
+                      PRO
+                    </span>
+                  </div>
+                  <div className="text-xs truncate text-[#0B3D2E]/60 dark:text-neutral-400">{user.email}</div>
                 </div>
-                <Link
+              </div>
+
+              <Link
                 href="/unlearn/settings"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors text-left block"
-                >
-                  ⚙️ {t('userMenu.settings')}
-                </Link>
+                onClick={() => setIsOpen(false)}
+                className="w-full rounded-md border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors text-left block"
+              >
+                ⚙️ {t('userMenu.settings')}
+              </Link>
+
               <Link
                 href="/unlearn/onboarding/upgrade?from=menu"
                 onClick={() => setIsOpen(false)}
                 className="w-full rounded-md border border-[#0B3D2E] dark:border-emerald-600 bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] dark:from-emerald-600 dark:via-emerald-700 dark:to-emerald-800 px-3 py-2 text-sm text-white hover:shadow-md transition-all text-left block font-medium"
-                >
+              >
                 🚀 {t('userMenu.upgrade')}
               </Link>
-                <button
-                  onClick={handleLogout}
-                  type="button"
-                  className="w-full rounded-md border border-red-200 dark:border-red-800 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-left"
-                >
-                  {isSigningOut ? t('common.loading') : t('userMenu.logout')}
-                </button>
-                {authError && (
-                  <p className="text-sm text-red-600">{authError}</p>
-                )}
-              </div>
+
+              <button
+                onClick={handleLogout}
+                type="button"
+                className="w-full rounded-md border border-red-200 dark:border-red-800 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-left"
+              >
+                {isSigningOut ? t('common.loading') : t('userMenu.logout')}
+              </button>
+              {authError && (
+                <p className="text-sm text-red-600">{authError}</p>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
-

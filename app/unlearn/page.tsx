@@ -260,7 +260,9 @@ export default function AppDashboard() {
             </div>
 
             {/* Wearable Connections */}
-            <WearableConnect />
+            <div data-tour-id="tour-wearable">
+                <WearableConnect />
+            </div>
 
             {/* Plans Dashboard */}
             <PlanDashboard />

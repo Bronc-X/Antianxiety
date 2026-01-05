@@ -6,7 +6,6 @@ import { useI18n } from '@/lib/i18n';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/domain/useAuth';
-import MaxChatPanel from './MaxChatPanel';
 import MaxAvatar from '@/components/max/MaxAvatar';
 
 interface MaxFloatingButtonProps {
@@ -24,7 +23,7 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
     const [hasInteracted, setHasInteracted] = useState(false);
 
     // Use encapsulated hook (Bridge)
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isLoading: authLoading } = useAuth();
 
     // Show tooltip after 3 seconds if user hasn't interacted
     useEffect(() => {
@@ -64,14 +63,15 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
 
     const handleClick = () => {
         // If not logged in, redirect to login
-        if (!isAuthenticated) {
+        if (!authLoading && !isAuthenticated) {
             router.push('/unlearn/login');
             return;
         }
 
-        setOpen(!isOpen);
+        setOpen(false);
         setHasInteracted(true);
         setShowTooltip(false);
+        router.push('/unlearn/max');
     };
 
     return (
@@ -149,8 +149,6 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
                 </motion.button>
             </div>
 
-            {/* Chat Panel */}
-            <MaxChatPanel isOpen={isOpen} onClose={() => setOpen(false)} />
         </>
     );
 }

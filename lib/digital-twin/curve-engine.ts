@@ -150,6 +150,26 @@ export function interpretPSS10(score: number | null): PSS10Interpretation {
 }
 
 // ============================================
+// 生理数据归一化
+// ============================================
+
+export function normalizeHRV(hrv: number): number {
+    // 20ms (低) -> 100ms (高)
+    return clamp(((hrv - 20) / 80) * 100, 0, 100);
+}
+
+export function normalizeRHR(rhr: number): number {
+    // 50bpm (优) -> 90bpm (差)
+    // RHR 越低越好，所以反向计算
+    return clamp(100 - ((rhr - 50) / 40) * 100, 0, 100);
+}
+
+export function normalizeSteps(steps: number): number {
+    // 10000 步为满分
+    return clamp((steps / 10000) * 100, 0, 100);
+}
+
+// ============================================
 // Week 0 基线值计算
 // ============================================
 
@@ -159,6 +179,11 @@ export function interpretPSS10(score: number | null): PSS10Interpretation {
 function calculateSleepComposite(calibration: CalibrationData): number {
     const sleepQualityNorm = adaptiveNormalize(calibration.sleepQuality);
     const sleepDurationScore = sleepHoursToScore(calibration.sleepHours);
+
+    // 若有设备睡眠分，优先融合
+    if (calibration.deviceSleepScore) {
+        return 0.4 * sleepQualityNorm + 0.2 * sleepDurationScore + 0.4 * calibration.deviceSleepScore;
+    }
 
     // 若某项缺失用另一项
     if (calibration.sleepQuality === 0 || calibration.sleepQuality === null) {
@@ -238,91 +263,127 @@ export function calculateWeek0Values(
     const isiScore = baseline?.isiScore ?? 0;
     const pss10Score = baseline?.pss10Score ?? null;
 
-    // 基线量表映射到 0-100
-    const anxietyScoreFromScale = toPct(gad7Score, 21); // 越高越糟
-    const sleepQualityFromISI = 100 - toPct(isiScore, 28); // ISI 越高越糟，反向
-    const stressResilienceFromPSS = pss10Score !== null
+    // 基线量表映射到 0-100 (越高越好/健康)
+    const anxietyHealthFromScale = 100 - toPct(gad7Score, 21); // GAD7 越低越好 -> 100分全健康
+    const sleepHealthFromScale = 100 - toPct(isiScore, 28); // ISI 越低越好
+    const stressHealthFromScale = pss10Score !== null
         ? 100 - toPct(pss10Score, 40)
         : null;
-    const moodStabilityFromPHQ = 100 - toPct(phq9Score, 27); // PHQ 越高越糟，反向
+    const moodHealthFromScale = 100 - toPct(phq9Score, 27); // PHQ9 越低越好
 
     const hasEnoughCalibrations = calibrations.length >= 7;
 
-    // 融合每日校准数据
+    // 获取可穿戴数据平均值 (最近7天)
+    const avgRHR = avgLast(calibrations, 'restingHeartRate', 7);
+    const avgHRV = avgLast(calibrations, 'hrv', 7);
+    const avgSteps = avgLast(calibrations, 'stepCount', 7);
+    const avgDeviceSleep = avgLast(calibrations, 'deviceSleepScore', 7);
+
+    // 归一化可穿戴分数 (0-100)
+    const rhrScore = avgRHR ? normalizeRHR(avgRHR) : null;
+    const hrvScoreNorm = avgHRV ? normalizeHRV(avgHRV) : null;
+    const stepsScore = avgSteps ? normalizeSteps(avgSteps) : null;
+
+    // 生理状态综合分 (HRV + RHR)
+    const physioScore = (rhrScore !== null && hrvScoreNorm !== null)
+        ? 0.5 * rhrScore + 0.5 * hrvScoreNorm
+        : (rhrScore ?? hrvScoreNorm);
+
+    // 融合计算各指标
     let sleepQuality_w0: number;
     let energyLevel_w0: number;
     let stressResilience_w0: number;
     let moodStability_w0: number;
+    let anxietyScore_w0: number;
+    let hrvScore_w0: number;
 
-    if (hasEnoughCalibrations) {
-        // 睡眠质量融合
-        const avg7SleepComposite = avgSleepCompositeLast(calibrations, 7);
-        sleepQuality_w0 = avg7SleepComposite !== null
-            ? 0.7 * sleepQualityFromISI + 0.3 * avg7SleepComposite
-            : sleepQualityFromISI;
-
-        // 能量水平
-        const avg7Energy = avgLast(calibrations, 'energyLevel', 7);
-        if (avg7Energy !== null) {
-            energyLevel_w0 = adaptiveNormalize(avg7Energy);
-        } else {
-            // 从睡眠和情绪推断
-            energyLevel_w0 = 0.5 * sleepQuality_w0 + 0.5 * moodStabilityFromPHQ;
-        }
-
-        // 压力韧性
-        const avg7Stress = avgLast(calibrations, 'stressLevel', 7);
-        const stressNormInverted = avg7Stress !== null
-            ? 100 - adaptiveNormalize(avg7Stress)
-            : null;
-
-        if (stressResilienceFromPSS !== null) {
-            stressResilience_w0 = stressNormInverted !== null
-                ? 0.6 * stressResilienceFromPSS + 0.4 * stressNormInverted
-                : stressResilienceFromPSS;
-        } else {
-            // PSS-10 缺失的推断逻辑
-            const anxietyContrib = anxietyScoreFromScale * 0.6;
-            const moodContrib = (100 - moodStabilityFromPHQ) * 0.4;
-            const baseEstimate = 100 - anxietyContrib - moodContrib;
-
-            stressResilience_w0 = stressNormInverted !== null
-                ? 0.7 * clamp(baseEstimate, 0, 100) + 0.3 * stressNormInverted
-                : clamp(baseEstimate, 0, 100);
-        }
-
-        // 情绪稳定性（含波动度）
-        const avg7Mood = avgLast(calibrations, 'moodScore', 7);
-        const std7Mood = stdLast(calibrations, 'moodScore', 7);
-
-        if (avg7Mood !== null) {
-            const moodNorm = adaptiveNormalize(avg7Mood);
-            const volatilityPenalty = clamp(100 - std7Mood * 10, 0, 100);
-            const dailyMoodContrib = 0.6 * moodNorm + 0.4 * volatilityPenalty;
-            moodStability_w0 = 0.7 * moodStabilityFromPHQ + 0.3 * dailyMoodContrib;
-        } else {
-            moodStability_w0 = moodStabilityFromPHQ;
-        }
+    // 1. 睡眠质量 (Sleep)
+    // 逻辑: 量表(Isi) + 主观每天 + 设备(DeviceSleep)
+    const avg7SleepComposite = avgSleepCompositeLast(calibrations, 7); // 已包含 deviceSleepScore 如果有
+    if (avg7SleepComposite !== null) {
+        // 如果有设备分，SleepComposite 已经处理了权重，这里主要平衡量表和日常
+        sleepQuality_w0 = 0.5 * sleepHealthFromScale + 0.5 * avg7SleepComposite;
     } else {
-        // 校准数据不足，仅使用基线量表
-        sleepQuality_w0 = sleepQualityFromISI;
-        energyLevel_w0 = 0.5 * sleepQualityFromISI + 0.5 * moodStabilityFromPHQ;
-        stressResilience_w0 = stressResilienceFromPSS ?? (100 - anxietyScoreFromScale * 0.6 - (100 - moodStabilityFromPHQ) * 0.4);
-        moodStability_w0 = moodStabilityFromPHQ;
+        sleepQuality_w0 = sleepHealthFromScale;
     }
 
-    // Check if the calculated values are "too perfect" (all optimal), which likely indicates 
-    // missing/default-zero data rather than a truly symptom-free user.
-    // Optimal: Anxiety=0, Sleep=100, Stress=100, Mood=100, Energy=100
-    const isAllPerfect =
-        anxietyScoreFromScale === 0 &&
-        sleepQuality_w0 >= 95 &&
-        // stressResilience_w0 derived can be variable, so we focus on main scales
-        moodStabilityFromPHQ >= 95;
+    // 2. 能量水平 (Energy)
+    // 逻辑: 主观能量 + 睡眠 + 运动(Steps)
+    const avg7Energy = avgLast(calibrations, 'energyLevel', 7);
+    const energyBase = avg7Energy ? adaptiveNormalize(avg7Energy) : (0.5 * sleepQuality_w0 + 0.5 * moodHealthFromScale);
 
-    // If all perfect/default and no calibrations, use "Demo Baseline" (Moderate severity)
-    // This ensures digital twin works for new users without extensive data history
-    if (isAllPerfect && !hasEnoughCalibrations) {
+    if (stepsScore !== null) {
+        energyLevel_w0 = 0.5 * energyBase + 0.3 * stepsScore + 0.2 * (avgDeviceSleep ?? sleepQuality_w0);
+    } else {
+        energyLevel_w0 = energyBase;
+    }
+
+    // 3. 焦虑评分 (Anxiety) -> 注意: 输出的是 Score (0-100 越高越严重)，所以最后要 100-Health
+    // 逻辑: GAD7 + 主观焦虑(推断) + 生理(RHR/HRV)
+    // 生理数据好(HRV高RHR低) -> 焦虑低
+    let anxietyHealth = anxietyHealthFromScale;
+    if (physioScore !== null) {
+        anxietyHealth = 0.6 * anxietyHealth + 0.4 * physioScore;
+    }
+    anxietyScore_w0 = 100 - anxietyHealth; // 转回 "越高越焦虑"
+
+    // 4. 抗压韧性 (Stress Resilience)
+    // 逻辑: PSS10 + 主观压力 + 生理(HRV是核心指标)
+    const avg7Stress = avgLast(calibrations, 'stressLevel', 7);
+    const stressDailyHealth = avg7Stress !== null ? (100 - adaptiveNormalize(avg7Stress)) : null;
+    let stressBase = stressHealthFromScale ?? (stressDailyHealth ?? (100 - anxietyScore_w0)); // 降级策略
+
+    if (stressDailyHealth !== null) {
+        stressBase = 0.5 * (stressHealthFromScale ?? stressDailyHealth) + 0.5 * stressDailyHealth;
+    }
+
+    if (hrvScoreNorm !== null) {
+        // HRV 是抗压的直接生理指标
+        stressResilience_w0 = 0.5 * stressBase + 0.5 * hrvScoreNorm;
+    } else {
+        stressResilience_w0 = stressBase;
+    }
+
+    // 5. 情绪稳定 (Mood Stability)
+    // 逻辑: PHQ9 + 主观情绪 + 运动(Steps) + 睡眠
+    const avg7Mood = avgLast(calibrations, 'moodScore', 7);
+    const std7Mood = stdLast(calibrations, 'moodScore', 7);
+    let moodBase = moodHealthFromScale;
+
+    if (avg7Mood !== null) {
+        const moodNorm = adaptiveNormalize(avg7Mood);
+        const volatilityPenalty = clamp(100 - std7Mood * 10, 0, 100);
+        const dailyMoodContrib = 0.6 * moodNorm + 0.4 * volatilityPenalty;
+        moodBase = 0.6 * moodHealthFromScale + 0.4 * dailyMoodContrib;
+    }
+
+    if (stepsScore !== null && avgDeviceSleep !== null) {
+        // 运动和睡眠对情绪调节有帮助
+        moodStability_w0 = 0.6 * moodBase + 0.2 * stepsScore + 0.2 * avgDeviceSleep;
+    } else {
+        moodStability_w0 = moodBase;
+    }
+
+    // 6. HRV 代理分/真实分
+    if (avgHRV !== null) {
+        // 有真实数据直接用
+        hrvScore_w0 = normalizeHRV(avgHRV);
+    } else {
+        // 代理推算
+        hrvScore_w0 = clamp(
+            0.45 * stressResilience_w0 + 0.35 * sleepQuality_w0 + 0.20 * energyLevel_w0,
+            0,
+            100
+        );
+    }
+
+    // Check for "too perfect" (Demo Fallback)
+    const isAllPerfect =
+        anxietyScore_w0 <= 5 &&
+        sleepQuality_w0 >= 95 &&
+        moodStability_w0 >= 95;
+
+    if (isAllPerfect && !hasEnoughCalibrations && !avgHRV) {
         return {
             anxietyScore: 65,      // Moderate anxiety
             sleepQuality: 45,      // Poor sleep
@@ -333,15 +394,8 @@ export function calculateWeek0Values(
         };
     }
 
-    // HRV 代理分（推断）
-    const hrvScore_w0 = clamp(
-        0.45 * stressResilience_w0 + 0.35 * sleepQuality_w0 + 0.20 * energyLevel_w0,
-        0,
-        100
-    );
-
     return {
-        anxietyScore: round1(anxietyScoreFromScale),
+        anxietyScore: round1(anxietyScore_w0),
         sleepQuality: round1(sleepQuality_w0),
         stressResilience: round1(stressResilience_w0),
         moodStability: round1(moodStability_w0),
@@ -443,25 +497,32 @@ export function calculateImproveFrac15(
 
 /**
  * 计算速度参数 k
+ * Adjusted for intersection point ~Week 3.2, still reaching ~90% by Week 12
  */
 export function calculateK(improveFactor: number): number {
-    return clamp(0.06 + 0.16 * improveFactor, 0.04, 0.25);
+    // Previous: 0.15 - 0.35 (too fast, noticeable change at Week 1-2)
+    // New: 0.08 - 0.25 (intersection point shifted to ~Week 3.2)
+    // At k=0.15, 1-e^(-0.15*3.2) = 1-e^(-0.48) = 1-0.619 = 0.38 (38% progress at W3.2)
+    // At k=0.25, 1-e^(-0.25*12) = 1-e^(-3) = 1-0.05 = 0.95 (95% progress at W12)
+    return clamp(0.08 + 0.17 * improveFactor, 0.08, 0.25);
 }
 
 /**
- * 计算目标值
+ * 计算目标值 (Target 100% Logic)
  */
 export function calculateTargetValue(
     baseline: number,
     improveFrac: number,
     isNegative: boolean
 ): number {
+    // 强制设定极为乐观的目标 (Approaching 100%)
+    // Digital Twin 展示的是理想情况下的恢复路径
     if (isNegative) {
-        // 焦虑：越高越糟，目标是变低
-        return clamp(baseline * (1 - improveFrac), 0, 100);
+        // 焦虑：目标接近 0 (即 100% 健康)
+        return clamp(baseline * 0.05, 0, 100);
     }
-    // 正向指标：目标是变高
-    return clamp(baseline + (100 - baseline) * improveFrac, 0, 100);
+    // 正向指标：目标接近 100
+    return clamp(baseline + (100 - baseline) * 0.95, 0, 100);
 }
 
 // ============================================
@@ -675,19 +736,36 @@ export function calculateCurveParams(
     };
 
     const improveFactor = calculateImproveFactor(trendInputs);
-    const k = calculateK(improveFactor);
+    // 基础速度
+    const baseK = calculateK(improveFactor);
 
-    // 计算各指标目标值
-    const improveFracAnxiety = calculateImproveFrac15(improveFactor, true);
-    const improveFracPositive = calculateImproveFrac15(improveFactor, false);
+    // 为每个指标生成不同的 k 值 (Curvature Variation)
+    // 焦虑: 快 (1.2x)
+    // 睡眠: 较快 (1.1x)
+    // 能量: 标准 (1.0x)
+    // 情绪: 较慢 (0.9x) - 情绪改变需要时间
+    // 压力: 慢 (0.8x) - 压力源消除难
+    // HRV: 极慢 (0.6x) - 生理适应最慢
+    const k: Record<keyof Week0Values, number> = {
+        anxietyScore: baseK * 1.2,
+        sleepQuality: baseK * 1.1,
+        energyLevel: baseK * 1.0,
+        moodStability: baseK * 0.9,
+        stressResilience: baseK * 0.8,
+        hrvScore: baseK * 0.6,
+    };
+
+    // 计算各指标目标值 (Approaching 100% Logic applied in calculateTargetValue)
+    // 这里 improveFrac 参数实际上被 calculateTargetValue 忽略了，因为我们强制设为 0.95/0.05
+    const dummyFrac = 0.95;
 
     const targets: Week0Values = {
-        anxietyScore: calculateTargetValue(week0.anxietyScore, improveFracAnxiety, true),
-        sleepQuality: calculateTargetValue(week0.sleepQuality, improveFracPositive, false),
-        stressResilience: calculateTargetValue(week0.stressResilience, improveFracPositive, false),
-        moodStability: calculateTargetValue(week0.moodStability, improveFracPositive, false),
-        energyLevel: calculateTargetValue(week0.energyLevel, improveFracPositive, false),
-        hrvScore: calculateTargetValue(week0.hrvScore, improveFracPositive, false),
+        anxietyScore: calculateTargetValue(week0.anxietyScore, dummyFrac, true),
+        sleepQuality: calculateTargetValue(week0.sleepQuality, dummyFrac, false),
+        stressResilience: calculateTargetValue(week0.stressResilience, dummyFrac, false),
+        moodStability: calculateTargetValue(week0.moodStability, dummyFrac, false),
+        energyLevel: calculateTargetValue(week0.energyLevel, dummyFrac, false),
+        hrvScore: calculateTargetValue(week0.hrvScore, dummyFrac, false),
     };
 
     return {

@@ -42,6 +42,7 @@ export interface UserContext {
   currentFocus?: string;
   stressLevel?: number;
   sleepHours?: number;
+  energyLevel?: number;
   recentMood?: string;
   focusTopics?: string[];
 }
@@ -65,6 +66,11 @@ const SOURCE_AUTHORITY: Record<string, number> = {
   science: 1.0,           // Science - 顶级期刊
   lancet: 0.98,           // The Lancet - 顶级医学期刊
   cell: 0.98,             // Cell - 顶级生物期刊
+  journal: 0.75,
+  research_institution: 0.7,
+  university: 0.7,
+  x: 0.45,
+  reddit: 0.4,
   default: 0.60,          // 其他来源
 };
 
@@ -164,6 +170,273 @@ function calculateMatchPercentage(
 }
 
 // ============================================
+// 个性化匹配辅助
+// ============================================
+
+type ArticleTheme = {
+  key: string;
+  labelEn: string;
+  labelZh: string;
+  actionEn: string;
+  actionZh: string;
+};
+
+type UserSignalSet = {
+  all: string[];
+  metrics: string[];
+};
+
+const ARTICLE_THEMES: ArticleTheme[] = [
+  {
+    key: 'sleep',
+    labelEn: 'sleep quality and circadian rhythm',
+    labelZh: '睡眠质量与昼夜节律',
+    actionEn: 'keep a consistent wake time and get 10-15 minutes of morning light',
+    actionZh: '固定起床时间，并在早上晒 10-15 分钟自然光',
+  },
+  {
+    key: 'stress',
+    labelEn: 'stress regulation and cortisol',
+    labelZh: '压力调节与皮质醇',
+    actionEn: 'do 3-5 minutes of slow breathing (4-6 cadence)',
+    actionZh: '做 3-5 分钟慢呼吸（4-6 节律）',
+  },
+  {
+    key: 'exercise',
+    labelEn: 'exercise and physical activity',
+    labelZh: '运动与身体活动',
+    actionEn: 'add a 10-minute brisk walk after lunch',
+    actionZh: '午饭后安排 10 分钟快走',
+  },
+  {
+    key: 'mindfulness',
+    labelEn: 'mindfulness and attention',
+    labelZh: '正念与注意力',
+    actionEn: 'try a 5-minute body scan before bed',
+    actionZh: '睡前做 5 分钟身体扫描',
+  },
+  {
+    key: 'breathing',
+    labelEn: 'breathing regulation',
+    labelZh: '呼吸调节',
+    actionEn: 'practice 4-7-8 breathing for 3 minutes',
+    actionZh: '练习 4-7-8 呼吸 3 分钟',
+  },
+  {
+    key: 'light',
+    labelEn: 'light exposure and circadian cues',
+    labelZh: '光照与昼夜节律线索',
+    actionEn: 'get outdoor light within 30 minutes of waking',
+    actionZh: '起床后 30 分钟内到户外晒光',
+  },
+  {
+    key: 'nutrition',
+    labelEn: 'nutrition and metabolic stability',
+    labelZh: '营养与代谢稳定',
+    actionEn: 'add protein and fiber at breakfast',
+    actionZh: '早餐增加蛋白质与膳食纤维',
+  },
+  {
+    key: 'hrv',
+    labelEn: 'HRV and autonomic balance',
+    labelZh: 'HRV 与自主神经平衡',
+    actionEn: 'take a 2-minute paced-breathing break in the afternoon',
+    actionZh: '下午做 2 分钟节律呼吸休息',
+  },
+  {
+    key: 'general',
+    labelEn: 'stress recovery and daily resilience',
+    labelZh: '压力恢复与日常韧性',
+    actionEn: 'start with one small, repeatable habit today',
+    actionZh: '今天先做一个小而可重复的习惯',
+  },
+];
+
+const THEME_PATTERNS: Array<{ key: ArticleTheme['key']; pattern: RegExp }> = [
+  { key: 'sleep', pattern: /sleep|insomnia|circadian|melatonin|sleep quality|bedtime|失眠|睡眠|褪黑|昼夜|入睡|早醒/i },
+  { key: 'stress', pattern: /stress|cortisol|anxiety|burnout|压力|皮质醇|焦虑|紧张/i },
+  { key: 'exercise', pattern: /exercise|physical activity|aerobic|walking|运动|锻炼|散步|训练/i },
+  { key: 'mindfulness', pattern: /mindfulness|meditation|正念|冥想|觉察/i },
+  { key: 'breathing', pattern: /breath|breathing|respiration|呼吸|呼吸训练/i },
+  { key: 'light', pattern: /light exposure|sunlight|outdoor|morning light|光照|日光|户外/i },
+  { key: 'nutrition', pattern: /diet|nutrition|blood sugar|glucose|meal|饮食|营养|血糖|进食/i },
+  { key: 'hrv', pattern: /hrv|heart rate variability|心率变异|自主神经/i },
+];
+
+function hashString(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function pickVariant<T>(variants: T[], seed: string): T {
+  if (variants.length === 0) {
+    throw new Error('No variants available');
+  }
+  const index = hashString(seed) % variants.length;
+  return variants[index];
+}
+
+function detectArticleTheme(contentText: string): ArticleTheme {
+  for (const entry of THEME_PATTERNS) {
+    if (entry.pattern.test(contentText)) {
+      return ARTICLE_THEMES.find(theme => theme.key === entry.key) || ARTICLE_THEMES[ARTICLE_THEMES.length - 1];
+    }
+  }
+  return ARTICLE_THEMES[ARTICLE_THEMES.length - 1];
+}
+
+function buildUserSignals(userContext: UserContext, language: string): UserSignalSet {
+  const signals: string[] = [];
+  const metricSignals: string[] = [];
+
+  if (typeof userContext.sleepHours === 'number' && userContext.sleepHours > 0) {
+    const hours = userContext.sleepHours >= 10 ? userContext.sleepHours.toFixed(0) : userContext.sleepHours.toFixed(1);
+    const signal = language === 'en' ? `sleep ~${hours}h` : `睡眠≈${hours}小时`;
+    signals.push(signal);
+    metricSignals.push(signal);
+  }
+
+  if (typeof userContext.stressLevel === 'number' && userContext.stressLevel > 0) {
+    const signal = language === 'en' ? `stress ${userContext.stressLevel}/10` : `压力${userContext.stressLevel}/10`;
+    signals.push(signal);
+    metricSignals.push(signal);
+  }
+
+  if (typeof userContext.energyLevel === 'number' && userContext.energyLevel > 0) {
+    const signal = language === 'en' ? `energy ${userContext.energyLevel}/10` : `精力${userContext.energyLevel}/10`;
+    signals.push(signal);
+    metricSignals.push(signal);
+  }
+
+  if (userContext.currentFocus) {
+    signals.push(language === 'en' ? `focus: ${userContext.currentFocus}` : `关注：${userContext.currentFocus}`);
+  }
+
+  if (userContext.primaryConcern) {
+    signals.push(language === 'en' ? `primary concern: ${userContext.primaryConcern}` : `关注点：${userContext.primaryConcern}`);
+  }
+
+  if (userContext.focusTopics && userContext.focusTopics.length > 0) {
+    const topics = userContext.focusTopics.slice(0, 2).join(language === 'en' ? ', ' : '、');
+    signals.push(language === 'en' ? `topics: ${topics}` : `关注主题：${topics}`);
+  }
+
+  return { all: signals, metrics: metricSignals };
+}
+
+function applyTemplate(template: string, params: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => params[key] ?? '');
+}
+
+function hasChinese(text: string): boolean {
+  return /[\u4e00-\u9fff]/.test(text);
+}
+
+function hasLatin(text: string): boolean {
+  return /[A-Za-z]/.test(text);
+}
+
+function sanitizeLanguageText(text: string | undefined, language: string, fallback: string): string {
+  const trimmed = text?.trim();
+  if (!trimmed) return fallback;
+  if (language !== 'en' && !hasChinese(trimmed)) return fallback;
+  if (language === 'en' && !hasLatin(trimmed)) return fallback;
+  return trimmed;
+}
+
+function buildMatchNote(
+  signalSet: UserSignalSet,
+  theme: ArticleTheme,
+  language: string,
+  seed: string
+): string {
+  const themeLabel = language === 'en' ? theme.labelEn : theme.labelZh;
+  const pool = signalSet.metrics.length > 0 ? signalSet.metrics : signalSet.all;
+
+  if (pool.length === 0) {
+    return language === 'en'
+      ? `No recent metrics logged yet; this article focuses on ${themeLabel} as a starting point.`
+      : `你暂未记录当日指标，这篇文章聚焦${themeLabel}，可先作为参考。`;
+  }
+
+  const signal = pickVariant(pool, `${seed}-signal`);
+  const templates = language === 'en'
+    ? [
+      'Match: {signal}. This article focuses on {theme}.',
+      'Why you: {signal}, and this study addresses {theme}.',
+      'Relevance: {signal}; the paper digs into {theme}.',
+    ]
+    : [
+      '匹配点：{signal}，文章聚焦{theme}。',
+      '与你{signal}相关，这篇研究讨论{theme}。',
+      '基于{signal}，该研究针对{theme}的证据很对标。',
+    ];
+
+  return applyTemplate(pickVariant(templates, `${seed}-${theme.key}`), {
+    signal,
+    theme: themeLabel,
+  });
+}
+
+function buildActionNote(
+  signalSet: UserSignalSet,
+  theme: ArticleTheme,
+  language: string,
+  seed: string
+): string {
+  const action = language === 'en' ? theme.actionEn : theme.actionZh;
+  if (!action) return '';
+
+  const pool = signalSet.metrics.length > 0 ? signalSet.metrics : signalSet.all;
+  const signal = pool.length > 0 ? pickVariant(pool, `${seed}-action`) : '';
+  const templates = language === 'en'
+    ? [
+      signal ? 'Action: {action} (tailored to {signal}).' : 'Action: {action}.',
+      signal ? 'Try: {action} given your {signal}.' : 'Try: {action} today.',
+      signal ? 'Start with {action} to support your {signal}.' : 'Start with {action}.',
+    ]
+    : [
+      signal ? '可执行：{action}（结合{signal}）。' : '可执行：{action}。',
+      signal ? '建议你先做：{action}，以匹配{signal}。' : '建议你先做：{action}。',
+      signal ? '从{action}开始，有助于改善{signal}。' : '从{action}开始，建立稳定节奏。',
+    ];
+
+  return applyTemplate(pickVariant(templates, `${seed}-${theme.key}-action`), {
+    action,
+    signal,
+  });
+}
+
+function mergePersonalizedText(base: string | undefined, addon: string, language: string): string {
+  let trimmedBase = base?.trim();
+  const trimmedAddon = addon.trim();
+
+  if (trimmedBase) {
+    if (language !== 'en' && !hasChinese(trimmedBase)) {
+      trimmedBase = '';
+    }
+    if (language === 'en' && !hasLatin(trimmedBase)) {
+      trimmedBase = '';
+    }
+  }
+
+  if (!trimmedBase) return trimmedAddon;
+  if (!trimmedAddon) return trimmedBase;
+  if (trimmedBase.includes(trimmedAddon)) return trimmedBase;
+
+  const needsPunctuation = language === 'en'
+    ? !/[.!?]$/.test(trimmedBase)
+    : !/[。！？]$/.test(trimmedBase);
+
+  const joiner = needsPunctuation ? (language === 'en' ? '. ' : '。') : (language === 'en' ? ' ' : '');
+  return `${trimmedBase}${joiner}${trimmedAddon}`;
+}
+
+// ============================================
 // LLM 丰富函数
 // ============================================
 
@@ -193,19 +466,41 @@ async function enrichSingleArticle(
     try {
       logModelCall(modelName, 'feed-enrichment');
       
+      const theme = detectArticleTheme(article.content_text);
+      const signalSet = buildUserSignals(userContext, language);
+      const signals = signalSet.all;
+      const matchNote = buildMatchNote(signalSet, theme, language, article.content_text);
+      const actionNote = buildActionNote(signalSet, theme, language, article.content_text);
+      const themeLabel = language === 'en' ? theme.labelEn : theme.labelZh;
+      const actionHint = language === 'en' ? theme.actionEn : theme.actionZh;
+
       const userContextStr = [
-        userContext.primaryConcern && `主要关注: ${userContext.primaryConcern}`,
-        userContext.currentFocus && `当前症状: ${userContext.currentFocus}`,
-        userContext.stressLevel && `压力水平: ${userContext.stressLevel}/10`,
-        userContext.sleepHours && `睡眠时长: ${userContext.sleepHours}小时`,
-        userContext.recentMood && `近期情绪: ${userContext.recentMood}`,
-      ].filter(Boolean).join(', ');
+        userContext.primaryConcern && (language === 'en' ? `Primary concern: ${userContext.primaryConcern}` : `主要关注: ${userContext.primaryConcern}`),
+        userContext.currentFocus && (language === 'en' ? `Current focus: ${userContext.currentFocus}` : `当前症状: ${userContext.currentFocus}`),
+        userContext.stressLevel && (language === 'en' ? `Stress level: ${userContext.stressLevel}/10` : `压力水平: ${userContext.stressLevel}/10`),
+        userContext.sleepHours && (language === 'en' ? `Sleep duration: ${userContext.sleepHours}h` : `睡眠时长: ${userContext.sleepHours}小时`),
+        userContext.energyLevel && (language === 'en' ? `Energy level: ${userContext.energyLevel}/10` : `精力水平: ${userContext.energyLevel}/10`),
+        userContext.recentMood && (language === 'en' ? `Recent mood: ${userContext.recentMood}` : `近期情绪: ${userContext.recentMood}`),
+      ].filter(Boolean).join(language === 'en' ? ', ' : '，');
+
+      const userSignalsStr = signals.join(language === 'en' ? ', ' : '、');
 
       const prompt = language === 'en' 
-        ? `Analyze this research article for a user focused on: ${userContextStr || 'anxiety and stress management'}
+        ? `Analyze this research article for a user.
+
+User metrics/signals: ${userSignalsStr || 'Not enough data, use the article focus and stated goals if any.'}
+User profile: ${userContextStr || 'anxiety and stress management'}
+Article focus: ${themeLabel}
+Suggested action direction: ${actionHint}
 
 Article content:
 ${article.content_text.slice(0, 2000)}
+
+Requirements:
+- Output in English only.
+- "why_recommended" must mention at least ONE user metric/signal from the list above.
+- "actionable_insight" must tie the article focus to ONE concrete action, adjusted to the user's metrics.
+- Avoid generic templates; be specific to this article and this user.
 
 Respond in JSON format only (no markdown):
 {
@@ -217,8 +512,18 @@ Respond in JSON format only (no markdown):
 }`
         : `分析这篇研究文章，为以下用户提供个性化解读：${userContextStr || '焦虑与压力管理'}
 
+用户数据/指标：${userSignalsStr || '数据不足，优先结合文章主题与用户关注点'}
+文章主题：${themeLabel}
+行动建议方向：${actionHint}
+
 文章内容：
 ${article.content_text.slice(0, 2000)}
+
+要求：
+- 只用中文输出。
+- "why_recommended" 必须点名至少 1 个用户数据/指标。
+- "actionable_insight" 必须结合文章主题 + 用户指标给出具体行动。
+- 避免模板化措辞，必须针对此文和该用户。
 
 请只用 JSON 格式回复（不要 markdown）：
 {
@@ -239,11 +544,18 @@ ${article.content_text.slice(0, 2000)}
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
+        const fallbackTitle = language === 'en'
+          ? extractFallbackTitle(article.content_text)
+          : `${themeLabel}：研究要点`;
+        const fallbackSummary = language === 'en'
+          ? extractFallbackSummary(article.content_text)
+          : `这篇研究围绕${themeLabel}展开，建议结合你的当前指标阅读核心结论。`;
+
         return {
-          title: parsed.title || extractFallbackTitle(article.content_text),
-          summary: parsed.summary || extractFallbackSummary(article.content_text),
-          why_recommended: parsed.why_recommended || '',
-          actionable_insight: parsed.actionable_insight || '',
+          title: sanitizeLanguageText(parsed.title, language, fallbackTitle),
+          summary: sanitizeLanguageText(parsed.summary, language, fallbackSummary),
+          why_recommended: mergePersonalizedText(parsed.why_recommended, matchNote, language),
+          actionable_insight: mergePersonalizedText(parsed.actionable_insight, actionNote, language),
           tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5) : [],
         };
       }
@@ -259,11 +571,20 @@ ${article.content_text.slice(0, 2000)}
 
   // 所有模型都失败，使用 fallback
   console.error('All models failed, using fallback');
+  const fallbackTheme = detectArticleTheme(article.content_text);
+  const fallbackSignalSet = buildUserSignals(userContext, language);
+  const fallbackMatchNote = buildMatchNote(fallbackSignalSet, fallbackTheme, language, article.content_text);
+  const fallbackActionNote = buildActionNote(fallbackSignalSet, fallbackTheme, language, article.content_text);
+  const fallbackThemeLabel = language === 'en' ? fallbackTheme.labelEn : fallbackTheme.labelZh;
   return {
-    title: extractFallbackTitle(article.content_text),
-    summary: extractFallbackSummary(article.content_text),
-    why_recommended: language === 'en' ? 'Matches your interests' : '符合你的兴趣',
-    actionable_insight: language === 'en' ? 'Explore the research findings' : '探索研究发现',
+    title: language === 'en'
+      ? extractFallbackTitle(article.content_text)
+      : `${fallbackThemeLabel}：研究要点`,
+    summary: language === 'en'
+      ? extractFallbackSummary(article.content_text)
+      : `这篇研究围绕${fallbackThemeLabel}展开，建议结合你的当前指标阅读核心结论。`,
+    why_recommended: fallbackMatchNote,
+    actionable_insight: fallbackActionNote || (language === 'en' ? 'Explore the research findings' : '探索研究发现'),
     tags: [],
   };
 }

@@ -345,7 +345,7 @@ export function useAuth(): UseAuthReturn {
 
     return {
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: Boolean(user || session?.user),
         session,
         isLoading,
         isSigningIn,

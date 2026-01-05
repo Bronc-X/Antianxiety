@@ -222,27 +222,27 @@ function generateViewA(
 
         const metrics: TimepointMetrics = {
             anxietyScore: generatePrediction(
-                predictExponentialValue(week0.anxietyScore, curveParams.targets.anxietyScore, curveParams.k, week),
+                predictExponentialValue(week0.anxietyScore, curveParams.targets.anxietyScore, curveParams.k.anxietyScore, week),
                 { ...confidenceInputs, baselineMissing: baseConfidenceInputs.baselineMissing }
             ),
             sleepQuality: generatePrediction(
-                predictExponentialValue(week0.sleepQuality, curveParams.targets.sleepQuality, curveParams.k, week),
+                predictExponentialValue(week0.sleepQuality, curveParams.targets.sleepQuality, curveParams.k.sleepQuality, week),
                 confidenceInputs
             ),
             stressResilience: generatePrediction(
-                predictExponentialValue(week0.stressResilience, curveParams.targets.stressResilience, curveParams.k, week),
+                predictExponentialValue(week0.stressResilience, curveParams.targets.stressResilience, curveParams.k.stressResilience, week),
                 confidenceInputs
             ),
             moodStability: generatePrediction(
-                predictExponentialValue(week0.moodStability, curveParams.targets.moodStability, curveParams.k, week),
+                predictExponentialValue(week0.moodStability, curveParams.targets.moodStability, curveParams.k.moodStability, week),
                 confidenceInputs
             ),
             energyLevel: generatePrediction(
-                predictExponentialValue(week0.energyLevel, curveParams.targets.energyLevel, curveParams.k, week),
+                predictExponentialValue(week0.energyLevel, curveParams.targets.energyLevel, curveParams.k.energyLevel, week),
                 confidenceInputs
             ),
             hrvScore: generatePrediction(
-                predictExponentialValue(week0.hrvScore, curveParams.targets.hrvScore, curveParams.k, week),
+                predictExponentialValue(week0.hrvScore, curveParams.targets.hrvScore, curveParams.k.hrvScore, week),
                 { ...confidenceInputs, hrvIsInferred: true } // HRV 总是推断
             ),
         };
@@ -361,7 +361,7 @@ function generateViewD(
             'anxiety',
             week0.anxietyScore,
             curveParams.targets.anxietyScore,
-            curveParams.k,
+            curveParams.k.anxietyScore,
             calibrations,
             '0-100 severity (higher=worse)'
         ),
@@ -369,20 +369,20 @@ function generateViewD(
             'sleep',
             week0.sleepQuality,
             curveParams.targets.sleepQuality,
-            curveParams.k,
+            curveParams.k.sleepQuality,
             calibrations,
             '0-100 (higher=better)'
         ),
         hrvTrend: generateHrvChartTrend(
             week0.hrvScore,
             curveParams.targets.hrvScore,
-            curveParams.k
+            curveParams.k.hrvScore
         ),
         energyTrend: generateChartTrend(
             'energy',
             week0.energyLevel,
             curveParams.targets.energyLevel,
-            curveParams.k,
+            curveParams.k.energyLevel,
             calibrations,
             '0-100 (higher=better)'
         ),
@@ -525,12 +525,12 @@ function generateSummaryStats(
     // 计算当前周的预测值（用于 overall improvement）
     const currentWeek = meta.currentWeek ?? 0;
     const predictedCurrent: Week0Values = {
-        anxietyScore: predictExponentialValue(week0.anxietyScore, curveParams.targets.anxietyScore, curveParams.k, currentWeek),
-        sleepQuality: predictExponentialValue(week0.sleepQuality, curveParams.targets.sleepQuality, curveParams.k, currentWeek),
-        stressResilience: predictExponentialValue(week0.stressResilience, curveParams.targets.stressResilience, curveParams.k, currentWeek),
-        moodStability: predictExponentialValue(week0.moodStability, curveParams.targets.moodStability, curveParams.k, currentWeek),
-        energyLevel: predictExponentialValue(week0.energyLevel, curveParams.targets.energyLevel, curveParams.k, currentWeek),
-        hrvScore: predictExponentialValue(week0.hrvScore, curveParams.targets.hrvScore, curveParams.k, currentWeek),
+        anxietyScore: predictExponentialValue(week0.anxietyScore, curveParams.targets.anxietyScore, curveParams.k.anxietyScore, currentWeek),
+        sleepQuality: predictExponentialValue(week0.sleepQuality, curveParams.targets.sleepQuality, curveParams.k.sleepQuality, currentWeek),
+        stressResilience: predictExponentialValue(week0.stressResilience, curveParams.targets.stressResilience, curveParams.k.stressResilience, currentWeek),
+        moodStability: predictExponentialValue(week0.moodStability, curveParams.targets.moodStability, curveParams.k.moodStability, currentWeek),
+        energyLevel: predictExponentialValue(week0.energyLevel, curveParams.targets.energyLevel, curveParams.k.energyLevel, currentWeek),
+        hrvScore: predictExponentialValue(week0.hrvScore, curveParams.targets.hrvScore, curveParams.k.hrvScore, currentWeek),
     };
 
     const overallImprovement = calculateOverallImprovement(week0, predictedCurrent);
@@ -538,8 +538,8 @@ function generateSummaryStats(
     // 计算首次显著结果天数
     const predictions = PREDICTION_WEEKS.map(week => ({
         week,
-        goodness: 100 - predictExponentialValue(week0.anxietyScore, curveParams.targets.anxietyScore, curveParams.k, week) +
-            predictExponentialValue(week0.sleepQuality, curveParams.targets.sleepQuality, curveParams.k, week),
+        goodness: 100 - predictExponentialValue(week0.anxietyScore, curveParams.targets.anxietyScore, curveParams.k.anxietyScore, week) +
+            predictExponentialValue(week0.sleepQuality, curveParams.targets.sleepQuality, curveParams.k.sleepQuality, week),
     }));
     const week0Goodness = 100 - week0.anxietyScore + week0.sleepQuality;
     const daysToFirstResult = calculateDaysToFirstResult(week0Goodness, predictions);

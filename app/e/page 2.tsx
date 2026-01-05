@@ -17,8 +17,8 @@ import {
   Logo
 } from '@/components/unlearn';
 
-// Campaign config: Reset for demo (Starts near current time)
-const CAMPAIGN_START = new Date('2026-01-04T04:00:00+08:00').getTime();
+// Campaign config: starts at 2026-01-03 00:00:00 CST (UTC+8)
+const CAMPAIGN_START = new Date('2026-01-03T00:00:00+08:00').getTime();
 const CAMPAIGN_DURATION_MS = 60 * 60 * 60 * 1000; // 60 hours (was 48)
 
 function formatCountdown(ms: number): { hours: string; minutes: string; seconds: string } {
@@ -53,76 +53,52 @@ export default function EarlyAccessPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [registrationCount, setRegistrationCount] = useState(33);
+  const [registrationCount, setRegistrationCount] = useState(55);
   const [remainingMs, setRemainingMs] = useState(CAMPAIGN_DURATION_MS);
-  // Video check removed
 
   // Fetch initial count and update countdown
   useEffect(() => {
-    // Deterministic "Random" Counter Logic
-    // Rules: Random 1-10 min intervals, Max ~9 per hour (safe under 10)
-    const calculateVirtualCount = () => {
-      const now = Date.now();
-      const elapsed = now - CAMPAIGN_START;
-      if (elapsed < 0) return 0;
-
-      const HOURS_MS = 3600000;
-      const currentHourIndex = Math.floor(elapsed / HOURS_MS);
-      const msInCurrentHour = elapsed % HOURS_MS;
-
-      // Base: 33 + 9 per full hour
-      const base = 33 + (currentHourIndex * 9);
-
-      // Deterministic Random Offsets for current hour
-      let seed = currentHourIndex * 49297 + 12345;
-      const rnd = () => {
-        seed = (seed * 9301 + 49297) % 233280;
-        return seed / 233280;
-      };
-
-      // Generate 9 random timestamps within the hour
-      const timestamps = Array(9).fill(0).map(() => rnd() * HOURS_MS);
-      // Sort them to simulate timeline
-      timestamps.sort((a, b) => a - b);
-
-      // Count how many we have passed in this hour
-      const passedInHour = timestamps.filter(t => msInCurrentHour >= t).length;
-
-      return base + passedInHour;
-    };
-
     const fetchCount = async () => {
       try {
         const res = await fetch('/api/early-access');
         if (res.ok) {
           const data = await res.json();
-          // Use Virtual Simulation only (User requested start at 33, ignoring DB count of 613)
-          setRegistrationCount(calculateVirtualCount());
+          setRegistrationCount(data.totalCount);
           setRemainingMs(data.remainingMs);
         }
       } catch (e) {
-        setRegistrationCount(calculateVirtualCount());
+        // Fallback to local calculation
+        const elapsed = Date.now() - CAMPAIGN_START;
+        const virtualCount = Math.floor(elapsed / (3 * 60 * 1000));
+        setRegistrationCount(55 + Math.max(0, virtualCount));
       }
     };
 
     fetchCount();
 
-    // Update countdown & count every second
+    // Update countdown every second
     const interval = setInterval(() => {
       const now = Date.now();
       const campaignEnd = CAMPAIGN_START + CAMPAIGN_DURATION_MS;
       const remaining = Math.max(0, campaignEnd - now);
       setRemainingMs(remaining);
 
-      // Update count using deterministic logic
-      setRegistrationCount(prev => Math.max(prev, calculateVirtualCount()));
+      // Increment count every 3 minutes (virtual)
+      const elapsed = now - CAMPAIGN_START;
+      if (elapsed > 0) {
+        const baseVirtual = Math.floor(elapsed / (3 * 60 * 1000));
+        // We add to the current real count, not replace
+        setRegistrationCount(prev => {
+          const realCount = prev - Math.floor((elapsed - 1000) / (3 * 60 * 1000));
+          return 55 + baseVirtual + Math.max(0, realCount - 55 - Math.floor((elapsed - 1000) / (3 * 60 * 1000)));
+        });
+      }
     }, 1000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Re-sync disabled to maintain "Simulator Mode" (33 start)
-  /*
+  // Re-sync count periodically
   useEffect(() => {
     const syncInterval = setInterval(async () => {
       try {
@@ -138,7 +114,6 @@ export default function EarlyAccessPage() {
 
     return () => clearInterval(syncInterval);
   }, []);
-  */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -478,22 +453,6 @@ export default function EarlyAccessPage() {
                           ? 'Limited bandwidth during early access, capped at first 1000 users.'
                           : '项目初期带宽有限，仅限前1000名用户'}
                       </p>
-
-                      {/* Embedded Intro Video */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6 }}
-                        className="mt-8 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 aspect-video bg-black relative group"
-                      >
-                        <video
-                          src="/intro.mp4"
-                          className="w-full h-full object-cover"
-                          controls
-                          playsInline
-                          preload="metadata"
-                        />
-                      </motion.div>
                     </div>
                     {error && (
                       <motion.p
@@ -545,7 +504,7 @@ export default function EarlyAccessPage() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mx-auto max-w-6xl">
+            <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-6 md:pb-0 -mx-6 px-6 md:mx-0 md:px-0 scrollbar-hide">
               {[
                 {
                   icon: Brain,
@@ -582,34 +541,11 @@ export default function EarlyAccessPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="relative p-4 md:p-8 rounded-2xl overflow-hidden border border-[#0B3D2E]/5 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-500 group h-full"
+                  className="min-w-[85vw] md:min-w-0 snap-center p-8 rounded-2xl bg-white shadow-xl border border-stone-100 flex flex-col items-center text-center md:block md:text-left hover:shadow-2xl transition-shadow duration-300"
                 >
-                  {/* Dynamic Gradient Background (Puzzle Effect) */}
-                  <div
-                    className="absolute inset-0 z-0 opacity-100 transition-opacity duration-500"
-                    style={{
-                      background: i === 0 ? 'linear-gradient(135deg, #DCFCE7 0%, #F0FDF4 100%)' :
-                        i === 1 ? 'linear-gradient(225deg, #DCFCE7 0%, #F0FDF4 100%)' :
-                          i === 2 ? 'linear-gradient(45deg, #DCFCE7 0%, #F0FDF4 100%)' :
-                            'linear-gradient(315deg, #DCFCE7 0%, #F0FDF4 100%)'
-                    }}
-                  />
-
-                  {/* Glass Shine */}
-                  <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-0 group-hover:bg-white/20 transition-colors duration-500" />
-
-                  {/* Noise Texture */}
-                  <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-multiply z-0 pointer-events-none" />
-
-                  {/* Content */}
-                  <div className="relative z-10 flex flex-col items-center h-full">
-                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-white/60 shadow-sm flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-300">
-                      <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-[#059669]" strokeWidth={1.5} />
-                    </div>
-
-                    <h3 className="text-base md:text-lg font-bold text-[#0B3D2E] mb-3 font-serif leading-tight">{feature.title}</h3>
-                    <p className="text-[#0B3D2E]/70 leading-relaxed text-xs md:text-sm">{feature.desc}</p>
-                  </div>
+                  <feature.icon className="w-10 h-10 text-[#059669] mb-4" strokeWidth={1.5} />
+                  <h3 className="text-xl font-bold text-[#0B3D2E] mb-2 font-serif">{feature.title}</h3>
+                  <p className="text-stone-600 leading-relaxed text-sm">{feature.desc}</p>
                 </motion.div>
               ))}
             </div>
@@ -631,7 +567,6 @@ export default function EarlyAccessPage() {
           youtube: 'https://youtube.com/@antianxiety',
         }}
       />
-
     </div>
   );
 }

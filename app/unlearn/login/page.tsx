@@ -100,20 +100,36 @@ function LoginFormContent() {
     }
   };
 
+  // Handle phone login - now saves to waitlist instead of sending OTP (feature in beta)
   const handlePhoneLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!phoneNumber.trim()) return;
+
     setOauthProviderLoading('phone');
     setMessage(null);
+
     try {
-      const success = await sendPhoneOtp(phoneNumber);
-      if (success) {
-        setMessage({ type: 'success', text: t('login.otpSent') || 'Verification code sent!' });
-        setShowPhoneLogin(false);
-      } else {
-        setMessage({ type: 'error', text: authError || t('error.unknown') });
+      const res = await fetch('/api/phone-waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber.trim() })
+      });
+
+      if (!res.ok) {
+        setMessage({ type: 'error', text: t('signup.phoneBetaError') });
+        return;
       }
+
+      const data = await res.json();
+      if (data.message === 'already_registered') {
+        setMessage({ type: 'success', text: t('signup.phoneBetaAlready') });
+      } else {
+        setMessage({ type: 'success', text: t('signup.phoneBetaSuccess') });
+      }
+      setShowPhoneLogin(false);
+      setPhoneNumber('');
     } catch (err) {
-      setMessage({ type: 'error', text: t('error.unknown') });
+      setMessage({ type: 'error', text: t('signup.phoneBetaError') });
     } finally {
       setOauthProviderLoading(null);
     }
@@ -276,10 +292,10 @@ function LoginFormContent() {
               <div className="relative">
                 <button type="button" onClick={() => setShowPhoneLogin(true)} disabled={oauthProviderLoading !== null}
                   className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm transition-all hover:bg-emerald-600/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Sign in with Phone (Beta)">
+                  title={t('signup.phoneBetaTitle')}>
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                 </button>
-                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">BETA</span>
+                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">{t('signup.betaTesting')}</span>
               </div>
             </div>
           </div>
@@ -327,28 +343,28 @@ function LoginFormContent() {
             <div className="rounded-lg border border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">Phone Login</h3>
-                  <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">BETA</span>
+                  <h3 className="text-lg font-semibold text-[#0B3D2E] dark:text-white">{t('signup.phoneBetaTitle')}</h3>
+                  <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{t('signup.betaTesting')}</span>
                 </div>
                 <button type="button" onClick={() => { setShowPhoneLogin(false); setPhoneNumber(''); setMessage(null); }} className="text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E] dark:hover:text-white">✕</button>
               </div>
-              <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">⚠️ This feature is in beta testing. Some features may not work as expected.</p>
+              <p className="text-sm text-[#0B3D2E]/70 dark:text-neutral-400 mb-4">{t('signup.phoneBetaDesc')}</p>
               <form onSubmit={handlePhoneLogin} className="space-y-4">
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">Phone Number</label>
+                  <label htmlFor="phone" className="block text-sm font-medium text-[#0B3D2E] dark:text-neutral-200">{t('signup.phone')}</label>
                   <input id="phone" type="tel" required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
                     className="mt-1 block w-full rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-[#FFFDF8] dark:bg-neutral-800 px-3 py-2 text-sm text-[#0B3D2E] dark:text-white placeholder:text-[#0B3D2E]/40 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#0B3D2E]/20 dark:focus:ring-white/20"
-                    placeholder="+1 (555) 123-4567" />
-                  <p className="mt-1 text-xs text-neutral-500">Include country code (e.g., +1 for US, +86 for China)</p>
+                    placeholder={t('signup.phoneBetaPlaceholder')} />
+                  <p className="mt-1 text-xs text-neutral-500">{t('signup.phoneHint')}</p>
                 </div>
                 <div className="flex gap-3">
                   <button type="submit" disabled={oauthProviderLoading === 'phone'}
                     className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-50">
-                    {oauthProviderLoading === 'phone' ? 'Sending...' : 'Send Code'}
+                    {oauthProviderLoading === 'phone' ? t('signup.phoneBetaSubmitting') : t('signup.phoneBetaSubmit')}
                   </button>
                   <button type="button" onClick={() => { setShowPhoneLogin(false); setPhoneNumber(''); }}
                     className="rounded-xl border border-[#E7E1D6] dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-[#0B3D2E] dark:text-white hover:bg-[#FAF6EF] dark:hover:bg-neutral-700 transition-colors">
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
               </form>
