@@ -78,16 +78,6 @@ export function ChatSidebar({
 
     return (
         <>
-            {/* Mobile toggle button (when sidebar closed) */}
-            {isMobileHidden && (
-                <button
-                    onClick={onToggle}
-                    className="fixed left-4 top-20 z-50 p-2 rounded-lg bg-[#0b3d2e] border border-white/20 text-white/70 hover:text-white hover:bg-[#0b3d2e]/80 transition-all md:hidden"
-                >
-                    <Menu className="w-5 h-5" />
-                </button>
-            )}
-
             {/* Sidebar - always visible on desktop, toggleable on mobile */}
             <div className={cn(
                 "flex flex-col h-full bg-black/20 backdrop-blur-3xl",

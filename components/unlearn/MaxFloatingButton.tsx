@@ -77,7 +77,7 @@ export default function MaxFloatingButton({ isOpen: controlledOpen, onOpenChange
     return (
         <>
             {/* Floating Button */}
-            <div className="fixed bottom-6 right-6 z-50">
+            <div className="fixed bottom-24 right-6 z-[10000]">
                 <AnimatePresence>
                     {showTooltip && !isOpen && (
                         <motion.div

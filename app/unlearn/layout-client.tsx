@@ -22,6 +22,7 @@ export default function UnlearnAppLayoutClient({
         || pathname?.startsWith('/unlearn/signup')
         || pathname?.startsWith('/unlearn/onboarding')
         || pathname?.startsWith('/unlearn/update-password')
+        || pathname?.startsWith('/unlearn/max')
         || isMarketingPage;
     const isPublicPage = isMarketingPage || pathname?.startsWith('/auth');
     const isAuthPage = hideChrome || isPublicPage;
@@ -62,7 +63,7 @@ export default function UnlearnAppLayoutClient({
             {!hideChrome && (
                 <div className="md:hidden px-4 py-3 border-b border-[#1A1A1A]/5">
                     <h1 className="text-lg font-semibold text-[#1A1A1A]">
-                        {language === 'en' ? 'No More Anxious' : '不再焦虑'}
+                        不再焦虑
                     </h1>
                 </div>
             )}

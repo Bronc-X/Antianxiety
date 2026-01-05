@@ -452,7 +452,7 @@ export default function ParticipantDigitalTwin() {
             className="relative py-24 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#0B3D2E] via-[#051F18] to-black"
         >
             <div className="max-w-[1400px] mx-auto px-6">
-                <div className="grid lg:grid-cols-[300px_1fr] gap-12 items-start">
+                <div className="grid grid-cols-[100px_1fr] sm:grid-cols-[140px_1fr] lg:grid-cols-[300px_1fr] gap-4 sm:gap-6 lg:gap-12 items-start">
                     {/* Left Column - Interactive Navigation */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
@@ -679,15 +679,15 @@ export default function ParticipantDigitalTwin() {
                                             </div>
 
                                             {/* Swipe Indicator Dots */}
-                                            <div className="flex justify-center gap-2 mt-4">
+                                            <div className="flex justify-center gap-1.5 mt-3">
                                                 <button
                                                     onClick={() => setActiveChartTab('chart')}
-                                                    className={`w-2 h-2 rounded-full transition-all ${activeChartTab === 'chart' ? 'bg-[#D4AF37] w-6' : 'bg-white/30'
+                                                    className={`h-1.5 rounded-full transition-all ${activeChartTab === 'chart' ? 'bg-[#D4AF37] w-4' : 'bg-white/30 w-1.5'
                                                         }`}
                                                 />
                                                 <button
                                                     onClick={() => setActiveChartTab('table')}
-                                                    className={`w-2 h-2 rounded-full transition-all ${activeChartTab === 'table' ? 'bg-[#D4AF37] w-6' : 'bg-white/30'
+                                                    className={`h-1.5 rounded-full transition-all ${activeChartTab === 'table' ? 'bg-[#D4AF37] w-4' : 'bg-white/30 w-1.5'
                                                         }`}
                                                 />
                                             </div>
@@ -2728,10 +2728,13 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
                             domain={[0, 100]}
                         />
                         <Tooltip
+                            position={{ x: 10, y: -20 }}
+                            offset={10}
+                            wrapperStyle={{ pointerEvents: 'none' }}
                             content={({ active, payload, label }) => {
                                 if (active && payload && payload.length) {
                                     return (
-                                        <div className="bg-[#0B1410]/95 border border-[#D4AF37]/20 rounded-xl p-3 shadow-2xl backdrop-blur-md min-w-[180px]">
+                                        <div className="bg-[#0B1410]/95 border border-[#D4AF37]/20 rounded-lg p-2 shadow-lg backdrop-blur-md max-w-[140px] text-xs">
                                             <p className="text-[#D4AF37] text-xs font-semibold mb-2 border-b border-white/10 pb-1 flex justify-between">
                                                 <span>{label}</span>
                                                 {/* Highlight if this is roughly the current week */}
