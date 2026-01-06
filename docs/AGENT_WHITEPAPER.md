@@ -130,14 +130,7 @@ Posterior = (Prior * Likelihood) / Evidence
 <strong>开源不等于放飞，我会保留基本边界（隐私、安全、医学合规）。</strong>  
 <strong>但这是一条值得走的路——人少，反而更敢做事。</strong>
 
-## 7. 白皮书 UI 与导航入口（严肃版）
-为了放在主页导航栏，我会把这份白皮书做成“严肃且可读”的 UI：  
-- 首页入口：导航栏按钮「Agent 白皮书」  
-- 版式结构：标题页 + 摘要框 + 指标表格 + 公式块 + 章节目录  
-- 视觉基调：黑白灰为主，少量强调色用于图表与公式  
-- 阅读体验：固定宽度正文（60-75 字符行宽），脚注式引用  
-
-## 8. 时间轴（计划）
+## 7. 时间轴（计划）
 | 日期 | 里程碑 |
 | --- | --- |
 | 1 月（整月） | 内测 + 共建；有机会成为共建创始团队成员 |
@@ -147,6 +140,8 @@ Posterior = (Prior * Likelihood) / Evidence
 | 2.5 | iOS 上线 |
 | 2.10 | Max API 接入 Gemini + GPT-5.2（计划） |
 | 2.15 | 90% 穿戴设备接入（目标） |
+
+<div align="right">—— 开发者 (Toni) 2026.1.6</div>
 
 ## 9. 引用文献（完整）
 1. Spitzer RL, Kroenke K, Williams JBW, Löwe B. (2006). *A Brief Measure for Assessing Generalized Anxiety Disorder: The GAD-7*. Archives of Internal Medicine, 166(10), 1092-1097. DOI: 10.1001/archinte.166.10.1092. PMID: 16717171.  
