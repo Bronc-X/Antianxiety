@@ -1,4 +1,4 @@
-type Source = 'semantic_scholar' | 'pubmed' | 'healthline';
+type Source = 'semantic_scholar' | 'pubmed' | 'healthline' | 'openalex';
 
 export interface ScientificPaper {
   id: string;
@@ -44,6 +44,13 @@ const SEMANTIC_SCHOLAR_API_KEY = process.env.SEMANTIC_SCHOLAR_API_KEY;
 const PUBMED_API_BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
 const PUBMED_LIMIT = 10;
 
+const OPENALEX_API_BASE = 'https://api.openalex.org';
+const OPENALEX_LIMIT = 10;
+const OPENALEX_TIMEOUT_MS = 8000;
+const OPENALEX_MAILTO = process.env.OPENALEX_MAILTO || process.env.OPENALEX_EMAIL;
+const OPENALEX_ENABLED = process.env.OPENALEX_ENABLED !== 'false';
+const OPENALEX_SCORE_MULTIPLIER = normalizeOpenAlexMultiplier(process.env.OPENALEX_SCORE_MULTIPLIER);
+
 // 关键词提取使用 OpenAI 兼容 API (环境变量在函数内读取，确保 dotenv 已加载)
 // 默认使用 Claude Sonnet 模型进行关键词提取
 const DEFAULT_KEYWORD_MODEL = 'claude-sonnet-4-5-20250929';
@@ -59,6 +66,7 @@ const SOURCE_QUALITY: Record<Source, number> = {
   pubmed: 1.0,           // PubMed = highest quality (peer-reviewed medical)
   semantic_scholar: 0.8, // Semantic Scholar = good quality
   healthline: 0.7,       // Healthline = good quality (medically reviewed)
+  openalex: 0.8,         // OpenAlex = broad academic coverage
 };
 
 const KEYWORD_FALLBACK_STOPWORDS = new Set([
@@ -81,7 +89,7 @@ const TARGET_PAPER_COUNT = 10;   // 目标论文数量
 const MAX_RETRY_ROUNDS = 3;      // 最大重试轮数
 
 /**
- * Orchestrated scientific search with dual-source (Semantic Scholar + PubMed)
+ * Orchestrated scientific search with multi-source (Semantic Scholar + PubMed + OpenAlex)
  * 规则：20秒内抓取到10条就结束，否则提示重试
  */
 export async function searchScientificTruth(userQuery: string): Promise<ScientificSearchResult> {
@@ -105,24 +113,25 @@ export async function searchScientificTruth(userQuery: string): Promise<Scientif
     round++;
     console.log(`🔄 搜索轮次 ${round}/${MAX_RETRY_ROUNDS}`);
 
-    // 并行请求三个平台 (Semantic Scholar + PubMed + Healthline)
+    // 并行请求多个平台 (Semantic Scholar + PubMed + Healthline + OpenAlex)
     const remainingTime = SEARCH_TIMEOUT_MS - elapsed;
-    const [semanticPapers, pubmedPapers, healthlinePapers] = await Promise.race([
+    const [semanticPapers, pubmedPapers, healthlinePapers, openalexPapers] = await Promise.race([
       Promise.all([
         searchSemanticScholar(searchQuery, SEMANTIC_SCHOLAR_LIMIT),
         searchPubMed(searchQuery, PUBMED_LIMIT),
         searchHealthline(searchQuery, 5), // Healthline 限制 5 篇
+        OPENALEX_ENABLED ? searchOpenAlex(searchQuery, OPENALEX_LIMIT) : Promise.resolve([]),
       ]),
       // 超时保护
-      new Promise<[ScientificPaper[], ScientificPaper[], ScientificPaper[]]>((resolve) =>
-        setTimeout(() => resolve([[], [], []]), remainingTime)
+      new Promise<[ScientificPaper[], ScientificPaper[], ScientificPaper[], ScientificPaper[]]>((resolve) =>
+        setTimeout(() => resolve([[], [], [], []]), remainingTime)
       ),
     ]);
 
-    console.log(`📚 轮次 ${round}: Semantic Scholar ${semanticPapers.length}, PubMed ${pubmedPapers.length}, Healthline ${healthlinePapers.length}`);
+    console.log(`📚 轮次 ${round}: Semantic Scholar ${semanticPapers.length}, PubMed ${pubmedPapers.length}, Healthline ${healthlinePapers.length}, OpenAlex ${openalexPapers.length}`);
 
     // 合并并去重 (三个来源)
-    const newPapers = [...semanticPapers, ...pubmedPapers, ...healthlinePapers];
+    const newPapers = [...semanticPapers, ...pubmedPapers, ...healthlinePapers, ...openalexPapers];
     allPapers = dedupePapers([...allPapers, ...newPapers]);
 
     console.log(`📊 累计论文: ${allPapers.length}/${TARGET_PAPER_COUNT}`);
@@ -231,6 +240,41 @@ function fallbackKeywords(query: string): string[] {
   ).slice(0, 6);
 }
 
+function normalizeOpenAlexMultiplier(value?: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0.9;
+  return Math.min(1, Math.max(0.5, parsed));
+}
+
+function normalizeOpenAlexDoi(doi?: string | null): string | null {
+  if (!doi) return null;
+  return doi.replace(/^https?:\/\/(dx\.)?doi\.org\//, '').toLowerCase().trim();
+}
+
+function openAlexAbstractToText(abstractIndex?: Record<string, number[]> | null): string {
+  if (!abstractIndex) return '';
+  let maxPos = -1;
+  for (const positions of Object.values(abstractIndex)) {
+    if (!Array.isArray(positions)) continue;
+    for (const pos of positions) {
+      if (typeof pos === 'number' && pos > maxPos) maxPos = pos;
+    }
+  }
+  if (maxPos < 0) return '';
+
+  const words = new Array(maxPos + 1).fill('');
+  for (const [word, positions] of Object.entries(abstractIndex)) {
+    if (!Array.isArray(positions)) continue;
+    for (const pos of positions) {
+      if (typeof pos === 'number' && pos >= 0 && pos < words.length) {
+        words[pos] = word;
+      }
+    }
+  }
+
+  return words.filter(Boolean).join(' ');
+}
+
 /**
  * Search Semantic Scholar API with retry logic for rate limiting
  */
@@ -289,6 +333,64 @@ export async function searchSemanticScholar(query: string, limit: number, retrie
     }
   }
   return [];
+}
+
+/**
+ * Search OpenAlex API (broad academic coverage)
+ */
+async function searchOpenAlex(query: string, limit: number): Promise<ScientificPaper[]> {
+  if (!OPENALEX_ENABLED || !query) return [];
+
+  try {
+    const params = new URLSearchParams({
+      search: query,
+      'per-page': limit.toString(),
+    });
+
+    if (OPENALEX_MAILTO) {
+      params.set('mailto', OPENALEX_MAILTO);
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), OPENALEX_TIMEOUT_MS);
+
+    const response = await fetch(`${OPENALEX_API_BASE}/works?${params.toString()}`, {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error('OpenAlex search failed:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const results = Array.isArray(data?.results) ? data.results : [];
+
+    return results.map((item: any): ScientificPaper => {
+      const doi = normalizeOpenAlexDoi(item?.doi);
+      const abstract = openAlexAbstractToText(item?.abstract_inverted_index);
+
+      return {
+        id: item?.id || `openalex_${item?.doi || Math.random().toString(36).slice(2)}`,
+        title: item?.display_name || item?.title || 'Untitled',
+        abstract: abstract || '',
+        url: item?.id || (doi ? `https://doi.org/${doi}` : ''),
+        year: item?.publication_year || null,
+        citationCount: typeof item?.cited_by_count === 'number' ? item.cited_by_count : 0,
+        doi,
+        source: 'openalex',
+      };
+    });
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('OpenAlex timeout');
+    } else {
+      console.error('OpenAlex fetch error:', error);
+    }
+    return [];
+  }
 }
 
 /**
@@ -512,7 +614,10 @@ function rerankPapersWeighted(papers: ScientificPaper[]): RankedScientificPaper[
       : 0.3; // neutral baseline when year missing
 
     // Source Quality Score (0-1)
-    const sourceQuality = SOURCE_QUALITY[paper.source] || 0.5;
+    const baseSourceQuality = SOURCE_QUALITY[paper.source] || 0.5;
+    const sourceQuality = paper.source === 'openalex'
+      ? Math.max(0, Math.min(1, baseSourceQuality * OPENALEX_SCORE_MULTIPLIER))
+      : baseSourceQuality;
 
     // Weighted Composite Score
     const composite =

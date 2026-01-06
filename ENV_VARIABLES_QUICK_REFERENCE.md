@@ -22,6 +22,30 @@
 环境: Production, Preview, Development (全选)
 ```
 
+### 变量 2.1: OpenAlex 扩源开关（可选）
+
+```
+变量名: OPENALEX_ENABLED
+值: true
+环境: Production, Preview, Development (全选)
+```
+
+### 变量 2.2: OpenAlex 礼貌池邮箱（可选）
+
+```
+变量名: OPENALEX_MAILTO
+值: <YOUR_EMAIL>
+环境: Production, Preview, Development (全选)
+```
+
+### 变量 2.3: OpenAlex 排序降权（可选）
+
+```
+变量名: OPENALEX_SCORE_MULTIPLIER
+值: 0.9
+环境: Production, Preview, Development (全选)
+```
+
 ### 变量 3: Supabase URL
 
 ```

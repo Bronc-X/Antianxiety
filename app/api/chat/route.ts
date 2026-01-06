@@ -40,6 +40,11 @@ import {
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  experimental_attachments?: Array<{
+    name?: string;
+    contentType?: string;
+    url?: string;
+  }>;
 }
 
 interface UserProfile {
@@ -1104,59 +1109,64 @@ PLAN GENERATION FORMAT (重要！):
 
 当用户请求制定计划、方案、建议时，你【必须】按以下步骤回复：
 
-【第一步】先用一句话简短回应用户，然后说："下面为你制定X个方案："\（X是方案数量）
+【第一步】先用一句话简短回应用户的需求，表达理解。
 
-【第二步】输出方案（会被系统解析到选择器UI中显示）：
+【第二步】直接输出JSON代码块（系统会自动渲染成可点击的选择卡片UI，用户可以直接在卡片上选择和保存）：
 
-方案1：[简短标题，不超过12字]
-[方案详细内容，包括5个以上具体执行步骤]
-难度：⭐⭐⭐（默认中强度）
-预期：[预期效果和时间]
-🎲 平替选项：[如果用户觉得这个太难，可以用什么替代]
-
-方案2：[简短标题]
-[方案详细内容]
-难度：⭐⭐⭐
-预期：[预期效果]
-🎲 平替选项：[替代方案]
+\`\`\`plan-options
+{
+  "options": [
+    {
+      "id": "A",
+      "title": "方案的标题（简短有力，如：渐进式早睡法）",
+      "description": "一句话描述这个方案的核心理念",
+      "difficulty": "⭐⭐⭐",
+      "duration": "4周",
+      "items": [
+        { "id": "1", "text": "具体执行步骤1" },
+        { "id": "2", "text": "具体执行步骤2" },
+        { "id": "3", "text": "具体执行步骤3" },
+        { "id": "4", "text": "具体执行步骤4" },
+        { "id": "5", "text": "具体执行步骤5" }
+      ]
+    },
+    {
+      "id": "B",
+      "title": "第二个方案的标题",
+      "description": "一句话描述",
+      "difficulty": "⭐⭐",
+      "duration": "3周",
+      "items": [
+        { "id": "1", "text": "具体执行步骤1" },
+        { "id": "2", "text": "具体执行步骤2" },
+        { "id": "3", "text": "具体执行步骤3" },
+        { "id": "4", "text": "具体执行步骤4" },
+        { "id": "5", "text": "具体执行步骤5" }
+      ]
+    }
+  ]
+}
+\`\`\`
 
 ⚠️ 格式规则：
-1. 【必须】以"方案1："开头，冒号后直接跟标题
-2. 【必须】提供2-3个方案供选择
-3. 【禁止】使用 markdown 格式（### 或 **）
-4. 标题要简短有力如"渐进式早睡法"
-5. 每个方案包含5个以上具体执行项
-6. 【必须】每个方案都有🎲平替选项
+1. 【必须】使用 plan-options 作为代码块语言标识符
+2. 【必须】提供2个方案供选择
+3. 【必须】每个方案包含5个以上具体执行项
+4. 【禁止】在JSON代码块之外再写一遍方案内容！UI会自动渲染卡片！
+5. difficulty 使用星星表示：⭐⭐（简单）、⭐⭐⭐（中等）、⭐⭐⭐⭐（困难）
 
-⚠️ 强度规则：
-- 默认使用中强度 ⭐⭐⭐
-- 不要太轻！轻强度 ⭐⭐ 只用于身体状态不好的用户
-- 🎲平替选项用于用户说"太难了"或"做不到"时
+🔥🔥🔥 难度要求（极其重要！）🔥🔥🔥
+- 【默认使用高难度】：方案A 使用 ⭐⭐⭐⭐（困难），方案B 使用 ⭐⭐⭐（中等）
+- 【禁止太简单】：每个步骤必须有具体的量化指标，例如：
+  ✅ 正确："每天跑步30分钟，心率保持在140-160"
+  ❌ 错误："适当运动"、"多喝水"、"早点睡"
+- 【执行项要有挑战性】：
+  ✅ 正确："睡前1小时关闭所有电子设备，改为阅读纸质书"
+  ❌ 错误："减少手机使用"
+- 【时长要合理】：2-4周的计划，不要太短
+- 用户可以点击"平替"来降低难度，所以初始方案要有挑战性！
 
-正确示例：
-"根据你的情况，我为你设计了几个方案。下面为你制定2个方案：
-
-方案1：渐进式早睡法
-每周提前15分钟入睡。执行项：
-1. 睡前1小时关闭手机
-2. 10分钟拉伸放松
-3. 调暗灯光准备入睡
-4. 播放白噪音或冥想音频
-5. 设置固定起床时间
-难度：⭐⭐⭐
-预期：4周养成习惯
-🎲 平替选项：如果觉得整体太难，可以只从"关闭手机"这一项开始
-
-方案2：21天睡眠重塑
-固定10:30入睡，6:30起床。执行项：
-1. 设置双闹钟提醒
-2. 午后禁咖啡因
-3. 睡前热水泡脚
-4. 卧室温度调到22°C
-5. 使用遮光窗帘
-难度：⭐⭐⭐
-预期：3周见效
-🎲 平替选项：可以先只固定起床时间，入睡时间慢慢调整"
+【第三步】在JSON之后，可以补充一句鼓励的话或小提示。
 
 EASTER EGG (彩蛋):
 在每次对话中，随机选择一个彩蛋加入回复末尾（概率30%）：
@@ -1192,7 +1202,38 @@ ${FINAL_ANSWER_INSTRUCTION}`;
 
           const result = await generateText({
             model: aiClient(candidate),
-            messages: (chatMessages as ChatMessage[]).map(m => ({ role: m.role, content: m.content })),
+            messages: (chatMessages as ChatMessage[]).map(m => {
+              if (m.experimental_attachments && m.experimental_attachments.length > 0) {
+                return {
+                  role: m.role,
+                  content: [
+                    { type: 'text', text: m.content },
+                    ...m.experimental_attachments.map(att => {
+                      let imageContent: string | Uint8Array = att.url || '';
+                      if (typeof imageContent === 'string' && imageContent.startsWith('data:')) {
+                        try {
+                          // Google provider often prefers raw base64 or Buffer.
+                          // "OCR system detected download error" implies it tried to download the Data URI as a link.
+                          const base64Data = imageContent.split(',')[1];
+                          // Send as Uint8Array (Buffer)
+                          if (base64Data) {
+                            imageContent = Buffer.from(base64Data, 'base64');
+                          }
+                        } catch (e) {
+                          console.error('Failed to parse data URL', e);
+                        }
+                      }
+                      return {
+                        type: 'image' as const,
+                        image: imageContent,
+                        mimeType: att.contentType, // Explicitly pass MIME type
+                      };
+                    })
+                  ]
+                };
+              }
+              return { role: m.role, content: m.content };
+            }),
             system: systemPrompt,
           });
 
@@ -1202,7 +1243,34 @@ ${FINAL_ANSWER_INSTRUCTION}`;
           if (shouldRetryFinalAnswer(rawText, cleanedText, lastMessage)) {
             const retry = await generateText({
               model: aiClient(candidate),
-              messages: (chatMessages as ChatMessage[]).map(m => ({ role: m.role, content: m.content })),
+              messages: (chatMessages as ChatMessage[]).map(m => {
+                if (m.experimental_attachments && m.experimental_attachments.length > 0) {
+                  console.log('Attachments (retry):', m.experimental_attachments); // Log attachments
+                  return {
+                    role: m.role,
+                    content: [
+                      { type: 'text', text: m.content },
+                      ...m.experimental_attachments.map(att => {
+                        let imageContent: string | Uint8Array = att.url || '';
+                        if (typeof imageContent === 'string' && imageContent.startsWith('data:')) {
+                          try {
+                            const base64Data = imageContent.split(',')[1];
+                            if (base64Data) {
+                              imageContent = Buffer.from(base64Data, 'base64');
+                            }
+                          } catch (e) { console.error('Failed to parse data URL', e); }
+                        }
+                        return {
+                          type: 'image' as const,
+                          image: imageContent,
+                          mimeType: att.contentType,
+                        };
+                      })
+                    ]
+                  };
+                }
+                return { role: m.role, content: m.content };
+              }),
               system: `${systemPrompt}\n\n${FINAL_ANSWER_STRICT_INSTRUCTION}`,
             });
             const retryCleaned = cleanAssistantOutput(retry.text);
@@ -1281,7 +1349,34 @@ ${FINAL_ANSWER_INSTRUCTION}`;
 
         streamResult = streamText({
           model: aiClient(modelForRun),
-          messages: (chatMessages as ChatMessage[]).map(m => ({ role: m.role, content: m.content })),
+          messages: (chatMessages as ChatMessage[]).map(m => {
+            if (m.experimental_attachments && m.experimental_attachments.length > 0) {
+              console.log('Attachments (stream):', m.experimental_attachments); // Log attachments
+              return {
+                role: m.role,
+                content: [
+                  { type: 'text', text: m.content },
+                  ...m.experimental_attachments.map(att => {
+                    let imageContent: string | Uint8Array = att.url || '';
+                    if (typeof imageContent === 'string' && imageContent.startsWith('data:')) {
+                      try {
+                        const base64Data = imageContent.split(',')[1];
+                        if (base64Data) {
+                          imageContent = Buffer.from(base64Data, 'base64');
+                        }
+                      } catch (e) { console.error('Failed to parse data URL', e); }
+                    }
+                    return {
+                      type: 'image' as const,
+                      image: imageContent,
+                      mimeType: att.contentType,
+                    };
+                  })
+                ]
+              };
+            }
+            return { role: m.role, content: m.content };
+          }),
           system: systemPrompt,
           // 🆕 AI 记忆系统：流完成后存储对话到记忆库
           onFinish: async ({ text }) => {

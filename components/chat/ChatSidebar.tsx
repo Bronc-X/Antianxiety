@@ -80,18 +80,25 @@ export function ChatSidebar({
         <>
             {/* Sidebar - always visible on desktop, toggleable on mobile */}
             <div className={cn(
-                "flex flex-col h-full bg-black/20 backdrop-blur-3xl",
-                "w-56 border-r border-white/5",
-                "md:relative md:flex",
-                // Mobile: fixed overlay, hidden when isMobileHidden
-                isMobileHidden ? "hidden" : "fixed left-0 top-0 z-40",
-                "md:!flex" // Always show on desktop
+                "flex flex-col h-full bg-black/40 backdrop-blur-xl",
+                "w-64 md:w-72 border-r border-white/10",
+                // Desktop: relative positioning (side by side). Mobile: fixed overlay
+                "md:relative md:z-auto",
+                "fixed left-0 top-0 z-40 transition-transform duration-200",
+                // Mobile: slide in/out. Desktop: always visible (relative)
+                isMobileHidden && "-translate-x-full",
+                "md:translate-x-0"
             )}>
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
                     <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full overflow-hidden relative bg-white/10">
-                            <img src="/max-avatar.png?v=2" className="w-full h-full object-cover" alt="History" />
+                        <div className="relative w-6 h-6">
+                            {/* Glow */}
+                            <div className="absolute inset-[-50%] z-0 rounded-full bg-[#4ADE80] animate-pulse blur-md opacity-60" style={{ animationDuration: '3s' }} />
+                            {/* Avatar */}
+                            <div className="relative z-10 w-full h-full rounded-full overflow-hidden shadow-sm">
+                                <img src="/max-avatar.png?v=2" className="w-full h-full object-cover scale-[1.8]" alt="History" />
+                            </div>
                         </div>
                         <span className="font-medium text-white/90">对话历史</span>
                     </div>
@@ -157,12 +164,7 @@ export function ChatSidebar({
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className={cn(
-                                                    "font-medium truncate text-sm",
-                                                    currentConversationId === conv.id
-                                                        ? "text-teal-300"
-                                                        : "text-white group-hover:text-white"
-                                                )}>
+                                                <h3 className="font-medium truncate text-sm text-white">
                                                     {conv.title || '新对话'}
                                                 </h3>
                                                 <div className="flex items-center gap-2 mt-1">

@@ -7,6 +7,11 @@ import { POST as chatPapersRoute } from '@/app/api/chat/papers/route';
 interface ChatMessageInput {
   role: 'user' | 'assistant';
   content: string;
+  experimental_attachments?: Array<{
+    name?: string;
+    contentType?: string;
+    url?: string;
+  }>;
 }
 
 export async function generateChatResponse(

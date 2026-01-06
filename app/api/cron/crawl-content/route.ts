@@ -59,9 +59,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: result.success,
         mode: 'full',
-        message: `周末完整爬取：PubMed ${result.pubmedCount} 篇，Semantic Scholar ${result.semanticCount} 篇，Reddit ${result.redditCount} 条，X ${result.xCount} 条`,
+        message: `周末完整爬取：PubMed ${result.pubmedCount} 篇，Semantic Scholar ${result.semanticCount} 篇，OpenAlex ${result.openalexCount} 篇，Reddit ${result.redditCount} 条，X ${result.xCount} 条`,
         pubmedCount: result.pubmedCount,
         semanticCount: result.semanticCount,
+        openalexCount: result.openalexCount,
         redditCount: result.redditCount,
         xCount: result.xCount,
         duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
@@ -75,8 +76,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: result.success,
         mode: 'quick',
-        message: `工作日快速爬取：${result.count} 条内容（Reddit ${result.redditCount}，X ${result.xCount}）`,
+        message: `工作日快速爬取：${result.count} 条内容（OpenAlex ${result.openalexCount}，Reddit ${result.redditCount}，X ${result.xCount}）`,
         count: result.count,
+        openalexCount: result.openalexCount,
         redditCount: result.redditCount,
         xCount: result.xCount,
         duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,

@@ -70,17 +70,19 @@ export async function POST(request: NextRequest) {
       result = await crawlAndStoreArticles(10);
       return NextResponse.json({
         success: result.success,
-        message: `爬取完成：PubMed ${result.pubmedCount} 篇，Semantic Scholar ${result.semanticCount} 篇`,
+        message: `爬取完成：PubMed ${result.pubmedCount} 篇，Semantic Scholar ${result.semanticCount} 篇，OpenAlex ${result.openalexCount} 篇`,
         pubmedCount: result.pubmedCount,
         semanticCount: result.semanticCount,
+        openalexCount: result.openalexCount,
         errors: result.errors.slice(0, 5), // 只返回前 5 个错误
       });
     } else {
       result = await quickCrawl();
       return NextResponse.json({
         success: result.success,
-        message: `快速爬取完成：${result.count} 篇文章`,
+        message: `快速爬取完成：${result.count} 篇文章（OpenAlex ${result.openalexCount}）`,
         count: result.count,
+        openalexCount: result.openalexCount,
         errors: result.errors.slice(0, 5),
       });
     }

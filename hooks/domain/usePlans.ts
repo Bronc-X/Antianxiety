@@ -276,7 +276,11 @@ export function usePlans(): UsePlansReturn {
             const result = await completePlan({
                 planId,
                 status,
-                completedItems: items.map(item => ({ id: item.id, completed: item.completed })),
+                completedItems: items.map(item => ({
+                    id: item.id,
+                    completed: item.completed,
+                    text: item.text
+                })),
             });
 
             if (!result.success) {

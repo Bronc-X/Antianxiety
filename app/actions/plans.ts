@@ -56,6 +56,7 @@ export interface CreatePlanInput {
 export interface PlanCompletionItem {
     id: string;
     completed: boolean;
+    text?: string;
 }
 
 export interface CompletePlanInput {
@@ -232,14 +233,19 @@ export async function getPlans(): Promise<ActionResult<PlanData[]>> {
         const mergedPlans = plans.map(plan => {
             const completionItems = completionMap.get(plan.id);
             if (!completionItems?.length) {
+                // If no completions found in external table, rely on user_plans items
+                // console.log(`[Plans Debug] Plan ${plan.id} has no completion records, using internal state`);
                 return plan;
             }
+
+            // console.log(`[Plans Debug] Plan ${plan.id} merging with completion record`, completionItems);
             return {
                 ...plan,
                 items: applyCompletionItems(plan.items, completionItems, plan.id),
             };
         });
 
+        // console.log('[Plans Debug] getPlans returning:', mergedPlans.length, 'plans');
         return toSerializable({ success: true, data: mergedPlans });
 
     } catch (error) {
@@ -458,7 +464,10 @@ export async function completePlan(
             });
 
         if (completionError) {
+            console.error('[Plans Debug] Completion upsert failed:', completionError);
             return { success: false, error: completionError.message };
+        } else {
+            // console.log('[Plans Debug] Completion upserted successfully for', input.planId);
         }
 
         let updateError: { message?: string } | null = null;
@@ -480,7 +489,9 @@ export async function completePlan(
                         return ciId === itemId ||
                             ciId === `${input.planId}-${index}` ||
                             ciId === index.toString() ||
-                            ciId === item.id?.toString();
+                            ciId === item.id?.toString() ||
+                            // Fallback: match by text content
+                            (ci.text && item.text && ci.text.trim() === item.text.trim());
                     });
 
                     const itemByIndex = input.completedItems?.[index];
@@ -617,7 +628,7 @@ export async function getPlanStatsSummary(days = 30): Promise<ActionResult<PlanS
             ? completions
                 .filter(c => c.feeling_score)
                 .reduce((sum, c) => sum + (c.feeling_score || 0), 0)
-                / completions.filter(c => c.feeling_score).length
+            / completions.filter(c => c.feeling_score).length
             : 0;
 
         return toSerializable({

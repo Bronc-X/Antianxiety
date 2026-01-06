@@ -66,10 +66,10 @@ export default function MarketingNav({ user, profile }: MarketingNavProps) {
               <LanguageSwitcher />
               <div className="flex items-center relative gap-3" onMouseLeave={() => setHoveredPath(null)}>
                 {[
-                  { href: '/welcome', label: t('nav.scienceInsight') },
-                  { href: '/assistant', label: t('nav.assistant') },
-                  { href: '/analysis', label: t('nav.analysis') },
-                  { href: '/unlearn/onboarding/upgrade?from=landing', label: t('nav.upgrade') },
+                  { href: '/unlearn', label: t('nav.dashboard') },
+                  { href: '/unlearn/plans', label: t('nav.plansShort') },
+                  { href: '/unlearn/insights', label: t('nav.science') },
+                  { href: '/agent-whitepaper-preview', label: t('nav.whitepaper') },
                 ].map((item) => {
                   const isActive = item.href === hoveredPath;
 

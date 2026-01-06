@@ -449,27 +449,27 @@ export default function ParticipantDigitalTwin() {
     return (
         <section
             ref={containerRef}
-            className="relative py-24 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#0B3D2E] via-[#051F18] to-black"
+            className="relative py-12 md:py-24 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#0B3D2E] via-[#051F18] to-black"
         >
-            <div className="max-w-[1400px] mx-auto px-6">
-                <div className="grid grid-cols-[100px_1fr] sm:grid-cols-[140px_1fr] lg:grid-cols-[300px_1fr] gap-4 sm:gap-6 lg:gap-12 items-start">
-                    {/* Left Column - Interactive Navigation */}
+            <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+                <div className="flex flex-col md:grid md:grid-cols-[300px_1fr] gap-4 md:gap-12 items-start">
+                    {/* Left Column - Interactive Navigation (Desktop: full, Mobile: compact header only) */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         animate={isInView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.6 }}
-                        className="space-y-6"
+                        className="space-y-4 md:space-y-6"
                     >
                         <div
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium"
                             style={{ backgroundColor: 'rgba(212, 175, 55, 0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)' }}
                         >
-                            <span className="w-2 h-2 bg-[#D4AF37]" />
-                            {language === 'en' ? 'DIGITAL TWIN TECHNOLOGY' : '数字孪生技术'}
+                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-[#D4AF37]" />
+                            {language === 'en' ? 'DIGITAL TWIN' : '数字孪生'}
                         </div>
 
-                        {/* Interactive View Buttons */}
-                        <div className="space-y-2">
+                        {/* Desktop Only: View Buttons */}
+                        <div className="hidden md:flex md:flex-col md:space-y-2">
                             {viewOptions.map((option, i) => (
                                 <motion.button
                                     key={option.id}
@@ -478,7 +478,6 @@ export default function ParticipantDigitalTwin() {
                                     transition={{ duration: 0.4, delay: 0.2 + i * 0.1 }}
                                     onClick={(e) => {
                                         if (!hasData) {
-                                            // Use clientX/clientY for fixed positioning near click
                                             setHintPosition({ x: e.clientX + 15, y: e.clientY });
                                             setTimeout(() => setHintPosition(null), 2000);
                                             return;
@@ -486,8 +485,8 @@ export default function ParticipantDigitalTwin() {
                                         setActiveView(option.id);
                                     }}
                                     className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-all duration-300 cursor-pointer ${activeView === option.id
-                                        ? 'bg-[#D4AF37]/20 border-l-2 border-[#D4AF37]'
-                                        : 'bg-white/5 border-l-2 border-transparent hover:bg-white/10'
+                                        ? 'bg-[#D4AF37]/20 border-l-2 border-[#D4AF37] text-[#D4AF37]'
+                                        : 'border-l-2 border-transparent hover:bg-white/10'
                                         } ${!hasData ? 'opacity-70' : ''}`}
                                 >
                                     <option.icon className={`w-4 h-4 ${activeView === option.id ? 'text-[#D4AF37]' : 'text-white/50'}`} />
@@ -519,7 +518,8 @@ export default function ParticipantDigitalTwin() {
                             )}
                         </AnimatePresence>
 
-                        <div className="pt-8">
+                        {/* Desktop Only: Description */}
+                        <div className="hidden md:block pt-8">
                             <h2 className="text-white font-bold leading-[1.1] mb-4" style={{ fontSize: 'clamp(24px, 3vw, 36px)' }}>
                                 {language === 'en' ? 'Personalized ML models trained on your data' : '基于你数据训练的个性化模型'}
                             </h2>
@@ -530,12 +530,12 @@ export default function ParticipantDigitalTwin() {
                             </p>
                         </div>
 
-                        {/* Refresh Button (when data exists) */}
+                        {/* Desktop Only: Refresh Button */}
                         {hasData && (
                             <button
                                 onClick={triggerAnalysis}
                                 disabled={isAnalyzing}
-                                className="flex items-center gap-2 text-sm text-white/60 hover:text-[#D4AF37] transition-colors disabled:opacity-50"
+                                className="hidden md:flex items-center gap-2 text-sm text-white/60 hover:text-[#D4AF37] transition-colors disabled:opacity-50"
                             >
                                 <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
                                 {isAnalyzing
@@ -550,7 +550,7 @@ export default function ParticipantDigitalTwin() {
                         initial={{ opacity: 0, y: 30 }}
                         animate={isInView ? { opacity: 1, y: 0 } : {}}
                         transition={{ duration: 0.8, delay: 0.3 }}
-                        className="overflow-hidden backdrop-blur-xl"
+                        className="overflow-hidden backdrop-blur-xl w-full max-w-full"
                         style={{
                             backgroundColor: 'rgba(5, 31, 24, 0.7)',
                             border: '1px solid rgba(212, 175, 55, 0.1)',
@@ -559,15 +559,15 @@ export default function ParticipantDigitalTwin() {
                         }}
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                            <div className="flex items-center gap-4">
-                                <div className="w-8 h-8 bg-[#D4AF37] flex items-center justify-center">
-                                    <span className="text-[#0B3D2E] font-bold text-sm">{initials.charAt(0)}</span>
+                        <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4" style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.15)' }}>
+                            <div className="flex items-center gap-3 md:gap-4">
+                                <div className="w-7 h-7 md:w-8 md:h-8 bg-[#D4AF37] flex items-center justify-center">
+                                    <span className="text-[#0B3D2E] font-bold text-xs md:text-sm">{initials.charAt(0)}</span>
                                 </div>
-                                <span className="text-white text-sm">
+                                <span className="text-white text-xs md:text-sm">
                                     {language === 'en'
-                                        ? <>Participant&apos;s Digital Twin in <span className="text-[#D4AF37]">Anxiety Recovery</span></>
-                                        : <>参与者数字孪生：<span className="text-[#D4AF37]">焦虑恢复</span></>}
+                                        ? <><span className="hidden sm:inline">Participant&apos;s Digital Twin in </span><span className="text-[#D4AF37]">Anxiety Recovery</span></>
+                                        : <><span className="hidden sm:inline">参与者数字孪生：</span><span className="text-[#D4AF37]">焦虑恢复</span></>}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -578,6 +578,30 @@ export default function ParticipantDigitalTwin() {
                                     <Settings className="w-4 h-4" />
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Mobile Only: View Toggle Buttons - Inside Panel */}
+                        <div className="md:hidden flex overflow-x-auto gap-2 px-4 py-3 scrollbar-none" style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.1)' }}>
+                            {viewOptions.map((option) => (
+                                <button
+                                    key={option.id}
+                                    onClick={(e) => {
+                                        if (!hasData) {
+                                            setHintPosition({ x: e.clientX + 15, y: e.clientY });
+                                            setTimeout(() => setHintPosition(null), 2000);
+                                            return;
+                                        }
+                                        setActiveView(option.id);
+                                    }}
+                                    className={`flex-shrink-0 px-3 py-2 text-xs flex items-center gap-1.5 rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap ${activeView === option.id
+                                        ? 'bg-[#D4AF37]/20 border border-[#D4AF37] text-[#D4AF37]'
+                                        : 'bg-white/5 border border-transparent text-white/70 hover:bg-white/10'
+                                        } ${!hasData ? 'opacity-70' : ''}`}
+                                >
+                                    <option.icon className={`w-3.5 h-3.5 ${activeView === option.id ? 'text-[#D4AF37]' : 'text-white/50'}`} />
+                                    <span>{option.label}</span>
+                                </button>
+                            ))}
                         </div>
 
                         {/* Content Area */}
@@ -2258,45 +2282,40 @@ function CurveHealthRecommendationView({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="p-6"
+            className="p-3 md:p-6"
         >
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-[#D4AF37]/20 rounded-full flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-[#D4AF37]" />
+            {/* Header - Compact */}
+            <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-[#D4AF37]/20 rounded-full flex items-center justify-center">
+                    <Heart className="w-4 h-4 md:w-5 md:h-5 text-[#D4AF37]" />
                 </div>
                 <div>
-                    <h3 className="text-white font-semibold">
+                    <h3 className="text-white font-semibold text-sm md:text-base">
                         {language === 'en' ? 'Health Advice' : '健康建议'}
                     </h3>
-                    <p className="text-white/50 text-sm">
+                    <p className="text-white/50 text-[10px] md:text-sm">
                         {language === 'en' ? 'Based on your curve data' : '基于你的曲线数据'}
                     </p>
                 </div>
             </div>
 
-            {/* Focus Areas */}
+            {/* Focus Areas - 3 per row */}
             {focusAreas.length > 0 && (
-                <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Target className="w-4 h-4 text-[#D4AF37]" />
-                        <span className="text-white text-sm font-medium">
+                <div className="mb-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                        <Target className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span className="text-white text-xs font-medium">
                             {language === 'en' ? 'Focus Areas' : '关注重点'}
                         </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        {focusAreas.map(s => {
+                    <div className="grid grid-cols-3 gap-1.5">
+                        {focusAreas.slice(0, 3).map(s => {
                             const config = severityConfig[s.severityLevel];
                             return (
-                                <div key={s.name} className={`p-3 ${config.bg} border ${config.border} rounded`}>
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-white text-sm font-medium">{s.name}: {s.value}</span>
-                                        </div>
-                                        <span className={`text-xs px-2 py-1 rounded inline-block text-center w-full ${config.bg} ${config.text}`}>
-                                            {config.label}
-                                        </span>
-                                    </div>
+                                <div key={s.name} className={`p-1.5 ${config.bg} border ${config.border} rounded text-center`}>
+                                    <div className="text-white text-[10px] font-medium truncate">{s.name}</div>
+                                    <div className="text-[#D4AF37] text-[11px] font-bold">{s.value}</div>
+                                    <div className={`text-[8px] mt-0.5 ${config.text}`}>{config.label}</div>
                                 </div>
                             );
                         })}
@@ -2305,17 +2324,17 @@ function CurveHealthRecommendationView({
             )}
 
 
-            {/* Expected Progress */}
+            {/* Expected Progress - Compact */}
             {
                 week0 && week15 && (
-                    <div className="mb-6 p-4 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded">
-                        <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="w-4 h-4 text-[#D4AF37]" />
-                            <span className="text-white text-sm font-medium">
-                                {language === 'en' ? '15-Week Predicted Progress' : '15周预期进展'}
+                    <div className="mb-4 p-2.5 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                            <TrendingUp className="w-3 h-3 text-[#D4AF37]" />
+                            <span className="text-white text-[10px] font-medium">
+                                {language === 'en' ? '15-Week Progress' : '15周预期'}
                             </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-2 gap-2 text-[10px]">
                             <div>
                                 <span className="text-white/50">{language === 'en' ? 'Anxiety' : '焦虑'}: </span>
                                 <span className="text-[#D4AF37]">{week0.metrics?.anxietyScore?.value?.toFixed(0) ?? '—'}</span>
@@ -2333,9 +2352,9 @@ function CurveHealthRecommendationView({
                 )
             }
 
-            {/* Recommendations */}
-            <div className="space-y-3">
-                {recs.map((rec, i) => {
+            {/* Recommendations - Grid 2 columns on mobile */}
+            <div className="grid grid-cols-2 gap-2">
+                {recs.slice(0, 6).map((rec, i) => {
                     const recId = `rec-${i}-${rec.title.slice(0, 10)}`;
                     const expanded = isExpanded(recId);
                     const loading = isLoading(recId);
@@ -2344,79 +2363,67 @@ function CurveHealthRecommendationView({
                     return (
                         <motion.div
                             key={rec.title}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.15 * i }}
-                            className="p-4 bg-white/5 border-l-2 border-[#D4AF37] rounded-r"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 * i }}
+                            className="p-2.5 bg-white/5 border-l-2 border-[#D4AF37] rounded-r flex flex-col"
                         >
-                            <div className="flex items-start gap-3">
-                                <rec.icon className="w-5 h-5 text-[#D4AF37] mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                    <div className="text-white font-medium text-sm">{rec.title}</div>
-                                    <div className="text-white/70 text-sm mt-1">{rec.description}</div>
-                                    <div className="text-white/40 text-xs mt-2 italic">📊 {rec.science}</div>
-
-                                    {/* Ask Max Button */}
-                                    <button
-                                        onClick={() => askMax({ recId, title: rec.title, description: rec.description, science: rec.science, language: language === 'en' ? 'en' : 'zh' })}
-                                        className="mt-3 flex items-center gap-2 px-3 py-1.5 text-xs bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40 rounded-full text-[#D4AF37] transition-colors"
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <MaxAvatar state="thinking" size={18} />
-                                                <span className="animate-pulse">{language === 'en' ? 'Max is thinking...' : 'Max思考中...'}</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <MaxAvatar state="idle" size={16} />
-                                                {language === 'en' ? 'Hard to understand? Let Max explain' : '难理解?让Max展开说说'}
-                                            </>
-                                        )}
-                                    </button>
-
-                                    {/* Max's Explanation */}
-                                    <AnimatePresence>
-                                        {expanded && explanation && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                transition={{ duration: 0.2 }}
-                                                className="mt-3 p-3 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded"
-                                            >
-                                                <div className="flex items-start gap-2">
-                                                    <Brain className="w-4 h-4 text-[#D4AF37] mt-0.5 flex-shrink-0" />
-                                                    <div>
-                                                        <div className="text-[#D4AF37] text-xs font-medium mb-1">
-                                                            {language === 'en' ? 'Max says:' : 'Max 说：'}
-                                                        </div>
-                                                        <div className="text-white/80 text-sm leading-relaxed">
-                                                            {explanation}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                            <div className="flex items-start gap-1.5">
+                                <rec.icon className="w-3.5 h-3.5 text-[#D4AF37] mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-white font-medium text-[11px] leading-tight line-clamp-2">{rec.title}</div>
+                                    <div className="text-white/60 text-[10px] mt-1 line-clamp-2">{rec.description}</div>
                                 </div>
                             </div>
+
+                            {/* Ask Max Button - Compact */}
+                            <button
+                                onClick={() => askMax({ recId, title: rec.title, description: rec.description, science: rec.science, language: language === 'en' ? 'en' : 'zh' })}
+                                className="mt-2 flex items-center justify-center gap-1 px-2 py-1 text-[9px] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40 rounded-full text-[#D4AF37] transition-colors"
+                            >
+                                {loading ? (
+                                    <span className="animate-pulse">{language === 'en' ? 'Thinking...' : '思考中...'}</span>
+                                ) : (
+                                    <>
+                                        <MaxAvatar state="idle" size={12} />
+                                        <span>{language === 'en' ? 'Ask Max' : '问Max'}</span>
+                                    </>
+                                )}
+                            </button>
+
+                            {/* Max's Explanation */}
+                            <AnimatePresence>
+                                {expanded && explanation && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="mt-2 p-2 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded"
+                                    >
+                                        <div className="text-white/80 text-[10px] leading-relaxed">
+                                            {explanation}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </motion.div>
                     );
                 })}
             </div>
 
-            {/* Warning */}
-            <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded">
-                <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+            {/* Warning - Compact */}
+            <div className="mt-4 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded">
+                <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
                     <div>
-                        <div className="text-amber-300 font-medium text-sm">
-                            {language === 'en' ? 'Important Note' : '重要提示'}
+                        <div className="text-amber-300 font-medium text-[10px]">
+                            {language === 'en' ? 'Note' : '提示'}
                         </div>
-                        <div className="text-amber-200/70 text-sm mt-1">
+                        <div className="text-amber-200/70 text-[9px] mt-0.5">
                             {language === 'en'
-                                ? 'AI-generated advice. For clinical concerns, consult a healthcare professional.'
-                                : '由AI生成。如有临床问题，请咨询专业医疗人员。'}
+                                ? 'AI-generated. Consult a professional for clinical concerns.'
+                                : 'AI生成，如有临床问题请咨询专业人员。'}
                         </div>
                     </div>
                 </div>
@@ -2603,14 +2610,14 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
     ] as const;
 
     return (
-        <div className="w-full h-[400px] flex flex-col relative group">
+        <div className="w-full h-[400px] flex flex-col relative group overflow-hidden px-2 sm:px-4">
             {/* Background Breathing Animation - Lighter Opacity */}
             <div className="absolute inset-0 opacity-10 pointer-events-none bg-gradient-to-r from-transparent via-[#D4AF37]/5 to-transparent animate-pulse" />
 
             {/* Controls Bar */}
-            <div className="flex flex-wrap items-center justify-between mb-4 relative z-10 gap-4">
-                {/* Metric Toggles */}
-                <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between mb-4 relative z-10 gap-3">
+                {/* Metric Toggles - Horizontally scrollable on mobile */}
+                <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 scrollbar-none sm:flex-wrap sm:justify-center">
                     {(Object.keys(METRIC_LABELS) as Array<keyof typeof METRIC_LABELS>).map((metric) => {
                         const isSelected = selectedMetrics.includes(metric);
                         const color = getMetricColor(metric);
@@ -2620,8 +2627,8 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
                                 key={metric}
                                 onClick={() => onMetricToggle(metric)}
                                 className={`
-                                    flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300
-                                    border
+                                    flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300
+                                    border whitespace-nowrap
                                     ${isSelected
                                         ? `bg-[${color}]/10 border-[${color}] text-white shadow-[0_0_10px_${color}40]`
                                         : 'bg-transparent border-white/10 text-white/40 hover:border-white/30'
@@ -2667,7 +2674,7 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart
                         data={chartData}
-                        margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+                        margin={{ top: 20, right: 10, left: -15, bottom: 0 }}
                     >
                         <defs>
                             {/* Glow Filter */}
@@ -2721,11 +2728,12 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
                         />
                         <YAxis
                             stroke="rgba(255,255,255,0.2)"
-                            tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 12 }}
+                            tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
                             tickLine={false}
                             axisLine={false}
-                            tickFormatter={(value) => `${value}%`}
+                            tickFormatter={(value) => `${value}`}
                             domain={[0, 100]}
+                            width={30}
                         />
                         <Tooltip
                             position={{ x: 10, y: -20 }}
