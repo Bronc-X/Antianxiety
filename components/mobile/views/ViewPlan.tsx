@@ -89,6 +89,23 @@ export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
 
     const progress = plans.length > 0 ? Math.round((completedPlans.length / plans.length) * 100) : 0;
 
+    // Show loading skeleton when plans are loading
+    if (isLoading) {
+        return (
+            <motion.div
+                initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}
+                className="flex flex-col h-full pb-24 items-center justify-center"
+            >
+                <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                    className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full"
+                />
+                <p className="text-stone-500 text-sm mt-3">正在加载计划...</p>
+            </motion.div>
+        );
+    }
+
     return (
         <motion.div
             initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}
