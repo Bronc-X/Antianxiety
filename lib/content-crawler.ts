@@ -45,6 +45,15 @@ interface SemanticScholarPaper {
   citationCount?: number;
 }
 
+interface OpenAlexWork {
+  id: string;
+  doi?: string | null;
+  display_name?: string | null;
+  title?: string | null;
+  abstract_inverted_index?: Record<string, number[]>;
+  publication_year?: number | null;
+}
+
 interface ContentFeedItem {
   source_url: string;
   source_type: string;
@@ -144,6 +153,15 @@ async function getPubMedAbstract(pmid: string): Promise<string | null> {
 
 const SEMANTIC_SCHOLAR_URL = 'https://api.semanticscholar.org/graph/v1/paper/search';
 
+// ============================================
+// OpenAlex API
+// ============================================
+
+const OPENALEX_API_BASE = 'https://api.openalex.org';
+const OPENALEX_TIMEOUT_MS = 8000;
+const OPENALEX_MAILTO = process.env.OPENALEX_MAILTO || process.env.OPENALEX_EMAIL;
+const OPENALEX_ENABLED = process.env.OPENALEX_ENABLED !== 'false';
+
 /**
  * 搜索 Semantic Scholar 文章
  */
@@ -174,6 +192,79 @@ async function searchSemanticScholar(query: string, maxResults = 20): Promise<Se
     return data.data || [];
   } catch (error) {
     console.error('Semantic Scholar search error:', error);
+    return [];
+  }
+}
+
+// ============================================
+// OpenAlex API
+// ============================================
+
+function normalizeOpenAlexDoi(doi?: string | null): string | null {
+  if (!doi) return null;
+  return doi.replace(/^https?:\/\/(dx\.)?doi\.org\//, '').toLowerCase().trim();
+}
+
+function openAlexAbstractToText(abstractIndex?: Record<string, number[]>): string {
+  if (!abstractIndex) return '';
+  let maxPos = -1;
+  for (const positions of Object.values(abstractIndex)) {
+    if (!Array.isArray(positions)) continue;
+    for (const pos of positions) {
+      if (typeof pos === 'number' && pos > maxPos) maxPos = pos;
+    }
+  }
+  if (maxPos < 0) return '';
+
+  const words = new Array(maxPos + 1).fill('');
+  for (const [word, positions] of Object.entries(abstractIndex)) {
+    if (!Array.isArray(positions)) continue;
+    for (const pos of positions) {
+      if (typeof pos === 'number' && pos >= 0 && pos < words.length) {
+        words[pos] = word;
+      }
+    }
+  }
+
+  return words.filter(Boolean).join(' ');
+}
+
+async function searchOpenAlex(query: string, maxResults = 20): Promise<OpenAlexWork[]> {
+  if (!OPENALEX_ENABLED) return [];
+  try {
+    const params = new URLSearchParams({
+      search: query,
+      'per-page': maxResults.toString(),
+      select: 'id,doi,display_name,title,abstract_inverted_index,publication_year',
+    });
+
+    if (OPENALEX_MAILTO) {
+      params.set('mailto', OPENALEX_MAILTO);
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), OPENALEX_TIMEOUT_MS);
+
+    const response = await fetch(`${OPENALEX_API_BASE}/works?${params.toString()}`, {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(`OpenAlex search failed: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return data?.results || [];
+  } catch (error) {
+    if ((error as any).name === 'AbortError') {
+      console.error('OpenAlex timeout');
+    } else {
+      console.error('OpenAlex search error:', error);
+    }
     return [];
   }
 }
@@ -212,6 +303,28 @@ function semanticScholarToContentItem(paper: SemanticScholarPaper): ContentFeedI
     source_type: 'semantic_scholar',
     content_text: contentText.slice(0, 2000),
     published_at: paper.year ? `${paper.year}-01-01` : null,
+  };
+}
+
+/**
+ * 将 OpenAlex 论文转换为内容项
+ */
+function openAlexToContentItem(work: OpenAlexWork): ContentFeedItem | null {
+  const abstract = openAlexAbstractToText(work.abstract_inverted_index);
+  if (!abstract || abstract.length < 100) return null;
+
+  const title = work.display_name || work.title || 'Untitled';
+  const doi = normalizeOpenAlexDoi(work.doi);
+  const sourceUrl = work.id || (doi ? `https://doi.org/${doi}` : '');
+  if (!sourceUrl) return null;
+
+  const contentText = `${title}\n\n${abstract}`;
+
+  return {
+    source_url: sourceUrl,
+    source_type: 'openalex',
+    content_text: contentText.slice(0, 2000),
+    published_at: work.publication_year ? `${work.publication_year}-01-01` : null,
   };
 }
 
@@ -336,6 +449,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
   success: boolean;
   pubmedCount: number;
   semanticCount: number;
+  openalexCount: number;
   redditCount: number;
   xCount: number;
   errors: string[];
@@ -344,6 +458,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
   const errors: string[] = [];
   let pubmedCount = 0;
   let semanticCount = 0;
+  let openalexCount = 0;
   let redditCount = 0;
   let xCount = 0;
 
@@ -449,11 +564,56 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
       errors.push(`Semantic Scholar crawl error for "${query}": ${e}`);
     }
 
+    // 3. OpenAlex
+    try {
+      const works = await searchOpenAlex(query, maxPerQuery);
+
+      for (const work of works) {
+        const item = openAlexToContentItem(work);
+        if (!item) continue;
+
+        const { data: existing } = await supabase
+          .from('content_feed_vectors')
+          .select('id')
+          .eq('source_url', item.source_url)
+          .single();
+
+        if (existing) continue;
+
+        try {
+          item.embedding = await generateEmbedding(item.content_text);
+        } catch (e) {
+          console.warn('Embedding generation failed, storing without embedding');
+        }
+
+        const { error } = await supabase
+          .from('content_feed_vectors')
+          .insert({
+            source_url: item.source_url,
+            source_type: item.source_type,
+            content_text: item.content_text,
+            published_at: item.published_at,
+            embedding: item.embedding,
+            crawled_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          errors.push(`OpenAlex insert error: ${error.message}`);
+        } else {
+          openalexCount++;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+    } catch (e) {
+      errors.push(`OpenAlex crawl error for "${query}": ${e}`);
+    }
+
     // 每个查询之间等待
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
-  // 3. Social sources
+  // 4. Social sources
   const socialLimit = Math.min(6, maxPerQuery);
 
   try {
@@ -536,12 +696,13 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
     errors.push(`X crawl error: ${e}`);
   }
 
-  console.log(`✅ Crawl complete: ${pubmedCount} PubMed, ${semanticCount} Semantic Scholar, ${redditCount} Reddit, ${xCount} X`);
+  console.log(`✅ Crawl complete: ${pubmedCount} PubMed, ${semanticCount} Semantic Scholar, ${openalexCount} OpenAlex, ${redditCount} Reddit, ${xCount} X`);
 
   return {
     success: errors.length === 0,
     pubmedCount,
     semanticCount,
+    openalexCount,
     redditCount,
     xCount,
     errors,
@@ -554,6 +715,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
 export async function quickCrawl(): Promise<{
   success: boolean;
   count: number;
+  openalexCount: number;
   redditCount: number;
   xCount: number;
   errors: string[];
@@ -561,6 +723,7 @@ export async function quickCrawl(): Promise<{
   const supabase = getAdminSupabase();
   const errors: string[] = [];
   let count = 0;
+  let openalexCount = 0;
   let redditCount = 0;
   let xCount = 0;
 
@@ -624,6 +787,55 @@ export async function quickCrawl(): Promise<{
   } catch (e) {
     errors.push(`Quick crawl error: ${e}`);
     console.error('Quick crawl error:', e);
+  }
+
+  // OpenAlex (扩源)
+  try {
+    console.log('🔍 Searching OpenAlex...');
+    const works = await searchOpenAlex(query, 8);
+    console.log(`📄 Found ${works.length} OpenAlex works`);
+
+    for (const work of works) {
+      const item = openAlexToContentItem(work);
+      if (!item) continue;
+
+      const { data: existing } = await supabase
+        .from('content_feed_vectors')
+        .select('id')
+        .eq('source_url', item.source_url)
+        .single();
+
+      if (existing) continue;
+
+      try {
+        item.embedding = await generateEmbedding(item.content_text);
+      } catch (e) {
+        console.warn('Embedding generation failed');
+      }
+
+      const { error } = await supabase
+        .from('content_feed_vectors')
+        .insert({
+          source_url: item.source_url,
+          source_type: item.source_type,
+          content_text: item.content_text,
+          published_at: item.published_at,
+          embedding: item.embedding,
+          crawled_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        errors.push(`OpenAlex insert error: ${error.message}`);
+        console.error(`❌ Insert error: ${error.message}`);
+      } else {
+        count++;
+        openalexCount++;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 400));
+    }
+  } catch (e) {
+    errors.push(`OpenAlex quick crawl error: ${e}`);
   }
 
   const socialLimit = 4;
@@ -709,7 +921,7 @@ export async function quickCrawl(): Promise<{
   }
 
   const totalCount = count + redditCount + xCount;
-  console.log(`✅ Quick crawl complete: ${totalCount} items (${count} scientific, ${redditCount} Reddit, ${xCount} X)`);
+  console.log(`✅ Quick crawl complete: ${totalCount} items (${count} scientific, ${openalexCount} OpenAlex, ${redditCount} Reddit, ${xCount} X)`);
 
-  return { success: errors.length === 0, count: totalCount, redditCount, xCount, errors };
+  return { success: errors.length === 0, count: totalCount, openalexCount, redditCount, xCount, errors };
 }

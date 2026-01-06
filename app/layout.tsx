@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter, Playfair_Display } from "next/font/google";
+// Trigger Rebuild 1
 import "./globals.css";
 
 const inter = Inter({
@@ -22,7 +23,6 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import { I18nProvider } from "@/lib/i18n";
 import { ToastProvider } from "@/components/ui/toast";
 import DevTools from "@/components/DevTools";
-import AIAssistantFloatingButton from "@/components/AIAssistantFloatingButton";
 import TraditionalChineseAutoConvert from "@/components/TraditionalChineseAutoConvert";
 
 
@@ -92,7 +92,6 @@ export default function RootLayout({
                 <GlobalNav />
                 <RouteTransition>{children}</RouteTransition>
                 <MobileBottomNav />
-                <AIAssistantFloatingButton />
                 <DevTools />
               </ToastProvider>
             </MotionProvider>

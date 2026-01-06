@@ -26,6 +26,9 @@
 - `CRON_SECRET`：保护 `/api/cron/*` 手动触发
 - `CONTENT_INGEST_API_KEY`：保护 `/api/ingest-content`
 - `SEMANTIC_SCHOLAR_API_KEY`：可选，提高学术检索额度
+- `OPENALEX_ENABLED`：可选，是否启用 OpenAlex 扩源（默认 true，设为 `false` 可关闭）
+- `OPENALEX_MAILTO`：可选，OpenAlex 礼貌池邮箱（提升速率）
+- `OPENALEX_SCORE_MULTIPLIER`：可选，OpenAlex 排序降权（0.5-1.0，默认 0.9）
 - `RESEND_API_KEY`：可选，用于发送评估报告邮件
 - `ADMIN_API_KEY`：保护管理员代查接口（`Authorization: Bearer <key>`）
 

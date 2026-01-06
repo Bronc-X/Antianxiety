@@ -33,7 +33,7 @@ type FormState = {
 };
 
 export default function SettingsClient({ user, profile }: SettingsClientProps) {
-  const { t, language } = useI18n();
+  const { t, language, setLanguage } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -251,8 +251,8 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
           {/* Message Banner */}
           {message && (
             <div className={`mt-4 rounded-lg p-4 ${message.type === 'success'
-                ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
-                : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+              ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+              : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
               }`}>
               {message.text}
             </div>
@@ -267,8 +267,8 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
             <button
               onClick={() => setActiveTab('body')}
               className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'body'
-                  ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
-                  : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
+                ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
+                : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
                 }`}
             >
               <Activity className="w-4 h-4" />
@@ -277,8 +277,8 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
             <button
               onClick={() => setActiveTab('ai')}
               className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'ai'
-                  ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
-                  : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
+                ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
+                : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
                 }`}
             >
               <Brain className="w-4 h-4" />
@@ -290,8 +290,8 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
             <button
               onClick={() => setActiveTab('account')}
               className={`flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors ${activeTab === 'account'
-                  ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
-                  : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
+                ? 'border-[#0B3D2E] dark:border-white text-[#0B3D2E] dark:text-white'
+                : 'border-transparent text-[#0B3D2E]/60 dark:text-neutral-400 hover:text-[#0B3D2E]/80 dark:hover:text-white'
                 }`}
             >
               <User className="w-4 h-4" />
@@ -367,8 +367,8 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                         type="button"
                         onClick={() => handleChange('gender', option.value)}
                         className={`rounded-lg border-2 py-2.5 text-sm font-medium transition-all ${formData.gender === option.value
-                            ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
-                            : 'border-[#E7E1D6] bg-white text-[#0B3D2E] hover:border-[#0B3D2E]/50'
+                          ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
+                          : 'border-[#E7E1D6] bg-white text-[#0B3D2E] hover:border-[#0B3D2E]/50'
                           }`}
                       >
                         {option.label}
@@ -577,6 +577,35 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                     placeholder={t('settings.displayNamePlaceholder')}
                   />
                 </div>
+
+                {/* Language Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-[#0B3D2E] mb-2">
+                    {language === 'en' ? 'Language' : '语言'}
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('zh')}
+                      className={`rounded-lg border-2 py-2.5 text-sm font-medium transition-all ${language === 'zh'
+                        ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
+                        : 'border-[#E7E1D6] bg-white text-[#0B3D2E] hover:border-[#0B3D2E]/50'
+                        }`}
+                    >
+                      🇨🇳 中文
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('en')}
+                      className={`rounded-lg border-2 py-2.5 text-sm font-medium transition-all ${language === 'en'
+                        ? 'border-[#0B3D2E] bg-[#0B3D2E] text-white'
+                        : 'border-[#E7E1D6] bg-white text-[#0B3D2E] hover:border-[#0B3D2E]/50'
+                        }`}
+                    >
+                      🇺🇸 English
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -626,8 +655,8 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                     key={platform.name}
                     onClick={() => handleSocialConnect(platform.name)}
                     className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${platform.connected
-                        ? 'border-green-200 bg-green-50'
-                        : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/30 hover:bg-[#FAF6EF]'
+                      ? 'border-green-200 bg-green-50'
+                      : 'border-[#E7E1D6] bg-white hover:border-[#0B3D2E]/30 hover:bg-[#FAF6EF]'
                       }`}
                   >
                     <div className={`w-10 h-10 rounded-full ${platform.color} flex items-center justify-center text-white font-bold text-lg`}>
@@ -883,12 +912,12 @@ function MaxSettingsPanelWhite({
           <div className="absolute inset-x-0 h-2 bg-[#E7E1D6] rounded-full overflow-hidden">
             <motion.div
               className={`h-full rounded-full ${humorLevel >= 100
-                  ? 'bg-gradient-to-r from-pink-400 via-amber-400 to-pink-400'
-                  : humorLevel < 33
-                    ? 'bg-gradient-to-r from-[#C4A77D]/60 to-[#C4A77D]'
-                    : humorLevel < 66
-                      ? 'bg-gradient-to-r from-[#9CAF88]/60 to-[#9CAF88]'
-                      : 'bg-gradient-to-r from-[#E8DFD0]/60 to-[#E8DFD0]'
+                ? 'bg-gradient-to-r from-pink-400 via-amber-400 to-pink-400'
+                : humorLevel < 33
+                  ? 'bg-gradient-to-r from-[#C4A77D]/60 to-[#C4A77D]'
+                  : humorLevel < 66
+                    ? 'bg-gradient-to-r from-[#9CAF88]/60 to-[#9CAF88]'
+                    : 'bg-gradient-to-r from-[#E8DFD0]/60 to-[#E8DFD0]'
                 }`}
               initial={false}
               animate={{ width: `${humorLevel}%` }}
@@ -925,17 +954,17 @@ function MaxSettingsPanelWhite({
             exit={{ opacity: 0, y: 5, scale: 0.98 }}
             transition={{ duration: 0.25 }}
             className={`mt-4 flex items-center justify-center gap-3 py-3 px-4 rounded-xl border ${humorLevel < 33
-                ? 'bg-[#C4A77D]/10 border-[#C4A77D]/30'
-                : humorLevel < 66
-                  ? 'bg-[#9CAF88]/10 border-[#9CAF88]/30'
-                  : 'bg-[#E8DFD0]/20 border-[#D4C4A8]/30'
+              ? 'bg-[#C4A77D]/10 border-[#C4A77D]/30'
+              : humorLevel < 66
+                ? 'bg-[#9CAF88]/10 border-[#9CAF88]/30'
+                : 'bg-[#E8DFD0]/20 border-[#D4C4A8]/30'
               }`}
           >
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${humorLevel < 33
-                ? 'bg-[#C4A77D]/20'
-                : humorLevel < 66
-                  ? 'bg-[#9CAF88]/20'
-                  : 'bg-[#E8DFD0]/30'
+              ? 'bg-[#C4A77D]/20'
+              : humorLevel < 66
+                ? 'bg-[#9CAF88]/20'
+                : 'bg-[#E8DFD0]/30'
               }`}>
               <span className="text-lg">
                 {humorLevel < 33 ? '🏥' : humorLevel < 66 ? '🧘' : '⚡'}
@@ -946,10 +975,10 @@ function MaxSettingsPanelWhite({
                 {humorLevel < 33 ? 'Dr. House' : humorLevel < 66 ? 'Zen Master' : 'MAX'}
               </p>
               <p className={`text-xs ${humorLevel < 33
-                  ? 'text-[#C4A77D]'
-                  : humorLevel < 66
-                    ? 'text-[#9CAF88]'
-                    : 'text-[#B8A888]'
+                ? 'text-[#C4A77D]'
+                : humorLevel < 66
+                  ? 'text-[#9CAF88]'
+                  : 'text-[#B8A888]'
                 }`}>
                 {humorLevel < 33 ? t('settings.drHouseStyle') : humorLevel < 66 ? t('settings.zenMasterStyle') : t('settings.maxStyle')}
               </p>

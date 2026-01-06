@@ -140,9 +140,10 @@ export function middleware(req: NextRequest) {
   const isDigitalTwinRoute = pathname === '/digital-twin' || pathname.startsWith('/digital-twin/');
   const isMarketingRoute = pathname === '/unlearn/app' || pathname === '/thanks' || pathname.startsWith('/poster'); // Public marketing landing page
   const isERoute = pathname === '/e' || pathname.startsWith('/e/');
+  const isWhitepaperPreviewRoute = pathname === '/agent-whitepaper-preview' || pathname.startsWith('/agent-whitepaper-preview/');
   const isRoot = pathname === '/';
 
-  if (!isRoot && !isUnlearnRoute && !isAuthRoute && !isMobileRoute && !isTestRoute && !isDigitalTwinRoute && !isMarketingRoute && !isERoute) {
+  if (!isRoot && !isUnlearnRoute && !isAuthRoute && !isMobileRoute && !isTestRoute && !isDigitalTwinRoute && !isMarketingRoute && !isERoute && !isWhitepaperPreviewRoute) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/unlearn';
     redirectUrl.search = '';

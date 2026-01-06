@@ -1648,3 +1648,32 @@ select {
     background-color: rgba(255, 255, 255, 0.95) !important;
   }
 }
+
+/* Max Chat Specific Overrides */
+.aui-composer-input {
+  background-color: transparent !important;
+  color: white !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.aui-composer-input:-webkit-autofill,
+.aui-composer-input:-webkit-autofill:hover, 
+.aui-composer-input:-webkit-autofill:focus, 
+.aui-composer-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 9999px transparent inset !important;
+  box-shadow: 0 0 0 9999px transparent inset !important;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+  background-color: transparent !important;
+}
+
+/* Thinking Indicator Logic */
+.aui-md:not(:empty) ~ .thinking-indicator-container {
+    display: none !important;
+}
+
+/* Ensure empty markdown div is treated as empty or handle specific empty cases if needed */
+.aui-md:empty {
+    display: block; /* Ensure it stays in flow so sibling selector works */
+}

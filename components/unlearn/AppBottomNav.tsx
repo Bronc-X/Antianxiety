@@ -7,7 +7,8 @@ import { useI18n } from '@/lib/i18n';
 import {
   LayoutDashboard,
   Sparkles,
-  Target
+  Target,
+  FileText
 } from 'lucide-react';
 
 /**
@@ -53,6 +54,14 @@ const navItems: NavItem[] = [
     icon: <Target className="w-5 h-5" />,
     href: '/unlearn/plans',
     activeRoutes: ['/unlearn/plans'],
+  },
+  {
+    id: 'whitepaper',
+    labelEn: 'Whitepaper',
+    labelZh: '白皮书',
+    icon: <FileText className="w-5 h-5" />,
+    href: '/agent-whitepaper-preview',
+    activeRoutes: ['/agent-whitepaper-preview'],
   },
 ];
 

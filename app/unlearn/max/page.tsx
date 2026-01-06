@@ -11,26 +11,8 @@ import type { AIAssistantProfile } from '@/types/assistant';
 
 function MaxSkeleton() {
   return (
-    <div className="flex flex-col h-screen bg-[#FAF6EF] dark:bg-neutral-950 animate-pulse">
-      <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#0b3d2e] via-[#0a3427] to-[#06261c] text-white safe-area-inset-top">
-        <div className="w-9 h-9 rounded-full bg-white/10" />
-        <div className="text-center">
-          <div className="h-4 w-16 bg-white/20 rounded mx-auto" />
-          <div className="mt-2 h-3 w-28 bg-white/10 rounded mx-auto" />
-        </div>
-        <div className="w-9" />
-      </header>
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        <div className="max-w-[80%] h-16 bg-white rounded-2xl border border-[#E7E1D6]" />
-        <div className="max-w-[70%] h-12 bg-[#0B3D2E]/10 rounded-2xl border border-[#E7E1D6] ml-auto" />
-        <div className="max-w-[75%] h-14 bg-white rounded-2xl border border-[#E7E1D6]" />
-      </div>
-      <div className="flex-shrink-0 border-t border-[#E7E1D6] dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-3 safe-area-inset-bottom">
-        <div className="flex items-end gap-2">
-          <div className="flex-1 h-12 bg-[#F5F1EA] dark:bg-neutral-800 rounded-2xl" />
-          <div className="w-12 h-12 rounded-full bg-[#0B3D2E]" />
-        </div>
-      </div>
+    <div className="flex items-center justify-center h-screen bg-[#134e3f] text-white">
+      Loading Max...
     </div>
   );
 }
@@ -52,7 +34,7 @@ export default function MaxPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadHistory(7).catch(() => {});
+      loadHistory(7).catch(() => { });
     }
   }, [isAuthenticated, loadHistory]);
 
@@ -84,10 +66,7 @@ export default function MaxPage() {
 
   return (
     <div className="relative">
-      <MaxPageClient
-        initialProfile={profile as AIAssistantProfile | null}
-        dailyLogs={dailyLogs}
-      />
+      <MaxPageClient />
       {error && (
         <p className="fixed bottom-6 left-1/2 -translate-x-1/2 text-sm text-red-600 bg-white/90 px-4 py-2 rounded-full border border-red-200 shadow-sm">
           {error}
