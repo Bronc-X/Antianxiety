@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, user-scalable=no, target-densitydpi=device-dpi">
+    <title>Antianxiety Whitepaper Poster</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&family=Noto+Serif+SC:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 1080px;
+            font-family: 'Noto Serif SC', serif;
+            background: #eefefe;
+            color: #1a1a1a;
+            overflow-x: hidden;
+        }
+
+        .bg-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: url('./poster-bg-blur.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.8;
+            filter: blur(0px); /* Adjust if needed */
+        }
+
+        /* Overlay gradient to ensure text readability if bg is too messy */
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(to bottom, 
+                rgba(255,255,255,0.2) 0%, 
+                rgba(240,255,255,0.6) 50%, 
+                rgba(220,240,255,0.4) 100%);
+        }
+
+        .container {
+            padding: 120px 80px 160px 80px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 160px;
+        }
+        
+        .logo-circle {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4488ff 0%, #00ffff 100%);
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(68, 136, 255, 0.3);
+        }
+
+        .brand-name {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-style: italic;
+            font-size: 48px;
+            color: #1a1a1a;
+            letter-spacing: -1px;
+        }
+        
+        .brand-tm {
+            font-family: 'Inter', sans-serif;
+            font-style: normal;
+            font-size: 16px;
+            vertical-align: super;
+            opacity: 0.6;
+        }
+
+        /* HERO SECTION */
+        .hero {
+            margin-bottom: 120px;
+        }
+
+        .hero-title {
+            font-size: 140px;
+            line-height: 1.1;
+            font-weight: 700;
+            color: #0B3D2E; /* Dark Green */
+            margin-bottom: 40px;
+            letter-spacing: -4px;
+        }
+        
+        .hero-title em {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            color: #4488ff;
+            font-weight: 400;
+        }
+
+        .hero-title .highlight {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-title .highlight::after {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: -10px;
+            right: -10px;
+            height: 30px;
+            background: rgba(68, 136, 255, 0.2);
+            z-index: -1;
+            transform: skewX(-15deg);
+        }
+
+        .hero-subtitle {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 42px;
+            line-height: 1.6;
+            color: #334455;
+            max-width: 90%;
+            font-weight: 300;
+        }
+        
+        .hero-subtitle strong {
+            font-weight: 600;
+            color: #1a1a1a;
+            border-bottom: 3px solid rgba(68, 136, 255, 0.4);
+        }
+
+        /* SECTIONS */
+        .section-title {
+            font-size: 32px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #4488ff;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title::before {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 2px;
+            background: #4488ff;
+            margin-right: 20px;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 60px;
+            margin-bottom: 80px;
+            box-shadow: 0 20px 60px rgba(0, 50, 80, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+        }
+
+        .concept-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .concept-label {
+            font-size: 28px;
+            color: #667788;
+            margin-bottom: 12px;
+        }
+
+        .concept-value {
+            font-size: 48px;
+            font-weight: 600;
+            color: #0B3D2E;
+            line-height: 1.3;
+        }
+
+        /* FORMULA BOX */
+        .formula-box {
+            font-family: 'JetBrains Mono', monospace;
+            background: #111;
+            color: #fff;
+            padding: 40px;
+            border-radius: 20px;
+            font-size: 28px;
+            line-height: 1.6;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .formula-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, #4488ff, #00ffff);
+        }
+
+        .var { color: #fecc00; }
+        .op { color: #ff79c6; }
+        .num { color: #bd93f9; }
+
+        /* FOOTER */
+        .footer {
+            margin-top: 120px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .footer-slogan {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 56px;
+            color: #0B3D2E;
+            margin-bottom: 80px;
+            position: relative;
+        }
+        
+        .footer-slogan span {
+            color: #4488ff;
+        }
+
+        .qr-container {
+            padding: 30px;
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(68, 136, 255, 0.15);
+            margin-bottom: 40px;
+        }
+        
+        .qr-image {
+            width: 320px;
+            height: 320px;
+            display: block;
+        }
+
+        .scan-hint {
+            font-size: 28px;
+            color: #556677;
+            letter-spacing: 2px;
+            font-weight: 400;
+        }
+
+        /* DECORATIONS */
+        .deco-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+        }
+        
+        .deco-1 {
+            width: 600px;
+            height: 600px;
+            background: rgba(68, 136, 255, 0.15);
+            top: 10%;
+            right: -200px;
+        }
+        
+        .deco-2 {
+            width: 800px;
+            height: 800px;
+            background: rgba(0, 255, 255, 0.1);
+            bottom: 20%;
+            left: -300px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="bg-layer"></div>
+    <div class="deco-circle deco-1"></div>
+    <div class="deco-circle deco-2"></div>
+
+    <div class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="logo-circle"></div>
+            <div class="brand-name">AntiAnxiety<span class="brand-tm">™</span></div>
+        </header>
+
+        <!-- HERO -->
+        <section class="hero">
+            <h1 class="hero-title">
+                拒绝内卷，<br>
+                科学<span class="highlight">「躺平」</span>。
+            </h1>
+            <p class="hero-subtitle">
+                融合 <strong>计算神经科学</strong>、<strong>贝叶斯推断</strong> 和 <strong>迷走神经信号</strong>。从根源量化「焦虑」。
+            </p>
+        </section>
+
+        <!-- CORE LOGIC -->
+        <div class="content-card">
+            <div class="section-title">核心逻辑 / Core Logic</div>
+            <div class="concept-grid">
+                <div class="concept-item">
+                    <div class="concept-label">01. 数据输入</div>
+                    <div class="concept-value">问卷 + 可穿戴设备 + 睡眠记录</div>
+                </div>
+                <div class="concept-item">
+                    <div class="concept-label">02. 证据检索</div>
+                    <div class="concept-value">PubMed + Semantic Scholar + OpenAlex</div>
+                </div>
+                <div class="concept-item">
+                    <div class="concept-label">03. 闭环反馈</div>
+                    <div class="concept-value">执行 -> 反馈 (Bayesian Update) -> 优化</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORMULA -->
+        <div class="content-card" style="background: rgba(255,255,255,0.7);">
+            <div class="section-title">算法透明 / Algorithm</div>
+            <p class="hero-subtitle" style="font-size: 32px; margin-bottom: 30px;">
+                Max 的信念更新采用<strong>贝叶斯推断</strong>，核心是把主观恐惧压回可解释区间。
+            </p>
+            
+            <div class="formula-box">
+                Posterior <span class="op">=</span> (Prior <span class="op">*</span> Likelihood) <span class="op">/</span> Evidence
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #ddd; padding:15px 0;">
+                    <span style="color:#666;">Prior</span>
+                    <span style="font-weight:600;">用户主观预估风险</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #ddd; padding:15px 0;">
+                    <span style="color:#666;">Likelihood</span>
+                    <span style="font-weight:600;">HRV RMSSD 生理信号概率</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:15px 0;">
+                    <span style="color:#666;">Evidence</span>
+                    <span style="font-weight:600;">权威论文加权验证</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VALUE -->
+         <section class="hero" style="margin-top: 60px;">
+            <p class="hero-subtitle" style="text-align: center; font-size: 46px; line-height: 1.5;">
+                对“需要证据、讨厌鸡汤”的人<br>提供<strong>可验证的科学依据</strong>
+            </p>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div class="footer-slogan">
+                你负责愉悦的情绪<br>
+                <span>Max</span> 负责繁琐的系统
+            </div>
+            
+            <div class="qr-container">
+                <img src="./poster-qr-code.png" alt="QR Code" class="qr-image">
+            </div>
+            
+            <div class="scan-hint">长按扫描，接受 COOKIE - 打开二维码</div>
+            
+            <div style="margin-top: 80px; font-size: 24px; color: #8899aa; letter-spacing: 2px;">
+                ANTIANXIETY.APP
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
