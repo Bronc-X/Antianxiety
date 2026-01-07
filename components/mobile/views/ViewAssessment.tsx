@@ -4,9 +4,10 @@
  * ViewAssessment - AI-Driven Clinical Assessment Flow
  * 
  * Mobile UI for the Bio-Ledger assessment powered by useAssessment hook.
+ * Enhanced with useAssessmentReport for export and useAssessmentLibrary for standardized assessments.
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Brain,
@@ -16,11 +17,19 @@ import {
     AlertTriangle,
     RefreshCw,
     ChevronLeft,
-    Globe
+    Globe,
+    Download,
+    Mail,
+    FileText,
+    ClipboardList,
+    Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAssessment } from "@/hooks/domain/useAssessment";
+import { useAssessmentLibrary } from "@/hooks/domain/useAssessmentLibrary";
+import { useAssessmentReport } from "@/hooks/domain/useAssessmentReport";
 import { QuestionStep, ReportStep } from "@/types/assessment";
+import { useHaptics, ImpactStyle } from "@/hooks/useHaptics";
 
 const pageVariants = {
     initial: { opacity: 0, x: 20 },
@@ -206,12 +215,38 @@ function QuestionScreen({ step, onAnswer, isLoading, questionNumber, loadingCont
     );
 }
 
-function ResultScreen({ step, onReset }: {
+function ResultScreen({ step, onReset, sessionId }: {
     step: ReportStep | any;
     onReset: () => void;
+    sessionId?: string;
 }) {
+    const { exportReport, sendEmail, isExporting, isSending, error: reportError } = useAssessmentReport();
+    const { impact, notification } = useHaptics();
+    const [emailSent, setEmailSent] = useState(false);
+
     // Handle both 'result' and 'report' property names
     const result = step.report || step.result || {};
+
+    const handleExport = async () => {
+        if (!sessionId) return;
+        await impact(ImpactStyle.Medium);
+        const data = await exportReport(sessionId, 'html');
+        if (data) {
+            await notification('success');
+            // In a real app, this would trigger a download
+            console.log('Report exported:', data);
+        }
+    };
+
+    const handleEmail = async () => {
+        if (!sessionId) return;
+        await impact(ImpactStyle.Medium);
+        const success = await sendEmail(sessionId);
+        if (success) {
+            await notification('success');
+            setEmailSent(true);
+        }
+    };
 
     return (
         <motion.div
@@ -272,16 +307,60 @@ function ResultScreen({ step, onReset }: {
                     <h3 className="text-sm font-bold text-stone-500 uppercase tracking-wider">
                         Recommended Next Steps
                     </h3>
-                    {result.next_steps.map((step: any, idx: number) => (
+                    {result.next_steps.map((nextStep: any, idx: number) => (
                         <div key={idx} className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/10 flex items-center gap-3">
-                            <span className="text-xl">{step.icon}</span>
-                            <span className="text-sm text-emerald-900 dark:text-emerald-100">{step.action}</span>
+                            <span className="text-xl">{nextStep.icon}</span>
+                            <span className="text-sm text-emerald-900 dark:text-emerald-100">{nextStep.action}</span>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Actions */}
+            {/* Export Actions */}
+            {sessionId && (
+                <div className="flex gap-3 mb-4">
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className="flex-1 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {isExporting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Download className="w-4 h-4" />
+                        )}
+                        下载报告
+                    </motion.button>
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleEmail}
+                        disabled={isSending || emailSent}
+                        className={cn(
+                            "flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50",
+                            emailSent
+                                ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                                : "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
+                        )}
+                    >
+                        {isSending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : emailSent ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                        ) : (
+                            <Mail className="w-4 h-4" />
+                        )}
+                        {emailSent ? '已发送' : '发送邮件'}
+                    </motion.button>
+                </div>
+            )}
+
+            {/* Report Error */}
+            {reportError && (
+                <p className="text-xs text-red-500 text-center mb-4">{reportError}</p>
+            )}
+
+            {/* Start New */}
             <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={onReset}

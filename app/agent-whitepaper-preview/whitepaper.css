@@ -30,6 +30,7 @@
   font-size: clamp(2rem, 1.6rem + 1.6vw, 2.6rem);
   letter-spacing: 0.02em;
   margin-bottom: 0.75em;
+  text-align: center;
 }
 
 .whitepaper-prose h2 {
@@ -96,6 +97,7 @@
   background: #f2eee7;
   border: 1px solid #e3ded4;
   padding: 0.05em 0.35em;
+  color: #1b1a18;
 }
 
 .whitepaper-prose pre {
@@ -113,11 +115,6 @@
   border: none;
   padding: 0;
   color: inherit;
-}
-
-.whitepaper-prose h1 center {
-  display: inline-block;
-  width: 100%;
 }
 
 .whitepaper-prose blockquote {

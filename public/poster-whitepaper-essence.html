@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, user-scalable=no, target-densitydpi=device-dpi">
+    <title>Antianxiety Whitepaper Poster (Essence)</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&family=Noto+Serif+SC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 1080px;
+            font-family: 'Noto Serif SC', serif;
+            background: #eefefe;
+            color: #1a1a1a;
+            overflow-x: hidden;
+            position: relative;
+            /* Ensure absolute bg covers full height */
+        }
+
+        .bg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: url('./poster-bg-clean.png');
+            background-size: 100% 100%;
+            /* Force stretch to cover full poster height */
+            background-position: center;
+            opacity: 1.0;
+            /* Full opacity since it's the main bg now */
+            filter: blur(0px);
+            /* Clearer */
+            /* 调整中心点 */
+        }
+
+        .container {
+            padding: 120px 80px 100px 80px;
+            display: flex;
+            flex-direction: column;
+            min-height: 1920px;
+            justify-content: space-between;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-name {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-style: italic;
+            font-size: 42px;
+            color: #0B3D2E;
+        }
+
+        /* HERO TITLE */
+        .hero {
+            margin-top: 80px;
+            margin-bottom: 60px;
+        }
+
+        .hero-title {
+            font-size: 110px;
+            line-height: 1.1;
+            color: #1a1a1a;
+            font-weight: 300;
+            letter-spacing: -2px;
+        }
+
+        .hero-title strong {
+            font-weight: 700;
+            color: #0B3D2E;
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        .hero-subtitle {
+            font-size: 42px;
+            color: #556677;
+            margin-top: 30px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        /* KEY POINTS CARDS */
+        .cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+            margin: 60px 0;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(20px);
+            padding: 50px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 20px 50px rgba(0, 50, 80, 0.05);
+        }
+
+        .card-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 80px;
+            color: rgba(68, 136, 255, 0.2);
+            line-height: 1;
+            margin-bottom: 16px;
+            font-style: italic;
+        }
+
+        .card-title {
+            font-size: 38px;
+            font-weight: 600;
+            color: #0B3D2E;
+            margin-bottom: 16px;
+        }
+
+        .card-text {
+            font-size: 30px;
+            line-height: 1.6;
+            color: #334455;
+        }
+
+        /* EMOTIONAL QUOTE */
+        .quote-box {
+            position: relative;
+            padding: 40px 40px;
+            text-align: center;
+        }
+
+        .quote-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 52px;
+            font-style: italic;
+            color: #1a1a1a;
+            line-height: 1.4;
+        }
+
+        .quote-source {
+            margin-top: 20px;
+            font-size: 28px;
+            color: #667788;
+            letter-spacing: 2px;
+        }
+
+        /* TIMELINE */
+        .timeline-box {
+            text-align: center;
+            font-size: 22px;
+            color: #667788;
+            margin-bottom: 40px;
+            font-family: 'JetBrains Mono', monospace;
+            opacity: 0.8;
+        }
+
+        /* FOOTER */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 40px;
+        }
+
+        /* Signature on RIGHT now */
+        .signature-block {
+            text-align: right;
+            order: 2;
+        }
+
+        .sig-name {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 48px;
+            color: #0B3D2E;
+        }
+
+        .sig-role {
+            font-size: 24px;
+            color: #667788;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* QR on LEFT now */
+        .qr-block {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            /* Stack vertically */
+            align-items: flex-start;
+            /* Align left */
+            gap: 15px;
+            order: 1;
+        }
+
+        .qr-img {
+            width: 180px;
+            height: 180px;
+            background: white;
+            padding: 0;
+            /* Remove padding for cleaner look */
+            border-radius: 12px;
+        }
+
+        .qr-text {
+            text-align: left;
+            font-size: 20px;
+            color: #556677;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-layer"></div>
+
+    <div class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="brand-name">AntiAnxiety™</div>
+        </header>
+
+        <!-- HERO -->
+        <div class="hero">
+            <div class="hero-title">
+                拒绝内卷<br>
+                <strong>科学躺平</strong>
+            </div>
+            <div class="hero-subtitle" style="white-space: nowrap;">
+                我们做的是一个让你少痛苦、多执行、少折腾的agent(Max)。
+            </div>
+        </div>
+
+        <!-- CARDS -->
+        <div class="cards-container">
+            <div class="card">
+                <div class="card-num">01</div>
+                <div class="card-title">不仅是建议，而是「只适合你」的计划</div>
+                <div class="card-text">
+                    解决关于“看了一堆健康知识但我用哪个最合适”的迷茫
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-num">02</div>
+                <div class="card-title">算法透明，科学至上</div>
+                <div class="card-text" style="white-space: nowrap; font-size: 28px;">
+                    Max 的每一个建议都有据可查。我们把主观恐惧压回可解释的区间：
+                    <br>
+                    <span
+                        style="font-family:'JetBrains Mono'; font-size:26px; color:#4488ff; display:block; margin-top:15px; white-space: normal;">
+                        Posterior = (Prior * Likelihood) / Evidence
+                    </span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-num">03</div>
+                <div class="card-title">公开共建，一起进化 (Build in Public)</div>
+                <div class="card-text">
+                    这是一条人少的路，所以我们更敢做事。用户不仅能提意见，未来甚至能亲手让系统执行自己的想法。
+                </div>
+            </div>
+        </div>
+
+        <!-- EMOTIONAL QUOTE -->
+        <div class="quote-box">
+            <div class="quote-text" style="font-size: 42px; white-space: nowrap;">
+                "It’s not about fixing you, it’s about finding the rhyme to your rhythm."
+            </div>
+            <div class="quote-source">—— Max</div>
+        </div>
+
+        <div class="timeline-box">
+            Jan. 2026: Web Launch • Feb. 2026: iOS Launch
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <!-- QR Block (Now Left) -->
+            <div class="qr-block">
+                <img src="./poster-qr-whitepaper.png" class="qr-img">
+                <div class="qr-text">
+                    (保存图片在浏览器中打开)
+                </div>
+            </div>
+
+            <!-- Signature Block (Now Right) -->
+            <div class="signature-block">
+                <div class="sig-name">Toni</div>
+                <div class="sig-role">Developer & Founder</div>
+                <div style="font-family:'JetBrains Mono'; font-size:20px; color:#8899aa; margin-top:8px;">2026.01.06
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>
