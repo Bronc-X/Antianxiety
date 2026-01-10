@@ -3237,3 +3237,50 @@ hooks/
 ### 🚀 下一步
 *   [ ] Android 真机打包与测试
 *   [ ] 生产环境部署 (Vercel + Supabase)
+
+---
+
+## 2025-01-10 ~ 01-11 凌晨 - iOS App 封装与调试 📱
+
+### 🎯 核心成果
+
+#### 1. Capacitor iOS 项目配置 ✅
+- **开发环境**: 解决了 Xcode 14.2 与 Capacitor v7.x 的兼容性问题，降级到 v6.x
+- **Swift 兼容**: 修复了 Swift 5.7 语法问题 (`isInspectable`, `MSEC_PER_SEC`, `return` 语句)
+- **CocoaPods**: 成功完成 `pod install`，解决 Ruby 版本和 UTF-8 locale 问题
+
+#### 2. 本地开发服务器连接 ✅
+- **网络配置**: iOS 模拟器需要使用 Mac 的局域网 IP (`192.168.1.12`)，不能用 `localhost`
+- **创建 /native 路由**: 专门为原生 App 设计的全屏布局，无模拟器外框
+- **Middleware 白名单**: 添加 `/native` 到路由白名单，避免被重定向
+
+#### 3. 🐛 导航跳转 Bug 修复 (关键!)
+**问题**: 点击底部导航栏任意按钮，App 跳转到 `/unlearn` (Web 端)
+
+**根因分析**:
+1. `GlobalNav.tsx` 的 `hideNavPages` 未包含 `/native`
+2. `MobileBottomNav.tsx` 的 `hideNavPages` 未包含 `/native`
+3. 这两个全局导航组件在 `/native` 页面上渲染，覆盖了页面自己的 BottomNav
+4. 它们使用 `<a href>` 链接到 `/unlearn`, `/max`, `/bayesian` 等 Web 路由
+
+**解决方案**:
+- ✅ 在 `GlobalNav.tsx` 添加 `/native` 到 hideNavPages
+- ✅ 在 `MobileBottomNav.tsx` 添加 `/native` 到 hideNavPages  
+- ✅ 创建 `/native/layout.tsx` 专用布局
+- ✅ `/native/page.tsx` 使用 React `useState` 管理视图切换，不使用 URL 路由
+
+### 📁 修改文件
+- `capacitor.config.ts` - 配置开发服务器 URL
+- `app/native/page.tsx` - 原生 App 主页面
+- `app/native/layout.tsx` (新建) - 原生 App 专用布局
+- `components/GlobalNav.tsx` - 添加 /native 到隐藏列表
+- `components/MobileBottomNav.tsx` - 添加 /native 到隐藏列表
+- `middleware.ts` - 添加 /native 到路由白名单
+
+### 🚀 下一步
+- [ ] 在 iOS 模拟器中完整测试导航功能
+- [ ] 测试 ViewDashboard 三个标签页切换
+- [ ] 测试其他子页面 (Profile, Plan, Max 等)
+- [ ] 准备 Android 构建
+
+---
