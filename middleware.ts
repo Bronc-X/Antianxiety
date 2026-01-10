@@ -143,7 +143,9 @@ export function middleware(req: NextRequest) {
   const isWhitepaperPreviewRoute = pathname === '/agent-whitepaper-preview' || pathname.startsWith('/agent-whitepaper-preview/');
   const isRoot = pathname === '/';
 
-  if (!isRoot && !isUnlearnRoute && !isAuthRoute && !isMobileRoute && !isTestRoute && !isDigitalTwinRoute && !isMarketingRoute && !isERoute && !isWhitepaperPreviewRoute) {
+  const isNativeRoute = pathname === '/native' || pathname.startsWith('/native/');
+
+  if (!isRoot && !isUnlearnRoute && !isAuthRoute && !isMobileRoute && !isNativeRoute && !isTestRoute && !isDigitalTwinRoute && !isMarketingRoute && !isERoute && !isWhitepaperPreviewRoute) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/unlearn';
     redirectUrl.search = '';
