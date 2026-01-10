@@ -10,8 +10,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const isDev = process.env.NODE_ENV === 'development';
 const productionUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-  : 'https://www.antianxiety.app';
+  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/native`
+  : 'https://www.antianxiety.app/native';
 
 const config: CapacitorConfig = {
   // 应用唯一标识符
