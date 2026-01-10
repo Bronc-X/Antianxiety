@@ -23,16 +23,17 @@ const config: CapacitorConfig = {
   // 静态资源占位目录（用于同步流程）
   webDir: 'out',
 
-  server: isDev ? {
-    // 开发模式：使用 adb reverse 端口转发，模拟器可以用 localhost 访问宿主机
-    url: 'http://localhost:3000',
-    androidScheme: 'http',
-    cleartext: true
-  } : {
-    // 生产模式：使用 Vercel 部署的 URL
-    url: productionUrl,
-    androidScheme: 'https',
-    cleartext: false
+  server: {
+    // 本地开发模式：使用 Mac 的 IP 地址（iOS 模拟器需要）
+    url: 'http://localhost:3000/native',
+    cleartext: true,
+    // 允许所有导航在 WebView 内部进行，不跳转 Safari
+    allowNavigation: [
+      '192.168.1.12:*',
+      'localhost:*',
+      '*.antianxiety.app',
+      'antianxiety.app'
+    ]
   },
 
   // 插件配置
