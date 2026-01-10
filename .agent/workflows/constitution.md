@@ -18,3 +18,9 @@ This is a **MANDATORY** rule. Execute this command when:
 - When interrupted by user and switching tasks
 
 **DO NOT** adjust system volume. Just play the notification.
+
+## 👁️ 第二条 / Rule #2: Context Awareness
+
+**每次任务前必须读取已打开工作区的文件**
+
+**Before starting any task, you MUST read the files currently open in the active workspace to understand the user's focus.**

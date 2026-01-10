@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>AntiAnxiety</string>
+	<string>AntiAnxiety</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -22,6 +22,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>We need access to your health data to provide personalized wellness insights based on your sleep, heart rate, and activity levels.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>We use your health data to track your progress and provide tailored recommendations.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -45,9 +49,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-    <key>NSHealthShareUsageDescription</key>
-    <string>We need access to your health data to provide personalized wellness insights based on your sleep, heart rate, and activity levels.</string>
-    <key>NSHealthUpdateUsageDescription</key>
-    <string>We use your health data to track your progress and provide tailored recommendations.</string>
 </dict>
 </plist>
