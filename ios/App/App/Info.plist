@@ -10,6 +10,17 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.antianxiety.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>antianxiety</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -33,6 +44,12 @@
 	<string>We need access to your health data to provide personalized wellness insights based on your sleep, heart rate, and activity levels.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>We use your health data to track your progress and provide tailored recommendations.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>We use Face ID to protect your private health data.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need microphone access to capture your voice for speech-to-text input.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>We need speech recognition to transcribe your voice into notes and check-ins.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

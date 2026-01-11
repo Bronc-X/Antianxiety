@@ -6,7 +6,7 @@
  * Manages user profile state.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
 import {
     getProfile,
@@ -19,6 +19,12 @@ import {
     type SaveHealthProfileInput
 } from '@/app/actions/profile';
 import type { ActionResult } from '@/types/architecture';
+import {
+    cancelDailyCalibration,
+    checkNotificationStatus,
+    requestNotificationPermission,
+    scheduleDailyCalibration,
+} from '@/lib/notification-service';
 
 // ============================================
 // Types
@@ -66,6 +72,42 @@ function setCachedData<T>(key: string, data: T): void {
     cache.set(key, { data, timestamp: Date.now() });
 }
 
+function resolveCheckinTime(value?: string | null): string | null {
+    if (!value) return null;
+    return value.slice(0, 5);
+}
+
+async function syncDailyCalibrationNotification(
+    profile: UserProfile,
+    options: { prompt: boolean }
+): Promise<void> {
+    const checkinTime = resolveCheckinTime(profile.daily_checkin_time);
+    const enabled = profile.notification_enabled !== false;
+
+    if (!enabled || !checkinTime) {
+        try {
+            await cancelDailyCalibration();
+        } catch (error) {
+            console.warn('Failed to cancel daily calibration notification:', error);
+        }
+        return;
+    }
+
+    const hasPermission = options.prompt
+        ? await requestNotificationPermission()
+        : await checkNotificationStatus();
+
+    if (!hasPermission) {
+        return;
+    }
+
+    try {
+        await scheduleDailyCalibration({ checkinTime, enabled: true });
+    } catch (error) {
+        console.warn('Failed to schedule daily calibration notification:', error);
+    }
+}
+
 // ============================================
 // Hook Implementation
 // ============================================
@@ -78,6 +120,7 @@ export function useProfile(): UseProfileReturn {
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const lastNotificationConfigRef = useRef<string | null>(null);
 
     // Load profile on mount
     useEffect(() => {
@@ -87,6 +130,9 @@ export function useProfile(): UseProfileReturn {
                 if (result.success && result.data) {
                     setProfile(result.data);
                     setCachedData(CACHE_KEY, result.data);
+                    const configKey = `${result.data.notification_enabled !== false}:${result.data.daily_checkin_time ?? ''}`;
+                    lastNotificationConfigRef.current = configKey;
+                    void syncDailyCalibrationNotification(result.data, { prompt: false });
                 } else {
                     setError(result.error || 'Failed to load profile');
                 }
@@ -99,6 +145,14 @@ export function useProfile(): UseProfileReturn {
 
         loadProfile();
     }, []);
+
+    useEffect(() => {
+        if (!profile) return;
+        const configKey = `${profile.notification_enabled !== false}:${profile.daily_checkin_time ?? ''}`;
+        if (configKey === lastNotificationConfigRef.current) return;
+        lastNotificationConfigRef.current = configKey;
+        void syncDailyCalibrationNotification(profile, { prompt: false });
+    }, [profile?.notification_enabled, profile?.daily_checkin_time, profile]);
 
     // Update profile
     const update = useCallback(async (input: UpdateProfileInput): Promise<boolean> => {
@@ -117,6 +171,9 @@ export function useProfile(): UseProfileReturn {
             if (result.success && result.data) {
                 setProfile(result.data);
                 setCachedData(CACHE_KEY, result.data);
+                const shouldPrompt = Object.prototype.hasOwnProperty.call(input, 'daily_checkin_time')
+                    || Object.prototype.hasOwnProperty.call(input, 'notification_enabled');
+                await syncDailyCalibrationNotification(result.data, { prompt: shouldPrompt });
                 return true;
             } else {
                 // Rollback

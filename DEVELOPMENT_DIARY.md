@@ -1,3 +1,33 @@
+## 2026-01-11 - iOS 原生能力扩展 (Native Capabilities) 📱
+
+### 🎯 核心更新
+
+#### 1. 隐私与安全 ✅
+- ✅ 隐私屏幕 + 生物识别锁 (`components/auth/BiometricGate.tsx`, `ios/App/App/BiometricAuthPlugin.swift`)
+- ✅ `NSFaceIDUsageDescription` 配置完成
+
+#### 2. OAuth 深链回调 ✅
+- ✅ 自定义 URL Scheme 回调 `antianxiety://oauth/wearables`
+- ✅ 原生 DeepLink 监听 (`ios/App/App/DeepLinkPlugin.swift`, `app/native/page.tsx`)
+
+#### 3. HealthKit 后台更新 ✅
+- ✅ Observer Query + Background Delivery
+- ✅ 触发事件后同步 (`hooks/useHealthKitBackgroundSync.ts`)
+
+#### 4. APNS 推送（客户端）✅
+- ✅ Push 注册 + Token 本地保存 (`lib/push-notifications.ts`)
+- ✅ 设置页推送开关联动 (`components/mobile/views/ViewSettings.tsx`)
+- ✅ `aps-environment` entitlement 完成
+
+### 🧪 测试
+- ✅ `xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator build`
+
+### ⚠️ 待处理
+- [ ] 本地执行 `npm install` + `cap sync ios`/`pod install` 同步依赖
+- [ ] Push 服务端接收 Token + 发送 APNS
+
+---
+
 ## 2025-12-30 - MVVM 架构全模块扩展完成 (MVVM Architecture Extension) 🏗️
 
 ### 🎯 核心更新

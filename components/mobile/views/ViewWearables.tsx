@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useWearables, type WearableProvider } from '@/hooks/domain/useWearables';
 import { CardGlass } from '@/components/mobile/HealthWidgets';
+import { useBrowser } from '@/hooks/useBrowser';
 
 // ============================================
 // Configuration
@@ -88,6 +89,7 @@ export const ViewWearables = ({ onBack }: ViewWearablesProps) => {
         loadStatus,
         isProviderConnected
     } = useWearables();
+    const { open, isNativeBrowser } = useBrowser();
 
     useEffect(() => {
         loadStatus();
@@ -96,7 +98,11 @@ export const ViewWearables = ({ onBack }: ViewWearablesProps) => {
     const handleConnect = async (provider: WearableProvider) => {
         const url = await connect(provider);
         if (url) {
-            window.location.href = url;
+            if (isNativeBrowser) {
+                await open(url);
+            } else {
+                window.location.href = url;
+            }
         }
     };
 
