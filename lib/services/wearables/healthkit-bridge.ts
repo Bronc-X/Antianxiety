@@ -14,7 +14,8 @@ import type {
     NormalizedHealthData,
     DataQuality,
 } from '@/types/wearable';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import type { PluginListenerHandle } from '@capacitor/core';
 
 // ============================================================================
 // HealthKit权限配置
@@ -39,6 +40,7 @@ export class HealthKitBridge {
     provider: WearableProvider = 'healthkit';
 
     private plugin: HealthKitPlugin | null = null;
+    private readonly pluginProxy = registerPlugin<HealthKitPlugin>('HealthKit');
 
     /**
      * 检查HealthKit是否可用（仅iOS）
@@ -83,6 +85,80 @@ export class HealthKitBridge {
             console.error('HealthKit authorization failed:', error);
             return false;
         }
+    }
+
+    /**
+     * 启用HealthKit后台更新监听（iOS）
+     */
+    async enableBackgroundDelivery(): Promise<boolean> {
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            return true;
+        }
+
+        if (Capacitor.getPlatform() !== 'ios') {
+            return false;
+        }
+
+        try {
+            const plugin = await this.getPlugin();
+            const result = await plugin.enableBackgroundDelivery({
+                sampleTypes: HEALTHKIT_PERMISSIONS.read,
+            });
+            return Boolean(result.enabled);
+        } catch (error) {
+            console.error('HealthKit background delivery failed:', error);
+            return false;
+        }
+    }
+
+    async getLastBackgroundUpdate(): Promise<string | null> {
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            return null;
+        }
+
+        if (Capacitor.getPlatform() !== 'ios') {
+            return null;
+        }
+
+        try {
+            const plugin = await this.getPlugin();
+            const result = await plugin.getLastBackgroundUpdate();
+            return result.timestamp ?? null;
+        } catch {
+            return null;
+        }
+    }
+
+    async clearBackgroundUpdate(): Promise<void> {
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            return;
+        }
+
+        if (Capacitor.getPlatform() !== 'ios') {
+            return;
+        }
+
+        try {
+            const plugin = await this.getPlugin();
+            await plugin.clearBackgroundUpdate();
+        } catch (error) {
+            console.warn('Failed to clear background update marker:', error);
+        }
+    }
+
+    async addBackgroundUpdateListener(
+        listener: (event: { timestamp: string }) => void
+    ): Promise<PluginListenerHandle | null> {
+        if (process.env.NODE_ENV === 'development' || Capacitor.getPlatform() === 'web') {
+            return null;
+        }
+
+        if (Capacitor.getPlatform() !== 'ios') {
+            return null;
+        }
+
+        const plugin = await this.getPlugin();
+        return plugin.addListener('healthkitBackgroundUpdate', listener);
     }
 
     /**
@@ -326,18 +402,8 @@ export class HealthKitBridge {
             return this.plugin;
         }
 
-        // 动态导入Capacitor HealthKit插件
-        // 使用 try-catch 处理模块不存在的情况（服务端构建时）
-        try {
-
-            const mod = require('@followathletics/capacitor-healthkit');
-            const HealthKit = mod.CapacitorHealthkit;
-            this.plugin = HealthKit;
-            return this.plugin;
-        } catch {
-            // 在服务端或模块不存在时返回一个空的mock
-            throw new Error('HealthKit plugin is only available on iOS devices');
-        }
+        this.plugin = this.pluginProxy;
+        return this.plugin;
     }
 
     private getSleepQuality(minutes: number): DataQuality {
@@ -372,6 +438,11 @@ interface HealthKitPlugin {
         read: string[];
         write: string[];
     }): Promise<void>;
+    enableBackgroundDelivery(options: {
+        sampleTypes: string[];
+    }): Promise<{ enabled: boolean; errors?: string[] }>;
+    getLastBackgroundUpdate(): Promise<{ timestamp?: string }>;
+    clearBackgroundUpdate(): Promise<void>;
     querySleep(options: {
         startDate: string;
         endDate: string;
@@ -382,6 +453,10 @@ interface HealthKitPlugin {
         endDate: string;
         unit: string;
     }): Promise<{ samples: HealthKitQuantitySample[] }>;
+    addListener(
+        eventName: 'healthkitBackgroundUpdate',
+        listenerFunc: (event: { timestamp: string }) => void
+    ): Promise<PluginListenerHandle>;
 }
 
 interface HealthKitSleepSample {

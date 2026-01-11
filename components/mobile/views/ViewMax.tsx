@@ -31,60 +31,7 @@ import MaxAvatar from "@/components/max/MaxAvatar";
 import { useMax, type LocalMessage, type ModelMode } from "@/hooks/domain/useMax";
 import { useChatToPlan } from "@/hooks/domain/useChatToPlan";
 import ChatPlanSelector from "@/components/chat/ChatPlanSelector";
-
-// ============================================
-// Voice Input Hook
-// ============================================
-
-function useVoiceInput() {
-    const [isListening, setIsListening] = useState(false);
-    const [transcript, setTranscript] = useState("");
-    const [isSupported, setIsSupported] = useState(false);
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
-
-    useEffect(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        setIsSupported(!!SpeechRecognition);
-
-        if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.lang = 'zh-CN';
-
-            recognition.onresult = (event) => {
-                const result = event.results[event.results.length - 1];
-                setTranscript(result[0].transcript);
-            };
-
-            recognition.onend = () => setIsListening(false);
-            recognition.onerror = () => setIsListening(false);
-
-            recognitionRef.current = recognition;
-        }
-
-        return () => {
-            recognitionRef.current?.abort();
-        };
-    }, []);
-
-    const startListening = useCallback(() => {
-        if (recognitionRef.current && !isListening) {
-            setTranscript("");
-            recognitionRef.current.start();
-            setIsListening(true);
-        }
-    }, [isListening]);
-
-    const stopListening = useCallback(() => {
-        if (recognitionRef.current && isListening) {
-            recognitionRef.current.stop();
-            setIsListening(false);
-        }
-    }, [isListening]);
-
-    return { isListening, transcript, isSupported, startListening, stopListening };
-}
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 // ============================================
 // Animation Variants  
@@ -399,12 +346,27 @@ export const ViewMax = () => {
     } = useMax();
 
     const chatToPlan = useChatToPlan();
-    const voice = useVoiceInput();
     const [showPlanSelector, setShowPlanSelector] = useState(false);
     const [input, setInput] = useState("");
     const [showHistory, setShowHistory] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const {
+        isSupported: voiceSupported,
+        isListening: voiceListening,
+        start: startVoice,
+        stop: stopVoice,
+    } = useSpeechRecognition({
+        locale: 'zh-CN',
+        continuous: false,
+        interimResults: false,
+        onResult: (text) => {
+            setInput(prev => prev + text);
+        },
+        onError: (message) => {
+            console.warn('Speech recognition error:', message);
+        },
+    });
 
     // Auto-scroll
     useEffect(() => {
@@ -412,13 +374,6 @@ export const ViewMax = () => {
             scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
         }
     }, [messages]);
-
-    // Voice transcript -> input
-    useEffect(() => {
-        if (voice.transcript) {
-            setInput(prev => prev + voice.transcript);
-        }
-    }, [voice.transcript]);
 
     // Plan detection
     useEffect(() => {
@@ -561,17 +516,23 @@ export const ViewMax = () => {
                 )}
                 <div className="flex items-end gap-2 bg-stone-100 dark:bg-stone-800 rounded-xl p-1.5">
                     {/* Voice Button */}
-                    {voice.isSupported && (
+                    {voiceSupported && (
                         <button
-                            onClick={voice.isListening ? voice.stopListening : voice.startListening}
+                            onClick={() => {
+                                if (voiceListening) {
+                                    void stopVoice();
+                                } else {
+                                    void startVoice();
+                                }
+                            }}
                             className={cn(
                                 "p-2 rounded-lg transition-all",
-                                voice.isListening
+                                voiceListening
                                     ? "bg-red-500 text-white animate-pulse"
                                     : "text-stone-400 hover:text-emerald-600 hover:bg-stone-200 dark:hover:bg-stone-700"
                             )}
                         >
-                            {voice.isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                            {voiceListening ? <MicOff size={18} /> : <Mic size={18} />}
                         </button>
                     )}
 
@@ -585,7 +546,7 @@ export const ViewMax = () => {
                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                         }}
                         onKeyDown={handleKeyDown}
-                        placeholder={voice.isListening ? "正在听..." : "输入消息..."}
+                        placeholder={voiceListening ? "正在听..." : "输入消息..."}
                         rows={1}
                         className="flex-1 bg-transparent resize-none outline-none text-[14px] text-stone-800 dark:text-white placeholder-stone-400 px-2 py-2.5 leading-normal"
                         style={{ minHeight: '40px', maxHeight: '120px', lineHeight: '1.5' }}

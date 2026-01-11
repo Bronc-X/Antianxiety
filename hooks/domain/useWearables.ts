@@ -14,6 +14,7 @@ import {
   disconnectWearable,
   type WearablesSyncInput
 } from '@/app/actions/wearables';
+import { isNative } from '@/lib/capacitor';
 
 // ============================================
 // Types
@@ -245,7 +246,10 @@ export function useWearables(): UseWearablesReturn {
 
       // Build OAuth URL
       const clientId = process.env.NEXT_PUBLIC_WEARABLE_CLIENT_ID;
-      const redirectUri = `${window.location.origin}/api/wearables/callback`;
+      const webOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+      const redirectUri = isNative()
+        ? 'antianxiety://oauth/wearables'
+        : `${webOrigin}/api/wearables/callback`;
 
       const params = new URLSearchParams({
         client_id: clientId || '',

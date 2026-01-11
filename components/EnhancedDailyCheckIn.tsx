@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, startTransition } from 'react';
+import { useEffect, useMemo, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mic, MicOff, Send, Sparkles, Calendar, Battery, Lightbulb } from 'lucide-react';
 import AnimatedSection from '@/components/AnimatedSection';
@@ -10,6 +10,7 @@ import ActivityRing, { calculateRingPercentages } from '@/components/ActivityRin
 import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
 import { useVoiceAnalysis } from '@/hooks/domain/useVoiceAnalysis';
 import { useCalibrationLog } from '@/hooks/domain/useCalibrationLog';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 
 // 复用原有的类型定义
 type DailyWellnessLog = {
@@ -158,57 +159,44 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
     return getCurrentWeekConfidence(logs);
   }, [logs]);
 
-  // Web Speech API 引用
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const {
+    isSupported: speechSupported,
+    isListening,
+    transcript,
+    error: speechError,
+    start,
+    stop,
+    reset,
+  } = useSpeechRecognition({
+    locale: 'zh-CN',
+    continuous: true,
+    interimResults: true,
+  });
 
-  // 初始化语音识别
   useEffect(() => {
-    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+    setVoiceRecording(prev => ({
+      ...prev,
+      isRecording: isListening
+    }));
+  }, [isListening]);
 
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'zh-CN';
+  useEffect(() => {
+    setVoiceRecording(prev => ({
+      ...prev,
+      transcript
+    }));
+  }, [transcript]);
 
-      recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-
-        setVoiceRecording(prev => ({
-          ...prev,
-          transcript: transcript
-        }));
-      };
-
-      recognition.onerror = (event) => {
-        console.error('语音识别错误:', event.error);
-        setToast(`语音识别失败: ${event.error}`);
-        setVoiceRecording(prev => ({
-          ...prev,
-          isRecording: false,
-          isProcessing: false
-        }));
-      };
-
-      recognition.onend = () => {
-        setVoiceRecording(prev => ({
-          ...prev,
-          isRecording: false
-        }));
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
+  useEffect(() => {
+    if (!speechError) return;
+    console.error('语音识别错误:', speechError);
+    setToast(`语音识别失败: ${speechError}`);
+    setVoiceRecording(prev => ({
+      ...prev,
+      isRecording: false,
+      isProcessing: false
+    }));
+  }, [speechError]);
 
   // 填充今日已有数据
   useEffect(() => {
@@ -236,26 +224,19 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
   }, [toast]);
 
   // 开始/停止语音录制
-  const toggleVoiceRecording = () => {
-    if (!recognitionRef.current) {
-      setToast('您的浏览器不支持语音识别功能');
+  const toggleVoiceRecording = async () => {
+    if (!speechSupported) {
+      setToast('您的浏览器或设备不支持语音识别功能');
       return;
     }
 
-    if (voiceRecording.isRecording) {
-      recognitionRef.current.stop();
-      setVoiceRecording(prev => ({
-        ...prev,
-        isRecording: false
-      }));
-    } else {
-      recognitionRef.current.start();
-      setVoiceRecording(prev => ({
-        ...prev,
-        isRecording: true,
-        transcript: ''
-      }));
+    if (isListening) {
+      await stop();
+      return;
     }
+
+    reset();
+    await start();
   };
 
   // AI处理语音输入
@@ -299,6 +280,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
         isProcessing: false,
         transcript: ''
       }));
+      reset();
     }
   };
 

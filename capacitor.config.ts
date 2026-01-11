@@ -25,7 +25,7 @@ const config: CapacitorConfig = {
 
   server: {
     // 本地开发模式：使用 Mac 的 IP 地址（iOS 模拟器需要）
-    url: 'http://localhost:3000/native',
+    url: 'http://172.20.10.4:3000/native',
     cleartext: true,
     // 允许所有导航在 WebView 内部进行，不跳转 Safari
     allowNavigation: [

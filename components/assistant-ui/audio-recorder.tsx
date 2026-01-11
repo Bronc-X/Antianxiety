@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect, FC } from 'react';
-import { Mic, Square, Loader2, X } from 'lucide-react';
+import { Mic, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TooltipIconButton } from './tooltip-icon-button';
 import { cn } from '@/lib/utils';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 
 interface AudioRecorderProps {
     onText: (text: string) => void;
@@ -14,13 +15,23 @@ interface AudioRecorderProps {
 }
 
 export const AudioRecorder: FC<AudioRecorderProps> = ({ onText, onStart, className, disabled }) => {
-    const [isRecording, setIsRecording] = useState(false);
     const [duration, setDuration] = useState(0);
-    const [interimText, setInterimText] = useState('');
-
-    const recognitionRef = useRef<any>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const onTextRef = useRef(onText);
+    const {
+        isSupported,
+        isListening,
+        interimTranscript,
+        error,
+        start,
+        stop,
+        reset,
+    } = useSpeechRecognition({
+        locale: 'zh-CN',
+        continuous: true,
+        interimResults: true,
+        onResult: (text) => onTextRef.current(text),
+    });
     // To avoid appending same text multiple times or handling complex cursor positions,
     // we will accumulate the session's transcript here and pass it out on stop or final results.
     // Actually, for "real-time" filling into composer, we'd need the parent to handle "update" vs "append".
@@ -34,95 +45,44 @@ export const AudioRecorder: FC<AudioRecorderProps> = ({ onText, onStart, classNa
     }, [onText]);
 
     useEffect(() => {
-        return () => {
-            stopRecordingService();
-        };
-    }, []);
-
-    const startRecording = () => {
-        if (onStart) onStart();
-
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-        if (!SpeechRecognition) {
-            alert("您的浏览器不支持语音识别，请尝试使用 Chrome 或 Edge。");
-            return;
-        }
-
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'zh-CN'; // Default to Chinese
-
-        recognition.onstart = () => {
-            setIsRecording(true);
+        if (isListening) {
             setDuration(0);
-            setInterimText('');
             timerRef.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
-        };
-
-        recognition.onresult = (event: any) => {
-            let finalTranscript = '';
-            let currentInterim = '';
-
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    currentInterim += event.results[i][0].transcript;
-                }
-            }
-
-            // If we have final text, push it to composer immediately
-            // Use ref to call latest prop
-            if (finalTranscript) {
-                onTextRef.current(finalTranscript);
-            }
-
-            setInterimText(currentInterim);
-        };
-
-        recognition.onerror = (event: any) => {
-            console.error('Speech recognition error', event.error);
-            if (event.error === 'not-allowed') {
-                alert('无法访问麦克风，请检查权限。');
-            }
-            stopRecordingService();
-        };
-
-        recognition.onend = () => {
-            // If stopped naturally or error, ensure state is clean.
-            // If we wanted "always listening", we'd restart here. 
-            // But for this UI, stopping is expected.
-            if (isRecording) {
-                // This handles case where it stops by itself (e.g. silence)
-                setIsRecording(false);
-                if (timerRef.current) clearInterval(timerRef.current);
-            }
-        };
-
-        recognitionRef.current = recognition;
-        recognition.start();
-    };
-
-    const stopRecordingService = () => {
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-            recognitionRef.current = null;
+            return;
         }
+
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
         }
-        setIsRecording(false);
-        setInterimText('');
+    }, [isListening]);
+
+    useEffect(() => {
+        if (!error) return;
+        alert('语音识别失败，请检查麦克风权限。');
+    }, [error]);
+
+    useEffect(() => {
+        return () => {
+            stop().catch(() => {});
+        };
+    }, [stop]);
+
+    const startRecording = async () => {
+        if (onStart) onStart();
+        if (!isSupported) {
+            alert('您的浏览器或设备不支持语音识别。');
+            return;
+        }
+
+        reset();
+        await start();
     };
 
     const handleStop = () => {
-        // Force stop (will trigger onresult/onend)
-        stopRecordingService();
+        void stop();
     };
 
     const formatTime = (seconds: number) => {
@@ -131,16 +91,16 @@ export const AudioRecorder: FC<AudioRecorderProps> = ({ onText, onStart, classNa
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (isRecording) {
+    if (isListening) {
         return (
             <div className={cn("flex items-center gap-2 rounded-full bg-red-500/10 px-2 py-1 transition-all duration-300", className)}>
                 <span className="text-xs font-mono text-red-500 animate-pulse px-1 min-w-[30px] text-center">
                     {formatTime(duration)}
                 </span>
                 {/* Show interim text preview if available */}
-                {interimText && (
+                {interimTranscript && (
                     <span className="text-xs text-red-500/70 max-w-[100px] truncate hidden sm:inline-block">
-                        {interimText}
+                        {interimTranscript}
                     </span>
                 )}
                 <div className="flex items-center gap-1">
@@ -166,7 +126,7 @@ export const AudioRecorder: FC<AudioRecorderProps> = ({ onText, onStart, classNa
             onClick={startRecording}
             disabled={disabled}
         >
-            <Mic className={cn("size-5", isRecording && "text-red-500")} />
+            <Mic className={cn("size-5", isListening && "text-red-500")} />
         </TooltipIconButton>
     );
 };

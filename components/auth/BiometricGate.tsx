@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { PrivacyScreen } from '@capacitor-community/privacy-screen';
 import { triggerHaptic } from '@/lib/haptics';
 import { Lock } from 'lucide-react';
@@ -10,33 +10,133 @@ import { MotionButton } from '@/components/motion/MotionButton';
 /**
  * BiometricGate
  * 
- * Protects children content with a biometric lock (if available) or privacy screen.
- * For now, this is a visual gate that simulates the privacy protection.
- * In a real implementation, you would use @capacitor-community/native-biometric
+ * Protects private screens with biometric auth (iOS) and enables privacy screen blur.
  */
-export function BiometricGate({ children }: { children: React.ReactNode }) {
-    const [isLocked, setIsLocked] = useState(false); // Default to unlocked for now to avoid blocking dev
-    const [isNative] = useState(() => Capacitor.isNativePlatform());
+type BiometryType = 'face' | 'touch' | 'none' | 'unknown';
+
+interface BiometricAuthPlugin {
+    isAvailable(): Promise<{ available: boolean; biometryType?: BiometryType; error?: string | null }>;
+    authenticate(options: { reason?: string }): Promise<{ success: boolean }>;
+    cancel(): Promise<void>;
+}
+
+const BiometricAuth = registerPlugin<BiometricAuthPlugin>('BiometricAuth');
+
+export function BiometricGate({
+    children,
+    enabled = true,
+}: {
+    children: React.ReactNode;
+    enabled?: boolean;
+}) {
+    const [isLocked, setIsLocked] = useState(false);
+    const [hasBiometrics, setHasBiometrics] = useState(false);
+    const [shouldPrompt, setShouldPrompt] = useState(false);
+    const [authError, setAuthError] = useState<string | null>(null);
+    const [biometryType, setBiometryType] = useState<BiometryType>('unknown');
+    const isNative = Capacitor.isNativePlatform();
+    const isIos = Capacitor.getPlatform() === 'ios';
+    const canUseBiometrics = enabled && isNative && isIos;
 
     useEffect(() => {
-        if (isNative) {
-            // Enable privacy screen (blur in multitasker)
-            const enablePrivacy = async () => {
-                try {
-                    await PrivacyScreen.enable();
-                } catch (e) {
-                    console.warn('PrivacyScreen not supported', e);
+        if (!enabled || !isNative) return;
+        const enablePrivacy = async () => {
+            try {
+                await PrivacyScreen.enable();
+            } catch (e) {
+                console.warn('PrivacyScreen not supported', e);
+            }
+        };
+        enablePrivacy();
+    }, [enabled, isNative]);
+
+    useEffect(() => {
+        if (!canUseBiometrics) return;
+        let cancelled = false;
+
+        const setup = async () => {
+            try {
+                const availability = await BiometricAuth.isAvailable();
+                if (cancelled) return;
+                const available = Boolean(availability?.available);
+                setBiometryType(availability?.biometryType ?? 'unknown');
+                if (available) {
+                    setHasBiometrics(true);
+                    setIsLocked(true);
+                    setShouldPrompt(true);
+                } else {
+                    setHasBiometrics(false);
+                    setIsLocked(false);
                 }
-            };
-            enablePrivacy();
-        }
-    }, [isNative]);
+            } catch (error) {
+                console.warn('Biometric availability check failed', error);
+                setHasBiometrics(false);
+                setIsLocked(false);
+            }
+        };
+
+        setup();
+        return () => {
+            cancelled = true;
+        };
+    }, [canUseBiometrics]);
+
+    useEffect(() => {
+        if (!canUseBiometrics || !hasBiometrics) return;
+        const handleVisibility = () => {
+            if (document.hidden) {
+                setIsLocked(true);
+                return;
+            }
+            if (isLocked) {
+                setShouldPrompt(true);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
+    }, [canUseBiometrics, hasBiometrics, isLocked]);
+
+    useEffect(() => {
+        if (!shouldPrompt || !hasBiometrics) return;
+        let cancelled = false;
+
+        const run = async () => {
+            setAuthError(null);
+            try {
+                await BiometricAuth.authenticate({ reason: 'Unlock AntiAnxiety' });
+                if (cancelled) return;
+                setIsLocked(false);
+                await triggerHaptic.success();
+            } catch (error) {
+                if (cancelled) return;
+                const message = error instanceof Error ? error.message : 'Authentication failed';
+                setAuthError(message);
+                setIsLocked(true);
+                await triggerHaptic.error();
+            } finally {
+                if (!cancelled) {
+                    setShouldPrompt(false);
+                }
+            }
+        };
+
+        void run();
+        return () => {
+            cancelled = true;
+        };
+    }, [hasBiometrics, shouldPrompt]);
 
     const unlock = async () => {
-        triggerHaptic.medium();
-        setIsLocked(false);
-        triggerHaptic.success();
+        await triggerHaptic.medium();
+        setShouldPrompt(true);
     };
+
+    if (!enabled || !isNative || !hasBiometrics) {
+        return <>{children}</>;
+    }
 
     if (isLocked) {
         return (
@@ -46,8 +146,13 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
                 </div>
                 <h2 className="text-2xl font-semibold mb-2">Locked</h2>
                 <p className="text-muted-foreground mb-8 text-center max-w-xs">
-                    Use Touch ID or Face ID to access your journal.
+                    {biometryType === 'face' ? 'Use Face ID to continue.' : 'Use Touch ID to continue.'}
                 </p>
+                {authError && (
+                    <p className="text-sm text-red-500 mb-4 text-center max-w-xs">
+                        {authError}
+                    </p>
+                )}
                 <MotionButton onClick={unlock} className="w-full max-w-xs h-12">
                     Unlock
                 </MotionButton>

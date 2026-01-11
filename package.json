@@ -41,6 +41,7 @@
     "@capacitor/local-notifications": "^6.1.3",
     "@capacitor/network": "^6.0.4",
     "@capacitor/preferences": "^6.0.4",
+    "@capacitor/push-notifications": "^6.0.4",
     "@capacitor/splash-screen": "^6.0.4",
     "@capacitor/status-bar": "^6.0.3",
     "@followathletics/capacitor-healthkit": "^1.3.7",

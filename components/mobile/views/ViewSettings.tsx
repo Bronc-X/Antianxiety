@@ -53,11 +53,13 @@ import {
     Target,
     Palette,
 } from "lucide-react";
+import { Capacitor } from '@capacitor/core';
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/hooks/domain/useSettings";
 import { useAuth } from "@/hooks/domain/useAuth";
 import { useHaptics, ImpactStyle } from "@/hooks/useHaptics";
 import { CardGlass } from "@/components/mobile/HealthWidgets";
+import { getPushEnabled, setPushEnabled } from '@/lib/push-notifications';
 
 // ============================================
 // Types
@@ -548,6 +550,7 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
     const { settings, isLoading, isSaving, isOffline, error, update, refresh } = useSettings();
     const { user, signOut, isSigningOut } = useAuth();
     const { impact, notification } = useHaptics();
+    const isIosNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 
     // Local state
     const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
@@ -561,6 +564,24 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
         sound: true,
         haptics: true,
     });
+
+    useEffect(() => {
+        if (!isIosNative) return;
+        let cancelled = false;
+
+        const load = async () => {
+            const enabled = await getPushEnabled();
+            if (!cancelled) {
+                setNotifications(prev => ({ ...prev, push: enabled }));
+            }
+        };
+
+        load();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isIosNative]);
 
     // Theme state
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
@@ -798,7 +819,16 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
                         rightElement={
                             <ToggleSwitch
                                 checked={notifications.push}
-                                onChange={(v) => setNotifications(prev => ({ ...prev, push: v }))}
+                                onChange={async (v) => {
+                                    setNotifications(prev => ({ ...prev, push: v }));
+                                    if (!isIosNative) return;
+
+                                    const permission = await setPushEnabled(v);
+                                    if (v && permission !== 'granted') {
+                                        setNotifications(prev => ({ ...prev, push: false }));
+                                        await notification('warning');
+                                    }
+                                }}
                             />
                         }
                     />

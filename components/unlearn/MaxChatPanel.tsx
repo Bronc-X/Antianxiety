@@ -6,6 +6,7 @@ import { Send, X, Sparkles, Loader2, Mic, MicOff } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useMax, type LocalMessage } from '@/hooks/domain/useMax';
 import MaxAvatar from '@/components/max/MaxAvatar';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 
 interface MaxChatPanelProps {
     isOpen: boolean;
@@ -27,11 +28,22 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
     } = useMax();
 
     const [input, setInput] = useState('');
-    const [isListening, setIsListening] = useState(false);
-    const [speechSupported, setSpeechSupported] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const {
+        isSupported: speechSupported,
+        isListening,
+        start,
+        stop,
+    } = useSpeechRecognition({
+        locale: language === 'en' ? 'en-US' : 'zh-CN',
+        continuous: false,
+        interimResults: false,
+        onResult: (text) => {
+            setInput(prev => prev + text);
+        },
+        onError: () => {},
+    });
 
     // Initial Setup
     useEffect(() => {
@@ -45,43 +57,13 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
         }
     }, [isOpen, newConversation]);
 
-    // Check for Speech Recognition support
-    useEffect(() => {
-        const SpeechRecognition = (window as typeof window & { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition ||
-            (window as typeof window & { webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            setSpeechSupported(true);
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = false;
-            recognitionRef.current.interimResults = false;
-            recognitionRef.current.lang = language === 'en' ? 'en-US' : 'zh-CN';
-
-            recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-                const transcript = event.results[0][0].transcript;
-                setInput(prev => prev + transcript);
-                setIsListening(false);
-            };
-
-            recognitionRef.current.onerror = () => {
-                setIsListening(false);
-            };
-
-            recognitionRef.current.onend = () => {
-                setIsListening(false);
-            };
-        }
-    }, [language]);
-
     const toggleListening = () => {
-        if (!recognitionRef.current) return;
-
+        if (!speechSupported) return;
         if (isListening) {
-            recognitionRef.current.stop();
-            setIsListening(false);
-        } else {
-            recognitionRef.current.start();
-            setIsListening(true);
+            void stop();
+            return;
         }
+        void start();
     };
 
     // Auto-scroll to bottom
