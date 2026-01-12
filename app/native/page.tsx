@@ -6,7 +6,6 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     ViewDashboard,
@@ -28,16 +27,23 @@ import {
     ViewRegister,
     ViewProfileSetup,
     ViewMembership,
-    ViewProfileEdit
+    ViewProfileEdit,
+    ViewCoreHub,
+    ViewDailyQuestionnaire,
+    ViewBayesianLoop,
+    ViewInquiryCenter,
+    ViewInsightEngine,
+    ViewVoiceAnalysis,
+    ViewMaxLabs,
+    ViewAdaptiveOnboarding,
+    ViewDebugSession,
+    ViewCuratedFeed
 } from "@/components/mobile/MobileViews";
 import {
     LayoutDashboard,
     Sparkles,
     Calendar,
     User,
-    Wifi,
-    Battery,
-    Signal,
     FlaskConical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -52,12 +58,30 @@ import { useHealthKitBackgroundSync } from "@/hooks/useHealthKitBackgroundSync";
 
 const WEARABLE_PROVIDERS: WearableProvider[] = ['oura', 'fitbit', 'apple_health', 'garmin', 'whoop'];
 
+function parseWearableState(state: string): { provider?: string } | null {
+    try {
+        return JSON.parse(state);
+    } catch {
+        // Ignore direct JSON parse failures
+    }
+
+    try {
+        const normalized = state.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+        const decoded = typeof atob === 'function' ? atob(padded) : null;
+        if (!decoded) return null;
+        return JSON.parse(decoded);
+    } catch {
+        return null;
+    }
+}
+
 function parseWearableCallbackUrl(rawUrl: string): { code: string; provider: WearableProvider } | null {
     try {
         const url = new URL(rawUrl);
         if (url.protocol !== 'antianxiety:') return null;
         if (url.host !== 'oauth') return null;
-        const path = url.pathname.replace(/^\\//, '');
+        const path = url.pathname.replace(/^\//, '');
         if (path !== 'wearables') return null;
 
         const code = url.searchParams.get('code');
@@ -66,13 +90,9 @@ function parseWearableCallbackUrl(rawUrl: string): { code: string; provider: Wea
         let provider = url.searchParams.get('provider') as WearableProvider | null;
         const state = url.searchParams.get('state');
         if (!provider && state) {
-            try {
-                const parsedState = JSON.parse(state);
-                if (typeof parsedState?.provider === 'string') {
-                    provider = parsedState.provider as WearableProvider;
-                }
-            } catch {
-                // Ignore invalid state payloads
+            const parsedState = parseWearableState(state);
+            if (typeof parsedState?.provider === 'string') {
+                provider = parsedState.provider as WearableProvider;
             }
         }
 
@@ -85,7 +105,7 @@ function parseWearableCallbackUrl(rawUrl: string): { code: string; provider: Wea
 }
 
 // --- Types ---
-type ViewType = "home" | "max" | "plan" | "profile" | "science" | "settings" | "calibration" | "digital-twin" | "wearables" | "goals" | "onboarding" | "assessment" | "habits" | "analysis" | "reminders" | "login" | "register" | "profile-setup" | "membership" | "profile-edit";
+type ViewType = "home" | "max" | "plan" | "profile" | "science" | "settings" | "calibration" | "digital-twin" | "wearables" | "goals" | "onboarding" | "assessment" | "habits" | "analysis" | "reminders" | "login" | "register" | "profile-setup" | "membership" | "profile-edit" | "core-hub" | "daily-questionnaire" | "bayesian-loop" | "inquiry-center" | "voice-analysis" | "core-insight" | "max-labs" | "adaptive-onboarding" | "debug-session" | "curated-feed";
 
 // --- 完全复制 /mobile 的 BottomNav，但使用 useState ---
 const BottomNav = ({ activeView, onViewChange }: { activeView: ViewType; onViewChange: (view: ViewType) => void }) => {
@@ -287,6 +307,16 @@ export default function NativeAppPage() {
                         {currentView === "register" && <ViewRegister key="register" onNavigate={handleViewChange} />}
                         {currentView === "profile-setup" && <ViewProfileSetup key="profile-setup" onNavigate={handleViewChange} />}
                         {currentView === "membership" && <ViewMembership key="membership" onNavigate={handleViewChange} />}
+                        {currentView === "core-hub" && <ViewCoreHub key="core-hub" onBack={() => handleViewChange("profile")} onNavigate={handleViewChange} />}
+                        {currentView === "daily-questionnaire" && <ViewDailyQuestionnaire key="daily-questionnaire" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "bayesian-loop" && <ViewBayesianLoop key="bayesian-loop" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "inquiry-center" && <ViewInquiryCenter key="inquiry-center" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "voice-analysis" && <ViewVoiceAnalysis key="voice-analysis" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "core-insight" && <ViewInsightEngine key="core-insight" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "max-labs" && <ViewMaxLabs key="max-labs" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "adaptive-onboarding" && <ViewAdaptiveOnboarding key="adaptive-onboarding" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "debug-session" && <ViewDebugSession key="debug-session" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "curated-feed" && <ViewCuratedFeed key="curated-feed" onBack={() => handleViewChange("core-hub")} />}
                         {currentView === "profile-edit" && <ViewProfileEdit key="profile-edit" onClose={() => handleViewChange("settings")} />}
                     </AnimatePresence>
                 </main>

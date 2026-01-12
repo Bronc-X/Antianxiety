@@ -19,6 +19,10 @@ export async function GET(
 ) {
     try {
         const { provider } = await params;
+        const redirectUriParam = request.nextUrl.searchParams.get('redirect_uri');
+        const redirectUri = redirectUriParam && redirectUriParam.startsWith('antianxiety://')
+            ? redirectUriParam
+            : null;
 
         // 验证provider
         if (!VALID_PROVIDERS.includes(provider as WearableProvider)) {
@@ -74,7 +78,7 @@ export async function GET(
         })).toString('base64url');
 
         // 获取OAuth授权URL
-        const authUrl = connector.getAuthUrl(state);
+        const authUrl = connector.getAuthUrl(state, redirectUri || undefined);
 
         // 重定向到OAuth页面
         return NextResponse.redirect(authUrl);

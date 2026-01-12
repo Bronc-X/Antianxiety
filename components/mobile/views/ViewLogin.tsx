@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/domain/useAuth";
+import { useAuthProviders } from "@/hooks/domain/useAuthProviders";
+import { useBrowser } from "@/hooks/useBrowser";
 import MaxAvatar from "@/components/max/MaxAvatar";
 
 const pageVariants = {
@@ -33,7 +35,9 @@ interface ViewLoginProps {
 }
 
 export const ViewLogin = ({ onNavigate }: ViewLoginProps) => {
-    const { signIn, isSigningIn, error, clearError } = useAuth();
+    const { signIn, isSigningIn, error: authError, clearError: clearAuthError } = useAuth();
+    const { loadWeChatQr, loadRedditLogin, isLoading: isProviderLoading, error: providerError, clearError: clearProviderError } = useAuthProviders();
+    const { open } = useBrowser();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -41,11 +45,27 @@ export const ViewLogin = ({ onNavigate }: ViewLoginProps) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        clearError();
+        clearAuthError();
 
         const success = await signIn(email, password, '/mobile?view=home');
         if (success) {
             onNavigate?.('home');
+        }
+    };
+
+    const handleWeChatLogin = async () => {
+        clearProviderError();
+        const data = await loadWeChatQr();
+        if (data?.loginUrl) {
+            await open(data.loginUrl);
+        }
+    };
+
+    const handleRedditLogin = async () => {
+        clearProviderError();
+        const data = await loadRedditLogin();
+        if (data?.url) {
+            await open(data.url);
         }
     };
 
@@ -85,14 +105,24 @@ export const ViewLogin = ({ onNavigate }: ViewLoginProps) => {
             </div>
 
             {/* Error Message */}
-            {error && (
+            {authError && (
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl flex items-center gap-2"
                 >
                     <AlertCircle size={16} className="text-red-500" />
-                    <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+                    <span className="text-sm text-red-600 dark:text-red-400">{authError}</span>
+                </motion.div>
+            )}
+            {providerError && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-center gap-2"
+                >
+                    <AlertCircle size={16} className="text-amber-500" />
+                    <span className="text-sm text-amber-700 dark:text-amber-300">{providerError}</span>
                 </motion.div>
             )}
 
@@ -192,6 +222,41 @@ export const ViewLogin = ({ onNavigate }: ViewLoginProps) => {
                 <div className="flex-1 h-px bg-stone-200 dark:bg-white/10" />
                 <span className="text-xs text-stone-400 uppercase tracking-wider">or</span>
                 <div className="flex-1 h-px bg-stone-200 dark:bg-white/10" />
+            </div>
+
+            <div className="space-y-3 mb-6">
+                <motion.button
+                    type="button"
+                    onClick={handleWeChatLogin}
+                    disabled={isProviderLoading}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                        "w-full py-3.5 rounded-2xl font-semibold",
+                        "bg-[#1AAD19]/10 text-[#1AAD19] border border-[#1AAD19]/30",
+                        "transition-all hover:bg-[#1AAD19]/15",
+                        "flex items-center justify-center gap-2",
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                >
+                    {isProviderLoading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                    WeChat Login
+                </motion.button>
+                <motion.button
+                    type="button"
+                    onClick={handleRedditLogin}
+                    disabled={isProviderLoading}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                        "w-full py-3.5 rounded-2xl font-semibold",
+                        "bg-[#FF4500]/10 text-[#FF4500] border border-[#FF4500]/30",
+                        "transition-all hover:bg-[#FF4500]/15",
+                        "flex items-center justify-center gap-2",
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                >
+                    {isProviderLoading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                    Reddit Login
+                </motion.button>
             </div>
 
             {/* Register Link */}

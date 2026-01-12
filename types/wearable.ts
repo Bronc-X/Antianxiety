@@ -100,10 +100,10 @@ export interface WearableConnector {
     provider: WearableProvider;
 
     /** 获取OAuth授权URL */
-    getAuthUrl(state?: string): string;
+    getAuthUrl(state?: string, redirectUri?: string): string;
 
     /** 用授权码换取令牌 */
-    exchangeCode(code: string): Promise<TokenExchangeResult>;
+    exchangeCode(code: string, redirectUri?: string): Promise<TokenExchangeResult>;
 
     /** 刷新访问令牌 */
     refreshToken(refreshToken: string): Promise<TokenExchangeResult>;

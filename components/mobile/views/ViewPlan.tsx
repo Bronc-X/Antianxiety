@@ -1,19 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CardGlass } from "@/components/mobile/HealthWidgets";
 import {
     CheckCircle2,
     Circle,
-    Zap,
     BookOpen,
     Sparkles,
-    Filter,
     Bookmark,
     Plus,
-    MoreHorizontal,
-    Clock,
     ArrowRight,
     Target
 } from "lucide-react";
@@ -21,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { ViewPlanCreator } from "./ViewPlanCreator";
 import { ViewPlanDetail } from "./ViewPlanDetail";
 import { ViewArticleReader } from "./ViewArticleReader";
+import { useI18n } from "@/lib/i18n";
 
 const pageVariants = {
     initial: { opacity: 0, x: 10 },
@@ -35,24 +32,17 @@ const pageTransition = {
 } as const;
 
 import { usePlans, type PlanData } from "@/hooks/domain/usePlans";
-
-interface Article {
-    id: number;
-    title: string;
-    category: string;
-    img: string;
-    readTime: string;
-    saved: boolean;
-}
-
-// ... (keep Article interface)
+import { useFeed } from "@/hooks/domain/useFeed";
 
 interface ViewPlanProps {
     onNavigate?: (view: string) => void;
 }
 
 export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
-    const { plans, activePlans, completedPlans, complete, resume, pause, isLoading } = usePlans();
+    const { plans, completedPlans, complete, resume, create, isSaving, error, isLoading } = usePlans();
+    const { language } = useI18n();
+    const feedLanguage = language === 'en' ? 'en' : 'zh';
+    const feed = useFeed({ language: feedLanguage, cacheDaily: true, cacheNamespace: 'mobile-plan-discovery' });
 
     const [tab, setTab] = useState<'today' | 'discovery'>('today');
     const [filter, setFilter] = useState<'all' | 'saved'>('all');
@@ -60,14 +50,7 @@ export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
     // Sub-view states
     const [showCreator, setShowCreator] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<PlanData | null>(null);
-    const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-
-    // Feed State (Simulated for now, could use useFeed)
-    const [feed, setFeed] = useState<Article[]>([
-        { id: 1, title: "Understanding Cortisol", category: "Science", img: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=800", readTime: "5 min", saved: false },
-        { id: 2, title: "The Power of Sleep", category: "Recovery", img: "https://images.unsplash.com/photo-1511296187010-86b2e30cad41?auto=format&fit=crop&q=80&w=800", readTime: "8 min", saved: true },
-        { id: 3, title: "Nutrition for Brain Fog", category: "Nutrition", img: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=800", readTime: "6 min", saved: false },
-    ]);
+    const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
 
     const handleTogglePlan = async (plan: PlanData) => {
         if (plan.status === 'completed') {
@@ -83,11 +66,14 @@ export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
         }
     };
 
-    const toggleSave = (id: number) => {
-        setFeed(feed.map(a => a.id === id ? { ...a, saved: !a.saved } : a));
-    };
-
     const progress = plans.length > 0 ? Math.round((completedPlans.length / plans.length) * 100) : 0;
+    const filteredFeedItems = useMemo(() => {
+        if (filter === 'saved') {
+            return feed.items.filter(item => item.is_saved);
+        }
+        return feed.items;
+    }, [feed.items, filter]);
+    const activeArticle = selectedArticleId ? feed.items.find(item => item.id === selectedArticleId) : null;
 
     // Show loading skeleton when plans are loading
     if (isLoading) {
@@ -186,10 +172,19 @@ export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
 
                             {plans.map((p) => {
                                 const isCompleted = p.status === 'completed';
-                                const uiType = p.plan_type === 'exercise' ? 'Body' :
-                                    p.plan_type === 'diet' ? 'Nutrition' :
-                                        p.plan_type === 'sleep' ? 'Sleep' :
-                                            p.plan_type === 'comprehensive' ? 'Mind' : 'General';
+                                const rawType = p.plan_type || p.category || 'general';
+                                const normalizedType = rawType.toLowerCase();
+                                const uiType = normalizedType === 'exercise' || normalizedType === 'body'
+                                    ? 'Body'
+                                    : normalizedType === 'diet' || normalizedType === 'nutrition'
+                                        ? 'Nutrition'
+                                        : normalizedType === 'sleep'
+                                            ? 'Sleep'
+                                            : normalizedType === 'nature' || normalizedType === 'outdoors'
+                                                ? 'Nature'
+                                                : normalizedType === 'mind' || normalizedType === 'comprehensive'
+                                                    ? 'Mind'
+                                                    : 'General';
 
                                 return (
                                     <CardGlass
@@ -265,31 +260,69 @@ export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
                             </button>
                         </div>
 
-                        {feed
-                            .filter(f => filter === 'all' || (filter === 'saved' && f.saved))
-                            .map((item) => (
+                        {feed.isLoading && feed.items.length === 0 && (
+                            <div className="space-y-4">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-40 rounded-2xl bg-stone-100 dark:bg-white/5 animate-pulse" />
+                                ))}
+                            </div>
+                        )}
+
+                        {feed.error && feed.items.length === 0 && !feed.isLoading && (
+                            <CardGlass className="p-4 text-center">
+                                <p className="text-sm text-rose-600">{feed.error}</p>
+                                <button
+                                    onClick={() => feed.refresh()}
+                                    className="mt-3 text-xs font-bold text-emerald-600"
+                                >
+                                    Retry
+                                </button>
+                            </CardGlass>
+                        )}
+
+                        {filteredFeedItems.map((item) => {
+                            const readTime = typeof item.read_time_minutes === 'number' && item.read_time_minutes > 0
+                                ? `${item.read_time_minutes} min`
+                                : '3 min';
+                            const categoryLabel = (item.category || item.type || 'general').toUpperCase();
+
+                            return (
                                 <CardGlass
                                     key={item.id}
                                     className="p-0 overflow-hidden group cursor-pointer border-stone-100 dark:border-white/5"
-                                    onClick={() => setSelectedArticle(item)} // Open Article Reader
+                                    onClick={() => {
+                                        feed.read(item.id);
+                                        setSelectedArticleId(item.id);
+                                    }}
                                 >
                                     <div className="h-32 overflow-hidden relative">
-                                        <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        {item.image_url ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-emerald-100 via-stone-100 to-amber-100" />
+                                        )}
                                         <div className="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-lg text-[10px] font-bold text-white uppercase tracking-wide">
-                                            {item.category}
+                                            {categoryLabel}
                                         </div>
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); toggleSave(item.id); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                feed.save(item.id);
+                                            }}
                                             className="absolute top-3 right-3 p-2 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-colors"
                                         >
-                                            <Bookmark size={14} className={cn(item.saved && "fill-white")} />
+                                            <Bookmark size={14} className={cn(item.is_saved && "fill-white")} />
                                         </button>
                                     </div>
                                     <div className="p-4">
                                         <h3 className="font-bold text-emerald-950 dark:text-emerald-50 mb-1 leading-tight">{item.title}</h3>
+                                        {item.summary && (
+                                            <p className="text-xs text-stone-500 line-clamp-2">{item.summary}</p>
+                                        )}
                                         <div className="flex items-center justify-between mt-2">
                                             <div className="flex items-center gap-2 text-xs text-stone-400">
-                                                <BookOpen size={12} /> {item.readTime} read
+                                                <BookOpen size={12} /> {readTime} read
                                             </div>
                                             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <ArrowRight size={16} className="text-emerald-600" />
@@ -297,9 +330,10 @@ export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
                                         </div>
                                     </div>
                                 </CardGlass>
-                            ))}
+                            );
+                        })}
 
-                        {filter === 'saved' && feed.filter(f => f.saved).length === 0 && (
+                        {filter === 'saved' && filteredFeedItems.length === 0 && !feed.isLoading && (
                             <div className="py-12 text-center">
                                 <Bookmark size={32} className="mx-auto text-stone-300 mb-2" />
                                 <p className="text-stone-400 text-sm">No saved articles yet.</p>
@@ -311,9 +345,23 @@ export const ViewPlan = ({ onNavigate }: ViewPlanProps) => {
 
             {/* Overlays */}
             <AnimatePresence>
-                {showCreator && <ViewPlanCreator onClose={() => setShowCreator(false)} />}
+                {showCreator && (
+                    <ViewPlanCreator
+                        onClose={() => setShowCreator(false)}
+                        onCreate={create}
+                        isSaving={isSaving}
+                        error={error}
+                    />
+                )}
                 {selectedPlan && <ViewPlanDetail plan={selectedPlan} onClose={() => setSelectedPlan(null)} />}
-                {selectedArticle && <ViewArticleReader article={selectedArticle} onClose={() => setSelectedArticle(null)} />}
+                {activeArticle && (
+                    <ViewArticleReader
+                        article={activeArticle}
+                        onClose={() => setSelectedArticleId(null)}
+                        onSave={feed.save}
+                        onFeedback={feed.feedback}
+                    />
+                )}
             </AnimatePresence>
         </motion.div>
     )

@@ -22,7 +22,17 @@ import {
     ViewLogin,
     ViewRegister,
     ViewProfileSetup,
-    ViewMembership
+    ViewMembership,
+    ViewCoreHub,
+    ViewDailyQuestionnaire,
+    ViewBayesianLoop,
+    ViewInquiryCenter,
+    ViewInsightEngine,
+    ViewVoiceAnalysis,
+    ViewMaxLabs,
+    ViewAdaptiveOnboarding,
+    ViewDebugSession,
+    ViewCuratedFeed
 } from "@/components/mobile/MobileViews";
 import {
     LayoutDashboard,
@@ -38,7 +48,7 @@ import { cn } from "@/lib/utils";
 import MaxAvatar from "@/components/max/MaxAvatar";
 
 // --- Types ---
-type ViewType = "home" | "max" | "plan" | "profile" | "science" | "settings" | "calibration" | "digital-twin" | "wearables" | "goals" | "onboarding" | "assessment" | "habits" | "analysis" | "reminders" | "login" | "register" | "profile-setup" | "membership";
+type ViewType = "home" | "max" | "plan" | "profile" | "science" | "settings" | "calibration" | "digital-twin" | "wearables" | "goals" | "onboarding" | "assessment" | "habits" | "analysis" | "reminders" | "login" | "register" | "profile-setup" | "membership" | "core-hub" | "daily-questionnaire" | "bayesian-loop" | "inquiry-center" | "voice-analysis" | "core-insight" | "max-labs" | "adaptive-onboarding" | "debug-session" | "curated-feed";
 
 // --- Components ---
 
@@ -134,7 +144,8 @@ export default function MobileSimulatorPage() {
         "settings", "calibration", "digital-twin",
         "wearables", "goals", "onboarding",
         "assessment", "habits", "analysis", "reminders",
-        "login", "register", "profile-setup", "membership"
+        "login", "register", "profile-setup", "membership",
+        "core-hub", "daily-questionnaire", "bayesian-loop", "inquiry-center", "voice-analysis", "core-insight", "max-labs", "adaptive-onboarding", "debug-session", "curated-feed"
     ].includes(viewParam) ? viewParam : "home";
 
     const handleViewChange = (view: ViewType | string) => {
@@ -187,6 +198,16 @@ export default function MobileSimulatorPage() {
                         {currentView === "register" && <ViewRegister key="register" onNavigate={handleViewChange} />}
                         {currentView === "profile-setup" && <ViewProfileSetup key="profile-setup" onNavigate={handleViewChange} />}
                         {currentView === "membership" && <ViewMembership key="membership" onNavigate={handleViewChange} />}
+                        {currentView === "core-hub" && <ViewCoreHub key="core-hub" onBack={() => handleViewChange('profile')} onNavigate={handleViewChange} />}
+                        {currentView === "daily-questionnaire" && <ViewDailyQuestionnaire key="daily-questionnaire" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "bayesian-loop" && <ViewBayesianLoop key="bayesian-loop" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "inquiry-center" && <ViewInquiryCenter key="inquiry-center" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "voice-analysis" && <ViewVoiceAnalysis key="voice-analysis" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "core-insight" && <ViewInsightEngine key="core-insight" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "max-labs" && <ViewMaxLabs key="max-labs" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "adaptive-onboarding" && <ViewAdaptiveOnboarding key="adaptive-onboarding" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "debug-session" && <ViewDebugSession key="debug-session" onBack={() => handleViewChange("core-hub")} />}
+                        {currentView === "curated-feed" && <ViewCuratedFeed key="curated-feed" onBack={() => handleViewChange("core-hub")} />}
                     </AnimatePresence>
                 </main>
 

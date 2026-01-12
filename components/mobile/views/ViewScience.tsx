@@ -32,6 +32,8 @@ export const ViewScience = () => {
                     <ViewArticleReader
                         article={activeArticle}
                         onClose={() => setReadingId(null)}
+                        onSave={feedHook.save}
+                        onFeedback={feedHook.feedback}
                     />
                 )}
             </AnimatePresence>

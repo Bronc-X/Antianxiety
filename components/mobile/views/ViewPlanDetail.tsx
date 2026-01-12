@@ -24,10 +24,19 @@ interface ViewPlanDetailProps {
 
 export const ViewPlanDetail = ({ onClose, plan }: ViewPlanDetailProps) => {
     // Helper to get logic for colors/labels
-    const uiType = plan.plan_type === 'exercise' ? 'Body' :
-        plan.plan_type === 'diet' ? 'Nutrition' :
-            plan.plan_type === 'sleep' ? 'Sleep' :
-                plan.plan_type === 'comprehensive' ? 'Mind' : 'General';
+    const rawType = plan.plan_type || plan.category || 'general';
+    const normalizedType = rawType.toLowerCase();
+    const uiType = normalizedType === 'exercise' || normalizedType === 'body'
+        ? 'Body'
+        : normalizedType === 'diet' || normalizedType === 'nutrition'
+            ? 'Nutrition'
+            : normalizedType === 'sleep'
+                ? 'Sleep'
+                : normalizedType === 'nature' || normalizedType === 'outdoors'
+                    ? 'Nature'
+                    : normalizedType === 'mind' || normalizedType === 'comprehensive'
+                        ? 'Mind'
+                        : 'General';
 
     return (
         <motion.div

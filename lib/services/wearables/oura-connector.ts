@@ -40,12 +40,13 @@ export class OuraConnector implements WearableConnector {
     // OAuth流程
     // ============================================================================
 
-    getAuthUrl(state?: string): string {
+    getAuthUrl(state?: string, redirectUri?: string): string {
+        const resolvedRedirectUri = redirectUri || this.redirectUri;
         const params = new URLSearchParams({
             client_id: this.clientId,
             response_type: 'code',
             scope: 'daily sleep readiness',
-            redirect_uri: this.redirectUri,
+            redirect_uri: resolvedRedirectUri,
         });
 
         if (state) {
@@ -55,7 +56,8 @@ export class OuraConnector implements WearableConnector {
         return `${OURA_AUTH_BASE}/authorize?${params.toString()}`;
     }
 
-    async exchangeCode(code: string): Promise<TokenExchangeResult> {
+    async exchangeCode(code: string, redirectUri?: string): Promise<TokenExchangeResult> {
+        const resolvedRedirectUri = redirectUri || this.redirectUri;
         const response = await fetch(`${OURA_AUTH_BASE}/token`, {
             method: 'POST',
             headers: {
@@ -64,7 +66,7 @@ export class OuraConnector implements WearableConnector {
             body: new URLSearchParams({
                 grant_type: 'authorization_code',
                 code,
-                redirect_uri: this.redirectUri,
+                redirect_uri: resolvedRedirectUri,
                 client_id: this.clientId,
                 client_secret: this.clientSecret,
             }),

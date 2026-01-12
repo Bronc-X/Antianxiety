@@ -26,6 +26,15 @@ export { ViewAssessment } from "./views/ViewAssessment";
 export { ViewHabits } from "./views/ViewHabits";
 export { ViewAnalysis } from "./views/ViewAnalysis";
 export { ViewAiReminders } from "./views/ViewAiReminders";
+export { ViewDailyQuestionnaire } from "./views/ViewDailyQuestionnaire";
+export { ViewBayesianLoop } from "./views/ViewBayesianLoop";
+export { ViewInquiryCenter } from "./views/ViewInquiryCenter";
+export { ViewInsightEngine } from "./views/ViewInsightEngine";
+export { ViewVoiceAnalysis } from "./views/ViewVoiceAnalysis";
+export { ViewMaxLabs } from "./views/ViewMaxLabs";
+export { ViewAdaptiveOnboarding } from "./views/ViewAdaptiveOnboarding";
+export { ViewDebugSession } from "./views/ViewDebugSession";
+export { ViewCuratedFeed } from "./views/ViewCuratedFeed";
 
 // Phase 3: Auth Views
 export { ViewLogin } from "./views/ViewLogin";
@@ -34,3 +43,4 @@ export { ViewRegister } from "./views/ViewRegister";
 // Phase 4: User Journey Views
 export { ViewProfileSetup } from "./views/ViewProfileSetup";
 export { ViewMembership } from "./views/ViewMembership";
+export { ViewCoreHub } from "./views/ViewCoreHub";
