@@ -14,6 +14,8 @@ PODS:
     - Capacitor
   - CapacitorPreferences (6.0.4):
     - Capacitor
+  - CapacitorPushNotifications (6.0.5):
+    - Capacitor
   - CapacitorSplashScreen (6.0.4):
     - Capacitor
   - CapacitorStatusBar (6.0.3):
@@ -30,6 +32,7 @@ DEPENDENCIES:
   - "CapacitorLocalNotifications (from `../../node_modules/@capacitor/local-notifications`)"
   - "CapacitorNetwork (from `../../node_modules/@capacitor/network`)"
   - "CapacitorPreferences (from `../../node_modules/@capacitor/preferences`)"
+  - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
   - "FollowathleticsCapacitorHealthkit (from `../../node_modules/@followathletics/capacitor-healthkit`)"
@@ -51,6 +54,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/network"
   CapacitorPreferences:
     :path: "../../node_modules/@capacitor/preferences"
+  CapacitorPushNotifications:
+    :path: "../../node_modules/@capacitor/push-notifications"
   CapacitorSplashScreen:
     :path: "../../node_modules/@capacitor/splash-screen"
   CapacitorStatusBar:
@@ -67,10 +72,11 @@ SPEC CHECKSUMS:
   CapacitorLocalNotifications: b205182fab8947a0c412d56d72b709738a9d28e7
   CapacitorNetwork: 6b7b0ef7fd0b1c293970720892dbfc98e64c3582
   CapacitorPreferences: 877e40a640ee4311d4f7e334227a7b40052b9039
+  CapacitorPushNotifications: 83974a7be0f6829c26148f6ed65745b96a7d16bd
   CapacitorSplashScreen: f65292695df7d7b24a22954a6cfbaecadd1718a4
   CapacitorStatusBar: 38665f1a18c55677098367a29f6b42126b72dc65
   FollowathleticsCapacitorHealthkit: f651b04a744a4a7a612b37fc16dd8c97f1c49bb4
 
-PODFILE CHECKSUM: cfee5c49ea50f68ec30e71d4636d7746157a8779
+PODFILE CHECKSUM: 09d58bba89add6fbf356396da0a0ab5a904c4fa2
 
 COCOAPODS: 1.16.2
