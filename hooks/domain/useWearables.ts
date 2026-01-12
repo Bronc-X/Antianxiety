@@ -124,32 +124,8 @@ export interface UseWearablesReturn {
   getConnectedProviders: () => WearableProvider[];
 }
 
-// ============================================
-// OAuth URLs Configuration
-// ============================================
-
-const OAUTH_CONFIG: Record<WearableProvider, { authUrl: string; scopes: string[] }> = {
-  oura: {
-    authUrl: 'https://cloud.ouraring.com/oauth/authorize',
-    scopes: ['daily', 'heartrate', 'workout', 'sleep'],
-  },
-  fitbit: {
-    authUrl: 'https://www.fitbit.com/oauth2/authorize',
-    scopes: ['sleep', 'heartrate', 'activity', 'profile'],
-  },
-  apple_health: {
-    authUrl: '', // Apple Health uses HealthKit, not OAuth
-    scopes: [],
-  },
-  garmin: {
-    authUrl: 'https://connect.garmin.com/oauthConfirm',
-    scopes: ['activity', 'sleep', 'heartrate'],
-  },
-  whoop: {
-    authUrl: 'https://api.prod.whoop.com/oauth/oauth2/auth',
-    scopes: ['read:recovery', 'read:sleep', 'read:workout'],
-  },
-};
+const SERVER_OAUTH_PROVIDERS: WearableProvider[] = ['oura', 'fitbit'];
+const NATIVE_WEARABLE_REDIRECT = 'antianxiety://oauth/wearables';
 
 // ============================================
 // Hook Implementation
@@ -233,35 +209,29 @@ export function useWearables(): UseWearablesReturn {
     setError(null);
 
     try {
-      const config = OAUTH_CONFIG[provider];
-      if (!config.authUrl) {
-        // Apple Health uses native HealthKit
-        if (provider === 'apple_health') {
-          setError('Apple Health requires native app integration');
-          return null;
-        }
+      if (provider === 'apple_health') {
+        setError('Apple Health requires native app integration');
+        return null;
+      }
+
+      if (!SERVER_OAUTH_PROVIDERS.includes(provider)) {
         setError(`OAuth not supported for ${provider}`);
         return null;
       }
 
-      // Build OAuth URL
-      const clientId = process.env.NEXT_PUBLIC_WEARABLE_CLIENT_ID;
       const webOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-      const redirectUri = isNative()
-        ? 'antianxiety://oauth/wearables'
-        : `${webOrigin}/api/wearables/callback`;
+      const appOrigin = process.env.NEXT_PUBLIC_APP_URL || webOrigin;
+      if (!appOrigin) {
+        setError('App URL not configured');
+        return null;
+      }
 
-      const params = new URLSearchParams({
-        client_id: clientId || '',
-        redirect_uri: redirectUri,
-        response_type: 'code',
-        scope: config.scopes.join(' '),
-        state: JSON.stringify({ provider, timestamp: Date.now() }),
-      });
+      const redirectParam = isNative()
+        ? `?redirect_uri=${encodeURIComponent(NATIVE_WEARABLE_REDIRECT)}`
+        : '';
+      const oauthUrl = `${appOrigin}/api/wearables/connect/${provider}${redirectParam}`;
 
-      const oauthUrl = `${config.authUrl}?${params.toString()}`;
-
-      console.log(`[Wearables] Generated OAuth URL for ${provider}`);
+      console.log(`[Wearables] Using server OAuth for ${provider}`);
       return oauthUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate OAuth URL');
@@ -277,10 +247,20 @@ export function useWearables(): UseWearablesReturn {
     setError(null);
 
     try {
+      if (!SERVER_OAUTH_PROVIDERS.includes(provider)) {
+        setError(`OAuth not supported for ${provider}`);
+        return false;
+      }
+
+      const payload: { code: string; provider: WearableProvider; redirectUri?: string } = { code, provider };
+      if (isNative()) {
+        payload.redirectUri = NATIVE_WEARABLE_REDIRECT;
+      }
+
       const response = await fetch('/api/wearables/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, provider }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

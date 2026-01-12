@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { getConnector } from '@/lib/services/wearables';
+import type { WearableProvider } from '@/types/wearable';
 
 export async function POST(req: NextRequest) {
     try {
-        const { code, provider } = await req.json();
+        const { code, provider, redirectUri } = await req.json();
 
-        if (!code || !provider) {
+        if (!code || typeof code !== 'string' || !provider || typeof provider !== 'string') {
             return NextResponse.json(
                 { error: 'Missing code or provider' },
+                { status: 400 }
+            );
+        }
+
+        const normalizedProvider = provider as WearableProvider;
+        const connector = getConnector(normalizedProvider);
+        if (!connector) {
+            return NextResponse.json(
+                { error: 'Provider not supported' },
                 { status: 400 }
             );
         }
@@ -22,24 +33,26 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Mock OAuth exchange for now since we don't have real client secrets
-        // In a real app, you would exchange 'code' for 'access_token' and 'refresh_token'
-        // using the provider's API
-
-        const mockToken = `mock_token_${Date.now()}`;
-        const mockRefreshToken = `mock_refresh_${Date.now()}`;
-        const expiresIn = 3600;
+        const redirectOverride = typeof redirectUri === 'string' && redirectUri.trim().length > 0
+            ? redirectUri.trim()
+            : undefined;
+        const tokenResult = await connector.exchangeCode(code, redirectOverride);
+        const expiresIn = tokenResult.expiresIn || null;
+        const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
         // Save token to database
         const { error: dbError } = await supabase
             .from('wearable_tokens')
             .upsert({
                 user_id: user.id,
-                provider,
-                access_token: mockToken,
-                refresh_token: mockRefreshToken,
-                expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+                provider: normalizedProvider,
+                access_token: tokenResult.accessToken,
+                refresh_token: tokenResult.refreshToken,
+                expires_at: expiresAt,
+                scope: tokenResult.scope,
                 updated_at: new Date().toISOString(),
+            }, {
+                onConflict: 'user_id,provider',
             });
 
         if (dbError) {

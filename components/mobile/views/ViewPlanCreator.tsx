@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CardGlass } from "@/components/mobile/HealthWidgets";
 import {
@@ -19,11 +19,14 @@ import { cn } from "@/lib/utils";
 
 interface ViewPlanCreatorProps {
     onClose: () => void;
+    onCreate: (input: { name: string; category: string; description?: string; items?: string[] }) => Promise<boolean>;
+    isSaving?: boolean;
+    error?: string | null;
 }
 
 const steps = ["Type", "Details", "Review"];
 
-export const ViewPlanCreator = ({ onClose }: ViewPlanCreatorProps) => {
+export const ViewPlanCreator = ({ onClose, onCreate, isSaving = false, error = null }: ViewPlanCreatorProps) => {
     const [step, setStep] = useState(0);
     const [mode, setMode] = useState<'manual' | 'ai'>('manual');
     const [planData, setPlanData] = useState({
@@ -33,6 +36,7 @@ export const ViewPlanCreator = ({ onClose }: ViewPlanCreatorProps) => {
         aiPrompt: ''
     });
     const [isGenerating, setIsGenerating] = useState(false);
+    const [localError, setLocalError] = useState<string | null>(null);
 
     const categories = [
         { id: 'Mind', icon: Brain, color: "bg-purple-100 text-purple-600", label: "Mindfulness" },
@@ -41,21 +45,86 @@ export const ViewPlanCreator = ({ onClose }: ViewPlanCreatorProps) => {
         { id: 'Nutrition', icon: Utensils, color: "bg-blue-100 text-blue-600", label: "Nutrition" },
     ];
 
+    const canContinue = useMemo(() => {
+        if (step === 0) {
+            return mode === 'manual'
+                ? Boolean(planData.type)
+                : planData.aiPrompt.trim().length >= 4;
+        }
+
+        if (step === 1 && mode === 'manual') {
+            return planData.title.trim().length > 0;
+        }
+
+        return true;
+    }, [mode, planData.aiPrompt, planData.title, planData.type, step]);
+
     const handleNext = () => {
+        setLocalError(null);
+
+        if (!canContinue) {
+            setLocalError(mode === 'manual' ? '请选择分类并填写标题' : '请输入你的目标或需求');
+            return;
+        }
+
         if (mode === 'ai' && step === 0) {
-            setIsGenerating(true);
-            setTimeout(() => {
-                setIsGenerating(false);
-                setPlanData(prev => ({
-                    ...prev,
-                    title: "De-stress Evening Walk",
-                    type: "Nature",
-                    time: "20 min"
-                }));
-                setStep(2); // Jump to review
-            }, 2000);
-        } else {
-            setStep(prev => Math.min(prev + 1, steps.length - 1));
+            const prompt = planData.aiPrompt.trim();
+            const normalizedPrompt = prompt.toLowerCase();
+            const resolvedType =
+                /sleep|rest|睡|失眠/.test(normalizedPrompt) ? 'Mind' :
+                    /run|workout|exercise|运动|健身/.test(normalizedPrompt) ? 'Body' :
+                        /food|diet|nutrition|饮食|营养/.test(normalizedPrompt) ? 'Nutrition' :
+                            /outdoor|walk|nature|户外|自然/.test(normalizedPrompt) ? 'Nature' :
+                                'Mind';
+
+            setPlanData(prev => ({
+                ...prev,
+                title: prev.title || prompt.slice(0, 28),
+                type: prev.type || resolvedType,
+                time: prev.time || '20 min',
+            }));
+            setStep(2);
+            return;
+        }
+
+        setStep(prev => Math.min(prev + 1, steps.length - 1));
+    };
+
+    const buildPlanInput = () => {
+        const name = planData.title.trim() || planData.aiPrompt.trim();
+        if (!name) {
+            setLocalError('请输入计划标题');
+            return null;
+        }
+
+        const category = planData.type || (mode === 'ai' ? 'Mind' : 'general');
+        const description = mode === 'ai'
+            ? planData.aiPrompt.trim()
+            : `Duration: ${planData.time}`;
+
+        return {
+            name,
+            category,
+            description,
+        };
+    };
+
+    const handleConfirm = async () => {
+        if (isGenerating) return;
+        setLocalError(null);
+        const input = buildPlanInput();
+        if (!input) return;
+
+        const success = await onCreate(input);
+        if (success) {
+            setPlanData({ type: '', title: '', time: '30 min', aiPrompt: '' });
+            setStep(0);
+            onClose();
+            return;
+        }
+
+        if (!error) {
+            setLocalError('创建失败，请稍后再试');
         }
     };
 
@@ -251,22 +320,30 @@ export const ViewPlanCreator = ({ onClose }: ViewPlanCreatorProps) => {
 
             {/* Footer Action */}
             <div className="p-6 bg-white dark:bg-black/20 border-t border-stone-100 dark:border-white/5">
-                {isGenerating ? (
-                    <button disabled className="w-full py-4 rounded-2xl bg-stone-100 text-stone-400 font-bold flex items-center justify-center gap-2">
-                        <Sparkles size={18} className="animate-spin" /> Generating Plan...
-                    </button>
-                ) : (
-                    <button
-                        onClick={step === 2 ? onClose : handleNext}
-                        className="w-full py-4 rounded-2xl bg-emerald-950 text-white font-bold text-lg shadow-xl shadow-emerald-900/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                    >
-                        {step === 2 ? (
-                            <>Confirm & Add Plan <Check size={20} /></>
-                        ) : (
-                            <>Continue <ArrowRight size={20} /></>
-                        )}
-                    </button>
+                {(localError || error) && (
+                    <p className="text-sm text-rose-600 mb-3">{localError || error}</p>
                 )}
+
+                <button
+                    onClick={step === 2 ? handleConfirm : handleNext}
+                    disabled={isSaving || isGenerating}
+                    className={cn(
+                        "w-full py-4 rounded-2xl font-bold text-lg shadow-xl shadow-emerald-900/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2",
+                        isSaving || isGenerating
+                            ? "bg-stone-200 text-stone-500 cursor-not-allowed"
+                            : "bg-emerald-950 text-white"
+                    )}
+                >
+                    {isSaving || isGenerating ? (
+                        <>
+                            <Sparkles size={18} className="animate-spin" /> Saving Plan...
+                        </>
+                    ) : step === 2 ? (
+                        <>Confirm & Add Plan <Check size={20} /></>
+                    ) : (
+                        <>Continue <ArrowRight size={20} /></>
+                    )}
+                </button>
             </div>
         </motion.div>
     )

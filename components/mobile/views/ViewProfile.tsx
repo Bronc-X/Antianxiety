@@ -82,6 +82,7 @@ export const ViewProfile = ({ onNavigate }: ViewProfileProps) => {
             title: "General",
             items: [
                 { icon: User, label: "Account Settings", value: "", action: () => onNavigate?.("settings") },
+                { icon: Brain, label: "Core Features", value: "", action: () => onNavigate?.("core-hub") },
                 { icon: Bell, label: "Notifications", value: "On", action: () => { } },
                 { icon: Smartphone, label: "Devices", value: "2 Active", action: () => onNavigate?.("wearables") },
             ]

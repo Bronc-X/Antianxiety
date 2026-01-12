@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
     X,
@@ -11,14 +11,65 @@ import {
     MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { FeedItem, FeedFeedbackInput } from "@/hooks/domain/useFeed";
 
 interface ViewArticleReaderProps {
     onClose: () => void;
-    article: any;
+    article: FeedItem;
+    onSave?: (id: string) => Promise<boolean> | void;
+    onFeedback?: (input: FeedFeedbackInput) => Promise<'added' | 'removed' | null> | void;
 }
 
-export const ViewArticleReader = ({ onClose, article }: ViewArticleReaderProps) => {
-    const [saved, setSaved] = useState(article?.saved || false);
+export const ViewArticleReader = ({ onClose, article, onSave, onFeedback }: ViewArticleReaderProps) => {
+    const bodyText = article.content || article.summary || '';
+    const paragraphs = useMemo(() => {
+        if (!bodyText) return [];
+        return bodyText
+            .split(/\n{2,}/)
+            .map((paragraph) => paragraph.trim())
+            .filter(Boolean);
+    }, [bodyText]);
+
+    const sourceLabel = article.source || article.source_type || '';
+    const readTimeLabel = typeof article.read_time_minutes === 'number' && article.read_time_minutes > 0
+        ? `${article.read_time_minutes} min read`
+        : 'Quick read';
+    const categoryLabel = (article.category || article.type || 'general').toUpperCase();
+
+    const handleSave = async () => {
+        if (!onSave) return;
+        await onSave(article.id);
+    };
+
+    const handleShare = async () => {
+        if (article.source_url && typeof navigator !== 'undefined' && 'share' in navigator) {
+            try {
+                await navigator.share({
+                    title: article.title,
+                    text: article.summary || undefined,
+                    url: article.source_url,
+                });
+                return;
+            } catch {
+                // Ignore share errors and fall back to open
+            }
+        }
+
+        if (article.source_url && typeof window !== 'undefined') {
+            window.open(article.source_url, '_blank', 'noopener,noreferrer');
+        }
+    };
+
+    const handleFeedback = async (feedbackType: FeedFeedbackInput['feedbackType']) => {
+        if (!onFeedback) return;
+        await onFeedback({
+            contentId: article.id,
+            contentUrl: article.source_url,
+            contentTitle: article.title?.slice(0, 80) || '',
+            source: article.source_type || article.source || null,
+            feedbackType,
+        });
+    };
 
     return (
         <motion.div
@@ -38,12 +89,24 @@ export const ViewArticleReader = ({ onClose, article }: ViewArticleReaderProps) 
                 </button>
                 <div className="flex gap-2">
                     <button
-                        onClick={() => setSaved(!saved)}
-                        className={cn("p-2 rounded-full transition-colors", saved ? "text-emerald-600 bg-emerald-50" : "text-stone-400 hover:bg-stone-100")}
+                        onClick={handleSave}
+                        disabled={!onSave}
+                        className={cn(
+                            "p-2 rounded-full transition-colors",
+                            article.is_saved ? "text-emerald-600 bg-emerald-50" : "text-stone-400 hover:bg-stone-100",
+                            !onSave && "opacity-60 cursor-not-allowed"
+                        )}
                     >
-                        <Bookmark size={20} className={saved ? "fill-current" : ""} />
+                        <Bookmark size={20} className={cn(article.is_saved && "fill-current")} />
                     </button>
-                    <button className="p-2 rounded-full text-stone-400 hover:bg-stone-100">
+                    <button
+                        onClick={handleShare}
+                        disabled={!article.source_url}
+                        className={cn(
+                            "p-2 rounded-full text-stone-400 hover:bg-stone-100",
+                            !article.source_url && "opacity-60 cursor-not-allowed"
+                        )}
+                    >
                         <Share2 size={20} />
                     </button>
                 </div>
@@ -52,46 +115,72 @@ export const ViewArticleReader = ({ onClose, article }: ViewArticleReaderProps) 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-6 pb-24">
                 <div className="mb-6">
-                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-2 block">{article?.category || "Science"}</span>
+                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-2 block">{categoryLabel}</span>
                     <h1 className="text-3xl font-bold text-emerald-950 dark:text-emerald-50 leading-tight mb-4">
-                        {article?.title || "Understanding the Science of Sleep"}
+                        {article.title}
                     </h1>
-                    <div className="flex items-center gap-3 text-sm text-stone-500">
-                        <img src="https://i.pravatar.cc/150?u=science" className="w-8 h-8 rounded-full bg-stone-200" alt="Author" />
-                        <span>By Dr. Sarah C.</span>
-                        <span>•</span>
-                        <span>10 min read</span>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-stone-500">
+                        {sourceLabel && <span>{sourceLabel}</span>}
+                        {sourceLabel && <span>•</span>}
+                        <span>{readTimeLabel}</span>
+                        {article.source_url && (
+                            <>
+                                <span>•</span>
+                                <a
+                                    href={article.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-emerald-600 hover:text-emerald-700"
+                                >
+                                    Open source
+                                </a>
+                            </>
+                        )}
                     </div>
                 </div>
 
                 <div className="w-full h-48 rounded-2xl overflow-hidden mb-8">
-                    <img src={article?.img || "https://images.unsplash.com/photo-1511296187010-86b2e30cad41"} className="w-full h-full object-cover" alt="Cover" />
+                    {article.image_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={article.image_url} className="w-full h-full object-cover" alt="Cover" />
+                    ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-emerald-100 via-stone-100 to-amber-100" />
+                    )}
                 </div>
 
                 <div className="prose prose-stone dark:prose-invert prose-lg">
-                    <p>
-                        Sleep is not just a passive state of rest; it is an active process crucial for physical and mental health. During sleep, your body undergoes repair, your brain consolidates memories, and your hormones regulate extensively.
-                    </p>
-                    <p>
-                        Research shows that consistent sleep patterns are linked to lower cortisol levels, improved cognitive function, and better emotional regulation.
-                    </p>
-                    <h3>The Role of Circadian Rhythms</h3>
-                    <p>
-                        Your body has an internal clock that regulates the sleep-wake cycle. Light exposure, specifically natural sunlight in the morning, is the primary zeitgeber (time giver) that anchors this rhythm.
-                    </p>
+                    {article.summary && article.content && article.summary !== article.content && (
+                        <p className="text-stone-600">{article.summary}</p>
+                    )}
+                    {paragraphs.length > 0 ? (
+                        paragraphs.map((paragraph, index) => (
+                            <p key={`${article.id}-p-${index}`}>{paragraph}</p>
+                        ))
+                    ) : (
+                        <p className="text-stone-500">No additional content available.</p>
+                    )}
                 </div>
 
                 {/* Feedback Section */}
                 <div className="mt-12 pt-8 border-t border-stone-100 dark:border-white/5">
                     <p className="text-center text-sm text-stone-400 mb-4">Was this helpful?</p>
                     <div className="flex justify-center gap-6">
-                        <button className="flex flex-col items-center gap-1 text-stone-400 hover:text-emerald-600 transition-colors">
+                        <button
+                            onClick={() => handleFeedback('like')}
+                            className="flex flex-col items-center gap-1 text-stone-400 hover:text-emerald-600 transition-colors"
+                        >
                             <div className="p-3 rounded-full bg-stone-50 dark:bg-white/5 hover:bg-emerald-50"><ThumbsUp size={20} /></div>
                         </button>
-                        <button className="flex flex-col items-center gap-1 text-stone-400 hover:text-emerald-600 transition-colors">
+                        <button
+                            onClick={handleShare}
+                            className="flex flex-col items-center gap-1 text-stone-400 hover:text-emerald-600 transition-colors"
+                        >
                             <div className="p-3 rounded-full bg-stone-50 dark:bg-white/5 hover:bg-emerald-50"><MessageSquare size={20} /></div>
                         </button>
-                        <button className="flex flex-col items-center gap-1 text-stone-400 hover:text-rose-500 transition-colors">
+                        <button
+                            onClick={() => handleFeedback('dislike')}
+                            className="flex flex-col items-center gap-1 text-stone-400 hover:text-rose-500 transition-colors"
+                        >
                             <div className="p-3 rounded-full bg-stone-50 dark:bg-white/5 hover:bg-rose-50"><ThumbsDown size={20} /></div>
                         </button>
                     </div>

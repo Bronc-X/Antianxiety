@@ -20,7 +20,6 @@ import {
     User,
     Brain,
     Bell,
-    BellOff,
     BellRing,
     Shield,
     Lock,
@@ -38,7 +37,6 @@ import {
     WifiOff,
     AlertCircle,
     Check,
-    X,
     LogOut,
     Trash2,
     Download,
@@ -57,9 +55,10 @@ import { Capacitor } from '@capacitor/core';
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/hooks/domain/useSettings";
 import { useAuth } from "@/hooks/domain/useAuth";
+import { useProfile } from "@/hooks/domain/useProfile";
 import { useHaptics, ImpactStyle } from "@/hooks/useHaptics";
-import { CardGlass } from "@/components/mobile/HealthWidgets";
 import { getPushEnabled, setPushEnabled } from '@/lib/push-notifications';
+import { exportUserData } from '@/app/actions/data-export';
 
 // ============================================
 // Types
@@ -342,10 +341,6 @@ function SliderSheet({
     const { impact } = useHaptics();
     const [localValue, setLocalValue] = useState(value);
 
-    useEffect(() => {
-        setLocalValue(value);
-    }, [value, isOpen]);
-
     const handleChange = async (newValue: number) => {
         await impact(ImpactStyle.Light);
         setLocalValue(newValue);
@@ -547,8 +542,9 @@ function ConfirmDialog({
 // ============================================
 
 export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
-    const { settings, isLoading, isSaving, isOffline, error, update, refresh } = useSettings();
+    const { settings, isLoading, isSaving, isOffline, error, update } = useSettings();
     const { user, signOut, isSigningOut } = useAuth();
+    const { remove, isSaving: isDeleting } = useProfile();
     const { impact, notification } = useHaptics();
     const isIosNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 
@@ -556,6 +552,8 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
     const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
     const [localSettings, setLocalSettings] = useState(settings);
     const [hasChanges, setHasChanges] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const [actionError, setActionError] = useState<string | null>(null);
 
     // Notification preferences (local state, would need backend support)
     const [notifications, setNotifications] = useState({
@@ -617,19 +615,53 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
         }
     }, [signOut, impact, onNavigate]);
 
-    // Delete account (placeholder)
     const handleDeleteAccount = useCallback(async () => {
+        setActionError(null);
         await notification('warning');
-        // TODO: Implement account deletion
+        const success = await remove();
+        if (success) {
+            await notification('success');
+            await signOut('/mobile?view=login');
+            onNavigate?.('login');
+        } else {
+            setActionError('删除账户失败，请稍后再试');
+            await notification('warning');
+        }
         setActiveSheet(null);
-    }, [notification]);
+    }, [notification, remove, signOut, onNavigate]);
 
-    // Export data (placeholder)
     const handleExportData = useCallback(async () => {
+        if (isExporting) return;
+        setActionError(null);
         await impact(ImpactStyle.Medium);
-        // TODO: Implement data export
-        await notification('success');
-    }, [impact, notification]);
+        setIsExporting(true);
+
+        try {
+            const result = await exportUserData();
+            if (!result.success || !result.data) {
+                setActionError(result.error || '导出失败，请稍后再试');
+                await notification('warning');
+                return;
+            }
+
+            const { filename, payload } = result.data;
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            window.URL.revokeObjectURL(url);
+            await notification('success');
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : '导出失败，请稍后再试');
+            await notification('warning');
+        } finally {
+            setIsExporting(false);
+        }
+    }, [impact, isExporting, notification]);
 
     // Personality options
     const personalityOptions = [
@@ -658,6 +690,7 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
         { value: 'zh', label: '简体中文' },
         { value: 'en', label: 'English' },
     ];
+    const combinedError = [error, actionError].filter(Boolean).join(' • ');
 
     // Loading state
     if (isLoading) {
@@ -733,7 +766,7 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
 
             {/* Error Banner */}
             <AnimatePresence>
-                {error && (
+                {combinedError && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -741,7 +774,7 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
                         className="mx-4 mt-4 p-3 bg-red-50 dark:bg-red-900/30 rounded-2xl flex items-center gap-2"
                     >
                         <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                        <p className="text-sm text-red-700 dark:text-red-300">{combinedError}</p>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -906,8 +939,9 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
                         iconColor="text-blue-500"
                         iconBg="bg-blue-100 dark:bg-blue-500/20"
                         label="导出数据"
-                        description="下载您的所有数据"
-                        onClick={handleExportData}
+                        description={isExporting ? "正在导出..." : "下载您的所有数据"}
+                        onClick={isExporting ? undefined : handleExportData}
+                        rightElement={isExporting ? <Loader2 className="w-4 h-4 animate-spin text-stone-400" /> : undefined}
                     />
                     <SettingsRow
                         icon={Trash2}
@@ -977,6 +1011,7 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
 
             {/* Sheets */}
             <SliderSheet
+                key={`honesty-${activeSheet === 'honesty' ? localSettings.max_honesty || 90 : 'closed'}`}
                 isOpen={activeSheet === 'honesty'}
                 onClose={() => setActiveSheet(null)}
                 title="诚实度"
@@ -987,6 +1022,7 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
             />
 
             <SliderSheet
+                key={`humor-${activeSheet === 'humor' ? localSettings.max_humor || 65 : 'closed'}`}
                 isOpen={activeSheet === 'humor'}
                 onClose={() => setActiveSheet(null)}
                 title="幽默感"
@@ -1041,6 +1077,7 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
                 confirmText="确认删除"
                 cancelText="取消"
                 danger
+                isLoading={isDeleting}
             />
         </motion.div>
     );

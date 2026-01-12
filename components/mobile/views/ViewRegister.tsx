@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/domain/useAuth";
+import { useBetaSignup } from "@/hooks/domain/useBetaSignup";
 import MaxAvatar from "@/components/max/MaxAvatar";
 
 const pageVariants = {
@@ -36,13 +37,15 @@ interface ViewRegisterProps {
 }
 
 export const ViewRegister = ({ onNavigate }: ViewRegisterProps) => {
-    const { signUp, isSigningUp, error, clearError } = useAuth();
+    const { signUp, isSigningUp, error: authError, clearError: clearAuthError } = useAuth();
+    const { submit, isSubmitting, error: betaError, clearError: clearBetaError } = useBetaSignup();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [agreed, setAgreed] = useState(false);
+    const [betaMessage, setBetaMessage] = useState<string | null>(null);
 
     const passwordsMatch = password === confirmPassword;
     const passwordStrong = password.length >= 8;
@@ -50,7 +53,7 @@ export const ViewRegister = ({ onNavigate }: ViewRegisterProps) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        clearError();
+        clearAuthError();
 
         if (!isFormValid) return;
 
@@ -62,6 +65,21 @@ export const ViewRegister = ({ onNavigate }: ViewRegisterProps) => {
         if (success) {
             // 注册成功，跳转到问卷
             onNavigate?.('onboarding');
+        }
+    };
+
+    const handleBetaSignup = async () => {
+        clearBetaError();
+        setBetaMessage(null);
+
+        if (!email.trim()) {
+            setBetaMessage("Please enter an email to join the beta.");
+            return;
+        }
+
+        const success = await submit(email.trim());
+        if (success) {
+            setBetaMessage("You're on the beta list. We'll reach out soon.");
         }
     };
 
@@ -110,14 +128,14 @@ export const ViewRegister = ({ onNavigate }: ViewRegisterProps) => {
             </div>
 
             {/* Error Message */}
-            {error && (
+            {authError && (
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl flex items-center gap-2"
                 >
                     <AlertCircle size={16} className="text-red-500" />
-                    <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+                    <span className="text-sm text-red-600 dark:text-red-400">{authError}</span>
                 </motion.div>
             )}
 
@@ -264,6 +282,36 @@ export const ViewRegister = ({ onNavigate }: ViewRegisterProps) => {
                     )}
                 </motion.button>
             </form>
+
+            <div className="mt-6 p-4 rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-white/5 space-y-3">
+                <div>
+                    <h3 className="text-sm font-semibold text-emerald-950 dark:text-emerald-50">Beta Access</h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                        If sign-up is closed, join the waitlist with your email.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={handleBetaSignup}
+                    disabled={isSubmitting}
+                    className={cn(
+                        "w-full py-3 rounded-xl font-semibold text-emerald-700",
+                        "bg-emerald-50 border border-emerald-200",
+                        "transition-all hover:bg-emerald-100",
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                >
+                    {isSubmitting ? "Submitting..." : "Join Beta Waitlist"}
+                </button>
+                {(betaError || betaMessage) && (
+                    <p className={cn(
+                        "text-xs",
+                        betaError ? "text-rose-500" : "text-emerald-600"
+                    )}>
+                        {betaError || betaMessage}
+                    </p>
+                )}
+            </div>
 
             {/* Login Link */}
             <div className="text-center mt-4 pt-4 border-t border-stone-100 dark:border-white/5">
