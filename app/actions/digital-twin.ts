@@ -9,7 +9,11 @@ export interface DigitalTwinAnalyzeInput {
   forceRefresh?: boolean;
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type DigitalTwinPayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -30,9 +34,10 @@ export async function analyzeDigitalTwin(
 
     const response = await analyzeDigitalTwinRoute(request as Request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as DigitalTwinPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Analysis failed' };
+      return { success: false, error: payload?.error || 'Analysis failed' };
     }
 
     return { success: true, data };

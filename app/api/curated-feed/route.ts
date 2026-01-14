@@ -108,17 +108,6 @@ function getSourceLabel(source: CuratedSource): string {
   return map[source] || source;
 }
 
-function pickThemeTag(tags: string[], text: string): string {
-  const combined = `${tags.join(' ')} ${text}`.toLowerCase();
-  if (/(sleep|insomnia|circadian|睡眠|失眠|褪黑)/i.test(combined)) return 'sleep';
-  if (/(stress|cortisol|anxiety|压力|皮质醇|焦虑)/i.test(combined)) return 'stress';
-  if (/(energy|fatigue|metabolism|能量|疲劳|代谢)/i.test(combined)) return 'energy';
-  if (/(nutrition|diet|营养|饮食)/i.test(combined)) return 'nutrition';
-  if (/(exercise|fitness|运动|健身|训练)/i.test(combined)) return 'movement';
-  if (/(habit|习惯|行为)/i.test(combined)) return 'habit';
-  return 'general';
-}
-
 /**
  * 使用 AI 生成真正个性化的推荐理由
  * 完全基于用户实际填写的数据，不使用任何虚假的"关注"声明

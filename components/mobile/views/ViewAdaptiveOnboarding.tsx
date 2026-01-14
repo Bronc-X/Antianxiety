@@ -13,10 +13,31 @@ interface ViewAdaptiveOnboardingProps {
     onBack?: () => void;
 }
 
+const initialOnboardingForm = {
+    first_name: "",
+    age: "",
+    gender: "female",
+    primary_goal: "",
+    secondary_goals: "",
+    sleep_quality: "",
+    stress_level: "",
+    energy_level: "",
+    exercise_frequency: "",
+    diet_type: "",
+    work_hours: "",
+    height: "",
+    weight: "",
+    notification_time: "08:00",
+    language: "zh",
+    ai_personality: "supportive"
+};
+
+type OnboardingFormKey = keyof typeof initialOnboardingForm;
+
 export const ViewAdaptiveOnboarding = ({ onBack }: ViewAdaptiveOnboardingProps) => {
     const adaptive = useAdaptiveOnboarding();
     const phaseGoals = usePhaseGoals();
-    const onboarding = useOnboarding();
+    const onboarding = useOnboarding({ suppressRedirect: true });
     const assistantProfile = useAssistantProfile();
 
     const [adaptiveAnswers, setAdaptiveAnswers] = useState({
@@ -24,15 +45,15 @@ export const ViewAdaptiveOnboarding = ({ onBack }: ViewAdaptiveOnboardingProps) 
         stress_level: "medium",
         energy_level: "low"
     });
-    const [adaptiveResult, setAdaptiveResult] = useState<any>(null);
+    const [adaptiveResult, setAdaptiveResult] = useState<unknown>(null);
 
-    const [phaseGoalsResult, setPhaseGoalsResult] = useState<any>(null);
+    const [phaseGoalsResult, setPhaseGoalsResult] = useState<unknown>(null);
     const [goalId, setGoalId] = useState("");
     const [newGoalType, setNewGoalType] = useState("sleep");
     const [newGoalTitle, setNewGoalTitle] = useState("");
 
-    const [onboardingJson, setOnboardingJson] = useState("{\"first_name\":\"A\",\"primary_goal\":\"sleep\"}");
-    const [onboardingResult, setOnboardingResult] = useState<any>(null);
+    const [onboardingForm, setOnboardingForm] = useState(initialOnboardingForm);
+    const [onboardingStatus, setOnboardingStatus] = useState<string | null>(null);
 
     const [assistantInput, setAssistantInput] = useState({
         gender: "",
@@ -63,23 +84,96 @@ export const ViewAdaptiveOnboarding = ({ onBack }: ViewAdaptiveOnboardingProps) 
         setPhaseGoalsResult(result);
     };
 
-    const handleSaveOnboarding = async () => {
-        try {
-            const payload = JSON.parse(onboardingJson);
-            const success = await onboarding.saveStep(payload);
-            setOnboardingResult({ success, progress: onboarding.progress });
-        } catch (err) {
-            setOnboardingResult({ error: err instanceof Error ? err.message : "Invalid JSON" });
+    const updateOnboardingField = (key: OnboardingFormKey, value: string) => {
+        setOnboardingForm(prev => ({ ...prev, [key]: value }));
+    };
+
+    const toNumber = (value: string) => {
+        if (!value) return undefined;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    const toList = (value: string) => {
+        const list = value.split(",").map(entry => entry.trim()).filter(Boolean);
+        return list.length > 0 ? list : undefined;
+    };
+
+    const buildOnboardingPayload = () => {
+        switch (onboarding.currentStep) {
+            case 1:
+                return {
+                    first_name: onboardingForm.first_name.trim() || undefined,
+                    age: toNumber(onboardingForm.age),
+                    gender: onboardingForm.gender || undefined
+                };
+            case 2:
+                return {
+                    primary_goal: onboardingForm.primary_goal.trim() || undefined,
+                    secondary_goals: toList(onboardingForm.secondary_goals)
+                };
+            case 3:
+                return {
+                    sleep_quality: toNumber(onboardingForm.sleep_quality),
+                    stress_level: toNumber(onboardingForm.stress_level),
+                    energy_level: toNumber(onboardingForm.energy_level)
+                };
+            case 4:
+                return {
+                    exercise_frequency: onboardingForm.exercise_frequency.trim() || undefined,
+                    diet_type: onboardingForm.diet_type.trim() || undefined,
+                    work_hours: toNumber(onboardingForm.work_hours),
+                    height: toNumber(onboardingForm.height),
+                    weight: toNumber(onboardingForm.weight)
+                };
+            case 5:
+                return {
+                    notification_time: onboardingForm.notification_time || undefined,
+                    language: onboardingForm.language || undefined,
+                    ai_personality: onboardingForm.ai_personality || undefined
+                };
+            default:
+                return {};
         }
     };
 
+    const handleSaveOnboarding = async () => {
+        setOnboardingStatus(null);
+        const payload = buildOnboardingPayload();
+        const cleaned = Object.fromEntries(
+            Object.entries(payload).filter(([, value]) => {
+                if (value === undefined || value === "") return false;
+                if (Array.isArray(value) && value.length === 0) return false;
+                return true;
+            })
+        );
+        if (Object.keys(cleaned).length === 0) {
+            setOnboardingStatus("Please fill at least one field.");
+            return;
+        }
+        const success = await onboarding.saveStep(cleaned);
+        setOnboardingStatus(success ? "Saved." : "Save failed.");
+    };
+
     const handleSaveAssistant = async () => {
-        const payload: any = {};
+        const payload: Record<string, unknown> = {};
         if (assistantInput.gender) payload.gender = assistantInput.gender;
         if (assistantInput.age_range) payload.age_range = assistantInput.age_range;
         if (assistantInput.sleep_hours) payload.sleep_hours = Number(assistantInput.sleep_hours);
         if (assistantInput.stress_level) payload.stress_level = Number(assistantInput.stress_level);
         await assistantProfile.save(payload);
+    };
+
+    const totalSteps = onboarding.progress.total_steps || 5;
+    const completedSteps = onboarding.progress.completed_steps.length;
+    const activeStep = Math.min(onboarding.currentStep, totalSteps);
+    const progressPercent = Math.min(100, Math.round((completedSteps / totalSteps) * 100));
+    const stepLabels: Record<number, string> = {
+        1: "Basic Info",
+        2: "Health Goals",
+        3: "Current State",
+        4: "Lifestyle",
+        5: "Preferences"
     };
 
     return (
@@ -188,28 +282,197 @@ export const ViewAdaptiveOnboarding = ({ onBack }: ViewAdaptiveOnboardingProps) 
             <CardGlass className="p-4 space-y-3">
                 <div className="flex items-center gap-2">
                     <PlayCircle className="w-4 h-4 text-sky-500" />
-                    <h3 className="text-sm font-bold text-stone-500 uppercase tracking-wider">Onboarding Progress</h3>
+                    <h3 className="text-sm font-bold text-stone-500 uppercase tracking-wider">Onboarding Flow</h3>
                 </div>
                 <div className="text-xs text-stone-500">
-                    Step {onboarding.currentStep} / {onboarding.progress.total_steps} · Completed {onboarding.progress.completed_steps.length}
+                    Step {activeStep} / {totalSteps} · Completed {completedSteps}
                 </div>
-                <textarea
-                    value={onboardingJson}
-                    onChange={(e) => setOnboardingJson(e.target.value)}
-                    className="w-full min-h-[90px] px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-xs font-mono"
-                />
-                <button
-                    onClick={handleSaveOnboarding}
-                    className="w-full py-2 rounded-xl bg-sky-600 text-white text-sm font-semibold"
-                >
-                    Save Step
-                </button>
-                {onboarding.error && <div className="text-xs text-rose-500">{onboarding.error}</div>}
-                {onboardingResult && (
-                    <pre className="text-xs bg-sky-50 dark:bg-sky-900/20 p-3 rounded-xl overflow-x-auto">
-                        {JSON.stringify(onboardingResult, null, 2)}
-                    </pre>
+                <div className="h-2 w-full rounded-full bg-stone-100 dark:bg-white/10 overflow-hidden">
+                    <div
+                        className="h-full rounded-full bg-sky-500 transition-all"
+                        style={{ width: `${progressPercent}%` }}
+                    />
+                </div>
+                {onboarding.isLoading ? (
+                    <div className="text-xs text-stone-400">Loading onboarding state...</div>
+                ) : onboarding.isComplete ? (
+                    <div className="space-y-2">
+                        <div className="text-sm font-semibold text-emerald-600">Onboarding Complete</div>
+                        <p className="text-xs text-stone-500">
+                            Your profile is ready. You can return to the core hub or reset the flow.
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                            {onBack && (
+                                <button
+                                    type="button"
+                                    onClick={onBack}
+                                    className="py-2 rounded-xl border border-stone-200 text-stone-500 text-xs font-semibold"
+                                >
+                                    Back to Hub
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => onboarding.reset()}
+                                className="py-2 rounded-xl bg-sky-600 text-white text-xs font-semibold"
+                            >
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        <div className="text-xs text-stone-500">
+                            Active: {stepLabels[activeStep] || "Onboarding"}
+                        </div>
+                        {activeStep === 1 && (
+                            <div className="grid grid-cols-2 gap-2">
+                                <input
+                                    value={onboardingForm.first_name}
+                                    onChange={(e) => updateOnboardingField("first_name", e.target.value)}
+                                    placeholder="First name"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <input
+                                    value={onboardingForm.age}
+                                    onChange={(e) => updateOnboardingField("age", e.target.value)}
+                                    placeholder="Age"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <select
+                                    value={onboardingForm.gender}
+                                    onChange={(e) => updateOnboardingField("gender", e.target.value)}
+                                    className="col-span-2 px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                >
+                                    <option value="female">Female</option>
+                                    <option value="male">Male</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        )}
+                        {activeStep === 2 && (
+                            <div className="space-y-2">
+                                <input
+                                    value={onboardingForm.primary_goal}
+                                    onChange={(e) => updateOnboardingField("primary_goal", e.target.value)}
+                                    placeholder="Primary goal (sleep, stress...)"
+                                    className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <input
+                                    value={onboardingForm.secondary_goals}
+                                    onChange={(e) => updateOnboardingField("secondary_goals", e.target.value)}
+                                    placeholder="Secondary goals (comma separated)"
+                                    className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                            </div>
+                        )}
+                        {activeStep === 3 && (
+                            <div className="grid grid-cols-3 gap-2">
+                                <input
+                                    value={onboardingForm.sleep_quality}
+                                    onChange={(e) => updateOnboardingField("sleep_quality", e.target.value)}
+                                    placeholder="Sleep"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <input
+                                    value={onboardingForm.stress_level}
+                                    onChange={(e) => updateOnboardingField("stress_level", e.target.value)}
+                                    placeholder="Stress"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <input
+                                    value={onboardingForm.energy_level}
+                                    onChange={(e) => updateOnboardingField("energy_level", e.target.value)}
+                                    placeholder="Energy"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                            </div>
+                        )}
+                        {activeStep === 4 && (
+                            <div className="grid grid-cols-2 gap-2">
+                                <input
+                                    value={onboardingForm.exercise_frequency}
+                                    onChange={(e) => updateOnboardingField("exercise_frequency", e.target.value)}
+                                    placeholder="Exercise frequency"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <input
+                                    value={onboardingForm.diet_type}
+                                    onChange={(e) => updateOnboardingField("diet_type", e.target.value)}
+                                    placeholder="Diet type"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <input
+                                    value={onboardingForm.work_hours}
+                                    onChange={(e) => updateOnboardingField("work_hours", e.target.value)}
+                                    placeholder="Work hours"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <input
+                                    value={onboardingForm.height}
+                                    onChange={(e) => updateOnboardingField("height", e.target.value)}
+                                    placeholder="Height (cm)"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <input
+                                    value={onboardingForm.weight}
+                                    onChange={(e) => updateOnboardingField("weight", e.target.value)}
+                                    placeholder="Weight (kg)"
+                                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                            </div>
+                        )}
+                        {activeStep === 5 && (
+                            <div className="space-y-2">
+                                <input
+                                    type="time"
+                                    value={onboardingForm.notification_time}
+                                    onChange={(e) => updateOnboardingField("notification_time", e.target.value)}
+                                    className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                                <select
+                                    value={onboardingForm.language}
+                                    onChange={(e) => updateOnboardingField("language", e.target.value)}
+                                    className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                >
+                                    <option value="zh">Chinese</option>
+                                    <option value="en">English</option>
+                                </select>
+                                <input
+                                    value={onboardingForm.ai_personality}
+                                    onChange={(e) => updateOnboardingField("ai_personality", e.target.value)}
+                                    placeholder="AI personality"
+                                    className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
+                                />
+                            </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={onboarding.prevStep}
+                                disabled={activeStep === 1}
+                                className="py-2 rounded-xl border border-stone-200 text-stone-500 text-xs font-semibold disabled:opacity-50"
+                            >
+                                Back
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveOnboarding}
+                                disabled={onboarding.isSaving}
+                                className="py-2 rounded-xl bg-sky-600 text-white text-xs font-semibold"
+                            >
+                                {activeStep === totalSteps ? "Finish" : "Save & Next"}
+                            </button>
+                        </div>
+                        {onboarding.isOffline && (
+                            <div className="text-xs text-amber-500">Offline mode: sync when online.</div>
+                        )}
+                        {onboardingStatus && (
+                            <div className="text-xs text-emerald-600">{onboardingStatus}</div>
+                        )}
+                    </div>
                 )}
+                {onboarding.error && <div className="text-xs text-rose-500">{onboarding.error}</div>}
             </CardGlass>
 
             <CardGlass className="p-4 space-y-3">

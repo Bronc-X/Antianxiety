@@ -9,15 +9,11 @@ import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 
 interface DigitalTwinHeroProps {
-    headline?: string;
-    subheadline?: string;
     ctaLabel?: string;
     ctaHref?: string;
 }
 
 export default function DigitalTwinHero({
-    headline,
-    subheadline,
     ctaLabel,
     ctaHref = '/unlearn/signup',
 }: DigitalTwinHeroProps) {
@@ -26,14 +22,7 @@ export default function DigitalTwinHero({
     const isInView = useInView(containerRef, { once: true });
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    const defaultHeadline = language === 'en'
-        ? 'Meet your digital twin. Understand yourself like never before.'
-        : '遇见你的数字孪生体，前所未有地了解自己。';
-    const defaultSubheadline = language === 'en'
-        ? "The world's first AI that serves only you — filtering 10,000+ peer-reviewed studies to match your unique patterns. Like Tesla's OTA, it gets smarter every day. More expert than a personal trainer, yet far more affordable."
-        : '全球首个只为你服务的健康智能体——从 10,000+ 篇同行评审论文中筛选出你需要的知识。像特斯拉 OTA 一样持续进化，越用越懂你。比私教更专业、更耐心，却更实惠。';
     const defaultCtaLabel = language === 'en' ? 'Start Your Journey' : '开始你的旅程';
-    const scrollText = language === 'en' ? 'Scroll to explore' : '向下滚动探索';
 
     // Rotating statements
     const statements = language === 'en' ? [

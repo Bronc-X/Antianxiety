@@ -107,7 +107,7 @@ Explain it to me like a friend would, telling me:
                 explanation = result.text;
                 usedModel = model;
                 break;
-            } catch (modelError) {
+            } catch {
                 console.warn(`Model ${model} failed, trying next...`);
                 continue;
             }

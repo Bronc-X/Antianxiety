@@ -2,10 +2,10 @@
 
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Heart, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 export default function RetreatSection() {
-    const { t, language } = useI18n();
+    const { language } = useI18n();
 
     return (
         <section className="py-32 px-6 md:px-12 max-w-[1400px] mx-auto bg-[#FAF6EF] text-[#1A1A1A] relative overflow-hidden">

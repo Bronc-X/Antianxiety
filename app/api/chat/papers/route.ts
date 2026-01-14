@@ -7,7 +7,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { searchScientificTruth, type RankedScientificPaper } from '@/lib/services/scientific-search';
 
 export const runtime = 'nodejs';

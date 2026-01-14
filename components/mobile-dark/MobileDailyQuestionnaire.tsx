@@ -22,7 +22,7 @@ const QUESTION_POOL = [
     { id: 'focus_ability', category: 'cognitive', question: 'Ability to focus right now?', type: 'scale', options: ['Scattered', 'Distracted', 'Okay', 'Sharp', 'Laser'] },
 ];
 
-function getTodayQuestions(date: Date = new Date()) {
+function getTodayQuestions() {
     // Simply return all for mobile demo or slice based on logic
     // Using a subset for flow
     return QUESTION_POOL.slice(0, 5);
@@ -46,7 +46,7 @@ export function MobileDailyQuestionnaire({ userId, onComplete }: MobileDailyQues
     const triggerHaptic = async () => {
         try {
             await Haptics.impact({ style: ImpactStyle.Light });
-        } catch (e) {
+        } catch {
             // Ignore on web
         }
     };

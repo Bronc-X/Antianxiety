@@ -52,7 +52,7 @@ export function MotionButton({
     if (hapticFeedback && Capacitor.isNativePlatform()) {
       try {
         await Haptics.impact({ style: ImpactStyle.Light });
-      } catch (err) {
+      } catch {
         // 忽略震动错误
       }
     }
@@ -93,7 +93,7 @@ export function MotionButton({
         />
       )}
 
-      {/* @ts-ignore - Framer Motion 类型兼容性处理 */}
+      {/* @ts-expect-error - Framer Motion 类型兼容性处理 */}
       <MotionBtn
         whileHover={{
           scale: 1.02,

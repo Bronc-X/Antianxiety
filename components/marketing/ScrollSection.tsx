@@ -15,12 +15,17 @@ export default function ScrollSection({ children, className = '' }: ScrollSectio
 
     useEffect(() => {
         // Check for mobile and reduced motion preference
-        setIsMobile(window.innerWidth < 768);
-        setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        const initialTimer = setTimeout(() => {
+            setIsMobile(window.innerWidth < 768);
+            setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        }, 0);
 
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize, { passive: true });
-        return () => window.removeEventListener('resize', handleResize);
+        return () => {
+            clearTimeout(initialTimer);
+            window.removeEventListener('resize', handleResize);
+        };
     }, []);
 
     const { scrollYProgress } = useScroll({

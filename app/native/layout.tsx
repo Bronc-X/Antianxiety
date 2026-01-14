@@ -6,7 +6,6 @@
  */
 
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import "../globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n";

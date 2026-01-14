@@ -234,7 +234,11 @@ ${maxHumor >= 100 ? '- 🎉 彩蛋模式激活：可以更加放飞自我，增�
   }
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type PhaseGoalsPayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -243,7 +247,7 @@ async function parseJsonResponse(response: Response): Promise<any> {
   }
 }
 
-export async function getPhaseGoals(userId?: string): Promise<ActionResult<any>> {
+export async function getPhaseGoals(userId?: string): Promise<ActionResult<unknown>> {
   try {
     const url = new URL('http://settings.local/api/settings/phase-goals');
     if (userId) {
@@ -252,9 +256,10 @@ export async function getPhaseGoals(userId?: string): Promise<ActionResult<any>>
     const request = new NextRequest(url.toString());
     const response = await getPhaseGoalsRoute(request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as PhaseGoalsPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Failed to load goals' };
+      return { success: false, error: payload?.error || 'Failed to load goals' };
     }
 
     return { success: true, data };

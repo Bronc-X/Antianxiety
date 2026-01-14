@@ -7,7 +7,7 @@
  */
 
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { toSerializable, dateToISO } from '@/lib/dto-utils';
+import { toSerializable } from '@/lib/dto-utils';
 import type { ActionResult } from '@/types/architecture';
 import { POST as recommendGoalsRoute } from '@/app/api/onboarding/recommend-goals/route';
 import { POST as modifyGoalRoute } from '@/app/api/onboarding/modify-goal/route';
@@ -76,7 +76,11 @@ export interface ClinicalAssessmentResult {
     }
 }
 
-function parseJsonResponse(response: Response): Promise<any> {
+type OnboardingPayload = {
+    error?: string;
+} & Record<string, unknown>;
+
+function parseJsonResponse(response: Response): Promise<unknown> {
     return response.text().then(raw => {
         try {
             return JSON.parse(raw);
@@ -272,7 +276,7 @@ export async function resetOnboarding(): Promise<ActionResult<void>> {
  */
 export async function recommendGoals(
     answers: Record<string, string>
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
     try {
         const request = new Request('http://onboarding.local', {
             method: 'POST',
@@ -282,9 +286,10 @@ export async function recommendGoals(
 
         const response = await recommendGoalsRoute(request as Request);
         const data = await parseJsonResponse(response);
+        const payload = typeof data === 'object' && data !== null ? (data as OnboardingPayload) : null;
 
         if (!response.ok) {
-            return { success: false, error: data?.error || 'Failed to recommend goals' };
+            return { success: false, error: payload?.error || 'Failed to recommend goals' };
         }
 
         return { success: true, data };
@@ -299,7 +304,7 @@ export async function recommendGoals(
  */
 export async function modifyGoal(
     payload: { goalId: string; action: 'explain' | 'confirm'; newGoalType?: string; newTitle?: string }
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
     try {
         const request = new Request('http://onboarding.local/modify-goal', {
             method: 'POST',
@@ -309,9 +314,10 @@ export async function modifyGoal(
 
         const response = await modifyGoalRoute(request as Request);
         const data = await parseJsonResponse(response);
+        const payloadData = typeof data === 'object' && data !== null ? (data as OnboardingPayload) : null;
 
         if (!response.ok) {
-            return { success: false, error: data?.error || 'Failed to modify goal' };
+            return { success: false, error: payloadData?.error || 'Failed to modify goal' };
         }
 
         return { success: true, data };

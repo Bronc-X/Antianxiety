@@ -80,6 +80,18 @@ export interface CuratedFeedParams {
     userId?: string;
 }
 
+export interface CuratedReadInput {
+    contentId: string;
+    title: string;
+    summary?: string | null;
+    url?: string | null;
+    source?: string | null;
+    sourceLabel?: string | null;
+    matchScore?: number | null;
+    matchedTags?: string[] | null;
+    benefit?: string | null;
+}
+
 // ============================================
 // Helpers
 // ============================================
@@ -180,7 +192,7 @@ export async function getFeed(
         }
 
         // 1. Get User Profile & Embedding
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
             .from(DB_TABLES.PROFILES)
             .select('user_persona_embedding, primary_focus_topics, primary_concern, current_focus, stress_level, sleep_hours, energy_level, language')
             .eq('id', user.id)
@@ -398,7 +410,7 @@ export async function getFeed(
             }
         });
 
-    } catch (error) {
+    } catch {
         console.error('[Feed Action] getFeed error:', error);
         return { success: false, error: 'Failed to load feed' };
     }
@@ -440,11 +452,67 @@ export async function getCuratedFeed(
         }
 
         return { success: true, data };
-    } catch (error) {
+    } catch {
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to load feed',
         };
+    }
+}
+
+/**
+ * Mark curated feed item as read.
+ */
+export async function markCuratedRead(
+    input: CuratedReadInput
+): Promise<ActionResult<void>> {
+    try {
+        const supabase = await createServerSupabaseClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        if (!input.title) {
+            return { success: false, error: 'Missing content title' };
+        }
+
+        const source = input.sourceLabel || input.source || 'Unknown';
+        const lowerSource = source.toLowerCase();
+        const contentType = lowerSource.includes('pubmed') || lowerSource.includes('semantic')
+            ? 'paper'
+            : 'article';
+        const relevanceScore = Math.min(
+            1,
+            Math.max(0, (typeof input.matchScore === 'number' ? input.matchScore : 70) / 100)
+        );
+
+        const { error } = await supabase
+            .from('curated_feed_queue')
+            .upsert({
+                user_id: user.id,
+                content_type: contentType,
+                title: input.title,
+                summary: input.summary || null,
+                url: input.url || null,
+                source,
+                relevance_score: relevanceScore,
+                matched_goals: input.matchedTags || [],
+                relevance_explanation: input.benefit || null,
+                is_read: true,
+                read_at: new Date().toISOString(),
+            }, {
+                onConflict: 'user_id,title',
+            });
+
+        if (error) {
+            return { success: false, error: 'Failed to mark as read' };
+        }
+
+        return { success: true };
+    } catch {
+        return { success: false, error: 'Failed to mark as read' };
     }
 }
 
@@ -470,7 +538,7 @@ export async function markAsRead(itemId: string): Promise<ActionResult<void>> {
             });
 
         return { success: true };
-    } catch (error) {
+    } catch {
         return { success: false, error: 'Failed' };
     }
 }
@@ -505,7 +573,7 @@ export async function toggleSave(itemId: string): Promise<ActionResult<boolean>>
             });
 
         return { success: true, data: newSaved };
-    } catch (error) {
+    } catch {
         return { success: false, error: 'Failed' };
     }
 }
@@ -558,7 +626,7 @@ export async function getSavedItems(): Promise<ActionResult<FeedItem[]>> {
         }));
 
         return { success: true, data: feedItems };
-    } catch (error) {
+    } catch {
         return { success: false, error: 'Failed' };
     }
 }
@@ -610,7 +678,7 @@ export async function toggleFeedFeedback(
         }
 
         return { success: true, data: { action: 'added', feedbackType: input.feedbackType } };
-    } catch (error) {
+    } catch {
         return { success: false, error: 'Failed to process feedback' };
     }
 }

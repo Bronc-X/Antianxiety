@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 
 export default function ScienceProof() {
-    const { t, language } = useI18n();
+    const { language } = useI18n();
 
     const papers = [
         {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
 import { 
   getConsensusLevel, 
@@ -26,6 +26,12 @@ export function ConsensusMeter({
   const level = getConsensusLevel(percentage);
   const color = getConsensusColor(level);
   const [displayPercentage, setDisplayPercentage] = useState(0);
+  const displayPercentageRef = useRef(0);
+
+  const updateDisplayPercentage = (value: number) => {
+    displayPercentageRef.current = value;
+    setDisplayPercentage(value);
+  };
   
   // 弹簧动画数值
   const springValue = useSpring(0, { stiffness: 50, damping: 15 });
@@ -36,14 +42,14 @@ export function ConsensusMeter({
     // 数字滚动效果
     const duration = 1500;
     const startTime = Date.now();
-    const startValue = displayPercentage;
+    const startValue = displayPercentageRef.current;
     
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       // easeOutExpo
       const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-      setDisplayPercentage(Math.round(startValue + (percentage - startValue) * eased));
+      updateDisplayPercentage(Math.round(startValue + (percentage - startValue) * eased));
       
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -53,7 +59,8 @@ export function ConsensusMeter({
     if (animated) {
       requestAnimationFrame(animate);
     } else {
-      setDisplayPercentage(percentage);
+      const timer = setTimeout(() => updateDisplayPercentage(percentage), 0);
+      return () => clearTimeout(timer);
     }
   }, [percentage, animated, springValue]);
   

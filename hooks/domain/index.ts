@@ -43,7 +43,7 @@ export type { UseCuratedFeedReturn } from './useCuratedFeed';
 
 // Onboarding
 export { useOnboarding } from './useOnboarding';
-export type { UseOnboardingReturn, OnboardingProgress, OnboardingData } from './useOnboarding';
+export type { UseOnboardingReturn, UseOnboardingOptions, OnboardingProgress, OnboardingData } from './useOnboarding';
 
 // Adaptive Onboarding
 export { useAdaptiveOnboarding } from './useAdaptiveOnboarding';

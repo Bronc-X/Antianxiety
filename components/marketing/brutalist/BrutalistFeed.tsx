@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, BookOpen, Clock, Tag } from 'lucide-react';
+import { ExternalLink, BookOpen, Clock } from 'lucide-react';
 import BrutalistNav from './BrutalistNav';
 
 interface Article {

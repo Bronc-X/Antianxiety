@@ -33,7 +33,12 @@ export interface InquiryInput {
   delivery_method?: DeliveryMethod;
 }
 
-function toInquiryRecord(row: any): InquiryRecord {
+type InquiryRow = Omit<InquiryRecord, 'responded_at' | 'created_at'> & {
+  responded_at?: string | null;
+  created_at?: string | null;
+};
+
+function toInquiryRecord(row: InquiryRow): InquiryRecord {
   return {
     id: row.id,
     user_id: row.user_id,
@@ -127,7 +132,7 @@ export async function respondToInquiry(
     if (dataGaps.length > 0) {
       const gapField = dataGaps[0];
       const today = new Date().toISOString().split('T')[0];
-      const calibrationUpdate: Record<string, any> = {};
+      const calibrationUpdate: Record<string, number | null> = {};
 
       switch (gapField) {
         case 'sleep_hours': {

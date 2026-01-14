@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Pause, RotateCcw, Check, Moon, Wind, Clock, Dumbbell } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, Check, Moon, Clock } from 'lucide-react';
 import { MotionButton } from '@/components/motion/MotionButton';
 
 type TaskType = 'nsdr' | 'sleep' | 'breath' | 'stretch';

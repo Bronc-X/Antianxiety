@@ -9,8 +9,10 @@
 import { useCallback, useState } from 'react';
 import {
   getCuratedFeed,
+  markCuratedRead,
   toggleFeedFeedback,
   type CuratedFeedParams,
+  type CuratedReadInput,
   type FeedFeedbackInput,
 } from '@/app/actions/feed';
 
@@ -19,6 +21,7 @@ export interface UseCuratedFeedReturn {
   error: string | null;
   fetchPage: (params?: CuratedFeedParams) => Promise<any>;
   sendFeedback: (input: FeedFeedbackInput) => Promise<'added' | 'removed' | null>;
+  markRead: (input: CuratedReadInput) => Promise<boolean>;
   clearError: () => void;
 }
 
@@ -56,6 +59,15 @@ export function useCuratedFeed(): UseCuratedFeedReturn {
     }
   }, []);
 
+  const markRead = useCallback(async (input: CuratedReadInput) => {
+    try {
+      const result = await markCuratedRead(input);
+      return Boolean(result.success);
+    } catch {
+      return false;
+    }
+  }, []);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -65,6 +77,7 @@ export function useCuratedFeed(): UseCuratedFeedReturn {
     error,
     fetchPage,
     sendFeedback,
+    markRead,
     clearError,
   };
 }

@@ -17,7 +17,7 @@ import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { Thread } from '@/components/assistant-ui/thread';
 import { useMaxRuntime } from '@/components/assistant-ui/use-max-runtime';
 import { PlanSelectorProvider } from '@/components/assistant-ui/plan-selector-context';
-import { formatPlanForStorage, type ParsedPlan } from '@/lib/plan-parser';
+import type { ParsedPlan } from '@/lib/plan-parser';
 
 export default function MaxPageClient() {
   const router = useRouter();
@@ -45,10 +45,13 @@ export default function MaxPageClient() {
   useEffect(() => {
     if (historyLoaded) return;
     if (!isHistoryLoading) {
-      if (conversations.length > 0 && !currentConversationId) {
-        switchConversation(conversations[0].id);
-      }
-      setHistoryLoaded(true);
+      const timer = setTimeout(() => {
+        if (conversations.length > 0 && !currentConversationId) {
+          switchConversation(conversations[0].id);
+        }
+        setHistoryLoaded(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isHistoryLoading, historyLoaded, conversations, currentConversationId, switchConversation]);
 

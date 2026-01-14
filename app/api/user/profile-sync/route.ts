@@ -11,6 +11,7 @@ import { aggregateUserProfile } from '@/lib/user-profile-aggregator';
 
 export async function POST(request: NextRequest) {
     try {
+        void request;
         const supabase = await createServerSupabaseClient();
 
         // Get authenticated user

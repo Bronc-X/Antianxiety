@@ -15,10 +15,9 @@ import { ThinkingProcess } from "./thinking-process";
 import { ImageUploadButton, ImagePreviewList } from "./image-upload";
 import { AudioRecorder } from "./audio-recorder";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
 import {
     ActionBarPrimitive,
-    BranchPickerPrimitive,
     ComposerPrimitive,
     MessagePrimitive,
     ThreadPrimitive,
@@ -30,12 +29,8 @@ import {
     ArrowDown,
     ArrowUp,
     Check,
-    ChevronLeft,
-    ChevronRight,
     Copy,
-    RefreshCw,
     Square,
-    Send,
 } from "lucide-react";
 import type { FC } from "react";
 
@@ -109,17 +104,20 @@ const ThreadWelcome: FC<ThreadWelcomeProps> = ({ starterQuestions = [], onSugges
 
                     {/* Image Container - Aggressive Crop */}
                     <div className="relative z-10 size-full overflow-hidden rounded-full shadow-2xl">
-                        <img
+                        <Image
                             src="/max-avatar.png"
                             alt="Max"
+                            width={96}
+                            height={96}
                             /* Scale up to 1.8 to ensure NO white border remains. */
                             className="size-full object-cover scale-[1.8]"
+                            priority
                         />
                     </div>
                 </div>
 
                 <h1 className="aui-thread-welcome-message mb-2 text-2xl font-semibold text-white">
-                    Hello, I'm Max.
+                    Hello, I&apos;m Max.
                 </h1>
                 <p className="text-lg text-white/50">
                     需要我为你做些什么？
@@ -233,9 +231,11 @@ const AssistantMessage: FC = () => {
                     </ThreadPrimitive.If>
 
                     <div className="relative size-full overflow-hidden rounded-full shadow-sm">
-                        <img
+                        <Image
                             src="/max-avatar.png"
                             alt="Max"
+                            width={40}
+                            height={40}
                             className="size-full object-cover scale-[1.8]"
                         />
                     </div>
@@ -296,7 +296,7 @@ const UserMessage: FC = () => {
                 <MessagePrimitive.Attachments components={{
                     Image: ({ src }) => (
                         <div className="relative mb-1 h-32 w-32 overflow-hidden rounded-xl border border-white/20 bg-black/20">
-                            <img src={src} alt="Attachment" className="h-full w-full object-cover" />
+                            <Image src={src} alt="Attachment" width={128} height={128} className="h-full w-full object-cover" />
                         </div>
                     )
                 }} />

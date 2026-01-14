@@ -18,24 +18,12 @@ interface OnboardingFlowClientProps {
   userName?: string;
 }
 
-interface OnboardingResult {
-  gad7Score: number;
-  phq9Score: number;
-  isiScore: number;
-  safetyTriggered: boolean;
-  interpretations: {
-    anxiety: string;
-    depression: string;
-    insomnia: string;
-  };
-}
-
 export default function OnboardingFlowClient({ userId, userName }: OnboardingFlowClientProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { language } = useI18n();
 
-  const handleComplete = useCallback(async (_result: OnboardingResult) => {
+  const handleComplete = useCallback(async () => {
     setIsSubmitting(true);
 
     try {
@@ -50,7 +38,7 @@ export default function OnboardingFlowClient({ userId, userName }: OnboardingFlo
     }
   }, [router, language]);
 
-  const handlePause = useCallback((progress: { answers: Record<string, number>; currentPage: number; savedAt: string }) => {
+  const handlePause = useCallback(() => {
     // Progress is auto-saved to localStorage by ClinicalOnboarding
     console.log('Onboarding paused, progress saved');
     router.push('/'); // Go to home

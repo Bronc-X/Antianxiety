@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {

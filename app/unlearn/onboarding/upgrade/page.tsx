@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Sparkles, Zap, Brain, Activity, Watch, Sun, ArrowRight, Check, Crown, Shield } from 'lucide-react';
+import { Sparkles, Zap, Brain, Activity, Watch, Sun, Check, Crown, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { motion } from 'framer-motion';
@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
  * 目标：让用户了解平台价值，引导开通会员
  */
 export default function UpgradePage() {
-  const { t, language } = useI18n();
+  const { language } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSkipping, setIsSkipping] = useState(false);
@@ -24,11 +24,14 @@ export default function UpgradePage() {
     const returnTo = searchParams.get('returnTo');
 
     if (returnTo) {
-      setReturnPath(returnTo);
+      const timer = setTimeout(() => setReturnPath(returnTo), 0);
+      return () => clearTimeout(timer);
     } else if (from === 'landing' || from === 'menu') {
-      setReturnPath('/unlearn');
+      const timer = setTimeout(() => setReturnPath('/unlearn'), 0);
+      return () => clearTimeout(timer);
     } else if (from === 'settings') {
-      setReturnPath('/unlearn/settings');
+      const timer = setTimeout(() => setReturnPath('/unlearn/settings'), 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams]);
 
@@ -293,7 +296,11 @@ export default function UpgradePage() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  plan.id === 'free' ? handleSkip() : handleSubscribe(plan.id);
+                  if (plan.id === 'free') {
+                    handleSkip();
+                  } else {
+                    handleSubscribe(plan.id);
+                  }
                 }}
                 disabled={isSkipping}
                 className={`w-full py-3 rounded-xl font-semibold transition-all mt-6 font-serif ${selectedPlan === plan.id

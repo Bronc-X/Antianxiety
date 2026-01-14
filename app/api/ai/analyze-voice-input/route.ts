@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 interface VoiceAnalysisRequest {
   transcript: string;
@@ -171,7 +170,7 @@ const generateAnalysisSummary = (transcript: string, formUpdates: Partial<VoiceA
 
 export async function POST(request: NextRequest) {
   try {
-    const { transcript, currentFormState }: VoiceAnalysisRequest = await request.json();
+    const { transcript } = (await request.json()) as VoiceAnalysisRequest;
     
     if (!transcript || transcript.trim().length === 0) {
       return NextResponse.json(

@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
-import { ArrowLeft, Check, RefreshCw, TrendingDown } from 'lucide-react';
+import { Check, RefreshCw, TrendingDown } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface StepResultProps {
     prior: number;
     posterior: number;
-    worry: string;
     onComplete: () => void;
     onRedo: () => void;
 }
@@ -54,11 +53,10 @@ function Typewriter({ text }: { text: string }) {
     );
 }
 
-export default function StepResult({ prior, posterior, worry, onComplete, onRedo }: StepResultProps) {
+export default function StepResult({ prior, posterior, onComplete, onRedo }: StepResultProps) {
     const { t } = useI18n();
 
     // Calculate stats
-    const reduction = Math.max(0, prior - posterior);
     const percentageDrop = prior > 0 ? Math.round(((prior - posterior) / prior) * 100) : 0;
 
     return (

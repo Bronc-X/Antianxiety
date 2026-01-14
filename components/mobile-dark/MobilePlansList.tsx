@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Clock, Activity, Coffee, Moon, Clipboard } from 'lucide-react';
+import { Check, Activity, Coffee, Moon, Clipboard } from 'lucide-react';
 import { usePlans, type PlanData } from '@/hooks/domain/usePlans';
 
 export function MobilePlansList() {

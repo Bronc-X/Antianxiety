@@ -14,6 +14,11 @@ interface ChatMessageInput {
   }>;
 }
 
+type ChatApiPayload = {
+  error?: string;
+  message?: string;
+} & Record<string, unknown>;
+
 export async function generateChatResponse(
   messages: ChatMessageInput[],
   language: 'zh' | 'en' = 'zh',
@@ -59,7 +64,7 @@ export async function generateChatResponse(
 
 export async function callChatPayload(
   payload: Record<string, unknown>
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://chat.local', {
       method: 'POST',
@@ -70,17 +75,18 @@ export async function callChatPayload(
     const response = await chatRoute(request);
     const raw = await response.text();
 
-    let data: any = null;
+    let data: unknown = null;
     try {
-      data = JSON.parse(raw);
+      data = JSON.parse(raw) as ChatApiPayload;
     } catch {
       data = raw;
     }
+    const payloadData = typeof data === 'object' && data !== null ? (data as ChatApiPayload) : null;
 
     if (!response.ok) {
       return {
         success: false,
-        error: data?.error || data?.message || 'Request failed',
+        error: payloadData?.error || payloadData?.message || 'Request failed',
       };
     }
 
@@ -95,7 +101,7 @@ export async function callChatPayload(
 
 export async function getChatPapers(
   query: string
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://chat.local/papers', {
       method: 'POST',
@@ -106,17 +112,18 @@ export async function getChatPapers(
     const response = await chatPapersRoute(request);
     const raw = await response.text();
 
-    let data: any = null;
+    let data: unknown = null;
     try {
-      data = JSON.parse(raw);
+      data = JSON.parse(raw) as ChatApiPayload;
     } catch {
       data = raw;
     }
+    const payloadData = typeof data === 'object' && data !== null ? (data as ChatApiPayload) : null;
 
     if (!response.ok) {
       return {
         success: false,
-        error: data?.error || data?.message || 'Request failed',
+        error: payloadData?.error || payloadData?.message || 'Request failed',
       };
     }
 

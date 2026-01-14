@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, TrendingUp, Target, Sparkles } from 'lucide-react';
 import type { UserUnderstandingScore, ScoreBreakdown } from '@/types/adaptive-plan';
@@ -39,11 +39,7 @@ export default function UnderstandingScoreWidget({
   const [loading, setLoading] = useState(true);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
-  useEffect(() => {
-    loadScore();
-  }, [userId]);
-
-  const loadScore = async () => {
+  const loadScore = useCallback(async () => {
     try {
       const result = await fetchUnderstandingScore({ userId });
       if (result.success && result.data) {
@@ -64,7 +60,11 @@ export default function UnderstandingScoreWidget({
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchUnderstandingScore, userId]);
+
+  useEffect(() => {
+    loadScore();
+  }, [loadScore]);
 
   if (loading) {
     return (

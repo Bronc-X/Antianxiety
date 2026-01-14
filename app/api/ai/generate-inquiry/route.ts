@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { OpenAI } from 'openai';
-import { getModelPriority } from '@/lib/ai/model-config';
-import { generateInquiryQuestion } from '@/lib/inquiry-engine';
 
 export async function POST(req: NextRequest) {
     try {

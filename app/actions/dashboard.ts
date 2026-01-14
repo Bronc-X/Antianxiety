@@ -268,7 +268,9 @@ import { getDataCollectionStatus } from '@/lib/digital-twin/data-aggregator';
 import { filterSensitiveData } from '@/lib/digital-twin/dashboard-generator';
 import type { DashboardResponse, DashboardData as TwinDashboardData, AdaptivePlan } from '@/types/digital-twin';
 
-export async function getDigitalTwinData(): Promise<ActionResult<DashboardResponse | { status: string; collectionStatus?: any; message?: string }>> {
+type CollectionStatus = Awaited<ReturnType<typeof getDataCollectionStatus>>;
+
+export async function getDigitalTwinData(): Promise<ActionResult<DashboardResponse | { status: string; collectionStatus?: CollectionStatus; message?: string }>> {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

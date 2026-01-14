@@ -76,7 +76,8 @@ export default function TraditionalChineseAutoConvert() {
     // Initial pass
     walkAndConvert(document.body);
 
-    let idleHandle: number | null = null;
+    let idleHandle: ReturnType<typeof setTimeout> | null = null;
+    let idleCallbackHandle: number | null = null;
     let pendingMutations: MutationRecord[] = [];
 
     const processMutations = () => {
@@ -106,9 +107,9 @@ export default function TraditionalChineseAutoConvert() {
 
       if (idleHandle === null) {
         if (typeof window.requestIdleCallback === 'function') {
-          idleHandle = window.requestIdleCallback(processMutations, { timeout: 150 }) as any;
+          idleCallbackHandle = window.requestIdleCallback(processMutations, { timeout: 150 });
         } else {
-          idleHandle = setTimeout(processMutations, 100) as any;
+          idleHandle = setTimeout(processMutations, 100);
         }
       }
     });
@@ -121,12 +122,10 @@ export default function TraditionalChineseAutoConvert() {
 
     return () => {
       observer.disconnect();
-      if (idleHandle !== null) {
-        if (typeof window.requestIdleCallback === 'function') {
-          window.cancelIdleCallback(idleHandle);
-        } else {
-          clearTimeout(idleHandle);
-        }
+      if (idleCallbackHandle !== null && typeof window.requestIdleCallback === 'function') {
+        window.cancelIdleCallback(idleCallbackHandle);
+      } else if (idleHandle !== null) {
+        clearTimeout(idleHandle);
       }
     };
   }, [language]);

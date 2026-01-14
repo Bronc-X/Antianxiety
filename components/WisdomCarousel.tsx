@@ -278,6 +278,14 @@ export function WisdomCarousel({
     setCurrentIndex((prev) => (prev - 1 + WISDOM_QUOTES.length) % WISDOM_QUOTES.length);
   }, []);
 
+  useEffect(() => {
+    if (!autoPlay || isHovered) return;
+    const timer = setInterval(() => {
+      nextQuote();
+    }, interval);
+    return () => clearInterval(timer);
+  }, [autoPlay, interval, isHovered, nextQuote]);
+
   // 每天自动更新到当天的金句
   useEffect(() => {
     const checkDailyQuote = () => {
@@ -382,7 +390,7 @@ export function WisdomCarousel({
                   backgroundClip: 'text',
                 }}
               >
-                "{language === 'en' ? currentQuote.textEN : language === 'zh-TW' ? currentQuote.textTC : currentQuote.textSC}"
+                &ldquo;{language === 'en' ? currentQuote.textEN : language === 'zh-TW' ? currentQuote.textTC : currentQuote.textSC}&rdquo;
               </motion.p>
               
               {/* 来源 - 悬停时淡入更明显 */}

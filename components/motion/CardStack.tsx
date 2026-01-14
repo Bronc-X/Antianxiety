@@ -76,7 +76,7 @@ function Card({
     const currentY = index * (offset * 1.5); // Increase offset for better visibility
     const currentOpacity = 1 - index * 0.1; // Less aggressive opacity fade
 
-    function handleDragEnd(_: any, info: PanInfo) {
+    function handleDragEnd(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
         if (Math.abs(info.offset.x) > 100) {
             removeCard(card.id);
         }

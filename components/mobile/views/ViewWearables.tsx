@@ -9,13 +9,11 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
+    type LucideIcon,
     Activity,
     Watch,
-    Smartphone,
     CheckCircle2,
     XCircle,
-    RotateCw,
-    ExternalLink,
     ChevronRight,
     ArrowLeft,
     Info
@@ -29,7 +27,7 @@ import { useBrowser } from '@/hooks/useBrowser';
 // Configuration
 // ============================================
 
-const PROVIDERS: { id: WearableProvider; name: string; icon: any; color: string; description: string }[] = [
+const PROVIDERS: { id: WearableProvider; name: string; icon: LucideIcon; color: string; description: string }[] = [
     {
         id: 'oura',
         name: 'Oura Ring',
@@ -81,8 +79,6 @@ interface ViewWearablesProps {
 
 export const ViewWearables = ({ onBack }: ViewWearablesProps) => {
     const {
-        status,
-        isLoading,
         isConnecting,
         connect,
         disconnect,
@@ -101,7 +97,7 @@ export const ViewWearables = ({ onBack }: ViewWearablesProps) => {
             if (isNativeBrowser) {
                 await open(url);
             } else {
-                window.location.href = url;
+                window.location.assign(url);
             }
         }
     };

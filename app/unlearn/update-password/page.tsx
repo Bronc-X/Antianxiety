@@ -47,7 +47,7 @@ function UpdatePasswordContent() {
                 router.push('/unlearn');
             }, 2000);
 
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: t('error.unknown') });
             setIsLoading(false);
         }

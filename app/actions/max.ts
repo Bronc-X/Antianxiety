@@ -13,7 +13,11 @@ import { POST as maxBeliefRoute } from '@/app/api/max/belief/route';
 import { POST as maxPlanChatRoute } from '@/app/api/max/plan-chat/route';
 import { POST as maxPlanReplaceRoute } from '@/app/api/max/plan-replace/route';
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type MaxApiPayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -22,7 +26,7 @@ async function parseJsonResponse(response: Response): Promise<any> {
   }
 }
 
-async function callPostRoute(handler: (req: Request) => Promise<Response>, payload: Record<string, unknown>): Promise<ActionResult<any>> {
+async function callPostRoute(handler: (req: Request) => Promise<Response>, payload: Record<string, unknown>): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://max.local', {
       method: 'POST',
@@ -31,9 +35,10 @@ async function callPostRoute(handler: (req: Request) => Promise<Response>, paylo
     });
     const response = await handler(request as Request);
     const data = await parseJsonResponse(response);
+    const payloadData = typeof data === 'object' && data !== null ? (data as MaxApiPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Request failed' };
+      return { success: false, error: payloadData?.error || 'Request failed' };
     }
 
     return { success: true, data };
@@ -42,13 +47,14 @@ async function callPostRoute(handler: (req: Request) => Promise<Response>, paylo
   }
 }
 
-export async function getMaxSettings(): Promise<ActionResult<any>> {
+export async function getMaxSettings(): Promise<ActionResult<unknown>> {
   try {
     const response = await getMaxSettingsRoute();
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as MaxApiPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Failed to load settings' };
+      return { success: false, error: payload?.error || 'Failed to load settings' };
     }
 
     return { success: true, data };
@@ -57,7 +63,7 @@ export async function getMaxSettings(): Promise<ActionResult<any>> {
   }
 }
 
-export async function updateMaxSettings(payload: Record<string, unknown>): Promise<ActionResult<any>> {
+export async function updateMaxSettings(payload: Record<string, unknown>): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://max.local/settings', {
       method: 'PATCH',
@@ -67,9 +73,10 @@ export async function updateMaxSettings(payload: Record<string, unknown>): Promi
 
     const response = await updateMaxSettingsRoute(request as Request);
     const data = await parseJsonResponse(response);
+    const payloadData = typeof data === 'object' && data !== null ? (data as MaxApiPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Failed to update settings' };
+      return { success: false, error: payloadData?.error || 'Failed to update settings' };
     }
 
     return { success: true, data };
@@ -78,18 +85,18 @@ export async function updateMaxSettings(payload: Record<string, unknown>): Promi
   }
 }
 
-export async function getMaxResponse(payload: Record<string, unknown>): Promise<ActionResult<any>> {
+export async function getMaxResponse(payload: Record<string, unknown>): Promise<ActionResult<unknown>> {
   return callPostRoute(maxResponseRoute, payload);
 }
 
-export async function submitMaxBelief(payload: Record<string, unknown>): Promise<ActionResult<any>> {
+export async function submitMaxBelief(payload: Record<string, unknown>): Promise<ActionResult<unknown>> {
   return callPostRoute(maxBeliefRoute, payload);
 }
 
-export async function maxPlanChat(payload: Record<string, unknown>): Promise<ActionResult<any>> {
+export async function maxPlanChat(payload: Record<string, unknown>): Promise<ActionResult<unknown>> {
   return callPostRoute(maxPlanChatRoute, payload);
 }
 
-export async function maxPlanReplace(payload: Record<string, unknown>): Promise<ActionResult<any>> {
+export async function maxPlanReplace(payload: Record<string, unknown>): Promise<ActionResult<unknown>> {
   return callPostRoute(maxPlanReplaceRoute, payload);
 }

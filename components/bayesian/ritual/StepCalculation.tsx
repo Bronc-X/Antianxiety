@@ -21,9 +21,9 @@ function ScrambleNumber({ value, isComplete }: { value: string | number, isCompl
                 setDisplay(Math.floor(Math.random() * 99));
             }, 50);
             return () => clearInterval(interval);
-        } else {
-            setDisplay(value);
         }
+        const timer = setTimeout(() => setDisplay(value), 0);
+        return () => clearTimeout(timer);
     }, [isComplete, value]);
 
     return <span>{display}</span>;
@@ -65,14 +65,18 @@ export default function StepCalculation({ prior, likelihood, evidence, posterior
 
                     {/* Running Code Background Effect */}
                     <div className="absolute inset-0 opacity-5 pointer-events-none overflow-hidden">
-                        {[...Array(10)].map((_, i) => (
+                        {[...Array(10)].map((_, i) => {
+                            const top = (i * 13) % 100;
+                            const left = (i * 29) % 100;
+                            return (
                             <div key={i} className="absolute text-[10px] font-mono leading-none" style={{
-                                top: `${Math.random() * 100}%`,
-                                left: `${Math.random() * 100}%`,
+                                top: `${top}%`,
+                                left: `${left}%`,
                             }}>
                                 101010010101
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     <div className="flex flex-col items-center gap-8 relative z-20">

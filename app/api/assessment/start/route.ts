@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         .limit(1)
         .single();
       healthProfile = data;
-    } catch (e) {
+    } catch {
       console.log('Health profile not found, continuing without it');
     }
 

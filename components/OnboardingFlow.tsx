@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ONBOARDING_FLOW, ONBOARDING_FLOW_EN, type Question } from '@/lib/questions';
+import { ONBOARDING_FLOW, ONBOARDING_FLOW_EN } from '@/lib/questions';
 import { tr, useI18n } from '@/lib/i18n';
 
 interface OnboardingFlowProps {
@@ -55,7 +55,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
       return () => clearInterval(timer);
     }
-  }, [isAnalyzing, answers, onComplete]);
+  }, [answers, analysisTexts.length, isAnalyzing, onComplete]);
 
   // 选择答案
   const handleAnswer = (questionId: string, value: string) => {

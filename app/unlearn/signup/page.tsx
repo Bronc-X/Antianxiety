@@ -134,7 +134,7 @@ export default function SignupPage() {
       if (!success) { setMessage({ type: 'error', text: authError || t('error.unknown') }); setIsSendingOtp(false); return; }
       setOtpSent(true);
       setMessage({ type: 'success', text: t('signup.otpSent') });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: t('error.unknown') });
     } finally { setIsSendingOtp(false); }
   };
@@ -152,7 +152,7 @@ export default function SignupPage() {
       if (!success) { setMessage({ type: 'error', text: authError || t('error.unknown') }); setIsVerifyingOtp(false); return; }
       setMessage({ type: 'success', text: t('signup.redirecting') });
       setTimeout(() => { router.push('/unlearn/onboarding'); router.refresh(); }, 1500);
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: t('error.unknown') });
     } finally { setIsVerifyingOtp(false); }
   };
@@ -165,7 +165,7 @@ export default function SignupPage() {
       const url = await signInWithOAuth(provider as 'twitter' | 'github', redirectTo);
       if (!url) { setMessage({ type: 'error', text: authError || t('error.unknown') }); setOauthProviderLoading(null); return; }
       window.location.assign(url);
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: t('error.unknown') });
       setOauthProviderLoading(null);
     }
@@ -196,7 +196,7 @@ export default function SignupPage() {
       } else {
         setPhoneBetaResult('success');
       }
-    } catch (error) {
+    } catch {
       setPhoneBetaResult('error');
     } finally {
       setPhoneBetaSubmitting(false);

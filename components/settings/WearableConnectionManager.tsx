@@ -5,7 +5,7 @@
  * 穿戴设备连接管理组件
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { syncHealthConnectData, syncHealthKitData, type SyncErrorCode } from '@/lib/services/wearables/client-sync';
 import { useWearables } from '@/hooks/domain/useWearables';
 
@@ -56,6 +56,21 @@ export default function WearableConnectionManager() {
     const [guideProvider, setGuideProvider] = useState<string | null>(null);
     const combinedError = error || wearablesError;
 
+    const loadStatus = useCallback(async () => {
+        try {
+            setLoading(true);
+            const data = await loadWearableStatus();
+            if (data) {
+                setConnectedDevices(data.connectedDevices || []);
+                setRecentSyncs(data.recentSyncs || []);
+            }
+        } catch (err) {
+            console.error('Failed to load wearable status:', err);
+        } finally {
+            setLoading(false);
+        }
+    }, [loadWearableStatus]);
+
     // 加载连接状态
     useEffect(() => {
         loadStatus();
@@ -77,22 +92,7 @@ export default function WearableConnectionManager() {
             setError(decodeURIComponent(wearableError));
             window.history.replaceState({}, '', window.location.pathname);
         }
-    }, []);
-
-    async function loadStatus() {
-        try {
-            setLoading(true);
-            const data = await loadWearableStatus();
-            if (data) {
-                setConnectedDevices(data.connectedDevices || []);
-                setRecentSyncs(data.recentSyncs || []);
-            }
-        } catch (err) {
-            console.error('Failed to load wearable status:', err);
-        } finally {
-            setLoading(false);
-        }
-    }
+    }, [loadStatus]);
 
     function handleConnect(provider: string) {
         setGuideProvider(prev => prev === provider ? null : provider);
@@ -153,7 +153,7 @@ export default function WearableConnectionManager() {
             }
 
             await loadStatus();
-        } catch (err) {
+        } catch {
             setError('同步失败，请稍后重试');
         } finally {
             setSyncingProvider(null);

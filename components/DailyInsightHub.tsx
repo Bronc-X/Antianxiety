@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useRef, MouseEvent, useEffect } from 'react';
-import Link from 'next/link';
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { Brain, Moon, Sparkles, Activity, ExternalLink, ChevronRight, Shield, ClipboardList, Check, Zap, Clock, Wind, Dumbbell } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Brain, Moon, Sparkles, ChevronRight, ClipboardList, Check, Zap, Clock, Wind, Dumbbell } from 'lucide-react';
 // ConsensusMeter removed - we don't show fake consensus data
 import { BrainLoader } from '@/components/lottie/BrainLoader';
 import { useI18n } from '@/lib/i18n';
@@ -27,14 +25,7 @@ interface Task {
   description?: string;
 }
 
-// 问卷数据摘要类型
-interface QuestionnaireSummary {
-  sleepQuality?: number; // 0-4
-  energyLevel?: number;  // 0-4
-  stressLevel?: number;  // 0-4
-  moodState?: number;    // 0-4
-  focusAbility?: number; // 0-4
-}
+type PlanTask = Task & { titleEn?: string; descriptionEn?: string };
 
 interface DailyInsightHubProps {
   todayTask?: {
@@ -53,49 +44,8 @@ interface DailyInsightHubProps {
   onHintHover?: (hovering: boolean) => void;
 }
 
-// 固定内容区高度
-const CONTENT_MIN_HEIGHT = 280;
-
-// 抽卡效果 Hook
-function useCardTilt() {
-  const ref = useRef<HTMLDivElement>(null);
-
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const mouseXSpring = useSpring(x, { stiffness: 500, damping: 50 });
-  const mouseYSpring = useSpring(y, { stiffness: 500, damping: 50 });
-
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ['12deg', '-12deg']);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ['-12deg', '12deg']);
-
-  const sheenX = useTransform(mouseXSpring, [-0.5, 0.5], ['0%', '100%']);
-  const sheenY = useTransform(mouseYSpring, [-0.5, 0.5], ['0%', '100%']);
-
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    x.set(mouseX / rect.width - 0.5);
-    y.set(mouseY / rect.height - 0.5);
-  };
-
-  const handleMouseLeave = () => { x.set(0); y.set(0); };
-
-  return { ref, rotateX, rotateY, sheenX, sheenY, handleMouseMove, handleMouseLeave };
-}
-
-// 标签配置
-const TABS: { id: TabType; labelEn: string; labelZh: string; icon: React.ReactNode }[] = [
-  { id: 'today', labelEn: 'Today', labelZh: '今日', icon: <Brain className="w-4 h-4" /> },
-  { id: 'questionnaire', labelEn: 'Check-in', labelZh: '问诊', icon: <ClipboardList className="w-4 h-4" /> },
-  { id: 'plan', labelEn: 'Plan', labelZh: '计划', icon: <Zap className="w-4 h-4" /> },
-];
-
 export function DailyInsightHub({
   todayTask,
-  insight,
   isLoading = false,
   questionnaireCompleted: questionnaireCompletedProp = false,
   onStartCalibration,
@@ -108,21 +58,22 @@ export function DailyInsightHub({
   const { language } = useI18n();
   const {
     completed: questionnaireCompletedFromHook,
-    summary,
     isLoading: questionnaireLoading,
     isSaving: questionnaireSaving,
     error: questionnaireError,
     saveResponse,
   } = useDailyQuestionnaire({ userId });
   const [activeTab, setActiveTab] = useState<TabType>('today');
-  const questionnaireSummary = summary as QuestionnaireSummary | null;
   // 内部维护问诊完成状态，不依赖外部 prop
   const [questionnaireCompleted, setQuestionnaireCompleted] = useState(questionnaireCompletedProp);
+  void onStartCalibration;
 
   useEffect(() => {
-    if (questionnaireCompletedFromHook) {
+    if (!questionnaireCompletedFromHook) return;
+    const timer = setTimeout(() => {
       setQuestionnaireCompleted(true);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [questionnaireCompletedFromHook]);
 
   // 钩子已处理问诊完成状态与摘要加载
@@ -236,11 +187,8 @@ export function DailyInsightHub({
                 >
                   <InsightPanelContent
                     todayTask={todayTask}
-                    insight={insight}
                     isLoading={isLoading}
                     questionnaireCompleted={questionnaireCompleted}
-                    questionnaireSummary={questionnaireSummary}
-                    onGoToQuestionnaire={handleGoToQuestionnaire}
                     onHintHover={onHintHover}
                     language={language}
                   />
@@ -305,20 +253,14 @@ export function DailyInsightHub({
 // 今日洞察内容（不含顶部视觉区）
 function InsightPanelContent({
   todayTask,
-  insight,
   isLoading,
   questionnaireCompleted,
-  questionnaireSummary,
-  onGoToQuestionnaire,
   onHintHover,
   language
 }: {
   todayTask?: { mode: 'low_energy' | 'balanced' | 'normal' | 'challenge'; description: string; descriptionEn?: string } | null;
-  insight?: string | null;
   isLoading?: boolean;
   questionnaireCompleted?: boolean;
-  questionnaireSummary?: QuestionnaireSummary;
-  onGoToQuestionnaire?: () => void;
   onHintHover?: (hovering: boolean) => void;
   language: string;
 }) {
@@ -359,7 +301,6 @@ function InsightPanelContent({
     );
   }
 
-  const summaryText = questionnaireSummary ? generateQuestionnaireSummaryText(questionnaireSummary, language) : '';
   const isLowEnergy = todayTask.mode === 'low_energy';
 
   return (
@@ -394,103 +335,6 @@ function InsightPanelContent({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-
-// 生成问卷总结文案
-function generateQuestionnaireSummaryText(summary: QuestionnaireSummary, language: string): string {
-  const parts: string[] = [];
-
-  // 睡眠质量
-  if (summary.sleepQuality !== undefined) {
-    const sleepLabels = language === 'en'
-      ? ['poor sleep', 'light sleep', 'average sleep', 'good sleep', 'excellent sleep']
-      : ['睡眠较浅', '睡眠一般', '睡眠尚可', '睡眠良好', '睡眠充足'];
-    parts.push(sleepLabels[summary.sleepQuality]);
-  }
-
-  // 能量水平
-  if (summary.energyLevel !== undefined) {
-    const energyLabels = language === 'en'
-      ? ['low energy', 'moderate energy', 'stable energy', 'good energy', 'high energy']
-      : ['能量偏低', '能量一般', '能量稳定', '能量良好', '能量充沛'];
-    parts.push(energyLabels[summary.energyLevel]);
-  }
-
-  // 压力水平（反向，0=轻松，4=压力大）
-  if (summary.stressLevel !== undefined) {
-    const stressLabels = language === 'en'
-      ? ['very relaxed', 'relaxed', 'balanced', 'some tension', 'high tension']
-      : ['非常放松', '较为放松', '状态平衡', '略有紧张', '压力较大'];
-    parts.push(stressLabels[summary.stressLevel]);
-  }
-
-  if (parts.length === 0) return '';
-
-  const connector = language === 'en' ? ', ' : '、';
-  const prefix = language === 'en' ? 'Today: ' : '今日状态：';
-  return prefix + parts.join(connector);
-}
-
-
-
-// 健康工具面板
-function ToolsPanel() {
-  const { language } = useI18n();
-
-  const tools = [
-    {
-      href: '/assessment',
-      icon: Sparkles,
-      title: language === 'en' ? 'Symptom Assessment' : '症状评估',
-      subtitle: language === 'en' ? 'AI Health Consult' : 'AI 健康问诊',
-      gradient: 'from-emerald-50 to-teal-50',
-      iconBg: 'bg-emerald-100',
-      iconColor: 'text-emerald-600',
-      borderColor: 'border-emerald-100'
-    },
-    {
-      href: '/bayesian',
-      icon: Brain,
-      title: language === 'en' ? 'Cognitive Scale' : '认知天平',
-      subtitle: language === 'en' ? 'Bayesian Loop' : '贝叶斯循环',
-      gradient: 'from-indigo-50 to-purple-50',
-      iconBg: 'bg-indigo-100',
-      iconColor: 'text-indigo-600',
-      borderColor: 'border-indigo-100'
-    }
-  ];
-
-  return (
-    <div className="space-y-3 flex flex-col justify-center" style={{ minHeight: CONTENT_MIN_HEIGHT - 40 }}>
-      {tools.map((tool, index) => {
-        const Icon = tool.icon;
-        return (
-          <Link key={tool.href} href={tool.href}>
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02, x: 4 }}
-              whileTap={{ scale: 0.98 }}
-              className={`p-4 rounded-xl bg-gradient-to-br ${tool.gradient} border ${tool.borderColor} cursor-pointer group`}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl ${tool.iconBg} flex items-center justify-center shadow-sm`}>
-                  <Icon className={`w-5 h-5 ${tool.iconColor}`} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-[#0B3D2E]">{tool.title}</p>
-                  <p className="text-xs text-[#0B3D2E]/60">{tool.subtitle}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-[#0B3D2E]/30 group-hover:text-[#0B3D2E]/60 transition-colors" />
-              </div>
-            </motion.div>
-          </Link>
-        );
-      })}
     </div>
   );
 }
@@ -700,7 +544,7 @@ const TASK_LIBRARY: Record<string, Omit<Task, 'completed' | 'id'> & { id: string
 };
 
 // 根据用户状态智能生成任务
-function generateSmartTasks(stressLevel: number, energyLevel: number): (Task & { titleEn?: string; descriptionEn?: string })[] {
+function generateSmartTasks(stressLevel: number, energyLevel: number): PlanTask[] {
   const allTasks = Object.values(TASK_LIBRARY);
 
   // 根据状态计算每个任务的得分
@@ -727,15 +571,20 @@ function generateSmartTasks(stressLevel: number, energyLevel: number): (Task & {
   const topTasks = scoredTasks
     .sort((a, b) => b.score - a.score)
     .slice(0, 4)
-    .map(({ score, priority, ...task }) => ({ ...task, completed: false }));
+    .map((task) => {
+      const { score, priority, ...rest } = task;
+      void score;
+      void priority;
+      return { ...rest, completed: false };
+    });
 
-  return topTasks as (Task & { titleEn?: string; descriptionEn?: string })[];
+  return topTasks;
 }
 
 function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number; energyLevel?: number }) {
   const { language } = useI18n();
-  const [tasks, setTasks] = useState<(Task & { titleEn?: string; descriptionEn?: string })[]>([]);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [tasks, setTasks] = useState<PlanTask[]>([]);
+  const [activeTask, setActiveTask] = useState<PlanTask | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
@@ -743,21 +592,26 @@ function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number;
     const cacheKey = `nma_daily_tasks_${today}_${stressLevel}_${energyLevel}`;
     const savedTasks = localStorage.getItem(cacheKey);
 
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    } else {
+    const timer = setTimeout(() => {
+      if (savedTasks) {
+        setTasks(JSON.parse(savedTasks) as PlanTask[]);
+        return;
+      }
+
       // 根据用户状态智能生成任务
       const smartTasks = generateSmartTasks(stressLevel, energyLevel);
       setTasks(smartTasks);
       localStorage.setItem(cacheKey, JSON.stringify(smartTasks));
-    }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [stressLevel, energyLevel]);
 
-  const saveTasks = (newTasks: Task[]) => {
+  const saveTasks = (newTasks: PlanTask[]) => {
     const today = new Date().toISOString().split('T')[0];
     const cacheKey = `nma_daily_tasks_${today}_${stressLevel}_${energyLevel}`;
     localStorage.setItem(cacheKey, JSON.stringify(newTasks));
-    setTasks(newTasks as any);
+    setTasks(newTasks);
   };
 
   const handleComplete = (taskId: string) => {
@@ -842,7 +696,7 @@ function PlanPanel({ stressLevel = 5, energyLevel = 5 }: { stressLevel?: number;
                   {ICON_MAP[task.iconName]}
                 </span>
                 <span className={`text-xs font-medium truncate ${task.completed ? 'text-white/60 line-through' : 'text-gray-800'}`}>
-                  {language === 'en' ? (task as any).titleEn || task.title : task.title}
+                  {language === 'en' ? task.titleEn || task.title : task.title}
                 </span>
               </div>
             </div>

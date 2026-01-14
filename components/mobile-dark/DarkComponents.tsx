@@ -1,14 +1,22 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Activity, Zap, ChevronRight, Heart, CloudSun, Flame, Home, Calendar, User } from "lucide-react";
-import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { Home, Calendar, User } from "lucide-react";
 
 // ----------------------------------------------------------------------
 // 1. Metric Card (Soft Glass Style)
 // ----------------------------------------------------------------------
 
-export function MetricCard({ icon, label, value, subValue, color }: any) {
+interface MetricCardProps {
+    icon: ReactNode;
+    label: string;
+    value: string | number;
+    subValue?: string;
+    color: string;
+}
+
+export function MetricCard({ icon, label, value, subValue, color }: MetricCardProps) {
     return (
         <div className="bg-[#1A1A1A] p-4 rounded-[24px] border border-[#222] relative overflow-hidden group">
             <div className={`absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity`} style={{ color }}>
@@ -54,7 +62,13 @@ function DarkMetricBar({ label, value, color }: { label: string; value: number; 
 // 2. Metric Bars (Segmented Progress)
 // ----------------------------------------------------------------------
 
-export function MetricBars({ recovery, strain, sleep }: any) {
+interface MetricBarsProps {
+    recovery: number;
+    strain: number;
+    sleep: number;
+}
+
+export function MetricBars({ recovery, strain, sleep }: MetricBarsProps) {
     return (
         <div className="space-y-4">
             <DarkMetricBar label="Recovery" value={recovery} color="#007AFF" />
@@ -113,7 +127,7 @@ export function StressBarChart() {
     return (
         <div className="flex items-end justify-between h-24 gap-1">
             {Array.from({ length: 24 }).map((_, i) => {
-                const height = 20 + Math.random() * 60;
+                const height = 20 + ((i * 37) % 60);
                 const color = height > 60 ? '#FF3B30' : (height > 40 ? '#FF9500' : '#007AFF');
                 return (
                     <div key={i} className="w-full bg-[#1A1A1A] rounded-sm relative group">
@@ -136,9 +150,6 @@ export function StressBarChart() {
 // ----------------------------------------------------------------------
 
 export function BioArc({ score = 85, max = 100 }: { score?: number, max?: number }) {
-    // 40 dashes
-    const dashes = 40;
-
     return (
         <div className="relative flex flex-col items-center justify-center py-6">
             <div className="w-[280px] h-[140px] relative overflow-hidden">
@@ -204,7 +215,7 @@ export function StressBarcode() {
     return (
         <div className="flex items-end justify-between h-12 w-full gap-[2px] mt-4">
             {Array.from({ length: 40 }).map((_, i) => {
-                const height = 20 + Math.random() * 80;
+                const height = 20 + ((i * 53) % 80);
                 const active = i > 15 && i < 30;
                 // Gradient effect logic simulated by color
                 let color = active ? '#FF3B30' : '#1A1A1A';

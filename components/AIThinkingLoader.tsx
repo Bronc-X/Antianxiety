@@ -27,9 +27,12 @@ export function AIThinkingLoader({ size = 'md', showProgress = true, onGeneratin
   // 进度条完成后进入生成阶段
   useEffect(() => {
     if (currentStage >= THINKING_STAGES.length && !isGenerating) {
-      setProgressComplete(true);
-      setIsGenerating(true);
-      onGeneratingStart?.();
+      const timer = setTimeout(() => {
+        setProgressComplete(true);
+        setIsGenerating(true);
+        onGeneratingStart?.();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [currentStage, isGenerating, onGeneratingStart]);
 

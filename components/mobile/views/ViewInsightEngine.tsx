@@ -32,12 +32,12 @@ export const ViewInsightEngine = ({ onBack }: ViewInsightEngineProps) => {
 
     const [analysisJson, setAnalysisJson] = useState("{\"summary\":\"ok\"}");
     const [logsJson, setLogsJson] = useState("[]");
-    const [inferenceResult, setInferenceResult] = useState<any>(null);
+    const [inferenceResult, setInferenceResult] = useState<unknown | null>(null);
     const [inferenceErrorLocal, setInferenceErrorLocal] = useState<string | null>(null);
 
     const [scoreDays, setScoreDays] = useState("30");
     const [includeHistory, setIncludeHistory] = useState(true);
-    const [scoreResult, setScoreResult] = useState<any>(null);
+    const [scoreResult, setScoreResult] = useState<unknown | null>(null);
 
     const [recId, setRecId] = useState("demo-rec");
     const [recTitle, setRecTitle] = useState("Sleep consistency");

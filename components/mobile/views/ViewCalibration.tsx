@@ -15,7 +15,7 @@
  * Properly integrates with useCalibration, useCalibrationLog, useScaleCalibration hooks
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Brain,
@@ -24,43 +24,47 @@ import {
     Heart,
     Activity,
     Smile,
-    Frown,
-    Meh,
     RefreshCw,
     Check,
     ChevronLeft,
     ChevronRight,
     Calendar,
-    Clock,
     TrendingUp,
     TrendingDown,
-    AlertCircle,
     Sparkles,
     Play,
-    RotateCcw,
-    WifiOff,
     Loader2,
     History,
-    CalendarDays,
-    CalendarRange,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCalibration, type CalibrationStep } from "@/hooks/domain/useCalibration";
-import { useCalibrationLog } from "@/hooks/domain/useCalibrationLog";
-import { useScaleCalibration } from "@/hooks/domain/useScaleCalibration";
+import { useCalibration } from "@/hooks/domain/useCalibration";
+import { useCalibrationLog, type CalibrationData } from "@/hooks/domain/useCalibrationLog";
 import { useHaptics, ImpactStyle } from "@/hooks/useHaptics";
+import type { DailyCalibrationResult } from "@/lib/assessment";
 
 // ============================================
 // Types
 // ============================================
 
-type ViewMode = 'daily' | 'weekly' | 'monthly' | 'history';
+type CalibrationHistoryEntry = CalibrationData & { mood_score?: number | null };
+type CalibrationResult = DailyCalibrationResult & {
+    insights?: string[];
+    trend?: "improving" | "stable" | "worsening";
+    message?: string;
+};
 
 interface ViewCalibrationProps {
     onNavigate?: (view: string) => void;
     onBack?: () => void;
     onComplete?: () => void;
 }
+
+const ANALYZING_MESSAGES = [
+    "正在分析您的数据...",
+    "更新您的健康画像...",
+    "生成个性化建议...",
+    "优化 AI 模型参数...",
+];
 
 // ============================================
 // Animation Variants
@@ -471,11 +475,12 @@ function CalibrationHistoryView({
                                         weekday: 'short'
                                     }) : '未知日期'}
                                 </span>
-                                {(entry as any).mood_score && (
-                                    <span className="text-lg">
-                                        {(entry as any).mood_score >= 4 ? '😊' : (entry as any).mood_score >= 3 ? '🙂' : (entry as any).mood_score >= 2 ? '😐' : '😔'}
-                                    </span>
-                                )}
+                                {(() => {
+                                    const moodScore = (entry as CalibrationHistoryEntry).mood_score;
+                                    if (typeof moodScore !== "number") return null;
+                                    const moodIcon = moodScore >= 4 ? "😊" : moodScore >= 3 ? "🙂" : moodScore >= 2 ? "😐" : "😔";
+                                    return <span className="text-lg">{moodIcon}</span>;
+                                })()}
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-center">
                                 <div>
@@ -609,20 +614,15 @@ function QuestionsStep({
 // ============================================
 
 function AnalyzingStep() {
-    const messages = [
-        "正在分析您的数据...",
-        "更新您的健康画像...",
-        "生成个性化建议...",
-        "优化 AI 模型参数...",
-    ];
     const [messageIndex, setMessageIndex] = useState(0);
+    const messageCount = ANALYZING_MESSAGES.length;
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setMessageIndex((prev) => (prev + 1) % messages.length);
+            setMessageIndex((prev) => (prev + 1) % messageCount);
         }, 1500);
         return () => clearInterval(interval);
-    }, []);
+    }, [messageCount]);
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center px-6">
@@ -652,7 +652,7 @@ function AnalyzingStep() {
                     exit={{ opacity: 0, y: -10 }}
                     className="text-lg font-medium text-stone-700 dark:text-stone-300 text-center"
                 >
-                    {messages[messageIndex]}
+                    {ANALYZING_MESSAGES[messageIndex]}
                 </motion.p>
             </AnimatePresence>
 
@@ -677,7 +677,7 @@ function ResultStep({
     onDone,
     onNavigate,
 }: {
-    result: any;
+    result: CalibrationResult | null;
     onDone?: () => void;
     onNavigate?: (view: string) => void;
 }) {
@@ -685,7 +685,7 @@ function ResultStep({
 
     useEffect(() => {
         notification('success');
-    }, []);
+    }, [notification]);
 
     // Extract insights from result
     const insights = result?.insights || [];
@@ -800,7 +800,6 @@ export const ViewCalibration = ({ onNavigate, onBack, onComplete }: ViewCalibrat
         isLoading,
         frequency,
         frequencyReason,
-        shouldShowToday,
         hasCompletedToday,
         isRestoringFrequency,
         start,
@@ -899,4 +898,3 @@ export const ViewCalibration = ({ onNavigate, onBack, onComplete }: ViewCalibrat
 };
 
 export default ViewCalibration;
-

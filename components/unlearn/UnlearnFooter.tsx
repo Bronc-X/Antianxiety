@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Twitter, Linkedin, Youtube } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import Logo from './Logo';
@@ -148,11 +149,13 @@ export default function UnlearnFooter({
                                                     title="特别鸣谢 (Special Thanks)"
                                                     description={
                                                         <div className="flex flex-col items-center gap-3 pt-2">
-                                                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#D4AF37] shadow-sm shrink-0">
-                                                                <img
+                                                            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#D4AF37] shadow-sm shrink-0">
+                                                                <Image
                                                                     src="/images/ni-baobao.jpg"
                                                                     alt="Ni Baobao"
-                                                                    className="w-full h-full object-cover"
+                                                                    fill
+                                                                    sizes="64px"
+                                                                    className="object-cover"
                                                                 />
                                                             </div>
                                                             <div className="text-center w-full">

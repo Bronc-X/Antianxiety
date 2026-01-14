@@ -7,7 +7,7 @@
  * Enhanced with useAssessmentReport for export and useAssessmentLibrary for standardized assessments.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Brain,
@@ -20,15 +20,11 @@ import {
     Globe,
     Download,
     Mail,
-    FileText,
-    ClipboardList,
-    Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAssessment } from "@/hooks/domain/useAssessment";
-import { useAssessmentLibrary } from "@/hooks/domain/useAssessmentLibrary";
 import { useAssessmentReport } from "@/hooks/domain/useAssessmentReport";
-import { QuestionStep, ReportStep } from "@/types/assessment";
+import { QuestionStep, ReportStep, type Condition } from "@/types/assessment";
 import { useHaptics, ImpactStyle } from "@/hooks/useHaptics";
 
 const pageVariants = {
@@ -215,8 +211,12 @@ function QuestionScreen({ step, onAnswer, isLoading, questionNumber, loadingCont
     );
 }
 
+type ReportPayload = ReportStep["report"];
+type NextStep = ReportPayload["next_steps"][number];
+type ResultStepLike = ReportStep | { report?: ReportPayload; result?: ReportPayload };
+
 function ResultScreen({ step, onReset, sessionId }: {
-    step: ReportStep | any;
+    step: ResultStepLike;
     onReset: () => void;
     sessionId?: string;
 }) {
@@ -225,7 +225,9 @@ function ResultScreen({ step, onReset, sessionId }: {
     const [emailSent, setEmailSent] = useState(false);
 
     // Handle both 'result' and 'report' property names
-    const result = step.report || step.result || {};
+    const result = step.report ?? step.result ?? null;
+    const conditions: Condition[] = result?.conditions ?? [];
+    const nextSteps: NextStep[] = result?.next_steps ?? [];
 
     const handleExport = async () => {
         if (!sessionId) return;
@@ -274,12 +276,12 @@ function ResultScreen({ step, onReset, sessionId }: {
             </h2>
 
             {/* Conditions/Summary */}
-            {result.conditions && result.conditions.length > 0 && (
+            {conditions.length > 0 && (
                 <div className="space-y-3 mb-6">
                     <h3 className="text-sm font-bold text-stone-500 uppercase tracking-wider">
                         Analysis Results
                     </h3>
-                    {result.conditions.map((condition: any, idx: number) => (
+                    {conditions.map((condition, idx) => (
                         <motion.div
                             key={idx}
                             initial={{ opacity: 0, x: -10 }}
@@ -302,12 +304,12 @@ function ResultScreen({ step, onReset, sessionId }: {
             )}
 
             {/* Next Steps */}
-            {result.next_steps && result.next_steps.length > 0 && (
+            {nextSteps.length > 0 && (
                 <div className="space-y-2 mb-6">
                     <h3 className="text-sm font-bold text-stone-500 uppercase tracking-wider">
                         Recommended Next Steps
                     </h3>
-                    {result.next_steps.map((nextStep: any, idx: number) => (
+                    {nextSteps.map((nextStep, idx) => (
                         <div key={idx} className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/10 flex items-center gap-3">
                             <span className="text-xl">{nextStep.icon}</span>
                             <span className="text-sm text-emerald-900 dark:text-emerald-100">{nextStep.action}</span>
@@ -390,13 +392,13 @@ function EmergencyScreen({ onDismiss }: { onDismiss: () => void }) {
             </div>
 
             <h2 className="text-xl font-bold text-emerald-950 dark:text-emerald-50 text-center mb-4">
-                We're Here For You
+                We&apos;re Here For You
             </h2>
 
             <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 mb-6">
                 <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
                     Based on your responses, we recommend speaking with a professional.
-                    If you're in crisis, please reach out to a crisis hotline immediately.
+                    If you&apos;re in crisis, please reach out to a crisis hotline immediately.
                 </p>
             </div>
 
@@ -411,7 +413,7 @@ function EmergencyScreen({ onDismiss }: { onDismiss: () => void }) {
                     onClick={onDismiss}
                     className="w-full p-4 bg-stone-100 dark:bg-white/10 text-stone-600 dark:text-stone-400 rounded-2xl font-medium"
                 >
-                    I'm feeling better now
+                    I&apos;m feeling better now
                 </button>
             </div>
         </motion.div>
@@ -479,7 +481,7 @@ export const ViewAssessment = ({ onBack }: ViewAssessmentProps) => {
             if (currentStep && 'report' in currentStep) {
                 return (
                     <ResultScreen
-                        step={currentStep as any}
+                        step={currentStep as ReportStep}
                         onReset={resetAssessment}
                     />
                 );

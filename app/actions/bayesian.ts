@@ -27,6 +27,10 @@ export interface BayesianNudgeResult {
 
 export type BayesianHistoryRange = '7d' | '30d' | '90d' | 'all';
 
+type BayesianHistoryPayload = {
+  error?: string;
+} & Record<string, unknown>;
+
 const BASE_CORRECTIONS: Record<string, number> = {
   breathing_exercise: -5,
   meditation: -8,
@@ -64,7 +68,7 @@ function generateNudgeMessage(actionType: string, correction: number): string {
   return `${actionName}完成。皮质醇风险概率修正：${correction}%`;
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -162,7 +166,7 @@ export async function triggerBayesianNudge(
 export async function getBayesianHistory(
   timeRange: BayesianHistoryRange = '30d',
   context?: string | null
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const url = new URL('http://bayesian.local/api/bayesian/history');
     url.searchParams.set('timeRange', timeRange);
@@ -173,9 +177,10 @@ export async function getBayesianHistory(
     const request = new NextRequest(url.toString());
     const response = await getBayesianHistoryRoute(request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as BayesianHistoryPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Failed to load history' };
+      return { success: false, error: payload?.error || 'Failed to load history' };
     }
 
     return { success: true, data };

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import {
     Target, CheckCircle, Circle, ChevronRight,
-    Plus, Loader2, Sparkles, Calendar, X, History, RotateCcw
+    Loader2, Sparkles, Calendar, X, History, RotateCcw
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import MaxPlanDialogSimple from '@/components/max/MaxPlanDialogSimple';
@@ -53,7 +53,6 @@ export default function PlanDashboard() {
     const [updating, setUpdating] = useState<string | null>(null);
     const [showNewPlan, setShowNewPlan] = useState(false);
     const [showMaxPlanDialog, setShowMaxPlanDialog] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [showSuggestion, setShowSuggestion] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [creatingPlan, setCreatingPlan] = useState(false);
@@ -182,7 +181,6 @@ export default function PlanDashboard() {
 
         // API Call
         try {
-            const completedItems = newItems.map(item => ({ id: item.id, completed: item.completed }));
             const allCompleted = newItems.every(i => i.completed);
             const anyCompleted = newItems.some(i => i.completed);
             const status = allCompleted ? 'completed' : anyCompleted ? 'partial' : 'skipped';

@@ -93,7 +93,7 @@ export default function WeatherGreeting() {
         } else {
           fallbackWeather();
         }
-      } catch (error: unknown) {
+      } catch {
         // 超时或失败时静默降级到默认数据，避免控制台警告
         fallbackWeather();
       } finally {

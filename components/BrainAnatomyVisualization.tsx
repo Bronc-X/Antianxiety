@@ -93,7 +93,7 @@ const neuralPathways = [
 
 export default function BrainAnatomyVisualization() {
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
-  const [isRotating, setIsRotating] = useState(true);
+  const [isRotating] = useState(true);
   const [pulsePhase, setPulsePhase] = useState(0);
   const [viewMode, setViewMode] = useState<'sagittal' | 'coronal' | '3d'>('sagittal');
 

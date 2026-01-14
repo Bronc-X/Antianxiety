@@ -31,6 +31,7 @@ interface GeneratedPlan {
 
 export async function POST(request: NextRequest) {
     try {
+        void request;
         const supabase = await createClient();
 
         // Check auth

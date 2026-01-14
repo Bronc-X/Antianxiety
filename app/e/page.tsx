@@ -3,13 +3,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Sparkles, Users, Clock, CheckCircle, ArrowRight, Zap, Brain, Activity, Sliders, GraduationCap } from 'lucide-react';
-import MaxAvatar from '@/components/max/MaxAvatar';
-import MarketingNav from '@/components/MarketingNav';
+import { Users, Clock, CheckCircle, ArrowRight, Zap, Brain, Activity, Sliders, GraduationCap } from 'lucide-react';
 import {
-  UnlearnFeatures,
   UnlearnFooter,
-  LogoTicker,
   ProblemSolution,
   AboutStory,
   MaxShowcase,
@@ -100,7 +96,7 @@ export default function EarlyAccessPage() {
           setRegistrationCount(calculateVirtualCount());
           setRemainingMs(data.remainingMs);
         }
-      } catch (e) {
+      } catch {
         setRegistrationCount(calculateVirtualCount());
       }
     };
@@ -178,7 +174,7 @@ export default function EarlyAccessPage() {
       const data = await res.json();
       setRegistrationCount(data.totalCount);
       setIsSubmitted(true);
-    } catch (err: any) {
+    } catch {
       setError(language === 'en' ? 'Something went wrong. Please try again.' : '出了点问题，请重试。');
     } finally {
       setIsSubmitting(false);

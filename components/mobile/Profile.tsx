@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import {
     Camera, User, Calendar, Target, Award, ChevronRight,
     WifiOff, AlertCircle, LogOut, Edit3
@@ -149,12 +150,14 @@ export function MobileProfile({ profile: hook, onLogout }: MobileProfileProps) {
                 <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6">
                     <div className="flex flex-col items-center">
                         <div className="relative mb-4">
-                            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden">
+                            <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden">
                                 {profile.avatar_url ? (
-                                    <img
+                                    <Image
                                         src={profile.avatar_url}
                                         alt="Avatar"
-                                        className="w-full h-full object-cover"
+                                        fill
+                                        sizes="96px"
+                                        className="object-cover"
                                     />
                                 ) : (
                                     <User className="w-12 h-12 text-white" />

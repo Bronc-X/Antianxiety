@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { User, Activity, Brain, CreditCard, Save, Loader2, Upload, Camera, Link2, Share2, Settings, Zap, Sparkles, Target } from 'lucide-react';
+import Image from 'next/image';
+import { User, Activity, Brain, CreditCard, Save, Loader2, Camera, Link2, Share2, Settings, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
@@ -13,9 +14,25 @@ import { useMaxApi } from '@/hooks/domain/useMaxApi';
 // 懒加载 ImageComparisonSlider - 只在解锁页面需要时才加载
 const ImageComparisonSlider = lazy(() => import('@/components/ImageComparisonSlider'));
 
+interface SettingsProfile {
+  height?: string | number | null;
+  weight?: string | number | null;
+  age?: string | number | null;
+  gender?: string | null;
+  primary_goal?: string | null;
+  ai_personality?: string | null;
+  current_focus?: string | null;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  ai_settings?: {
+    honesty_level?: number | null;
+    humor_level?: number | null;
+  } | null;
+}
+
 interface SettingsClientProps {
   user: { id: string; email?: string };
-  profile: any; // Relaxed type to allow flexible profile data
+  profile: SettingsProfile | null;
 }
 
 type FormState = {
@@ -54,7 +71,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
     max_humor: profile?.ai_settings?.humor_level ?? 65,
   };
 
-  const { update: updateSettingsHook, isSaving: isHookSaving, error: hookError } = useSettings({
+  const { update: updateSettingsHook, error: hookError } = useSettings({
     userId: user.id,
     initialData: initialSettings
   });
@@ -453,6 +470,7 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                     handleChange('ai_personality', 'max');
                   }
                 }}
+                getResponse={getResponse}
                 t={t}
                 language={language}
               />
@@ -512,12 +530,14 @@ export default function SettingsClient({ user, profile }: SettingsClientProps) {
                   </label>
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-[#F2F7F5] border-2 border-[#E7E1D6] flex items-center justify-center">
+                      <div className="relative w-20 h-20 rounded-full overflow-hidden bg-[#F2F7F5] border-2 border-[#E7E1D6] flex items-center justify-center">
                         {formData.avatar_url ? (
-                          <img
+                          <Image
                             src={formData.avatar_url}
                             alt={t('settings.avatarAlt')}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="80px"
+                            className="object-cover"
                           />
                         ) : (
                           <User className="w-8 h-8 text-[#0B3D2E]/40" />
@@ -720,15 +740,30 @@ interface MaxSettingsPanelWhiteProps {
   humorLevel: number;
   onHonestyChange: (value: number) => void;
   onHumorChange: (value: number) => void;
+  getResponse: (payload: MaxFeedbackPayload) => Promise<MaxFeedbackResponse>;
   t: (key: string) => string;
   language: string;
 }
+
+type MaxFeedbackPayload = {
+  context: 'slider_change';
+  sliderType: 'honesty' | 'humor';
+  value: number;
+};
+
+type MaxFeedbackResponse = {
+  response?: {
+    text?: string;
+  };
+  message?: string;
+} | null;
 
 function MaxSettingsPanelWhite({
   honestyLevel,
   humorLevel,
   onHonestyChange,
   onHumorChange,
+  getResponse,
   t,
   language
 }: MaxSettingsPanelWhiteProps) {

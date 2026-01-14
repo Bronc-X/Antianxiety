@@ -2,17 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, Sparkles, MessageCircle, Activity, BookOpen } from 'lucide-react';
+import { ChevronRight, Sparkles, MessageCircle, Activity, BookOpen } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import Link from 'next/link';
 
 interface NewUserGuideProps {
     userId?: string;
     onComplete?: () => void;
 }
 
-export default function NewUserGuide({ userId, onComplete }: NewUserGuideProps) {
-    const { t, language } = useI18n();
+export default function NewUserGuide({ onComplete }: NewUserGuideProps) {
+    const { language } = useI18n();
     const [isVisible, setIsVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
 

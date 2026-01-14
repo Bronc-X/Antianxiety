@@ -203,6 +203,7 @@ async function handleRespond(
   message: string | undefined,
   language: 'zh' | 'en'
 ): Promise<NextResponse<PlanChatResponse>> {
+  void language;
   if (!sessionId || !sessions.has(sessionId)) {
     return NextResponse.json(
       { success: false, error: '会话已过期，请重新开始', sessionId: '', messages: [], dataStatus: { hasInquiryData: false, hasCalibrationData: false, hasHrvData: false }, nextAction: 'complete' as const },
@@ -367,6 +368,7 @@ async function handleSkip(
   sessionId: string | undefined,
   language: 'zh' | 'en'
 ): Promise<NextResponse<PlanChatResponse>> {
+  void language;
   if (!sessionId || !sessions.has(sessionId)) {
     return NextResponse.json(
       { success: false, error: '会话已过期，请重新开始', sessionId: '', messages: [], dataStatus: { hasInquiryData: false, hasCalibrationData: false, hasHrvData: false }, nextAction: 'complete' as const },

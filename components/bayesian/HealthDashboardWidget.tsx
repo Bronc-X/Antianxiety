@@ -39,13 +39,13 @@ const SecuritySliders = () => {
   return (
     <div className="flex items-end justify-between w-full px-4 gap-4 h-full">
       {Array.from({ length: 7 }).map((_, i) => (
-        <SliderItem key={i} index={i} total={7} />
+        <SliderItem key={i} index={i} />
       ))}
     </div>
   );
 };
 
-const SliderItem = ({ index, total }: { index: number; total: number }) => {
+const SliderItem = ({ index }: { index: number }) => {
   const variants = {
     animate: {
       height: ["30%", "75%", "30%"],
@@ -93,11 +93,15 @@ const DataFrequencyBars = () => {
 };
 
 const BarItem = ({ index }: { index: number }) => {
+  const baseHeight = 20 + ((index * 7) % 10);
+  const peakHeight = 40 + ((index * 11) % 40);
+  const duration = 3 + ((index * 5) % 10) / 5;
+
   const variants = {
     animate: {
-      height: [`${20 + Math.random() * 10}%`, `${40 + Math.random() * 40}%`, `${20 + Math.random() * 10}%`],
+      height: [`${baseHeight}%`, `${peakHeight}%`, `${baseHeight}%`],
       transition: {
-        duration: 3 + Math.random() * 2,
+        duration,
         repeat: Infinity,
         repeatType: "mirror" as const,
         ease: "easeInOut" as const,

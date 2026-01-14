@@ -21,7 +21,7 @@ export const ViewVoiceAnalysis = ({ onBack }: ViewVoiceAnalysisProps) => {
         stressLevel: "medium",
         notes: ""
     });
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<unknown | null>(null);
 
     const handleAnalyze = async () => {
         const data = await analyze({

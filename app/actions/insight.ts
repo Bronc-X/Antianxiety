@@ -11,7 +11,11 @@ export interface InsightInput {
   exercise_minutes?: number;
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type InsightPayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -53,7 +57,7 @@ export async function generateInsight(
   }
 }
 
-export async function getFallbackInsight(): Promise<ActionResult<any>> {
+export async function getFallbackInsight(): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://insight.local/fallback', {
       method: 'POST',
@@ -61,9 +65,10 @@ export async function getFallbackInsight(): Promise<ActionResult<any>> {
 
     const response = await fallbackInsightRoute(request as Request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as InsightPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Failed to generate insight' };
+      return { success: false, error: payload?.error || 'Failed to generate insight' };
     }
 
     return { success: true, data };

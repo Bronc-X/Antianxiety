@@ -14,7 +14,7 @@ import { optimizeContextInjection, buildOptimizedContextBlock } from '@/lib/cont
 import { buildFullPersonaSystemPrompt } from '@/lib/persona-prompt';
 
 // 🆕 使用统一的 AI 模型配置
-import { aiClient, getModelPriority, getChatModePriority, logModelCall, type ChatMode } from '@/lib/ai/model-config';
+import { aiClient, getChatModePriority, logModelCall, type ChatMode } from '@/lib/ai/model-config';
 
 // 🆕 导入 AI 记忆系统
 import {
@@ -28,7 +28,6 @@ import {
 import { getInquiryContext, generateInquirySummary } from '@/lib/inquiry-context';
 
 // 🆕 导入 API 工具函数（从合并的 /api/ai/chat）
-import { fetchWithRetry, parseApiError } from '@/lib/apiUtils';
 
 // 🆕 导入主动问询服务
 import {
@@ -711,7 +710,7 @@ export async function POST(req: Request) {
       // ---------------------------------------------------------
       // 🆕 读取当前活跃计划 (user_plans)
       // ---------------------------------------------------------
-      const { data: planData, error: planError } = await supabase
+      const { data: planData } = await supabase
         .from('user_plans')
         .select('*')
         .eq('user_id', userId)
@@ -1012,23 +1011,6 @@ export async function POST(req: Request) {
 ${personalityConfig.style}
 
 注意：在保持专业医学知识的同时，用"${personalityConfig.name}"的风格与用户交流。`;
-
-    // [SYSTEM PROMPT UPDATE]
-    // Add instruction for Dynamic Plan Generation
-    // ---------------------------------------------------------
-    const PLAN_GENERATION_INSTRUCTION = `
-[DYNAMIC PLAN GENERATION RULES]
-1.  **Detailed & Comprehensive**: Plans MUST have at least 5 detailed actionable items.
-2.  **Scientific Context**: Each item MUST include a brief scientific/neurological/psychological explanation (e.g., "Why this works: Increases dopamine baseline...").
-3.  **Dynamic Adaptation**:
-    - If the user says "I can't do [X]", you MUST offer a "Flat Replacement" (平替方案).
-    - A Flat Replacement has the *same biological effect* but is behaviorally different.
-    - Example: "Can't run? Try 'Zone 2 Brisk Walking' - same cardiovascular benefits, lower impact."
-4.  **Format**: Use a numbered list for items.
-    - 1. [Title]
-       - Action: ...
-       - Science: ...
-`;
 
     // ---------------------------------------------------------
     // 生成 AI 回答 (Vercel AI SDK)

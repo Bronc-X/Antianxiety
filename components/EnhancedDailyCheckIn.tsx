@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, startTransition } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mic, MicOff, Send, Sparkles, Calendar, Battery, Lightbulb } from 'lucide-react';
 import AnimatedSection from '@/components/AnimatedSection';
-import { calculateWeeklyBayesianConfidence, getCurrentWeekConfidence, formatConfidencePercentage, getConfidenceColor, getConfidenceIcon } from '@/lib/bayesian-confidence';
+import { getCurrentWeekConfidence, formatConfidencePercentage, getConfidenceColor, getConfidenceIcon } from '@/lib/bayesian-confidence';
 import Slider from '@/components/ui/Slider';
 import ActivityRing, { calculateRingPercentages } from '@/components/ActivityRing';
 import { useProfileMaintenance } from '@/hooks/domain/useProfileMaintenance';
@@ -27,15 +27,7 @@ type DailyWellnessLog = {
   updated_at?: string;
 };
 
-interface DailyCheckInProfile {
-  id?: string;
-  daily_checkin_time?: string | null;
-  sleep_hours?: number | string | null;
-  stress_level?: number | null;
-}
-
 interface EnhancedDailyCheckInProps {
-  initialProfile: DailyCheckInProfile;
   initialLogs: DailyWellnessLog[];
 }
 
@@ -46,35 +38,12 @@ interface VoiceRecording {
   isProcessing: boolean;
 }
 
-// 复用原有的标记数据
-const sleepDurationMarks = [
-  { label: '少于4h', value: 180, indicator: '身体恢复不足' },
-  { label: '4h', value: 240, indicator: '极低睡眠量' },
-  { label: '5h', value: 300, indicator: '偏低睡眠量' },
-  { label: '6h', value: 360, indicator: '临界睡眠量' },
-  { label: '6.5h', value: 390, indicator: '轻度恢复' },
-  { label: '7h', value: 420, indicator: '标准恢复区间' },
-  { label: '7.5h', value: 450, indicator: '充足恢复' },
-  { label: '8h', value: 480, indicator: '优质恢复' },
-  { label: '9h+', value: 540, indicator: '超量恢复 / 需关注原因' },
-];
-
 const sleepQualityMarks = [
   { label: '恢复极佳', value: 'excellent', indicator: '深睡比例高，醒来神清气爽' },
   { label: '恢复良好', value: 'good', indicator: '睡眠结构良好，轻微起夜' },
   { label: '一般', value: 'average', indicator: '可用睡眠，建议优化作息' },
   { label: '浅睡多梦', value: 'poor', indicator: '建议减少屏幕刺激、晚餐过晚等因素' },
   { label: '断续失眠', value: 'very_poor', indicator: '请优先处理焦虑源或寻求专业帮助' },
-];
-
-const exerciseDurationMarks = [
-  { label: '未运动', value: 0, indicator: '今日未计入主动运动' },
-  { label: '10 分钟', value: 10, indicator: '轻量活动，适合启动身体' },
-  { label: '20 分钟', value: 20, indicator: '基础训练量' },
-  { label: '30 分钟', value: 30, indicator: '有效训练，代谢激活' },
-  { label: '45 分钟', value: 45, indicator: '中等负荷，心肺提升' },
-  { label: '60 分钟', value: 60, indicator: '较高训练量，注意补水' },
-  { label: '90 分钟+', value: 90, indicator: '高强度或长时间训练' },
 ];
 
 const moodMarks = [
@@ -86,13 +55,7 @@ const moodMarks = [
   { label: '亢奋躁动', value: '亢奋躁动', indicator: '警惕过度激活，安排舒缓活动' },
 ];
 
-const stressLevelMarks = Array.from({ length: 10 }, (_, i) => ({
-  label: `${i + 1}`,
-  value: i + 1,
-  indicator: i < 3 ? '轻松' : i < 6 ? '中等' : i < 8 ? '较高' : '高压'
-}));
-
-export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: EnhancedDailyCheckInProps) {
+export default function EnhancedDailyCheckIn({ initialLogs }: EnhancedDailyCheckInProps) {
   const router = useRouter();
   const { today, history, isLoading, isSaving, error, loadToday, loadHistory, save } = useCalibrationLog();
   const { refresh: refreshProfile, sync } = useProfileMaintenance();
@@ -205,7 +168,7 @@ export default function EnhancedDailyCheckIn({ initialProfile, initialLogs }: En
         sleepDuration: todayLog.sleep_duration_minutes?.toString() || '',
         sleepQuality: todayLog.sleep_quality || '',
         exerciseDuration: todayLog.exercise_duration_minutes?.toString() || '',
-        exerciseType: (todayLog as any).exercise_type || '',  // 加载运动类型
+        exerciseType: todayLog.exercise_type || '',  // 加载运动类型
         moodStatus: todayLog.mood_status || '',
         stressLevel: todayLog.stress_level?.toString() || '',
         notes: todayLog.notes || '',

@@ -93,7 +93,7 @@ export default function BrutalistDashboard() {
                         >
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <p className="text-xs uppercase tracking-wider text-[#888] mb-2">Today's Readiness</p>
+                                    <p className="text-xs uppercase tracking-wider text-[#888] mb-2">Today&apos;s Readiness</p>
                                     <div className="flex items-baseline gap-2 mb-4">
                                         <span className="text-5xl font-bold">{(todayLog.overall_readiness || 0).toFixed(1)}</span>
                                         <span className="text-xl text-[#888]">/5</span>

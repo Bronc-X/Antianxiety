@@ -5,9 +5,10 @@
  */
 
 import { useState } from 'react';
+import Image from 'next/image';
 import {
-    Save, Camera, User, Calendar, Target, Award,
-    AlertCircle, Check, RefreshCw, LogOut
+    Camera, User, Calendar, Target, Award,
+    AlertCircle, RefreshCw, LogOut
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Skeleton } from '@/components/ui';
 import type { UseProfileReturn } from '@/hooks/domain/useProfile';
@@ -69,14 +70,10 @@ export function DesktopProfile({ profile: hook, onLogout }: DesktopProfileProps)
         last_name: profile?.last_name || '',
         username: profile?.username || '',
     });
-    const [saveSuccess, setSaveSuccess] = useState(false);
-
     const handleSave = async () => {
         const success = await update(formData);
         if (success) {
             setIsEditing(false);
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 3000);
         }
     };
 
@@ -122,9 +119,11 @@ export function DesktopProfile({ profile: hook, onLogout }: DesktopProfileProps)
                         <div className="relative">
                             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden">
                                 {profile.avatar_url ? (
-                                    <img
+                                    <Image
                                         src={profile.avatar_url}
                                         alt="Avatar"
+                                        width={96}
+                                        height={96}
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (

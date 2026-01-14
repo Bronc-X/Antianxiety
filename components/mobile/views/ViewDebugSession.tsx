@@ -13,7 +13,7 @@ interface ViewDebugSessionProps {
 
 export const ViewDebugSession = ({ onBack }: ViewDebugSessionProps) => {
     const { load, isLoading, error } = useDebugSession();
-    const [session, setSession] = useState<any>(null);
+    const [session, setSession] = useState<unknown>(null);
 
     const handleLoad = async () => {
         const result = await load();

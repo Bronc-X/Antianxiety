@@ -3,7 +3,11 @@
 import type { ActionResult } from '@/types/architecture';
 import { POST as betaSignupRoute } from '@/app/api/beta/signup/route';
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type BetaSignupPayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -12,7 +16,7 @@ async function parseJsonResponse(response: Response): Promise<any> {
   }
 }
 
-export async function submitBetaSignup(email: string): Promise<ActionResult<any>> {
+export async function submitBetaSignup(email: string): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://beta.local/signup', {
       method: 'POST',
@@ -22,9 +26,10 @@ export async function submitBetaSignup(email: string): Promise<ActionResult<any>
 
     const response = await betaSignupRoute(request as Request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as BetaSignupPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || '提交失败，请稍后重试' };
+      return { success: false, error: payload?.error || '提交失败，请稍后重试' };
     }
 
     return { success: true, data };

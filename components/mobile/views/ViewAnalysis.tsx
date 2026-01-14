@@ -16,17 +16,10 @@ import {
     RefreshCw,
     ChevronLeft,
     FileText,
-    Sparkles,
-    Calendar
+    Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAnalysis, type TrendData } from "@/hooks/domain/useAnalysis";
-
-const pageVariants = {
-    initial: { opacity: 0, x: 20 },
-    in: { opacity: 1, x: 0 },
-    out: { opacity: 0, x: -20 }
-};
 
 // ============================================
 // Sub-Components

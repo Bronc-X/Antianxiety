@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import {
-    Plus, Check, Trash2, RefreshCw, Target, Calendar,
+    Plus, Check, Trash2, RefreshCw, Target,
     AlertCircle, Flag
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Skeleton } from '@/components/ui';

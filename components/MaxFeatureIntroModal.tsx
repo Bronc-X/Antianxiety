@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Activity, Brain, Shield, Sparkles } from 'lucide-react';
+import { X, Zap, Activity, Brain, Shield } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface MaxFeatureIntroModalProps {

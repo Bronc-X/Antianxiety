@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Sparkles, Loader2, Mic, MicOff } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useMax, type LocalMessage } from '@/hooks/domain/useMax';
-import MaxAvatar from '@/components/max/MaxAvatar';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 
 interface MaxChatPanelProps {
@@ -20,7 +19,6 @@ export default function MaxChatPanel({ isOpen, onClose }: MaxChatPanelProps) {
     const {
         messages,
         addMessage,
-        isLoading: historyLoading,
         isSending,
         newConversation,
         currentConversationId,

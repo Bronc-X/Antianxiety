@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient as createClient } from '@/lib/supabase-server';
 import { generateResponse, generateSliderResponse, generateBeliefResponse, generateRitualCompleteResponse } from '@/lib/max/response-generator';
 import { getDefaultSettings } from '@/lib/max/settings-validator';
-import { ResponseContext, EventType, AISettings } from '@/types/max';
+import { EventType, AISettings } from '@/types/max';
 
 export async function POST(request: NextRequest) {
   try {

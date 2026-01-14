@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Target,
@@ -17,7 +17,6 @@ import {
     ArrowLeft,
     Loader2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useGoals } from '@/hooks/domain/useGoals';
 import { CardGlass } from '@/components/mobile/HealthWidgets';
 
@@ -40,8 +39,7 @@ export const ViewGoals = ({ onBack }: ViewGoalsProps) => {
         isLoading,
         create,
         toggle,
-        remove,
-        refresh
+        remove
     } = useGoals();
 
     const [newGoalText, setNewGoalText] = useState('');

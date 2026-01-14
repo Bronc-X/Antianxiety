@@ -3,7 +3,6 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useI18n } from '@/lib/i18n';
 import { LayoutGrid, Calendar, User, Zap } from 'lucide-react'; // Icons matching screenshot roughly
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 

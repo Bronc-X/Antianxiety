@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, X, Sparkles, Heart, Clock, Dna, Compass } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, Heart, Clock, Dna, Compass } from 'lucide-react';
 import MaxAvatar from '@/components/max/MaxAvatar';
 
 interface TourStep {
@@ -146,10 +146,11 @@ export default function SpotlightTour({ onComplete, onSkip }: SpotlightTourProps
     }, [step, isWelcome]);
 
     useEffect(() => {
-        measureTarget();
+        const timer = setTimeout(() => measureTarget(), 0);
         window.addEventListener('resize', measureTarget);
         window.addEventListener('scroll', measureTarget);
         return () => {
+            clearTimeout(timer);
             window.removeEventListener('resize', measureTarget);
             window.removeEventListener('scroll', measureTarget);
         };
@@ -167,36 +168,6 @@ export default function SpotlightTour({ onComplete, onSkip }: SpotlightTourProps
         if (!isFirstStep) {
             setCurrentStep(prev => prev - 1);
         }
-    };
-
-    // Generate clip-path for spotlight hole
-    const getClipPath = () => {
-        if (!targetRect) return 'none';
-        const padding = 8;
-        const x = targetRect.left - padding;
-        const y = targetRect.top - padding;
-        const w = targetRect.width + padding * 2;
-        const h = targetRect.height + padding * 2;
-        const r = 12;
-
-        // Create a path that covers the whole screen with a rounded rectangle hole
-        return `
-            M 0 0
-            L ${window.innerWidth} 0
-            L ${window.innerWidth} ${window.innerHeight}
-            L 0 ${window.innerHeight}
-            Z
-            M ${x + r} ${y}
-            L ${x + w - r} ${y}
-            Q ${x + w} ${y} ${x + w} ${y + r}
-            L ${x + w} ${y + h - r}
-            Q ${x + w} ${y + h} ${x + w - r} ${y + h}
-            L ${x + r} ${y + h}
-            Q ${x} ${y + h} ${x} ${y + h - r}
-            L ${x} ${y + r}
-            Q ${x} ${y} ${x + r} ${y}
-            Z
-        `;
     };
 
     const colorClasses: Record<string, { bg: string; border: string; text: string }> = {

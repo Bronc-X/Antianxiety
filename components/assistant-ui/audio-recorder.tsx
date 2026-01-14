@@ -45,18 +45,28 @@ export const AudioRecorder: FC<AudioRecorderProps> = ({ onText, onStart, classNa
     }, [onText]);
 
     useEffect(() => {
-        if (isListening) {
-            setDuration(0);
-            timerRef.current = setInterval(() => {
-                setDuration(prev => prev + 1);
-            }, 1000);
+        if (!isListening) {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
             return;
         }
 
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-        }
+        const resetTimer = setTimeout(() => {
+            setDuration(0);
+        }, 0);
+        timerRef.current = setInterval(() => {
+            setDuration(prev => prev + 1);
+        }, 1000);
+
+        return () => {
+            clearTimeout(resetTimer);
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        };
     }, [isListening]);
 
     useEffect(() => {

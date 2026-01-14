@@ -17,10 +17,9 @@ import {
     Trash2,
     MessageCircle,
     X,
-    Menu,
     Clock,
-    Sparkles,
 } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/app/actions/chat';
 
@@ -97,7 +96,13 @@ export function ChatSidebar({
                             <div className="absolute inset-[-50%] z-0 rounded-full bg-[#4ADE80] animate-pulse blur-md opacity-60" style={{ animationDuration: '3s' }} />
                             {/* Avatar */}
                             <div className="relative z-10 w-full h-full rounded-full overflow-hidden shadow-sm">
-                                <img src="/max-avatar.png?v=2" className="w-full h-full object-cover scale-[1.8]" alt="History" />
+                                <Image
+                                    src="/max-avatar.png?v=2"
+                                    alt="History"
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full object-cover scale-[1.8]"
+                                />
                             </div>
                         </div>
                         <span className="font-medium text-white/90">对话历史</span>

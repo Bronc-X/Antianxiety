@@ -262,7 +262,6 @@ async function crawlX(limit: number) {
     console.log(`已添加 ${results.length} 条 X 平台精选内容`);
 
     // 方案2：如果配置了 Twitter API，尝试抓取实时内容（未来扩展）
-    const twitterApiKey = process.env.TWITTER_API_KEY;
     const twitterBearerToken = process.env.TWITTER_BEARER_TOKEN;
 
     if (twitterBearerToken && results.length < limit) {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { MoveHorizontal, Check } from "lucide-react";
 
@@ -73,7 +74,7 @@ export default function ImageComparisonSlider({
     });
 
     return () => unsubscribe();
-  }, [containerWidth, isCompleted, onComplete, x]);
+  }, [containerWidth, isCompleted, onComplete, onProgressChange, x]);
 
   // 动态计算裁切
   const clipPathRight = useTransform(x, (value) => {
@@ -93,9 +94,11 @@ export default function ImageComparisonSlider({
       {/* 1. 底层：黑白 (Before) */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />
       {beforeImage && (
-        <img
+        <Image
           src={beforeImage}
           alt="Before"
+          fill
+          sizes="100vw"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none filter grayscale brightness-75 contrast-125"
         />
       )}
@@ -107,9 +110,11 @@ export default function ImageComparisonSlider({
       >
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500" />
         {afterImage && (
-          <img
+          <Image
             src={afterImage}
             alt="After"
+            fill
+            sizes="100vw"
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
         )}

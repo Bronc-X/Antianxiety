@@ -5,11 +5,14 @@ import { Sun, Moon, Monitor } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function BrutalistThemeSwitcher() {
-    const { theme, setTheme, resolvedTheme } = useTheme();
+    const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
     // Avoid hydration mismatch
-    useEffect(() => setMounted(true), []);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 0);
+        return () => clearTimeout(timer);
+    }, []);
 
     if (!mounted) return null;
 

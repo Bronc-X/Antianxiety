@@ -69,7 +69,7 @@ export function MobileMaxChat() {
                 metadata: { timestamp: new Date().toISOString() },
             });
 
-        } catch (e) {
+        } catch {
             setMessages(prev => [...prev, { role: 'system', content: 'Link failure.' }]);
         } finally {
             setIsSending(false);

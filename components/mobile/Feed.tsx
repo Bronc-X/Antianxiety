@@ -4,7 +4,7 @@
  * Mobile Feed Presentational Component (The Skin - Mobile)
  */
 
-import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     RefreshCw, Bookmark, BookmarkCheck, Clock,
@@ -59,11 +59,13 @@ function MobileFeedCard({
             className={`bg-white rounded-2xl overflow-hidden shadow-sm ${item.is_read ? 'opacity-70' : ''}`}
         >
             {item.image_url && (
-                <div className="aspect-video w-full overflow-hidden">
-                    <img
+                <div className="relative aspect-video w-full overflow-hidden">
+                    <Image
                         src={item.image_url}
                         alt={item.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="100vw"
+                        className="object-cover"
                     />
                 </div>
             )}

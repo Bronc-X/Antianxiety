@@ -26,10 +26,18 @@ export default function WeChatQRLogin({ onSuccess, onError }: WeChatQRLoginProps
     const [error, setError] = useState<string | null>(null);
 
     const onErrorRef = useRef(onError);
+    const onSuccessRef = useRef(onSuccess);
 
     useEffect(() => {
         onErrorRef.current = onError;
-    }, [onError]);
+        onSuccessRef.current = onSuccess;
+    }, [onError, onSuccess]);
+
+    useEffect(() => {
+        if (state === 'success') {
+            onSuccessRef.current?.();
+        }
+    }, [state]);
 
     const fetchQRCode = useCallback(async () => {
         setState('loading');

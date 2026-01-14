@@ -40,6 +40,13 @@ interface ProviderConnectionState {
     lastSync?: string;
 }
 
+function hasLegacyConnections(
+    value: unknown
+): value is { connections: Record<string, ProviderConnectionState> } {
+    if (!value || typeof value !== 'object') return false;
+    return 'connections' in value;
+}
+
 export default function WearableConnect() {
     const { language } = useI18n();
     const { loadStatus: loadWearableStatus } = useWearables();
@@ -57,8 +64,8 @@ export default function WearableConnect() {
         try {
             const data = await loadWearableStatus();
             // Handle both raw JSON format and typed WearableStatus
-            if ((data as any)?.connections) {
-                setConnections((data as any).connections);
+            if (hasLegacyConnections(data) && data.connections) {
+                setConnections(data.connections);
             } else if (data?.providers) {
                 // Map from providers array if connections object is missing
                 const newConnections: Record<string, ProviderConnectionState> = {};

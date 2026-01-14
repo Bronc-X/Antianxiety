@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import AnimatedSection from '@/components/AnimatedSection';
 import { useProfile } from '@/hooks/domain/useProfile';
@@ -36,10 +36,13 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
   const { profile, isLoading, isSaving, error, update } = useProfile();
   const [localError, setLocalError] = useState<string | null>(null);
   const resolvedProfile = profile || initialProfile;
-  const savedPreferences = resolvedProfile?.reminder_preferences || {};
+  const savedPreferences = useMemo(
+    () => resolvedProfile?.reminder_preferences || {},
+    [resolvedProfile]
+  );
   const [aiAutoMode, setAiAutoMode] = useState(Boolean(savedPreferences.ai_auto_mode));
 
-  const buildPreferences = () => {
+  const buildPreferences = useCallback(() => {
     const prefs: Record<string, ReminderPreference> = {};
     reminderActivities.forEach((activity) => {
       const existingPreference = savedPreferences[activity.id] as ReminderPreference | undefined;
@@ -52,14 +55,17 @@ export default function ReminderPreferencesPanel({ initialProfile }: ReminderPre
         };
     });
     return prefs;
-  };
+  }, [savedPreferences]);
 
-  const [preferences, setPreferences] = useState<Record<string, ReminderPreference>>(buildPreferences);
+  const [preferences, setPreferences] = useState<Record<string, ReminderPreference>>(() => buildPreferences());
 
   useEffect(() => {
-    setPreferences(buildPreferences());
-    setAiAutoMode(Boolean(savedPreferences.ai_auto_mode));
-  }, [savedPreferences]);
+    const timer = setTimeout(() => {
+      setPreferences(buildPreferences());
+      setAiAutoMode(Boolean(savedPreferences.ai_auto_mode));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [buildPreferences, savedPreferences]);
 
   const updatePreference = <K extends keyof ReminderPreference>(
     activityId: string,

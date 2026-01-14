@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ReportStep } from '@/types/assessment';
 import { ChevronLeft, Download, Mail, AlertTriangle, Clock, Stethoscope, Home, History, Loader2 } from 'lucide-react';

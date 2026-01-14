@@ -1,12 +1,35 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
-import { FC, useMemo } from "react";
+import { FC, isValidElement } from "react";
 import { PlanSelector } from "./plan-selector";
 import { usePlanSelectorContext } from "./plan-selector-context";
 import type { ParsedPlan } from "@/lib/plan-parser";
+
+type PlanOptionItem = {
+    id?: string | number;
+    text?: string;
+};
+
+type PlanOption = {
+    id?: string | number;
+    title?: string;
+    description?: string;
+    difficulty?: string;
+    duration?: string;
+    items?: PlanOptionItem[];
+};
+
+type PlanOptionsPayload = {
+    options: PlanOption[];
+};
+
+function isPlanOptionsPayload(value: unknown): value is PlanOptionsPayload {
+    if (!value || typeof value !== 'object') return false;
+    const record = value as { options?: unknown };
+    return Array.isArray(record.options);
+}
 
 /**
  * Try to parse plan-options JSON from code block content
@@ -14,18 +37,20 @@ import type { ParsedPlan } from "@/lib/plan-parser";
 function tryParsePlanOptions(content: string): ParsedPlan[] | null {
     try {
         const parsed = JSON.parse(content);
-        if (parsed && Array.isArray(parsed.options)) {
+        if (isPlanOptionsPayload(parsed)) {
             // Convert to ParsedPlan format
-            return parsed.options.map((opt: any) => ({
-                title: opt.title || `方案${opt.id}`,
+            return parsed.options.map((opt, index) => ({
+                title: opt.title || `方案${opt.id ?? index + 1}`,
                 content: opt.description || "",
                 difficulty: opt.difficulty,
                 duration: opt.duration,
-                items: opt.items?.map((item: any) => ({
-                    id: item.id,
-                    text: item.text,
-                    status: "pending" as const,
-                })) || [],
+                items: (opt.items ?? [])
+                    .map((item) => ({
+                        id: item.id ? String(item.id) : undefined,
+                        text: item.text ?? "",
+                        status: "pending" as const,
+                    }))
+                    .filter((item) => item.text.trim().length > 0),
             }));
         }
     } catch {
@@ -35,13 +60,7 @@ function tryParsePlanOptions(content: string): ParsedPlan[] | null {
 }
 
 export const MarkdownText: FC = () => {
-    // Try to get context, but gracefully handle when not available
-    let planContext: ReturnType<typeof usePlanSelectorContext> | null = null;
-    try {
-        planContext = usePlanSelectorContext();
-    } catch {
-        // Context not available, plan selector won't work but markdown will still render
-    }
+    const planContext = usePlanSelectorContext();
 
     return (
         <MarkdownTextPrimitive
@@ -55,9 +74,11 @@ export const MarkdownText: FC = () => {
                     // Check if this pre contains a plan-options code block
                     // If so, render children directly without the pre wrapper
                     const childrenArray = Array.isArray(children) ? children : [children];
-                    const hasPlanOptions = childrenArray.some((child: any) =>
-                        child?.props?.className?.includes('language-plan-options')
-                    );
+                    const hasPlanOptions = childrenArray.some((child) => {
+                        if (!isValidElement(child)) return false;
+                        const className = child.props?.className;
+                        return typeof className === 'string' && className.includes('language-plan-options');
+                    });
 
                     if (hasPlanOptions) {
                         return <>{children}</>;

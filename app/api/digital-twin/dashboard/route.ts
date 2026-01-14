@@ -26,6 +26,7 @@ const STALE_THRESHOLD_MS = 6 * 60 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
   try {
+    void request;
     const supabase = await createServerSupabaseClient();
     
     // 验证用户身份

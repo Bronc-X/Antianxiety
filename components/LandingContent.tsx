@@ -2,22 +2,14 @@
 
 import { useState, useEffect, Suspense, lazy } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { SymptomAssessmentCard, BayesianCycleCard, DailyCalibrationCard } from '@/components/FeatureCards';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { MotionButton } from '@/components/motion/MotionButton';
-import TypewriterText from '@/components/motion/TypewriterText';
-import { CalibrationInput, GeneratedTask } from '@/lib/calibration-service';
 import { useI18n } from '@/lib/i18n';
-import { useInsight } from '@/hooks/domain/useInsight';
 
 
 // 懒加载重型组件 - 显著提升首屏渲染速度
 const WisdomCarousel = lazy(() => import('@/components/WisdomCarousel'));
-const UnifiedDailyCalibration = lazy(() => import('@/components/UnifiedDailyCalibration'));
-const AnimatedSection = lazy(() => import('@/components/AnimatedSection'));
-const JournalShowcase = lazy(() => import('@/components/JournalShowcase'));
 const InfiniteNewsFeed = lazy(() => import('@/components/InfiniteNewsFeed'));
 const ActiveInquiryBanner = lazy(() => import('@/components/ActiveInquiryBanner'));
 const NewUserGuide = lazy(() => import('@/components/NewUserGuide'));
@@ -33,25 +25,31 @@ function LoadingPlaceholder({ height = 'h-32' }: { height?: string }) {
   );
 }
 
-interface LandingContentProps {
-  user: any;
-  profile: any;
-  userState: any;
-  recommendedTask: any;
-  dailyLogs: any[];
-  habitLogs: any[];
+interface LandingUser {
+  id?: string | null;
 }
 
-export default function LandingContent({ user, profile, dailyLogs }: LandingContentProps) {
+interface DailyLog {
+  sleep_duration_minutes?: number | string | null;
+  sleep_hours?: number | string | null;
+  hrv?: number | string | null;
+  stress_level?: number | string | null;
+}
+
+interface LandingContentProps {
+  user: LandingUser | null;
+  profile?: Record<string, unknown> | null;
+  userState?: Record<string, unknown> | null;
+  recommendedTask?: Record<string, unknown> | null;
+  dailyLogs: DailyLog[];
+  habitLogs?: Array<Record<string, unknown>>;
+}
+
+export default function LandingContent({ user, dailyLogs }: LandingContentProps) {
   const { t, language } = useI18n();
-  const { generate, fallback } = useInsight();
-  const [insight, setInsight] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [showAnomalyCard, setShowAnomalyCard] = useState(false);
   const [showInquiry, setShowInquiry] = useState(true);
   const [anomalyQuestion, setAnomalyQuestion] = useState('');
-  const [todayTask, setTodayTask] = useState<GeneratedTask | null>(null);
-  const [assessmentResult, setAssessmentResult] = useState<any | null>(null);
 
   // --- Scroll-Driven Storytelling (Phase 2) ---
   const { scrollY } = useScroll();
@@ -63,93 +61,24 @@ export default function LandingContent({ user, profile, dailyLogs }: LandingCont
 
   // Background Parallax
   const gridY = useTransform(scrollY, [0, 500], [0, 100]);
-  const noiseOpacity = useTransform(scrollY, [0, 300, 600], [0.6, 0.3, 0.6]);
 
   const latestLog = dailyLogs?.[0];
   const previousLog = dailyLogs?.[1];
-  const toNumber = (value: unknown) => {
-    if (value === null || value === undefined) return null;
-    const num = Number(value);
-    return Number.isFinite(num) ? num : null;
-  };
-  const sleepMinutes = toNumber(latestLog?.sleep_duration_minutes);
-  const sleepHours = toNumber(latestLog?.sleep_hours) ?? (sleepMinutes !== null ? sleepMinutes / 60 : null);
-  const hrvValue = toNumber(latestLog?.hrv);
-  const stressLevel = toNumber(latestLog?.stress_level);
-  const biometrics = { sleep: sleepHours, hrv: hrvValue, stress: stressLevel };
-  const canGenerateInsight = biometrics.sleep !== null && biometrics.hrv !== null && biometrics.stress !== null;
-  const canFallbackInsight = biometrics.sleep !== null || biometrics.stress !== null;
 
   useEffect(() => {
     if (latestLog?.hrv && previousLog?.hrv) {
       const hrvDrop = (previousLog.hrv - latestLog.hrv) / previousLog.hrv;
       if (hrvDrop > 0.15) {
-        setShowAnomalyCard(true);
-        setAnomalyQuestion(language === 'en'
-          ? `Your HRV dropped by ${Math.round(hrvDrop * 100)}%. Did any of these happen last night?`
-          : `你的 HRV 下降了 ${Math.round(hrvDrop * 100)}%。昨晚是否有以下情况？`);
+        const timer = setTimeout(() => {
+          setShowAnomalyCard(true);
+          setAnomalyQuestion(language === 'en'
+            ? `Your HRV dropped by ${Math.round(hrvDrop * 100)}%. Did any of these happen last night?`
+            : `你的 HRV 下降了 ${Math.round(hrvDrop * 100)}%。昨晚是否有以下情况？`);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
   }, [latestLog, previousLog, language]);
-
-  // 新的统一评估完成处理
-  const handleAssessmentComplete = (result: any) => {
-    setAssessmentResult(result);
-    console.log('[Assessment] Calibration complete:', result);
-    if (result.triggerFullScale) {
-      console.log('[Assessment] Triggered full scale:', result.triggerFullScale);
-    }
-  };
-
-  useEffect(() => {
-    const today = new Date().toDateString();
-    const lastCalibration = localStorage.getItem('nma_daily_calibration');
-    if (lastCalibration === today) {
-      const savedTask = localStorage.getItem('nma_today_task');
-      if (savedTask) {
-        try {
-          const task = JSON.parse(savedTask) as GeneratedTask;
-          if (!task.descriptionEn) {
-            const descMap: Record<string, string> = {
-              '你的状态良好，可以按正常节奏进行今日活动。': 'Your status is good.',
-              '明白了。今日进入"低耗能模式"，建议午间进行 NSDR（非睡眠深度休息）。': 'Entering low energy mode today.',
-              '了解。建议今晚提前入睡以补充睡眠债务。': 'Recommend sleeping earlier tonight.',
-              '工作压力会提升皮质醇。建议进行盒式呼吸来调节自主神经。': 'Recommend box breathing.',
-              '身体疲劳需要主动恢复。建议进行轻度拉伸促进血液循环。': 'Recommend light stretching.',
-            };
-            task.descriptionEn = descMap[task.description] || task.description;
-          }
-          setTodayTask(task);
-        } catch (e) { console.error(e); }
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!canGenerateInsight && !canFallbackInsight) { setIsLoading(false); return; }
-    const runInsight = async () => {
-      setIsLoading(true);
-      try {
-        if (canGenerateInsight) {
-          const result = await generate({
-            sleep_hours: biometrics.sleep,
-            hrv: biometrics.hrv,
-            stress_level: biometrics.stress,
-          });
-          if (result) {
-            setInsight(result);
-          }
-          return;
-        }
-
-        const fallbackResult = await fallback();
-        if (fallbackResult) {
-          setInsight(fallbackResult);
-        }
-      } catch (err) { console.error(err); } finally { setIsLoading(false); }
-    };
-    runInsight();
-  }, [canGenerateInsight, canFallbackInsight, biometrics.sleep, biometrics.hrv, biometrics.stress, generate, fallback]);
 
   const handleAnomalyAnswer = (trigger: string) => { console.log('Anomaly:', trigger); setShowAnomalyCard(false); };
   const anomalyLabels = language === 'en' ? ['🍷 Alcohol', '🍜 Late Dinner', '😰 High Stress', 'None'] : ['🍷 饮酒', '🍜 晚餐过晚', '😰 压力大', '都没有'];

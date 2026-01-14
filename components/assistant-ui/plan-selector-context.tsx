@@ -18,12 +18,8 @@ interface PlanSelectorContextValue {
 
 const PlanSelectorContext = createContext<PlanSelectorContextValue | null>(null);
 
-export const usePlanSelectorContext = () => {
-    const context = useContext(PlanSelectorContext);
-    if (!context) {
-        throw new Error("usePlanSelectorContext must be used within PlanSelectorProvider");
-    }
-    return context;
+export const usePlanSelectorContext = (): PlanSelectorContextValue | null => {
+    return useContext(PlanSelectorContext);
 };
 
 interface PlanSelectorProviderProps {

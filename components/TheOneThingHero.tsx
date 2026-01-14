@@ -10,7 +10,7 @@ interface TheOneThingHeroProps {
   recommendedTask: RecommendedTask;
 }
 
-export default function TheOneThingHero({ userState, recommendedTask }: TheOneThingHeroProps) {
+export default function TheOneThingHero({ recommendedTask }: TheOneThingHeroProps) {
   const [isChecked, setIsChecked] = useState(false);
   const [showRoutine, setShowRoutine] = useState(false);
 

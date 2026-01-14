@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 
 export const SwipeDesign3 = () => {
     const [reveal, setReveal] = useState(false);

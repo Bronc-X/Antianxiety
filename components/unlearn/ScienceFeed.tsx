@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { ExternalLink, ThumbsUp, ThumbsDown, Loader2, Sparkles, BookOpen, Lightbulb, Tag, TrendingUp, RefreshCw } from 'lucide-react';
@@ -272,26 +272,26 @@ function generateLoadingMessages(language: string): string[] {
 
 function AILoadingState({ language }: { language: string }) {
     const [messageIndex, setMessageIndex] = useState(0);
-    const [messages, setMessages] = useState<string[]>([]);
+    const messages = useMemo(() => generateLoadingMessages(language), [language]);
 
     useEffect(() => {
-        // 组件挂载时生成随机消息
-        const generatedMessages = generateLoadingMessages(language);
-        setMessages(generatedMessages);
-
-        // 随机起始位置
-        setMessageIndex(Math.floor(Math.random() * generatedMessages.length));
+        const initialTimer = setTimeout(() => {
+            setMessageIndex(Math.floor(Math.random() * messages.length));
+        }, 0);
 
         const interval = setInterval(() => {
             setMessageIndex(prev => {
                 // 随机跳跃 1-3 条消息，让它看起来更自然
                 const jump = Math.floor(Math.random() * 3) + 1;
-                return (prev + jump) % generatedMessages.length;
+                return (prev + jump) % messages.length;
             });
         }, 2800); // 约 3 秒切换一次
 
-        return () => clearInterval(interval);
-    }, [language]);
+        return () => {
+            clearTimeout(initialTimer);
+            clearInterval(interval);
+        };
+    }, [messages.length]);
 
     if (messages.length === 0) return null;
 

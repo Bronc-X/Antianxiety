@@ -8,6 +8,8 @@ import { useAiConversation } from "@/hooks/domain/useAiConversation";
 import { useChatConversation } from "@/hooks/domain/useChatConversation";
 import { useChatAI } from "@/hooks/domain/useChatAI";
 import { useMaxApi } from "@/hooks/domain/useMaxApi";
+import type { ChatConversationRow } from "@/app/actions/chat-conversations";
+import type { ConversationRow, RoleType } from "@/types/assistant";
 
 interface ViewMaxLabsProps {
     onBack?: () => void;
@@ -19,21 +21,21 @@ export const ViewMaxLabs = ({ onBack }: ViewMaxLabsProps) => {
     const chatAI = useChatAI();
     const maxApi = useMaxApi();
 
-    const [aiHistory, setAiHistory] = useState<any[]>([]);
-    const [aiRole, setAiRole] = useState("user");
+    const [aiHistory, setAiHistory] = useState<ConversationRow[]>([]);
+    const [aiRole, setAiRole] = useState<RoleType>("user");
     const [aiContent, setAiContent] = useState("");
 
-    const [chatHistory, setChatHistory] = useState<any[]>([]);
-    const [chatRole, setChatRole] = useState("user");
+    const [chatHistory, setChatHistory] = useState<ChatConversationRow[]>([]);
+    const [chatRole, setChatRole] = useState<RoleType>("user");
     const [chatContent, setChatContent] = useState("");
 
     const [payloadJson, setPayloadJson] = useState("{\"message\":\"Hello\"}");
-    const [chatAiResult, setChatAiResult] = useState<any>(null);
+    const [chatAiResult, setChatAiResult] = useState<unknown | null>(null);
     const [papersQuery, setPapersQuery] = useState("stress");
-    const [papersResult, setPapersResult] = useState<any>(null);
+    const [papersResult, setPapersResult] = useState<unknown | null>(null);
 
     const [maxPayload, setMaxPayload] = useState("{\"input\":\"sample\"}");
-    const [maxResult, setMaxResult] = useState<any>(null);
+    const [maxResult, setMaxResult] = useState<unknown | null>(null);
     const [maxSettings, setMaxSettings] = useState("{}");
 
     const loadAiHistory = async () => {
@@ -45,7 +47,7 @@ export const ViewMaxLabs = ({ onBack }: ViewMaxLabsProps) => {
 
     const saveAiMessage = async () => {
         if (!aiContent.trim()) return;
-        const success = await aiConversation.saveMessage({ role: aiRole as any, content: aiContent });
+        const success = await aiConversation.saveMessage({ role: aiRole, content: aiContent });
         if (success) {
             setAiContent("");
             loadAiHistory();
@@ -61,7 +63,7 @@ export const ViewMaxLabs = ({ onBack }: ViewMaxLabsProps) => {
 
     const saveChatMessage = async () => {
         if (!chatContent.trim()) return;
-        const success = await chatConversation.saveMessage({ role: chatRole as any, content: chatContent });
+        const success = await chatConversation.saveMessage({ role: chatRole, content: chatContent });
         if (success) {
             setChatContent("");
             loadChatHistory();
@@ -70,7 +72,7 @@ export const ViewMaxLabs = ({ onBack }: ViewMaxLabsProps) => {
 
     const handleSendPayload = async () => {
         try {
-            const payload = JSON.parse(payloadJson);
+            const payload = JSON.parse(payloadJson) as Record<string, unknown>;
             const result = await chatAI.sendPayload(payload);
             setChatAiResult(result);
         } catch (err) {
@@ -85,7 +87,7 @@ export const ViewMaxLabs = ({ onBack }: ViewMaxLabsProps) => {
 
     const handleMaxAction = async (action: "response" | "belief" | "planChat" | "planReplace") => {
         try {
-            const payload = JSON.parse(maxPayload);
+            const payload = JSON.parse(maxPayload) as Record<string, unknown>;
             const result =
                 action === "response" ? await maxApi.getResponse(payload)
                     : action === "belief" ? await maxApi.submitBelief(payload)
@@ -106,7 +108,7 @@ export const ViewMaxLabs = ({ onBack }: ViewMaxLabsProps) => {
 
     const handleSaveSettings = async () => {
         try {
-            const payload = JSON.parse(maxSettings);
+            const payload = JSON.parse(maxSettings) as Record<string, unknown>;
             const result = await maxApi.saveSettings(payload);
             setMaxResult(result);
         } catch (err) {
@@ -144,7 +146,7 @@ export const ViewMaxLabs = ({ onBack }: ViewMaxLabsProps) => {
                 <div className="flex gap-2">
                     <select
                         value={aiRole}
-                        onChange={(e) => setAiRole(e.target.value)}
+                        onChange={(e) => setAiRole(e.target.value as RoleType)}
                         className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
                     >
                         <option value="user">user</option>
@@ -185,7 +187,7 @@ export const ViewMaxLabs = ({ onBack }: ViewMaxLabsProps) => {
                 <div className="flex gap-2">
                     <select
                         value={chatRole}
-                        onChange={(e) => setChatRole(e.target.value)}
+                        onChange={(e) => setChatRole(e.target.value as RoleType)}
                         className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-white/5 text-sm"
                     >
                         <option value="user">user</option>

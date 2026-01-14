@@ -121,9 +121,12 @@ export function MonthlyCalibration({
     // Load saved progress
     useEffect(() => {
         if (savedProgress && savedProgress.scaleId === scaleType) {
-            setAnswers(savedProgress.answers);
-            setCurrentQuestionIndex(savedProgress.currentIndex);
-            setStep('questions');
+            const timer = setTimeout(() => {
+                setAnswers(savedProgress.answers);
+                setCurrentQuestionIndex(savedProgress.currentIndex);
+                setStep('questions');
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [savedProgress, scaleType]);
 

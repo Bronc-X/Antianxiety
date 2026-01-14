@@ -1,32 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import MaxAvatar from '../max/MaxAvatar';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/domain/useAuth';
-import { Sparkles, MessageCircle, Brain, Heart, Star, ArrowRight, X } from 'lucide-react';
+import { Sparkles, MessageCircle, Brain, Heart, Star } from 'lucide-react';
 
-interface MaxShowcaseProps {
-    onOpenChat?: () => void;
-}
-
-export default function MaxShowcase({ onOpenChat }: MaxShowcaseProps) {
+export default function MaxShowcase() {
     const { language } = useI18n();
-    const router = useRouter();
-    // Use Domain Hook
-    const { isAuthenticated } = useAuth();
 
     const [activeFeature, setActiveFeature] = useState(0);
-
-    const handleChatClick = () => {
-        if (!isAuthenticated) {
-            router.push('/unlearn/login');
-            return;
-        }
-        onOpenChat?.();
-    };
 
     const features = language === 'en' ? [
         {

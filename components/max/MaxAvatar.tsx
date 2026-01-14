@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -102,10 +103,12 @@ export default function MaxAvatar({
                 />
 
                 {/* Avatar Image */}
-                <img
+                <Image
                     src="/max-avatar.png"
                     alt="Max AI"
-                    className="w-full h-full object-cover relative z-[1]"
+                    fill
+                    sizes={`${size}px`}
+                    className="object-cover relative z-[1]"
                     draggable={false}
                 />
             </motion.div>

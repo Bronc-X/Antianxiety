@@ -13,14 +13,19 @@ export function GuideLine({ show, targetPosition }: GuideLineProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    const initialTimer = setTimeout(() => {
+      setIsMounted(true);
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    }, 0);
     
     const handleResize = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(initialTimer);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   // 等待客户端挂载

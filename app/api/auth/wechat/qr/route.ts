@@ -11,6 +11,7 @@ import { getWeChatConfig, generateOAuthState, generateWeChatLoginUrl } from '@/l
  */
 export async function GET(request: NextRequest) {
     try {
+        void request;
         const config = getWeChatConfig();
         const state = generateOAuthState();
 

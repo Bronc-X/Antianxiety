@@ -15,7 +15,11 @@ export interface VoiceAnalysisInput {
   };
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type VoiceAnalysisPayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -26,7 +30,7 @@ async function parseJsonResponse(response: Response): Promise<any> {
 
 export async function analyzeVoiceInput(
   input: VoiceAnalysisInput
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://ai.local/analyze-voice-input', {
       method: 'POST',
@@ -36,9 +40,10 @@ export async function analyzeVoiceInput(
 
     const response = await voiceAnalysisRoute(request as Request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as VoiceAnalysisPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'AI分析失败' };
+      return { success: false, error: payload?.error || 'AI分析失败' };
     }
 
     return { success: true, data };

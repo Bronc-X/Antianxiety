@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Save, RefreshCw, User, Brain, Sliders, WifiOff,
-    Check, ChevronRight, AlertCircle
+    ChevronRight, AlertCircle
 } from 'lucide-react';
 import { useHaptics, ImpactStyle } from '@/hooks/useHaptics';
 import type { UseSettingsReturn } from '@/hooks/domain/useSettings';

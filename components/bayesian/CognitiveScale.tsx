@@ -76,55 +76,6 @@ const GlowRing: React.FC<{ color: string; size: number; intensity?: number }> = 
   />
 );
 
-// 砝码组件
-const Weight: React.FC<{ 
-  value: number; 
-  color: string; 
-  delay?: number;
-  size?: 'sm' | 'md' | 'lg';
-}> = ({ value, color, delay = 0, size = 'md' }) => {
-  const sizeMap = { sm: 28, md: 36, lg: 44 };
-  const s = sizeMap[size];
-  
-  return (
-    <motion.div
-      className="relative flex items-center justify-center"
-      initial={{ y: -30, opacity: 0, scale: 0.5 }}
-      animate={{ y: 0, opacity: 1, scale: 1 }}
-      transition={{ 
-        type: 'spring', 
-        stiffness: 300, 
-        damping: 20,
-        delay 
-      }}
-      style={{ width: s, height: s }}
-    >
-      {/* 发光效果 */}
-      <div 
-        className="absolute inset-0 rounded-lg"
-        style={{
-          background: `radial-gradient(circle at 30% 30%, ${color}40, ${color}10)`,
-          boxShadow: `0 0 20px ${color}30, inset 0 1px 1px rgba(255,255,255,0.2)`,
-        }}
-      />
-      {/* 砝码主体 */}
-      <div 
-        className="relative rounded-lg flex items-center justify-center font-medium text-xs"
-        style={{
-          width: s - 4,
-          height: s - 4,
-          background: `linear-gradient(135deg, ${color}30 0%, ${color}15 100%)`,
-          border: `1px solid ${color}50`,
-          color: color,
-          textShadow: `0 0 10px ${color}`,
-        }}
-      >
-        {value}%
-      </div>
-    </motion.div>
-  );
-};
-
 // ============================================
 // Main Component
 // ============================================

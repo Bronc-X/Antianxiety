@@ -10,7 +10,11 @@ export interface UnderstandingScoreOptions {
   days?: number;
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type UnderstandingScorePayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -21,7 +25,7 @@ async function parseJsonResponse(response: Response): Promise<any> {
 
 export async function getUnderstandingScore(
   options: UnderstandingScoreOptions = {}
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const url = new URL('http://understanding.local/api/understanding-score');
     if (options.userId) {
@@ -37,9 +41,10 @@ export async function getUnderstandingScore(
     const request = new NextRequest(url.toString());
     const response = await understandingScoreRoute(request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as UnderstandingScorePayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Failed to load score' };
+      return { success: false, error: payload?.error || 'Failed to load score' };
     }
 
     return { success: true, data };

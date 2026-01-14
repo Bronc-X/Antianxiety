@@ -1,3 +1,88 @@
+## 2026-01-13 - 移动端 Curated Feed 已读记录 + Onboarding 流程 UI ✅
+
+### 🎯 核心更新
+1. Curated Feed 打开即记录：新增 `markCuratedRead`（`app/actions/feed.ts`）+ `useCuratedFeed.markRead`，移动端打开来源即写入 `curated_feed_queue` 并在 UI 标记已读。
+2. Mobile Onboarding Flow：替换 JSON 实验输入，按 Step 1-5 表单化，进度条 + 完成态 + 离线提示（`components/mobile/views/ViewAdaptiveOnboarding.tsx`）。
+3. Hooks ↔ UI 完整对照表（全部 hooks，包含原生/核心业务）：见下方。
+
+### ✅ Hooks ↔ UI 对照表（Domain Hooks | 核心业务）
+
+#### 认证与用户画像
+- `useAuth` → `components/AIAssistantFloatingButton.tsx`, `components/GlobalNav.tsx`, `components/UserProfileMenu.tsx`, `components/unlearn/MaxFloatingButton.tsx`, `components/unlearn/ParticipantDigitalTwin.tsx`, `components/unlearn/MaxShowcase.tsx`, `components/marketing/brutalist/BrutalistDashboard.tsx`, `components/unlearn/UnlearnNav.tsx`, `components/marketing/brutalist/BrutalistNav.tsx`, `components/marketing/brutalist/BrutalistCalibration.tsx`, `components/marketing/brutalist/BrutalistPlans.tsx`, `components/marketing/brutalist/BrutalistMax.tsx`, `components/marketing/brutalist/BrutalistAuth.tsx`, `components/marketing/brutalist/BrutalistProfile.tsx`, `components/mobile/views/ViewProfile.tsx`, `components/mobile/views/ViewLogin.tsx`, `components/LogoutButton.tsx`, `components/mobile/views/ViewRegister.tsx`, `components/mobile/Calibration.tsx`, `components/mobile/views/ViewSettings.tsx`, `app/unlearn/login/page.tsx`, `app/unlearn/update-password/page.tsx`, `app/unlearn/max/page.tsx`, `app/unlearn/signup/page.tsx`, `app/unlearn/layout-client.tsx`, `app/unlearn/settings/page.tsx`
+- `useAuthProviders` → `components/auth/WeChatQRLogin.tsx`, `components/mobile/views/ViewLogin.tsx`, `app/unlearn/login/page.tsx`
+- `useProfile` → `components/AIAssistantFloatingButton.tsx`, `components/OnboardingForm.tsx`, `components/GlobalNav.tsx`, `components/ReminderPreferencesPanel.tsx`, `components/PersonalizedLandingContent.tsx`, `components/settings/BasicInfoPanel.tsx`, `components/settings/HealthInfoPanel.tsx`, `components/marketing/brutalist/BrutalistProfile.tsx`, `components/unlearn/ParticipantDigitalTwin.tsx`, `components/unlearn/UnlearnNav.tsx`, `components/mobile/views/ViewProfile.tsx`, `components/desktop/Profile 2.tsx`, `components/DailyCheckInPanel.tsx`, `components/desktop/Profile.tsx`, `components/mobile/views/ViewProfileSetup.tsx`, `components/mobile/views/ViewOnboarding.tsx`, `components/ProfileSettingsPanel.tsx`, `components/mobile/views/ViewSettings.tsx`, `components/SettingsPanel.tsx`, `components/mobile/views/ViewDailyQuestionnaire.tsx`, `components/mobile/Profile.tsx`, `components/HealthProfileForm.tsx`, `app/unlearn/max/page.tsx`, `app/unlearn/settings/page.tsx`
+- `useProfileMaintenance` → `components/WeeklyCalibration.tsx`, `components/DailyInsightHub.tsx`, `components/HealthProfileForm.tsx`, `components/MonthlyCalibration.tsx`, `components/EnhancedDailyCheckIn.tsx`, `components/DailyQuestionnaire.tsx`, `components/unlearn/PlanDashboard.tsx`, `components/unlearn/ScienceFeed.tsx`
+- `useAssistantProfile` → `components/mobile/views/ViewAdaptiveOnboarding.tsx`, `components/AIAssistantProfileForm.tsx`
+- `useBetaSignup` → `components/BetaSignupModal.tsx`, `components/mobile/views/ViewRegister.tsx`
+
+#### Onboarding 与临床评估
+- `useOnboarding` → `app/unlearn/onboarding/profile/page.tsx`, `components/mobile/views/ViewAdaptiveOnboarding.tsx`
+- `useAdaptiveOnboarding` → `components/AdaptiveOnboardingFlow.tsx`, `components/mobile/views/ViewAdaptiveOnboarding.tsx`
+- `useClinicalOnboarding` → `components/ClinicalOnboarding.tsx`, `components/mobile/views/ViewOnboarding.tsx`
+- `useAssessment` → `components/mobile/views/ViewAssessment.tsx`
+- `useAssessmentLibrary` → `components/mobile/views/ViewAssessment.tsx`
+- `useAssessmentReport` → `components/mobile/views/ViewAssessment.tsx`, `components/assessment/ReportView.tsx`
+
+#### 计划与目标
+- `usePlans` → `components/PlanStatsPanel.tsx`, `components/AIAssistantFloatingChat.tsx`, `components/mobile-dark/MobilePlansList.tsx`, `components/DashboardPlans.tsx`, `components/max/MaxPlanDialogSimple.tsx`, `components/max/MaxPlanDialog.tsx`, `components/unlearn/PlanDashboard.tsx`, `components/marketing/brutalist/BrutalistPlans.tsx`, `components/desktop/Plans.tsx`, `components/mobile/Plans.tsx`, `components/mobile/views/ViewPlan.tsx`, `components/mobile/views/ViewDashboard.tsx`, `components/mobile/views/ViewPlanDetail.tsx`, `app/unlearn/max/MaxPageClient.tsx`
+- `useGoals` → `components/mobile/views/ViewGoals.tsx`, `components/desktop/Goals.tsx`, `components/mobile/Goals.tsx`
+- `usePhaseGoals` → `components/PhaseGoalsDisplay.tsx`, `components/mobile/views/ViewAdaptiveOnboarding.tsx`
+- `useChatToPlan` → `components/chat/ChatPlanSelector.tsx`, `components/mobile/views/ViewMax.tsx`
+
+#### 校准与日常记录
+- `useCalibration` → `components/UnifiedDailyCalibration.tsx`, `components/unlearn/DailyCalibration.tsx`, `components/desktop/Calibration.tsx`, `components/desktop/Calibration 2.tsx`, `components/mobile/views/ViewCalibration.tsx`, `components/mobile/Calibration.tsx`
+- `useCalibrationLog` → `components/EnhancedDailyCheckIn.tsx`, `components/marketing/brutalist/BrutalistCalibration.tsx`, `components/mobile/views/ViewCalibration.tsx`, `components/DailyCheckInPanel.tsx`, `app/unlearn/max/page.tsx`
+- `useDailyQuestionnaire` → `components/mobile-dark/MobileDailyQuestionnaire.tsx`, `components/DailyQuestionnaire.tsx`, `components/DailyInsightHub.tsx`
+- `useScaleCalibration` → `components/WeeklyCalibration.tsx`, `components/MonthlyCalibration.tsx`, `components/mobile/views/ViewWeeklyCalibration.tsx`, `components/mobile/views/ViewCalibration.tsx`, `components/mobile/views/ViewMonthlyCalibration.tsx`
+
+#### 科学内容 / 洞察 / Bayesian
+- `useFeed` → `components/PersonalizedFeed.tsx`, `components/unlearn/ScienceFeed.tsx`, `components/desktop/Feed 2.tsx`, `components/desktop/Feed.tsx`, `components/mobile/Feed.tsx`, `components/mobile/views/ViewScience.tsx`, `components/mobile/views/ViewArticleReader.tsx`, `components/mobile/views/ViewPlan.tsx`
+- `useCuratedFeed` → `components/InfiniteNewsFeed.tsx`, `components/mobile/views/ViewCuratedFeed.tsx`
+- `useInsight` → `components/mobile/views/ViewInsightEngine.tsx`, `components/LandingContent.tsx`
+- `useDeepInference` → `components/mobile/views/ViewInsightEngine.tsx`, `components/DeepInferenceModal.tsx`
+- `useUnderstandingScore` → `components/mobile/views/ViewInsightEngine.tsx`, `components/UnderstandingScoreWidget.tsx`, `components/unlearn/FeedbackLoop.tsx`
+- `useAskMaxExplain` → `components/unlearn/ParticipantDigitalTwin.tsx`, `components/mobile/views/ViewInsightEngine.tsx`
+- `useBayesianHistory` → `components/mobile/views/ViewBayesianLoop.tsx`
+- `useBayesianNudgeAction` → `components/mobile/views/ViewBayesianLoop.tsx`
+- `useVoiceAnalysis` → `components/EnhancedDailyCheckIn.tsx`, `components/mobile/views/ViewVoiceAnalysis.tsx`
+- `useAnalysis` → `components/mobile/views/ViewAnalysis.tsx`
+
+#### Max / Chat
+- `useMax` → `components/assistant-ui/use-max-runtime.tsx`, `components/unlearn/MaxChatPanel.tsx`, `components/desktop/MaxChat.tsx`, `components/desktop/MaxChat 2.tsx`, `components/mobile/MaxChat.tsx`, `components/mobile/views/ViewMax.tsx`, `app/unlearn/max/MaxPageClient.tsx`
+- `useChatAI` → `components/AIAssistantChat.tsx`, `components/mobile-dark/MobileMaxChat.tsx`, `components/AIAssistantFloatingChat.tsx`, `components/marketing/brutalist/BrutalistMax.tsx`, `components/mobile/views/ViewMaxLabs.tsx`
+- `useChatConversation` → `components/AIAssistantFloatingChat.tsx`, `components/marketing/brutalist/BrutalistMax.tsx`, `components/mobile/views/ViewMaxLabs.tsx`
+- `useAiConversation` → `components/AIAssistantChat.tsx`, `components/mobile-dark/MobileMaxChat.tsx`, `components/mobile/views/ViewMaxLabs.tsx`
+- `useMaxApi` → `app/settings/SettingsClient.tsx`, `components/max/MaxPlanDialogSimple.tsx`, `components/max/ReframingRitual.tsx`, `components/max/MaxSettings.tsx`, `components/max/MaxPlanDialog.tsx`, `components/bayesian/ritual/BayesianRitualModal.tsx`, `components/mobile/views/ViewMaxLabs.tsx`
+
+#### 主动问询 / Habits / Dashboard / Settings
+- `useInquiry` → `components/ActiveInquiryBanner.tsx`, `components/unlearn/AIInquiryPanel.tsx`, `components/mobile/views/ViewInquiryCenter.tsx`
+- `useProactiveInquiry` → `components/max/ProactiveInquiryManager.tsx`, `components/mobile/views/ViewInquiryCenter.tsx`, `components/max/ProactiveInquiryManager 2.tsx`
+- `useHabits` → `components/HabitForm.tsx`, `components/mobile/views/ViewHabits.tsx`, `components/HabitList.tsx`
+- `useDashboard` → `components/marketing/brutalist/BrutalistDashboard.tsx`, `components/desktop/Dashboard.tsx`, `components/mobile/views/ViewDashboard.tsx`, `components/mobile/Dashboard.tsx`
+- `useDigitalTwinCurve` → `app/test/digital-twin-curve/page.tsx`, `components/unlearn/ParticipantDigitalTwin.tsx`, `components/mobile/views/ViewDigitalTwin.tsx`, `components/desktop/DigitalTwin.tsx`
+- `useSettings` → `components/desktop/Settings 2.tsx`, `components/desktop/Settings.tsx`, `components/mobile/Settings.tsx`, `components/mobile/views/ViewSettings.tsx`, `app/settings/SettingsClient.tsx`
+- `useAiReminders` → `components/AIReminderList.tsx`, `components/mobile/views/ViewAiReminders.tsx`
+- `useWearables` → `components/settings/WearableConnectionManager.tsx`, `components/unlearn/HRVDashboard.tsx`, `components/unlearn/WearableConnect.tsx`, `components/mobile/views/ViewWearables.tsx`, `app/native/page.tsx`
+- `useDebugSession` → `components/mobile/views/ViewDebugSession.tsx`
+
+### ✅ Hooks ↔ UI 对照表（Native/Device Hooks）
+- `useHealthKitBackgroundSync` → `app/native/page.tsx` (HealthKit 后台同步监听)
+- `useSpeechRecognition` → `components/EnhancedDailyCheckIn.tsx`, `components/assistant-ui/audio-recorder.tsx`, `components/unlearn/MaxChatPanel.tsx`, `components/mobile/views/ViewMax.tsx`
+- `useHaptics` → `components/mobile/MaxChat.tsx`, `components/mobile/Dashboard.tsx`, `components/mobile/Feed.tsx`, `components/mobile/Goals.tsx`, `components/mobile/Plans.tsx`, `components/mobile/Settings.tsx`, `components/mobile/views/ViewWeeklyCalibration.tsx`, `components/mobile/views/ViewCalibration.tsx`, `components/mobile/Calibration.tsx`, `components/mobile/Profile.tsx`, `components/mobile/views/ViewMonthlyCalibration.tsx`, `components/mobile/views/ViewAssessment.tsx`, `components/mobile/views/ViewSettings.tsx`
+- `useBrowser` → `components/ExternalLink.tsx`, `components/mobile/views/ViewLogin.tsx`, `components/mobile/views/ViewCuratedFeed.tsx`, `components/mobile/views/ViewWearables.tsx`
+
+### ✅ Hooks ↔ UI 对照表（Utility/UX Hooks）
+- `useLottie` → `components/lottie/SuccessAnimation.tsx`, `components/lottie/LoadingAnimation.tsx`, `components/lottie/BrainLoader.tsx`, `components/lottie/EmptyStateAnimation.tsx`
+
+### ⚠️ 未直接接入 UI / 仅内部使用
+- `useBayesianNudge` → 当前未在 `app/` 或 `components/` 直接引用
+- `useNetwork` → 仅被 `useOnboarding` 内部使用
+- `usePreferences` → 当前未在 `app/` 或 `components/` 直接引用
+- `useProfileSync` → 当前未在 `app/` 或 `components/` 直接引用
+- `hooks/domain/* 2.ts` → 重复/备份文件，未在 UI 层引用
+
+---
+
 ## 2026-01-11 - iOS 原生能力扩展 (Native Capabilities) 📱
 
 ### 🎯 核心更新

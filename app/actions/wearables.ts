@@ -17,7 +17,11 @@ export interface WearablesSyncInput {
   daysBack?: number;
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type WearablesPayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -26,14 +30,15 @@ async function parseJsonResponse(response: Response): Promise<any> {
   }
 }
 
-export async function getWearablesStatus(): Promise<ActionResult<any>> {
+export async function getWearablesStatus(): Promise<ActionResult<unknown>> {
   try {
     const request = new NextRequest('http://wearables.local/api/wearables/sync');
     const response = await getWearablesRoute(request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as WearablesPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Failed to load wearables status' };
+      return { success: false, error: payload?.error || 'Failed to load wearables status' };
     }
 
     return { success: true, data };
@@ -45,7 +50,7 @@ export async function getWearablesStatus(): Promise<ActionResult<any>> {
 
 export async function syncWearables(
   input: WearablesSyncInput = {}
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://wearables.local/api/wearables/sync', {
       method: 'POST',
@@ -55,9 +60,10 @@ export async function syncWearables(
 
     const response = await syncWearablesRoute(request as Request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as WearablesPayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || 'Sync failed' };
+      return { success: false, error: payload?.error || 'Sync failed' };
     }
 
     return { success: true, data };

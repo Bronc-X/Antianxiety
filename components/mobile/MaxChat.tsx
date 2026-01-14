@@ -200,7 +200,7 @@ export function MobileMaxChat({ max, onSendMessage, onBack }: MobileMaxChatProps
                         >
                             <Bot className="w-10 h-10 text-white" />
                         </motion.div>
-                        <h2 className="text-lg font-semibold text-gray-900 mb-1">Hi, I'm Max</h2>
+                        <h2 className="text-lg font-semibold text-gray-900 mb-1">Hi, I&apos;m Max</h2>
                         <p className="text-sm text-gray-500 max-w-xs">
                             Your personal AI health companion. Ask me anything about your wellness journey.
                         </p>

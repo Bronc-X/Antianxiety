@@ -294,7 +294,6 @@ export function calculateWeek0Values(
     let energyLevel_w0: number;
     let stressResilience_w0: number;
     let moodStability_w0: number;
-    let anxietyScore_w0: number;
     let hrvScore_w0: number;
 
     // 1. 睡眠质量 (Sleep)
@@ -325,7 +324,7 @@ export function calculateWeek0Values(
     if (physioScore !== null) {
         anxietyHealth = 0.6 * anxietyHealth + 0.4 * physioScore;
     }
-    anxietyScore_w0 = 100 - anxietyHealth; // 转回 "越高越焦虑"
+    const anxietyScore_w0 = 100 - anxietyHealth; // 转回 "越高越焦虑"
 
     // 4. 抗压韧性 (Stress Resilience)
     // 逻辑: PSS10 + 主观压力 + 生理(HRV是核心指标)

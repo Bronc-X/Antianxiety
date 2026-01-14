@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { Activity, Brain, AlertTriangle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';

@@ -9,9 +9,9 @@
  * Requirements: 2.5 - Sync Phase Goals to Settings page
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Edit3, Loader2, Check, X, AlertCircle, Sparkles } from 'lucide-react';
+import { Target, Edit3, Loader2, Check, AlertCircle, Sparkles } from 'lucide-react';
 import type { PhaseGoal, GoalType } from '@/types/adaptive-interaction';
 import { useI18n } from '@/lib/i18n';
 import { usePhaseGoals } from '@/hooks/domain/usePhaseGoals';
@@ -41,12 +41,7 @@ export default function PhaseGoalsDisplay({ userId, onGoalChange }: PhaseGoalsDi
   const [selectedAlternative, setSelectedAlternative] = useState<GoalType | null>(null);
   const [isModifying, setIsModifying] = useState(false);
 
-  // Fetch user's Phase Goals
-  useEffect(() => {
-    fetchGoals();
-  }, [userId]);
-
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -63,7 +58,12 @@ export default function PhaseGoalsDisplay({ userId, onGoalChange }: PhaseGoalsDi
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [loadGoals, t, userId]);
+
+  // Fetch user's Phase Goals
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
 
   // Handle edit button click - fetch explanation
   const handleEditClick = async (goal: PhaseGoal) => {

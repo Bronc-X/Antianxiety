@@ -65,7 +65,7 @@ export default function BrutalistHero() {
                             className="brutalist-body-lg max-w-xl mb-12"
                             style={{ color: '#CCCCCC' }}
                         >
-                            The world's first Bio-Digital Twin that runs <span style={{ color: '#FFFFFF', fontWeight: 600 }}>100% on-device</span>.
+                            The world&apos;s first Bio-Digital Twin that runs <span style={{ color: '#FFFFFF', fontWeight: 600 }}>100% on-device</span>.
                             Stop chasing linear algorithms. Start listening to your biology.
                         </motion.p>
 

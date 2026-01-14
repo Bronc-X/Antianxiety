@@ -11,6 +11,7 @@ import { getUnifiedProfile, shouldReaggregate, aggregateUserProfile } from '@/li
 
 export async function GET(request: NextRequest) {
     try {
+        void request;
         const cookieStore = cookies();
         const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 

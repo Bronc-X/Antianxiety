@@ -6,15 +6,11 @@ import {
     X,
     Trash2,
     Pause,
-    Play,
     Archive,
-    Clock,
-    Calendar,
-    Zap,
     CheckCircle2,
     Circle
 } from "lucide-react";
-import { usePlans, type PlanData } from "@/hooks/domain/usePlans";
+import { type PlanData } from "@/hooks/domain/usePlans";
 import { cn } from "@/lib/utils";
 
 interface ViewPlanDetailProps {

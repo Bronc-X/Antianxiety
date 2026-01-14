@@ -4,11 +4,15 @@ import type { ActionResult } from '@/types/architecture';
 import { POST as deepInferenceRoute } from '@/app/api/ai/deep-inference/route';
 
 export interface DeepInferenceInput {
-  analysisResult: any;
-  recentLogs: any[];
+  analysisResult: Record<string, unknown>;
+  recentLogs: Array<Record<string, unknown>>;
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type DeepInferencePayload = {
+  error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -19,7 +23,7 @@ async function parseJsonResponse(response: Response): Promise<any> {
 
 export async function getDeepInference(
   input: DeepInferenceInput
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://ai.local/deep-inference', {
       method: 'POST',
@@ -29,9 +33,10 @@ export async function getDeepInference(
 
     const response = await deepInferenceRoute(request as Request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as DeepInferencePayload) : null;
 
     if (!response.ok) {
-      return { success: false, error: data?.error || '获取推演数据失败' };
+      return { success: false, error: payload?.error || '获取推演数据失败' };
     }
 
     return { success: true, data };

@@ -152,13 +152,13 @@ export function EvidenceRain({
     }, staggerDelay * 1000);
 
     return () => clearInterval(timer);
-  }, [evidences.length, staggerDelay]);
+  }, [evidences.length, onComplete, staggerDelay]);
 
   // Call onComplete when all evidences are visible
   useEffect(() => {
     if (visibleCount >= evidences.length && evidences.length > 0 && !isComplete) {
-      setIsComplete(true);
       const timer = setTimeout(() => {
+        setIsComplete(true);
         onComplete();
       }, 1000); // Wait 1 second after last evidence
       return () => clearTimeout(timer);

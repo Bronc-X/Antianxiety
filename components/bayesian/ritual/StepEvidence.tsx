@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, FileText, Search, ArrowRight, Loader2, Database } from 'lucide-react';
+import { Activity, FileText, ArrowRight, Loader2, Database } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Paper } from '@/types/max';
 
@@ -101,7 +101,7 @@ export default function StepEvidence({ onEvidenceCollected, onNext }: StepEviden
                                     key={i}
                                     className="w-1.5 bg-[#264653] rounded-full"
                                     animate={{
-                                        height: isScanning ? [10, 40 + Math.random() * 40, 10] : 20,
+                                        height: isScanning ? [10, 30 + ((i * 17) % 40), 10] : 20,
                                         opacity: isScanning ? 0.8 : 0.2
                                     }}
                                     transition={{
