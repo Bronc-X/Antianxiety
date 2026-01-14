@@ -53,8 +53,9 @@ interface SyncRequest {
 }
 
 export async function POST(request: NextRequest) {
-    try {
-        const supabase = await createClient();
+  try {
+    void request;
+    const supabase = await createClient();
 
         // Check auth
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -185,6 +186,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
     try {
+        void request;
         const supabase = await createClient();
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();

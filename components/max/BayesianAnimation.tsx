@@ -11,7 +11,7 @@
  * @module components/max/BayesianAnimation
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 
 interface BayesianAnimationProps {

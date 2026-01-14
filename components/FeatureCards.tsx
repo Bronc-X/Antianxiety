@@ -351,5 +351,7 @@ export const DailyCalibrationCard = ({ isCompleted = false, onStart }: { isCompl
   );
 };
 
-export default { SymptomAssessmentCard, BayesianCycleCard, DailyCalibrationCard };
+const FeatureCards = { SymptomAssessmentCard, BayesianCycleCard, DailyCalibrationCard };
+
+export default FeatureCards;
 

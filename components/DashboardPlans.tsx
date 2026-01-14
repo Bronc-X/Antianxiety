@@ -22,7 +22,7 @@ export default function DashboardPlans({ }: DashboardPlansProps) {
     }, 30000);
 
     // 监听全局事件，当保存新计划时自动刷新
-    const handlePlanSaved = (event: Event) => {
+    const handlePlanSaved = () => {
       console.log('🔔 DashboardPlans: 收到 planSaved 事件，刷新计划列表');
       refresh();
     };

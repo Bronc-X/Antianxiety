@@ -145,12 +145,12 @@ export default function AppDashboard() {
                     if (!cancelled) {
                         setCity(cityName || null);
                     }
-                } catch (error) {
+                } catch {
                     if (!cancelled) {
                         setCity(null);
                     }
                 }
-            } catch (error) {
+            } catch {
                 if (!cancelled) {
                     setWeatherStatus('error');
                 }

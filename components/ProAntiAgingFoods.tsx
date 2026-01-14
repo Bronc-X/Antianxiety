@@ -193,7 +193,7 @@ export default function ProAntiAgingFoods() {
               {t('Scientific Backing', '科學背書')}
             </p>
             <p className="text-[#0B3D2E]/70 text-xs leading-relaxed">
-              <span className="font-semibold">Arora et al., 2024.</span> "AgeXtend: Artificial Intelligence for Discovery of Anti-Aging Molecules."
+              <span className="font-semibold">Arora et al., 2024.</span> &ldquo;AgeXtend: Artificial Intelligence for Discovery of Anti-Aging Molecules.&rdquo;
               <span className="italic"> Nature Aging</span>, DOI: 10.1038/s43587-024-00763-4
             </p>
           </div>

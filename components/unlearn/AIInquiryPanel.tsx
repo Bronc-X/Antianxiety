@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Sparkles, ChevronRight, X, Brain, Loader2 } from 'lucide-react';
+import { Sparkles, ChevronRight, X, Brain, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useInquiry } from '@/hooks/domain/useInquiry';
 
@@ -33,25 +33,7 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
     const [selectedOption, setSelectedOption] = useState<string | null>(null); // New state
     const [dismissed, setDismissed] = useState(false);
 
-    useEffect(() => {
-        fetchPendingInquiry();
-    }, [language]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetchPendingInquiry();
-        }, 60000);
-
-        const handleFocus = () => fetchPendingInquiry();
-        window.addEventListener('focus', handleFocus);
-
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener('focus', handleFocus);
-        };
-    }, [language]);
-
-    const fetchPendingInquiry = async () => {
+    const fetchPendingInquiry = useCallback(async () => {
         try {
             setLoading(true);
             const data = await loadPending(language === 'zh-TW' ? 'zh' : language);
@@ -68,7 +50,25 @@ export default function AIInquiryPanel({ onInquiryComplete }: AIInquiryPanelProp
         } finally {
             setLoading(false);
         }
-    };
+    }, [language, loadPending]);
+
+    useEffect(() => {
+        fetchPendingInquiry();
+    }, [fetchPendingInquiry]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchPendingInquiry();
+        }, 60000);
+
+        const handleFocus = () => fetchPendingInquiry();
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [fetchPendingInquiry]);
 
     const handleResponse = async (response: string) => {
         if (!inquiry) return;

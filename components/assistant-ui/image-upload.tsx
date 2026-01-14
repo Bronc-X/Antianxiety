@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { Paperclip, X, Image as ImageIcon, UploadCloud } from 'lucide-react';
+import { Paperclip, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
 
 interface ImageUploadProps {
     onFilesSelected: (files: File[]) => void;
@@ -97,10 +97,12 @@ function PreviewItem({ file, onRemove }: { file: File; onRemove: () => void }) {
         >
             <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-white/20 bg-black/20">
                 {previewUrl ? (
-                    <img
+                    <Image
                         src={previewUrl}
                         alt={file.name}
-                        className="h-full w-full object-cover"
+                        fill
+                        sizes="64px"
+                        className="object-cover"
                     />
                 ) : (
                     <div className="flex h-full w-full items-center justify-center">

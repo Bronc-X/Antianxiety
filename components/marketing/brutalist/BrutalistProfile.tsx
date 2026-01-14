@@ -34,7 +34,7 @@ export default function BrutalistProfile() {
     useEffect(() => {
         if (profile) {
             setFullName(profile.full_name || '');
-            setNickname((profile as any).nickname || '');
+            setNickname(profile.nickname || '');
         }
     }, [profile]);
 
@@ -63,8 +63,9 @@ export default function BrutalistProfile() {
                 setMessage({ type: 'success', text: 'Profile and password updated successfully' });
                 setPassword('');
             }
-        } catch (error: any) {
-            setMessage({ type: 'error', text: error.message });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unexpected error';
+            setMessage({ type: 'error', text: message });
         } finally {
             setSaving(false);
         }

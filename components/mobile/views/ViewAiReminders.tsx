@@ -17,16 +17,9 @@ import {
     X,
     CheckCircle2,
     Clock,
-    MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAiReminders, type AiReminder } from "@/hooks/domain/useAiReminders";
-
-const pageVariants = {
-    initial: { opacity: 0, x: 20 },
-    in: { opacity: 1, x: 0 },
-    out: { opacity: 0, x: -20 }
-};
 
 // ============================================
 // Sub-Components

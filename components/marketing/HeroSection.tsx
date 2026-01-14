@@ -5,7 +5,7 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { SystemStatus, TechCorner, TechCrosshair, DataStream } from './TechDecorations';
 
-export default function HeroSection({ onStart }: { onStart?: () => void }) {
+export default function HeroSection() {
     const containerRef = useRef<HTMLDivElement>(null);
     const { scrollY } = useScroll();
     const { language } = useI18n();
@@ -14,11 +14,17 @@ export default function HeroSection({ onStart }: { onStart?: () => void }) {
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
     useEffect(() => {
-        setIsMobile(window.innerWidth < 768);
-        setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        const updateDevice = () => {
+            setIsMobile(window.innerWidth < 768);
+            setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        };
+        const timer = setTimeout(updateDevice, 0);
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize, { passive: true });
-        return () => window.removeEventListener('resize', handleResize);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', handleResize);
+        };
     }, []);
 
     const y = useTransform(scrollY, [0, 1000], prefersReducedMotion ? [0, 0] : (isMobile ? [0, 100] : [0, 400]));

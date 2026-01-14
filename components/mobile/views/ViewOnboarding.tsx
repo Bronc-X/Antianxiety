@@ -9,10 +9,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ChevronRight,
+    type LucideIcon,
     ChevronLeft,
     Check,
-    AlertTriangle,
     Brain,
     Activity,
     Moon,
@@ -21,9 +20,10 @@ import {
     Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useClinicalOnboarding, type OnboardingStep } from '@/hooks/domain/useClinicalOnboarding';
+import { useClinicalOnboarding } from '@/hooks/domain/useClinicalOnboarding';
 import { useProfile } from '@/hooks/domain/useProfile';
 import { CardGlass } from '@/components/mobile/HealthWidgets';
+import type { ClinicalAssessmentResult } from '@/app/actions/onboarding';
 
 // ============================================
 // Props
@@ -55,9 +55,8 @@ export const ViewOnboarding = ({ onComplete }: ViewOnboardingProps) => {
         continueAfterSafety,
         safetyMessage,
         result,
-        isPageComplete,
-        isLoading
-    } = useClinicalOnboarding(profile?.id || 'guest', (res) => {
+        isPageComplete
+    } = useClinicalOnboarding(profile?.id || 'guest', () => {
         if (onComplete) onComplete();
     });
 
@@ -118,7 +117,7 @@ function StepWelcome({ onStart }: { onStart: () => void }) {
                 <Brain size={40} className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-4">
-                Let's personalize your plan
+                Let&apos;s personalize your plan
             </h1>
             <p className="text-slate-500 dark:text-slate-400 mb-12 max-w-xs leading-relaxed">
                 Take a quick 2-minute assessment to help us understand your anxiety, mood, and sleep patterns.
@@ -133,6 +132,28 @@ function StepWelcome({ onStart }: { onStart: () => void }) {
     );
 }
 
+interface QuestionOption {
+    label: string;
+    value: number;
+}
+
+interface QuestionItem {
+    id: string;
+    text: string;
+    options: QuestionOption[];
+}
+
+interface StepQuestionsProps {
+    questions: QuestionItem[];
+    scaleName: string;
+    answers: Record<string, number>;
+    onAnswer: (questionId: string, value: number) => void | Promise<void>;
+    onNext: () => void;
+    onPrev: () => void;
+    canNext: boolean;
+    progress: number;
+}
+
 function StepQuestions({
     questions,
     scaleName,
@@ -142,7 +163,7 @@ function StepQuestions({
     onPrev,
     canNext,
     progress
-}: any) {
+}: StepQuestionsProps) {
     return (
         <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -168,13 +189,13 @@ function StepQuestions({
 
             {/* Questions - scrollable area */}
             <div className="flex-1 overflow-y-auto space-y-4 pb-2">
-                {questions.map((q: any) => (
+                {questions.map((q) => (
                     <div key={q.id} className="space-y-2">
                         <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 leading-tight">
                             {q.text}
                         </h3>
                         <div className="space-y-1.5">
-                            {q.options.map((opt: any) => (
+                            {q.options.map((opt) => (
                                 <button
                                     key={opt.value}
                                     onClick={() => onAnswer(q.id, opt.value)}
@@ -230,7 +251,7 @@ function StepEncouragement({ onContinue }: { onContinue: () => void }) {
             </div>
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">Great job!</h2>
             <p className="text-slate-500 dark:text-slate-400 mb-8">
-                You're making great progress. Keep going, just a few more questions.
+                You&apos;re making great progress. Keep going, just a few more questions.
             </p>
             <button
                 onClick={onContinue}
@@ -242,7 +263,7 @@ function StepEncouragement({ onContinue }: { onContinue: () => void }) {
     );
 }
 
-function StepSafety({ message, onContinue }: { message: string, onContinue: () => void }) {
+function StepSafety({ message, onContinue }: { message: string; onContinue: () => void }) {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -277,7 +298,7 @@ function StepAnalyzing() {
     );
 }
 
-function StepResult({ result, onFinish }: { result: any, onFinish?: () => void }) {
+function StepResult({ result, onFinish }: { result: ClinicalAssessmentResult; onFinish?: () => void }) {
     const { onboardingResult } = result;
     const { gad7Score, phq9Score, isiScore, interpretations } = onboardingResult;
 
@@ -318,7 +339,7 @@ function StepResult({ result, onFinish }: { result: any, onFinish?: () => void }
             <div className="mt-8 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800">
                 <h4 className="font-bold text-emerald-800 dark:text-emerald-300 mb-2">Recommended Plan</h4>
                 <p className="text-sm text-emerald-700 dark:text-emerald-400 leading-relaxed">
-                    Based on your results, we've generated a personalized daily plan to help improve your sleep and reduce anxiety levels gradually.
+                    Based on your results, we&apos;ve generated a personalized daily plan to help improve your sleep and reduce anxiety levels gradually.
                 </p>
             </div>
 
@@ -332,7 +353,15 @@ function StepResult({ result, onFinish }: { result: any, onFinish?: () => void }
     );
 }
 
-function ResultCard({ title, score, label, icon: Icon, color }: any) {
+interface ResultCardProps {
+    title: string;
+    score: number;
+    label: string;
+    icon: LucideIcon;
+    color: string;
+}
+
+function ResultCard({ title, score, label, icon: Icon, color }: ResultCardProps) {
     return (
         <CardGlass className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-4">

@@ -191,7 +191,11 @@ export interface SaveHealthProfileInput {
     metabolic_concerns?: string[] | null;
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type ProfilePayload = {
+    error?: string;
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
     const raw = await response.text();
     try {
         return JSON.parse(raw);
@@ -472,7 +476,7 @@ export async function uploadAvatar(formData: FormData): Promise<ActionResult<str
  */
 export async function saveHealthProfile(
     input: SaveHealthProfileInput
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
     try {
         const request = new Request('http://profile.local/api/profile/save', {
             method: 'POST',
@@ -482,9 +486,10 @@ export async function saveHealthProfile(
 
         const response = await saveProfileRoute(request as Request);
         const data = await parseJsonResponse(response);
+        const payload = typeof data === 'object' && data !== null ? (data as ProfilePayload) : null;
 
         if (!response.ok) {
-            return { success: false, error: data?.error || '保存失败' };
+            return { success: false, error: payload?.error || '保存失败' };
         }
 
         return { success: true, data };

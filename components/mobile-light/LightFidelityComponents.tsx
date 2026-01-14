@@ -1,17 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Home, Calendar, User, ChevronRight } from 'lucide-react';
+import { Home, Calendar, User } from 'lucide-react';
 
 // ----------------------------------------------------------------------------
 // 1. Calorie Arc (Dashed Semi-Circle)
 // ----------------------------------------------------------------------------
 export function CalorieArc({ remaining = 1232, total = 2500, consumed = 2300 }: { remaining?: number, total?: number, consumed?: number }) {
-    // 50 dashes
-    const dashes = 40;
-    const radius = 120;
-    const circumference = Math.PI * radius; // Semi-circle
-
     return (
         <div className="relative flex flex-col items-center justify-center py-6">
             <div className="w-[280px] h-[140px] relative overflow-hidden">
@@ -22,14 +17,6 @@ export function CalorieArc({ remaining = 1232, total = 2500, consumed = 2300 }: 
                             <stop offset="100%" stopColor="#00FF94" />
                         </linearGradient>
                     </defs>
-
-                    {/* Background Arc (Dashed) */}
-                    {Array.from({ length: dashes }).map((_, i) => {
-                        const angle = (180 / (dashes - 1)) * i;
-                        // Calculate dash position on semi-circle
-                        // Ideally we stick to stroke-dasharray, but specific discrete pills need manual placement or dasharray tricks
-                        return null; // switching to stroke-dasharray approach for smoother implementation
-                    })}
 
                     {/* Base Arc Track */}
                     <path
@@ -83,36 +70,6 @@ export function CalorieArc({ remaining = 1232, total = 2500, consumed = 2300 }: 
 // 2. Macro Rings (Group of 3)
 // ----------------------------------------------------------------------------
 export function MacroRings() {
-    const Ring = ({ color, label, value, percent }: { color: string, label: string, value: string, percent: number }) => (
-        <div className="flex flex-col gap-1">
-            <div className="relative w-16 h-16 flex items-center justify-center">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                    <path
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke="#F5F5F7"
-                        strokeWidth="3"
-                    />
-                    <motion.path
-                        initial={{ strokeDasharray: "0, 100" }}
-                        animate={{ strokeDasharray: `${percent}, 100` }}
-                        transition={{ duration: 1.5 }}
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke={color}
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                    />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-[#1A1A1A]">
-                    <span className="text-[10px] text-gray-400">{label}</span>
-                    <span className="text-xs font-bold">{value}</span>
-                </div>
-            </div>
-            <span className="text-[10px] text-center text-gray-400">{percent}%</span>
-        </div>
-    );
-
     return (
         <div className="flex justify-between items-center px-4">
             <div className="flex flex-col items-start gap-1">
@@ -169,7 +126,7 @@ export function BarcodeChart() {
     return (
         <div className="flex items-end justify-between h-12 w-full gap-[2px]">
             {Array.from({ length: 40 }).map((_, i) => {
-                const height = 20 + Math.random() * 80; // random height
+                const height = 20 + ((i * 37) % 80);
                 const active = i < 25; // simple logic
                 return (
                     <div

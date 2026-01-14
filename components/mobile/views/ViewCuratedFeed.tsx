@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Bookmark, Heart, RefreshCw } from "lucide-react";
 import { CardGlass } from "@/components/mobile/HealthWidgets";
 import { useCuratedFeed } from "@/hooks/domain/useCuratedFeed";
+import { useBrowser } from "@/hooks/useBrowser";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -30,28 +31,37 @@ interface ViewCuratedFeedProps {
 
 export const ViewCuratedFeed = ({ onBack }: ViewCuratedFeedProps) => {
     const { language } = useI18n();
-    const { fetchPage, sendFeedback, isLoading, error } = useCuratedFeed();
+    const { fetchPage, sendFeedback, markRead, isLoading, error } = useCuratedFeed();
+    const { open } = useBrowser();
     const [items, setItems] = useState<CuratedItem[]>([]);
     const [nextCursor, setNextCursor] = useState<number | null>(null);
     const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
     const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+    const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-    const loadFeed = useCallback(async (reset = false) => {
-        const cursor = reset ? 0 : nextCursor ?? 0;
+    const loadFeed = useCallback(async ({ reset = false, cursor }: { reset?: boolean; cursor?: number } = {}) => {
+        const startCursor = reset ? 0 : cursor ?? 0;
+        if (reset) {
+            setItems([]);
+            setNextCursor(null);
+        }
         const data = await fetchPage({
             limit: 10,
-            cursor,
+            cursor: startCursor,
             language: language === "en" ? "en" : "zh"
         });
         if (!data) return;
         const newItems = data.items || [];
         setItems(prev => (reset ? newItems : [...prev, ...newItems]));
         setNextCursor(data.nextCursor ?? null);
-    }, [fetchPage, language, nextCursor]);
+    }, [fetchPage, language]);
 
     useEffect(() => {
-        loadFeed(true);
-    }, [loadFeed]);
+        const timer = window.setTimeout(() => {
+            void loadFeed({ reset: true });
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, [language, loadFeed]);
 
     const toggleFeedback = async (item: CuratedItem, type: "like" | "bookmark") => {
         const action = await sendFeedback({
@@ -79,6 +89,27 @@ export const ViewCuratedFeed = ({ onBack }: ViewCuratedFeedProps) => {
         }
     };
 
+    const handleOpen = async (item: CuratedItem) => {
+        if (!item.url) return;
+        setReadIds(prev => {
+            const next = new Set(prev);
+            next.add(item.id);
+            return next;
+        });
+        void markRead({
+            contentId: item.id,
+            title: item.title,
+            summary: item.summary,
+            url: item.url,
+            source: item.source,
+            sourceLabel: item.sourceLabel,
+            matchScore: item.matchScore,
+            matchedTags: item.matchedTags,
+            benefit: item.benefit
+        });
+        await open(item.url);
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -102,7 +133,7 @@ export const ViewCuratedFeed = ({ onBack }: ViewCuratedFeedProps) => {
                     </div>
                 </div>
                 <button
-                    onClick={() => loadFeed(true)}
+                    onClick={() => loadFeed({ reset: true })}
                     disabled={isLoading}
                     className="p-2 rounded-xl hover:bg-stone-100 dark:hover:bg-white/10 transition-colors"
                 >
@@ -115,56 +146,72 @@ export const ViewCuratedFeed = ({ onBack }: ViewCuratedFeedProps) => {
             )}
 
             <div className="space-y-4">
-                {items.map((item) => (
-                    <CardGlass key={item.id} className="p-4 space-y-3">
-                        <div className="text-xs text-stone-400 uppercase tracking-wider">
-                            {item.sourceLabel || item.source}
-                        </div>
-                        <div className="text-base font-semibold text-emerald-950 dark:text-emerald-50">
-                            {item.title}
-                        </div>
-                        <div className="text-sm text-stone-500 dark:text-stone-400">
-                            {item.summary}
-                        </div>
-                        {item.benefit && (
-                            <div className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-xl">
-                                {item.benefit}
+                {items.map((item) => {
+                    const isRead = readIds.has(item.id);
+                    return (
+                        <CardGlass key={item.id} className={cn("p-4 space-y-3", isRead && "opacity-70")}>
+                            <div className="text-xs text-stone-400 uppercase tracking-wider">
+                                {item.sourceLabel || item.source}
                             </div>
-                        )}
-                        <div className="flex items-center justify-between text-xs text-stone-400">
-                            <span>{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : "—"}</span>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => toggleFeedback(item, "like")}
-                                    className={cn(
-                                        "p-2 rounded-lg border",
-                                        likedIds.has(item.id)
-                                            ? "bg-rose-50 text-rose-500 border-rose-200"
-                                            : "bg-white border-stone-200 text-stone-400"
-                                    )}
-                                >
-                                    <Heart size={14} />
-                                </button>
-                                <button
-                                    onClick={() => toggleFeedback(item, "bookmark")}
-                                    className={cn(
-                                        "p-2 rounded-lg border",
-                                        savedIds.has(item.id)
-                                            ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                                            : "bg-white border-stone-200 text-stone-400"
-                                    )}
-                                >
-                                    <Bookmark size={14} />
-                                </button>
+                            <div className="text-base font-semibold text-emerald-950 dark:text-emerald-50">
+                                {item.title}
                             </div>
-                        </div>
-                    </CardGlass>
-                ))}
+                            <div className="text-sm text-stone-500 dark:text-stone-400">
+                                {item.summary}
+                            </div>
+                            {item.url && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleOpen(item)}
+                                    className="text-xs font-semibold text-emerald-600"
+                                    aria-label={`Open ${item.title}`}
+                                >
+                                    Open Source
+                                </button>
+                            )}
+                            {item.benefit && (
+                                <div className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-xl">
+                                    {item.benefit}
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between text-xs text-stone-400">
+                                <span>{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : "—"}</span>
+                                <div className="flex items-center gap-2">
+                                    {isRead && (
+                                        <span className="text-[10px] uppercase tracking-wider text-emerald-500">Read</span>
+                                    )}
+                                    <button
+                                        onClick={() => toggleFeedback(item, "like")}
+                                        className={cn(
+                                            "p-2 rounded-lg border",
+                                            likedIds.has(item.id)
+                                                ? "bg-rose-50 text-rose-500 border-rose-200"
+                                                : "bg-white border-stone-200 text-stone-400"
+                                        )}
+                                    >
+                                        <Heart size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => toggleFeedback(item, "bookmark")}
+                                        className={cn(
+                                            "p-2 rounded-lg border",
+                                            savedIds.has(item.id)
+                                                ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                                                : "bg-white border-stone-200 text-stone-400"
+                                        )}
+                                    >
+                                        <Bookmark size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        </CardGlass>
+                    );
+                })}
             </div>
 
             {nextCursor !== null && (
                 <button
-                    onClick={() => loadFeed(false)}
+                    onClick={() => loadFeed({ cursor: nextCursor ?? 0 })}
                     disabled={isLoading}
                     className="w-full py-3 rounded-xl border border-stone-200 text-stone-500 text-sm font-semibold"
                 >

@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { ChevronRight, Check, ArrowRight, Activity, Brain, Moon } from 'lucide-react';
+import { Check, ArrowRight, Activity, Brain, Moon } from 'lucide-react';
 
 interface QuickQuestion {
     id: string;

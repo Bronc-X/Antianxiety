@@ -29,8 +29,10 @@ export function TechCrosshair({ className = '' }: { className?: string }) {
 
 // 3. Scrolling Data Stream (Matrix-like numbers)
 export function DataStream({ direction = 'vertical', className = '' }: { direction?: 'vertical' | 'horizontal', className?: string }) {
-    // Generate random hex codes
-    const data = Array.from({ length: 20 }).map(() => Math.random().toString(16).substr(2, 4).toUpperCase());
+    const data = Array.from({ length: 20 }, (_, index) => {
+        const value = (index * 1103 + 57) % 65536;
+        return value.toString(16).padStart(4, '0').toUpperCase();
+    });
 
     return (
         <div className={`flex gap-2 text-[10px] font-mono text-[#D4AF37]/20 pointer-events-none overflow-hidden ${direction === 'vertical' ? 'flex-col' : 'flex-row'} ${className}`}>

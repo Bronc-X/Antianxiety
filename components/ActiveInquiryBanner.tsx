@@ -9,10 +9,10 @@
  * Requirements: 4.3 - Display active inquiry question if one is pending
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles, ChevronRight, BookOpen, ExternalLink } from 'lucide-react';
-import type { InquiryQuestion, CuratedContent } from '@/types/adaptive-interaction';
+import type { InquiryQuestion } from '@/types/adaptive-interaction';
 import { useI18n } from '@/lib/i18n';
 import { useInquiry } from '@/hooks/domain/useInquiry';
 
@@ -42,12 +42,7 @@ export default function ActiveInquiryBanner({
   const totalQuestions = inquiries.length;
   const isLastQuestion = currentIndex === totalQuestions - 1;
 
-  // Fetch pending inquiry on mount
-  useEffect(() => {
-    fetchPendingInquiry();
-  }, [userId, language]);
-
-  const fetchPendingInquiry = async () => {
+  const fetchPendingInquiry = useCallback(async () => {
     setIsLoading(true);
     try {
       // Map language to API format (zh-TW → zh, en → en)
@@ -70,14 +65,19 @@ export default function ActiveInquiryBanner({
           console.log('📋 [Inquiry] No pending questions');
         }
       } else {
-        console.error('📋 [Inquiry] API error:', result.error);
+        console.error('📋 [Inquiry] API error: empty response');
       }
     } catch (error) {
       console.error('📋 [Inquiry] Fetch error:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [language, loadPending]);
+
+  // Fetch pending inquiry on mount
+  useEffect(() => {
+    fetchPendingInquiry();
+  }, [fetchPendingInquiry, userId]);
 
   const handleDismiss = () => {
     setIsVisible(false);
@@ -127,7 +127,7 @@ export default function ActiveInquiryBanner({
           }, 2000);
         }
       } else {
-        console.error('❌ [Inquiry] Submit failed:', result.error);
+        console.error('❌ [Inquiry] Submit failed');
         setIsResponding(false);
       }
     } catch (error) {

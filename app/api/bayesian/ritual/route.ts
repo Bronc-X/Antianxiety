@@ -14,8 +14,7 @@ import { createClient } from '@/lib/supabase-server';
 import {
   Evidence,
   performBayesianCalculation,
-  createBioEvidence,
-  serializeEvidenceStack
+  createBioEvidence
 } from '@/lib/bayesian-evidence';
 import { searchByBeliefContext, BeliefContext } from '@/lib/services/bayesian-scholar';
 

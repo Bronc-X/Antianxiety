@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Brain, BookOpen, Lightbulb, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import { useDeepInference } from '@/hooks/domain/useDeepInference';
@@ -40,8 +40,8 @@ interface DeepInferenceData {
 interface DeepInferenceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  analysisResult: any;
-  recentLogs: any[];
+  analysisResult: unknown;
+  recentLogs: unknown[];
 }
 
 export default function DeepInferenceModal({
@@ -56,13 +56,7 @@ export default function DeepInferenceModal({
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>('dataAnalysis');
 
-  useEffect(() => {
-    if (isOpen && !data) {
-      fetchDeepInference();
-    }
-  }, [isOpen]);
-
-  const fetchDeepInference = async () => {
+  const fetchDeepInference = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -79,7 +73,13 @@ export default function DeepInferenceModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [analysisResult, fetchInference, recentLogs]);
+
+  useEffect(() => {
+    if (isOpen && !data) {
+      fetchDeepInference();
+    }
+  }, [data, fetchDeepInference, isOpen]);
 
   const sections = [
     { id: 'dataAnalysis', label: '数据分析', icon: <Brain className="w-4 h-4" /> },

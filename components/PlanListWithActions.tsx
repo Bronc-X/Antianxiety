@@ -8,7 +8,7 @@ import { useI18n } from '@/lib/i18n';
 interface Plan {
   id: string;
   title: string;
-  content: any;
+  content: unknown;
   plan_type: string;
   difficulty: number;
   status: string;
@@ -16,7 +16,7 @@ interface Plan {
 }
 
 interface PlanListWithActionsProps {
-  plans: any[]; // In strict mode this should be PlanData[] but we'll map or match shapes
+  plans: Plan[]; // In strict mode this should be PlanData[] but we'll map or match shapes
   onDelete: (id: string) => Promise<boolean>;
   onComplete?: (id: string) => Promise<boolean>;
   onPause?: (id: string) => Promise<boolean>;
@@ -24,7 +24,7 @@ interface PlanListWithActionsProps {
 }
 
 // 从内容中提取关注点
-function extractConcernFromContent(content: any, title: string): string {
+function extractConcernFromContent(content: unknown, title: string): string {
   const text = typeof content === 'string' ? content : JSON.stringify(content) + title;
   const keywords: Record<string, string> = {
     '减重': 'weight_loss', '减脂': 'fat_loss', '燃脂': 'fat_loss', '瘦身': 'weight_loss',
@@ -149,7 +149,7 @@ interface ScheduleDay {
 }
 
 
-export default function PlanListWithActions({ plans, onDelete, onComplete }: PlanListWithActionsProps) {
+export default function PlanListWithActions({ plans, onDelete }: PlanListWithActionsProps) {
   const { t, language } = useI18n();
   const normalizedLanguage: 'zh' | 'en' = language === 'en' ? 'en' : 'zh';
   const locale = language === 'en' ? 'en-US' : language === 'zh-TW' ? 'zh-TW' : 'zh-CN';

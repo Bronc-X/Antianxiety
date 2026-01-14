@@ -118,7 +118,10 @@ export default function DailyCheckInPanel({ initialProfile, initialLogs }: Daily
       ? normalizedHistory.filter((log) => log.log_date !== normalizedToday.log_date)
       : normalizedHistory;
     const mergedLogs = normalizedToday ? [normalizedToday, ...historyWithoutToday] : historyWithoutToday;
-    setLogs(mergedLogs);
+    const timer = setTimeout(() => {
+      setLogs(mergedLogs);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [history, today]);
 
   const [formState, setFormState] = useState({

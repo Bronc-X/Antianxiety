@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 
 export const SwipeDesign1 = () => {
     const [calm, setCalm] = useState(false);
@@ -81,7 +80,7 @@ export const SwipeDesign1 = () => {
 
                     <p className="mt-6 text-sm text-gray-400 font-light leading-relaxed max-w-[80%]">
                         Anxiety is data. <br />
-                        Don't suppress it. <span className="text-white border-b border-white/20 pb-0.5">Calibrate it.</span>
+                        Don&apos;t suppress it. <span className="text-white border-b border-white/20 pb-0.5">Calibrate it.</span>
                     </p>
                 </div>
 
@@ -97,9 +96,12 @@ export const SwipeDesign1 = () => {
                             <div className="w-full h-full bg-black flex items-center justify-center">
                                 {/* Mock QR */}
                                 <div className="w-full h-full bg-white p-0.5 grid grid-cols-4 gap-0.5">
-                                    {Array.from({ length: 16 }).map((_, i) => (
-                                        <div key={i} className={`bg-black ${Math.random() > 0.5 ? 'opacity-100' : 'opacity-0'}`} />
-                                    ))}
+                                    {Array.from({ length: 16 }).map((_, i) => {
+                                        const isOn = (i * 7) % 11 > 5;
+                                        return (
+                                            <div key={i} className={`bg-black ${isOn ? 'opacity-100' : 'opacity-0'}`} />
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>

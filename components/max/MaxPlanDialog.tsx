@@ -9,16 +9,15 @@
  * @module components/max/MaxPlanDialog
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/components/ui/toast';
 import { MotionButton } from '@/components/motion/MotionButton';
 import { MessageDeduplicator, filterDuplicateMessages } from '@/lib/max/message-deduplicator';
 import {
   X, Loader2, Sparkles, RefreshCw, Check, MessageCircle,
-  ChevronRight, Brain, Zap, Moon, Heart, Dumbbell, Apple, Smile, Target
+  Brain, Moon, Dumbbell, Apple, Smile, Target
 } from 'lucide-react';
 import { useMaxApi } from '@/hooks/domain/useMaxApi';
 import { usePlans } from '@/hooks/domain/usePlans';
@@ -26,7 +25,6 @@ import type { ParsedPlan } from '@/lib/plan-parser';
 import type {
   ChatMessage,
   PlanItemDraft,
-  DataStatus,
   PlanChatResponse,
   PlanReplaceResponse,
   NextAction,
@@ -75,7 +73,6 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [planItems, setPlanItems] = useState<PlanItemDraft[]>([]);
-  const [dataStatus, setDataStatus] = useState<DataStatus | null>(null);
   const [nextAction, setNextAction] = useState<NextAction>('question');
   const [loading, setLoading] = useState(false);
   const [replacingItemId, setReplacingItemId] = useState<string | null>(null);
@@ -92,14 +89,6 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     setMounted(true);
   }, []);
 
-  // 初始化对话
-  useEffect(() => {
-    console.log('[MaxPlanDialog] useEffect triggered, isOpen:', isOpen, 'sessionId:', sessionId);
-    if (isOpen && !sessionId) {
-      initDialog();
-    }
-  }, [isOpen]);
-
   // 滚动到最新消息
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -115,7 +104,6 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
         setSessionId(null);
         setMessages([]);
         setPlanItems([]);
-        setDataStatus(null);
         setNextAction('question');
         setTypingMessage(null);
         // 重置去重器和语言锁定
@@ -135,8 +123,61 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     return sessionLanguageRef.current;
   }, [language]);
 
-  const initDialog = async () => {
-    console.log('[MaxPlanDialog] initDialog called, isOpen:', isOpen);
+  const showMessageWithTyping = useCallback(async (msg: ChatMessage): Promise<void> => {
+    // 检查是否重复（双重保险）
+    if (deduplicatorRef.current.isDuplicate(msg)) {
+      return;
+    }
+    
+    if (msg.role === 'max') {
+      setTypingMessage('...');
+      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
+      setTypingMessage(null);
+    }
+    
+    // 标记为已显示并添加到消息列表
+    deduplicatorRef.current.markDisplayed(msg);
+    setMessages(prev => [...prev, msg]);
+  }, []);
+
+  const handleGenerate = useCallback(async (sid: string) => {
+    setLoading(true);
+    const sessionLang = getSessionLanguage();
+    
+    try {
+      const data = await planChat({
+        action: 'generate',
+        sessionId: sid,
+        language: sessionLang,
+      });
+
+      const response: PlanChatResponse | null = data || null;
+
+      if (response?.success) {
+        // 过滤重复消息
+        const filteredMessages = filterDuplicateMessages(response.messages, deduplicatorRef.current);
+        for (const msg of filteredMessages) {
+          await showMessageWithTyping(msg);
+        }
+        
+        if (response.planItems) {
+          setPlanItems(response.planItems);
+        }
+        setNextAction(response.nextAction);
+      }
+    } catch (error) {
+      console.error('[MaxPlanDialog] Generate error:', error);
+      toast({
+        message: sessionLang === 'zh' ? '生成计划失败' : 'Failed to generate plan',
+        type: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [getSessionLanguage, planChat, showMessageWithTyping, toast]);
+
+  const initDialog = useCallback(async () => {
+    console.log('[MaxPlanDialog] initDialog called');
     setLoading(true);
     // 锁定会话语言
     const sessionLang = getSessionLanguage();
@@ -166,7 +207,6 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
       
       if (dataResponse.success) {
         setSessionId(dataResponse.sessionId);
-        setDataStatus(dataResponse.dataStatus);
         setNextAction(dataResponse.nextAction);
         
         // 直接设置消息，不使用打字效果
@@ -203,24 +243,15 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
     } finally {
       setLoading(false);
     }
-  };
+  }, [getSessionLanguage, handleGenerate, planChat]);
 
-  const showMessageWithTyping = async (msg: ChatMessage): Promise<void> => {
-    // 检查是否重复（双重保险）
-    if (deduplicatorRef.current.isDuplicate(msg)) {
-      return;
+  // 初始化对话
+  useEffect(() => {
+    console.log('[MaxPlanDialog] useEffect triggered, isOpen:', isOpen, 'sessionId:', sessionId);
+    if (isOpen && !sessionId) {
+      initDialog();
     }
-    
-    if (msg.role === 'max') {
-      setTypingMessage('...');
-      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
-      setTypingMessage(null);
-    }
-    
-    // 标记为已显示并添加到消息列表
-    deduplicatorRef.current.markDisplayed(msg);
-    setMessages(prev => [...prev, msg]);
-  };
+  }, [isOpen, sessionId, initDialog]);
 
   const handleOptionSelect = async (value: string, questionId?: string) => {
     if (!sessionId) return;
@@ -271,42 +302,6 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
       console.error('[MaxPlanDialog] Respond error:', error);
       toast({
         message: sessionLang === 'zh' ? '发送失败，请重试' : 'Failed to send, please retry',
-        type: 'error',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerate = async (sid: string) => {
-    setLoading(true);
-    const sessionLang = getSessionLanguage();
-    
-    try {
-      const data = await planChat({
-        action: 'generate',
-        sessionId: sid,
-        language: sessionLang,
-      });
-
-      const response: PlanChatResponse | null = data || null;
-
-      if (response?.success) {
-        // 过滤重复消息
-        const filteredMessages = filterDuplicateMessages(response.messages, deduplicatorRef.current);
-        for (const msg of filteredMessages) {
-          await showMessageWithTyping(msg);
-        }
-        
-        if (response.planItems) {
-          setPlanItems(response.planItems);
-        }
-        setNextAction(response.nextAction);
-      }
-    } catch (error) {
-      console.error('[MaxPlanDialog] Generate error:', error);
-      toast({
-        message: sessionLang === 'zh' ? '生成计划失败' : 'Failed to generate plan',
         type: 'error',
       });
     } finally {
@@ -476,7 +471,7 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} language={displayLanguage} />
+                <MessageBubble key={msg.id} message={msg} />
               ))}
               
               {/* Typing Indicator */}
@@ -689,7 +684,7 @@ export default function MaxPlanDialog({ isOpen, onClose, onPlanCreated }: MaxPla
 }
 
 // 消息气泡组件
-function MessageBubble({ message, language }: { message: ChatMessage; language: string }) {
+function MessageBubble({ message }: { message: ChatMessage }) {
   const isMax = message.role === 'max';
 
   return (

@@ -14,12 +14,7 @@ import {
     Check,
     X,
     Sparkles,
-    Brain,
-    Moon,
-    Zap,
-    Shield,
     ArrowRight,
-    Star,
     Gem // For Founding plan
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,7 +30,28 @@ interface ViewMembershipProps {
     onNavigate?: (view: string) => void;
 }
 
-const PLANS = [
+type PlanId = "free" | "pro" | "founding";
+
+interface PlanFeature {
+    text: string;
+    included: boolean;
+    highlight?: boolean;
+}
+
+interface PlanItem {
+    id: PlanId;
+    name: string;
+    price: string;
+    period: string;
+    desc: string;
+    color: string;
+    bg: string;
+    popular?: boolean;
+    badge?: string;
+    features: PlanFeature[];
+}
+
+const PLANS: PlanItem[] = [
     {
         id: 'free',
         name: 'Free',
@@ -91,7 +107,7 @@ const PLANS = [
 ];
 
 export const ViewMembership = ({ onNavigate }: ViewMembershipProps) => {
-    const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro' | 'founding'>('pro');
+    const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro");
 
     const handleContinue = () => {
         // For now, just go to home
@@ -102,8 +118,6 @@ export const ViewMembership = ({ onNavigate }: ViewMembershipProps) => {
     const handleSkip = () => {
         onNavigate?.('home');
     };
-
-    const currentPlan = PLANS.find(p => p.id === selectedPlan) || PLANS[1];
 
     return (
         <motion.div
@@ -139,7 +153,7 @@ export const ViewMembership = ({ onNavigate }: ViewMembershipProps) => {
                     <motion.div
                         key={plan.id}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedPlan(plan.id as any)}
+                        onClick={() => setSelectedPlan(plan.id)}
                         className={cn(
                             "relative p-5 rounded-2xl cursor-pointer transition-all border-2",
                             selectedPlan === plan.id

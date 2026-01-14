@@ -116,8 +116,6 @@ export async function POST(request: NextRequest) {
  * 根据内容推断方案类型
  */
 function inferPlanType(content: string): string {
-  const lowerContent = content.toLowerCase();
-
   // 检测关键词
   const hasExercise = /运动|健身|训练|跑步|有氧|抗阻/i.test(content);
   const hasDiet = /饮食|禁食|营养|蛋白质|碳水|脂肪/i.test(content);

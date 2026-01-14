@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, Hexagon, Brain, Fingerprint, Calculator, Award } from 'lucide-react'; // Added icons for visual steps
+import { X, Hexagon, Brain, Fingerprint, Calculator, Award } from 'lucide-react'; // Added icons for visual steps
 import StepInput from '@/components/bayesian/ritual/StepInput';
 import StepSocratic from '@/components/bayesian/ritual/StepSocratic';
 import StepEvidence from '@/components/bayesian/ritual/StepEvidence';
@@ -15,7 +15,6 @@ import { useMaxApi } from '@/hooks/domain/useMaxApi';
 interface BayesianRitualModalProps {
     onComplete: (result: BeliefOutput) => void;
     onCancel: () => void;
-    mockHrv?: boolean;
 }
 
 // Stages of the ritual
@@ -79,7 +78,13 @@ const variants = {
     })
 };
 
-export default function BayesianRitualModal({ onComplete, onCancel, mockHrv = false }: BayesianRitualModalProps) {
+type RitualHrvSnapshot = {
+    rmssd: number;
+    lf_hf: number;
+    score: number;
+};
+
+export default function BayesianRitualModal({ onComplete, onCancel }: BayesianRitualModalProps) {
     const { t } = useI18n();
     const { submitBelief } = useMaxApi();
     const [currentStep, setCurrentStep] = useState<RitualStep>('input');
@@ -97,7 +102,7 @@ export default function BayesianRitualModal({ onComplete, onCancel, mockHrv = fa
         logic_modifier: 1, // 1 = no change, <1 reduces prior
 
         // Evidence Data
-        hrv: { rmssd: 0, lf_hf: 0, score: 0 },
+        hrv: { rmssd: 0, lf_hf: 0, score: 0 } as RitualHrvSnapshot,
         papers: [] as Paper[],
 
         // Results
@@ -138,7 +143,7 @@ export default function BayesianRitualModal({ onComplete, onCancel, mockHrv = fa
         goToStep('evidence');
     };
 
-    const handleEvidenceCollected = (data: { hrv: any; papers: Paper[]; likelihood: number; evidenceWeight: number }) => {
+    const handleEvidenceCollected = (data: { hrv: RitualHrvSnapshot; papers: Paper[]; likelihood: number; evidenceWeight: number }) => {
         setRitualData(prev => ({
             ...prev,
             hrv: data.hrv,
@@ -350,7 +355,6 @@ export default function BayesianRitualModal({ onComplete, onCancel, mockHrv = fa
                                         <StepResult
                                             prior={ritualData.prior}
                                             posterior={ritualData.posterior}
-                                            worry={ritualData.worry}
                                             onComplete={() => onComplete({
                                                 prior: ritualData.prior,
                                                 likelihood: ritualData.likelihood,

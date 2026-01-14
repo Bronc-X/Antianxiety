@@ -10,10 +10,8 @@ import { useI18n } from '@/lib/i18n';
  * Conform to MVVM: Uses useFeed hook (Bridge)
  */
 export default function PersonalizedFeed({
-  limit = 20,
   sourceType,
 }: {
-  limit?: number;
   sourceType?: string;
 }) {
   const { language } = useI18n();

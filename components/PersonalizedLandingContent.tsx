@@ -107,7 +107,7 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
   const router = useRouter();
   const { isSaving, error: profileError, update } = useProfile();
   const [reminderTimeMode, setReminderTimeMode] = useState<'manual' | 'ai'>('manual');
-  const [manualTime, setManualTime] = useState(profile?.daily_checkin_time ? (profile.daily_checkin_time as string).slice(0, 5) : '09:00');
+  const [manualTime] = useState(profile?.daily_checkin_time ? (profile.daily_checkin_time as string).slice(0, 5) : '09:00');
   const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
   const [aiAutoMode, setAiAutoMode] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -119,19 +119,6 @@ function TodayRemindersPanel({ profile }: { profile: ProfileData | null }) {
     { id: 'walk', label: '🏃 步行' },
     { id: 'exercise', label: '💪 运动' },
   ];
-
-  const toggleActivity = (id: string) => {
-    if (aiAutoMode) return; // AI自动模式下不允许手动选择
-    setSelectedActivities(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
 
   const handleEnableAIAuto = () => {
     if (aiAutoMode) {
@@ -593,37 +580,12 @@ export default function PersonalizedLandingContent({
     profile?.chronic_conditions,
   ]);
 
-  const scoreLabel = useMemo(() => {
-    if (bodyFunctionScore >= 85) return '状态极佳，保持你的节奏。';
-    if (bodyFunctionScore >= 70) return '状态良好，继续巩固核心习惯。';
-    if (bodyFunctionScore >= 55) return '需要关注恢复与压力管理。';
-    return '警惕持续的高压与睡眠不足，优先处理焦虑触发点。';
-  }, [bodyFunctionScore]);
-
   const focusTopics: string[] = useMemo(() => {
     if (Array.isArray(profile?.primary_focus_topics)) {
       return profile.primary_focus_topics;
     }
     return [];
   }, [profile?.primary_focus_topics]);
-
-  // 确保bodyFunctionScore在0-100范围内，并计算水的高度
-  const waterLevel = Math.max(0, Math.min(100, bodyFunctionScore));
-  const waterHeight = Math.max(0, (240 * waterLevel) / 100);
-
-  const chronicConditions = useMemo(() => {
-    if (Array.isArray(profile?.chronic_conditions)) {
-      return profile.chronic_conditions.filter((item: string) => item !== '无');
-    }
-    return [];
-  }, [profile?.chronic_conditions]);
-
-  const sleepSummary = profile?.sleep_hours
-    ? `${Number(profile.sleep_hours).toFixed(1).replace(/\.0$/, '')} 小时`
-    : '待记录';
-  const stressSummary = profile?.stress_level ? `${profile.stress_level} / 10` : '待记录';
-  const energySummary = profile?.energy_level ? `${profile.energy_level} / 10` : '待记录';
-  const exerciseSummary = profile?.exercise_frequency || '待填写';
 
   const lastSevenDates = useMemo(() => {
     const dates: string[] = [];

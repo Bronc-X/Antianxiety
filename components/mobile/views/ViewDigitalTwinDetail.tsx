@@ -330,7 +330,7 @@ export function ViewDigitalTwinDetail({ curveData, metricKey, onBack }: ViewDigi
                     <h3 className="text-sm font-medium text-white/80 mb-4">各周预测详情</h3>
 
                     <div className="space-y-3">
-                        {chartData.map((point, i) => (
+                        {chartData.map((point) => (
                             <div
                                 key={point.week}
                                 className={cn(

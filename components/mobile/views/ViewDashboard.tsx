@@ -596,7 +596,8 @@ const WorkoutsView = () => {
 
 // MARK: - Main Dashboard Container
 
-export const ViewDashboard = ({ onNavigate: _onNavigate }: { onNavigate?: (view: string) => void }) => {
+export const ViewDashboard = ({ onNavigate }: { onNavigate?: (view: string) => void }) => {
+    void onNavigate;
     const [activeTab, setActiveTab] = useState<Tab>(Tab.Today);
 
     const tabs = [

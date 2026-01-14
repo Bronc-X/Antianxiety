@@ -82,7 +82,7 @@ export default function MarketingPage({ onStart }: { onStart?: () => void }) {
                 </div>
             </nav>
 
-            <HeroSection onStart={onStart} />
+            <HeroSection />
 
             {/* Scientific Trust Indicator - Infinite Ticker */}
             <LogoTicker />
@@ -119,4 +119,3 @@ export default function MarketingPage({ onStart }: { onStart?: () => void }) {
         </div>
     );
 }
-

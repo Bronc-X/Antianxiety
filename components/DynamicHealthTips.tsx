@@ -236,8 +236,7 @@ const getPersonalizedTips = (profile?: UserProfile, recentLogs?: DailyLog[]): He
   // 排序并返回前8个
   return personalizedTips
     .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
-    .map(({ score, ...tip }) => tip);
+    .slice(0, 8);
 };
 
 function CategoryIcon({ category, className }: { category: HealthTip['category']; className?: string }) {
@@ -275,7 +274,8 @@ export default function DynamicHealthTips({
 
   // 确保客户端渲染
   useEffect(() => {
-    setIsClient(true);
+    const timer = setTimeout(() => setIsClient(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // 每日轮换逻辑 - 只在客户端执行
@@ -284,7 +284,8 @@ export default function DynamicHealthTips({
     
     const today = new Date().getDate();
     const dailyStartIndex = (today * 3) % personalizedTips.length;
-    setCurrentIndex(dailyStartIndex);
+    const timer = setTimeout(() => setCurrentIndex(dailyStartIndex), 0);
+    return () => clearTimeout(timer);
   }, [isClient, personalizedTips.length]);
 
   // 自动轮播 - 只在客户端执行

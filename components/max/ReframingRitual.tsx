@@ -14,7 +14,7 @@
  * @module components/max/ReframingRitual
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, FileText, Activity, ArrowRight, Check, X, Sparkles, Zap } from 'lucide-react';
 import { BeliefOutput, Paper, HRVData, MaxResponse } from '@/types/max';
@@ -75,7 +75,6 @@ export function ReframingRitual({ onComplete, onCancel, hrvData }: ReframingRitu
   const [maxMessage, setMaxMessage] = useState('准备好了。告诉我你在担心什么。');
   const [maxTone, setMaxTone] = useState<'neutral' | 'humorous' | 'serious'>('neutral');
   const [result, setResult] = useState<BeliefOutput | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isMaxTyping, setIsMaxTyping] = useState(false);
 
   /**
@@ -103,7 +102,7 @@ export function ReframingRitual({ onComplete, onCancel, hrvData }: ReframingRitu
     } finally {
       setIsMaxTyping(false);
     }
-  }, [step]);
+  }, [getResponse, step]);
 
   /**
    * Handle Prior belief commitment
@@ -123,8 +122,6 @@ export function ReframingRitual({ onComplete, onCancel, hrvData }: ReframingRitu
    */
   const handleCalculate = async () => {
     setStep('calculate');
-    setIsProcessing(true);
-    
     // Max commentary during calculation
     setMaxMessage('Recalibrating belief parameters...');
 
@@ -198,8 +195,6 @@ export function ReframingRitual({ onComplete, onCancel, hrvData }: ReframingRitu
           reduction: prior - posteriorValue
         });
       }, 8000);
-    } finally {
-      setIsProcessing(false);
     }
   };
 

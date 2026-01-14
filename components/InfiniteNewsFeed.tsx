@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Loader2 } from "lucide-react";
+import Image from "next/image";
 import { useCuratedFeed } from "@/hooks/domain/useCuratedFeed";
 
 interface CuratedItem {
@@ -209,7 +210,7 @@ export default function InfiniteNewsFeed({
       setCursor(data.nextCursor ?? null);
       setHasMore(Boolean(data.nextCursor));
     },
-    [language, userId]
+    [fetchCuratedPage, language, userId]
   );
 
   useEffect(() => {
@@ -375,9 +376,11 @@ export default function InfiniteNewsFeed({
                 <div className="p-5">
                   <div className="flex items-start gap-4">
                     {item.thumbnail ? (
-                      <img
+                      <Image
                         src={item.thumbnail}
                         alt={item.title}
+                        width={80}
+                        height={80}
                         className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
                       />
                     ) : (
@@ -428,7 +431,7 @@ export default function InfiniteNewsFeed({
                           </span>
                         </div>
                         <p className="text-sm text-[#0B3D2E]/80 dark:text-neutral-200 leading-relaxed italic">
-                          "{item.benefit}"
+                          &ldquo;{item.benefit}&rdquo;
                         </p>
                       </div>
 

@@ -2,19 +2,17 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Brain, Scale, Shield, AlertTriangle } from 'lucide-react';
+import { Brain, Scale, Shield } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface CognitiveDistortionAnimationProps {
     prior: number;       // The "Subjective Fear" (e.g. 70%)
     posterior: number;   // The "Objective Reality" (e.g. 50%)
-    distortionLabel?: string;
 }
 
 export const CognitiveDistortionAnimation: React.FC<CognitiveDistortionAnimationProps> = ({
     prior,
-    posterior,
-    distortionLabel = "Emotional Amplification"
+    posterior
 }) => {
     const { t } = useI18n();
     // Calculate the "excess" fear

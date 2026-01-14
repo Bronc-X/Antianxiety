@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 export default function PosterPage() {
     return (
@@ -88,11 +89,15 @@ export default function PosterPage() {
                     className="mt-auto w-full flex flex-col items-center gap-4 pb-8"
                 >
                     <div className="bg-[#fbf8f2] p-4 rounded-2xl shadow-[0_18px_40px_rgba(20,17,15,0.18)] border border-[#e2d6c6]">
-                        <img
-                            src="/poster-qr.png"
-                            alt="Scan QR Code"
-                            className="w-32 h-32 mix-blend-multiply opacity-90"
-                        />
+                        <div className="relative w-32 h-32">
+                            <Image
+                                src="/poster-qr.png"
+                                alt="Scan QR Code"
+                                fill
+                                sizes="128px"
+                                className="mix-blend-multiply opacity-90"
+                            />
+                        </div>
                     </div>
                     <div className="flex flex-col items-center gap-1 text-[#3b332b] text-xs font-medium tracking-[0.3em] uppercase opacity-70">
                         <p>长按扫描</p>

@@ -22,7 +22,6 @@ export function ExampleLoginForm({ onSubmit, className }: ExampleLoginFormProps)
     control,
     handleSubmit,
     reset,
-    formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {

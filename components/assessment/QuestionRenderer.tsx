@@ -31,7 +31,6 @@ export function QuestionRenderer({ step, onAnswer, language }: QuestionRendererP
   const [scaleValue, setScaleValue] = useState(5);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customValue, setCustomValue] = useState('');
-  const [showSourceTooltip, setShowSourceTooltip] = useState(false);
 
   // 获取当前量表来源
   const getScaleSource = () => {

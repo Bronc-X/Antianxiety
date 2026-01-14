@@ -173,7 +173,7 @@ export const ViewProfileSetup = ({ onNavigate, onComplete }: ViewProfileSetupPro
                 {/* Primary Goal */}
                 <div>
                     <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
-                        What's your primary goal?
+                        What&apos;s your primary goal?
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                         {GOALS.map((goal) => (

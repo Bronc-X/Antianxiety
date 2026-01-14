@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
     
     // 3. 插入或更新完成记录（用于历史追踪）- 这是可选的
     try {
-      const { data: completion, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('user_plan_completions')
         .upsert(
           {

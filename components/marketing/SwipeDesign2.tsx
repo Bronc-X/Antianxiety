@@ -61,7 +61,7 @@ export const SwipeDesign2 = () => {
                             <span className="not-italic font-bold">Intelligence</span>
                         </h2>
                         <p className="font-sans text-xs leading-relaxed text-gray-600 max-w-[240px] mx-auto">
-                            Your body is a clock that's been ticking for millions of years. Stop trying to rewind it.
+                            Your body is a clock that&apos;s been ticking for millions of years. Stop trying to rewind it.
                         </p>
                     </div>
                 </div>

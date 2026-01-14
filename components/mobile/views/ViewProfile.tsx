@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { CardGlass } from "@/components/mobile/HealthWidgets";
 import {
     User,
@@ -34,7 +35,7 @@ const pageTransition = {
     duration: 0.3
 } as const;
 
-import { useProfile } from "@/hooks/domain/useProfile";
+import { useProfile, type UserProfile } from "@/hooks/domain/useProfile";
 import { useAuth } from "@/hooks/domain/useAuth";
 
 interface ViewProfileProps {
@@ -45,12 +46,7 @@ export const ViewProfile = ({ onNavigate }: ViewProfileProps) => {
     const { profile } = useProfile();
     const { signOut, isSigningOut } = useAuth();
 
-    const [mounted, setMounted] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     const handleLogout = async () => {
         const success = await signOut('/mobile?view=login');
@@ -59,10 +55,9 @@ export const ViewProfile = ({ onNavigate }: ViewProfileProps) => {
         }
     };
 
-    if (!mounted) return null;
-
     const userName = profile?.full_name || profile?.nickname || "User";
-    const userRole = (profile as any)?.subscription_status === 'pro' || (profile as any)?.subscription_status === 'founding'
+    const subscriptionStatus = (profile as (UserProfile & { subscription_status?: string | null }) | null)?.subscription_status;
+    const userRole = subscriptionStatus === 'pro' || subscriptionStatus === 'founding'
         ? "Pro Member"
         : "Free Member";
 
@@ -122,7 +117,14 @@ export const ViewProfile = ({ onNavigate }: ViewProfileProps) => {
             <div className="flex items-center gap-5 mb-4 px-2">
                 <div className="relative group cursor-pointer" onClick={() => setShowEdit(true)}>
                     <div className="h-24 w-24 rounded-full bg-stone-200 p-1 shadow-lg shadow-emerald-900/10">
-                        <img src={avatarUrl} alt={userName} className="w-full h-full rounded-full object-cover border-4 border-white dark:border-black" />
+                        <Image
+                            src={avatarUrl}
+                            alt={userName}
+                            width={96}
+                            height={96}
+                            className="w-full h-full rounded-full object-cover border-4 border-white dark:border-black"
+                            unoptimized
+                        />
                     </div>
                     <div className="absolute bottom-0 right-0 p-2 bg-emerald-600 text-white rounded-full shadow-md hover:scale-105 transition-transform">
                         <Camera size={14} />

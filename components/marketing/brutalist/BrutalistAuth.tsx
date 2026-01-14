@@ -28,9 +28,9 @@ export default function BrutalistAuth() {
                 });
                 if (success) setSuccess(true);
             } else {
-                const success = await signIn(email, password, '/brutalist/calibration');
+                await signIn(email, password, '/brutalist/calibration');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
         }
     };
@@ -71,7 +71,7 @@ export default function BrutalistAuth() {
                                 </div>
                                 <h2 className="brutalist-h3 mb-4">Check Your Email</h2>
                                 <p className="brutalist-body mb-6">
-                                    We've sent a verification link to <strong className="text-white">{email}</strong>
+                                    We&apos;ve sent a verification link to <strong className="text-white">{email}</strong>
                                 </p>
                                 <div className="brutalist-badge inline-flex">
                                     <Lock className="w-3 h-3" />
@@ -167,7 +167,7 @@ export default function BrutalistAuth() {
                                         </>
                                     ) : (
                                         <>
-                                            Don't have an account?{' '}
+                                            Don&apos;t have an account?{' '}
                                             <button
                                                 type="button"
                                                 onClick={() => setMode('signup')}

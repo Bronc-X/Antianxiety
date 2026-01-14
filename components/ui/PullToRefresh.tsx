@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import React, { useRef, useState } from 'react';
+import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
 import { triggerHaptic } from '@/lib/haptics';
 
 interface PullToRefreshProps {
@@ -15,7 +15,6 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const y = useMotionValue(0);
-    const pullProgress = useTransform(y, [0, PULL_THRESHOLD], [0, 100]);
     const rotate = useTransform(y, [0, PULL_THRESHOLD], [0, 360]);
 
     // Custom spring for the bounce back
@@ -25,7 +24,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
         stiffness: 300
     };
 
-    const handlePanEnd = async (_: any, info: any) => {
+    const handlePanEnd = async (event: PointerEvent, info: PanInfo) => {
+        void event;
+        void info;
         if (y.get() > PULL_THRESHOLD) {
             // Trigger refresh
             setIsRefreshing(true);
@@ -33,7 +34,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
 
             // Snap to loading position
             // Using animate on the motion value directly
-            // @ts-ignore - Framer Motion animate overload signature mismatch in linter
+            // @ts-expect-error - Framer Motion animate overload signature mismatch in linter
             animate(y, 60, bounceTransition);
 
             try {
@@ -43,18 +44,19 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     // Bounce back
-                    // @ts-ignore
+                    // @ts-expect-error - Framer Motion animate overload signature mismatch in linter
                     animate(y, 0, bounceTransition);
                 }, 500); // Minimum showing time
             }
         } else {
             // Bounce back if not pulled enough
-            // @ts-ignore
+            // @ts-expect-error - Framer Motion animate overload signature mismatch in linter
             animate(y, 0, bounceTransition);
         }
     };
 
-    const handlePan = (_: any, info: any) => {
+    const handlePan = (event: PointerEvent, info: PanInfo) => {
+        void event;
         // Only pull if we are at the top of the scroll
         if (window.scrollY <= 0 && info.offset.y > 0 && !isRefreshing) {
             // Resistance effect

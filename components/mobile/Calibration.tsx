@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Save, Check, Moon, Battery, Brain, Heart, WifiOff,
-    ChevronRight, AlertCircle
+    AlertCircle
 } from 'lucide-react';
 import { useHaptics, ImpactStyle } from '@/hooks/useHaptics';
 import { useAuth } from '@/hooks/domain/useAuth';
@@ -18,6 +18,21 @@ import type { UseCalibrationReturn } from '@/hooks/domain/useCalibration';
 interface MobileCalibrationProps {
     calibration: UseCalibrationReturn;
 }
+
+type CalibrationTodayData = {
+    sleep_quality?: number;
+    sleep_duration_minutes?: number;
+    mood_status?: string;
+    energy_level?: number;
+    stress_level?: number;
+    anxiety_level?: number;
+};
+
+type CalibrationHookData = UseCalibrationReturn & {
+    todayData?: CalibrationTodayData;
+    isOffline?: boolean;
+    error?: string | null;
+};
 
 const MOOD_OPTIONS = [
     { value: 'great', emoji: '😊', label: 'Great', bg: 'bg-green-100' },
@@ -85,7 +100,7 @@ function MetricSlider({
 }
 
 export function MobileCalibration({ calibration: hook }: MobileCalibrationProps) {
-    const { todayData, isLoading, isOffline, error } = hook as any; // removed save/isSaving dependency
+    const { todayData, isLoading, isOffline, error } = hook as CalibrationHookData; // removed save/isSaving dependency
     const { user } = useAuth();
     const { impact, notification } = useHaptics();
 

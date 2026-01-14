@@ -35,7 +35,7 @@ export const ViewPlanCreator = ({ onClose, onCreate, isSaving = false, error = n
         time: '30 min',
         aiPrompt: ''
     });
-    const [isGenerating, setIsGenerating] = useState(false);
+    const [isGenerating] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
 
     const categories = [
@@ -216,7 +216,7 @@ export const ViewPlanCreator = ({ onClose, onCreate, isSaving = false, error = n
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <h3 className="font-bold text-stone-800">What's your goal?</h3>
+                                    <h3 className="font-bold text-stone-800">What&apos;s your goal?</h3>
                                     <textarea
                                         className="w-full p-4 rounded-2xl bg-white border border-stone-200 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none resize-none h-32"
                                         placeholder="E.g. I need to relax after a stressful meeting..."
@@ -307,7 +307,7 @@ export const ViewPlanCreator = ({ onClose, onCreate, isSaving = false, error = n
                                         <div className="flex gap-2 items-start">
                                             <Sparkles size={16} className="text-amber-500 mt-0.5" />
                                             <p className="text-xs text-stone-600 leading-relaxed">
-                                                Based on your goal to <span className="font-semibold italic">"{planData.aiPrompt}"</span>, I've designed a session that combines light movement with nature exposure to lower cortisol levels.
+                                                Based on your goal to <span className="font-semibold italic">&quot;{planData.aiPrompt}&quot;</span>, I&apos;ve designed a session that combines light movement with nature exposure to lower cortisol levels.
                                             </p>
                                         </div>
                                     </div>

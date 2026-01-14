@@ -8,6 +8,7 @@ import { useInquiry } from "@/hooks/domain/useInquiry";
 import { useProactiveInquiry } from "@/hooks/domain/useProactiveInquiry";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import type { QuestionOption } from "@/types/adaptive-interaction";
 
 interface ViewInquiryCenterProps {
     onBack?: () => void;
@@ -28,8 +29,8 @@ export const ViewInquiryCenter = ({ onBack }: ViewInquiryCenterProps) => {
     const pendingInquiry = pending?.inquiry;
     const hasPending = Boolean(pending?.hasInquiry && pendingInquiry);
 
-    const proactiveOptions = proactive.currentInquiry?.options ?? [];
-    const pendingOptions = pendingInquiry?.options ?? [];
+    const proactiveOptions: QuestionOption[] = proactive.currentInquiry?.options ?? [];
+    const pendingOptions: QuestionOption[] = pendingInquiry?.options ?? [];
 
     const proactivePatterns = useMemo(() => proactive.getResponsePatterns(), [proactive]);
 
@@ -104,7 +105,7 @@ export const ViewInquiryCenter = ({ onBack }: ViewInquiryCenterProps) => {
                             </div>
                             {pendingOptions.length > 0 && (
                                 <div className="grid grid-cols-2 gap-2">
-                                    {pendingOptions.map((option: any) => (
+                                    {pendingOptions.map((option) => (
                                         <button
                                             key={option.value}
                                             onClick={() => handlePendingSubmit(option.value)}
@@ -168,7 +169,7 @@ export const ViewInquiryCenter = ({ onBack }: ViewInquiryCenterProps) => {
                             </div>
                             {proactiveOptions.length > 0 && (
                                 <div className="grid grid-cols-2 gap-2">
-                                    {proactiveOptions.map((option: any) => (
+                                    {proactiveOptions.map((option) => (
                                         <button
                                             key={option.value}
                                             onClick={() => handleProactiveSubmit(option.value)}

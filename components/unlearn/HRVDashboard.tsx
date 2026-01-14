@@ -35,7 +35,6 @@ export default function HRVDashboard() {
     const [hrv, setHrv] = useState<HRVData | null>(null);
     const [sleep, setSleep] = useState<SleepData | null>(null);
     const [activity, setActivity] = useState<ActivityData | null>(null);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     // Track if initial fetch has completed to prevent re-fetching on re-renders
     const hasFetchedRef = useRef(false);
@@ -57,7 +56,6 @@ export default function HRVDashboard() {
         if (isInitial) hasFetchedRef.current = true;
 
         try {
-            setErrorMessage(null);
             const data = await loadWearableStatusRef.current();
             if (data?.latestData) {
                 setHrv(data.latestData.hrv || null);
@@ -70,7 +68,6 @@ export default function HRVDashboard() {
             }
         } catch (error) {
             console.error('Failed to fetch health data:', error);
-            setErrorMessage(languageRef.current === 'en' ? 'Unable to load wearable data.' : '暂时无法加载穿戴数据。');
             setHrv(null);
             setSleep(null);
             setActivity(null);

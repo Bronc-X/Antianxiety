@@ -199,7 +199,6 @@ function CreateGoalSheet({ isOpen, onClose, onSubmit, isSaving }: {
 
 export function MobileGoals({ goals: hook }: MobileGoalsProps) {
     const [showCreate, setShowCreate] = useState(false);
-    const { impact } = useHaptics();
 
     const { activeGoals, completedGoals, isLoading, isSaving, isOffline, error, create, toggle, remove, refresh } = hook;
 

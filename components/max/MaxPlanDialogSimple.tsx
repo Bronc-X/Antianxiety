@@ -5,7 +5,7 @@
  * 直接可靠的实现，不依赖复杂的状态管理
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/components/ui/toast';
 import { X, Loader2, Sparkles, Check, RefreshCw, Edit2, Send } from 'lucide-react';
@@ -54,6 +54,23 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lang = language === 'en' ? 'en' : 'zh';
 
+  const generatePlan = useCallback(async (sid: string) => {
+    setLoading(true);
+    try {
+      const data = await planChat({ action: 'generate', sessionId: sid, language: lang });
+      if (data) {
+        const newMaxMessages = (data.messages || []).filter((m: Message) => m.role === 'max');
+        setMessages(prev => [...prev, ...newMaxMessages]);
+        setPlanItems(data.planItems || []);
+        setNextAction(data.nextAction || 'review');
+      }
+    } catch (e) {
+      console.error('Generate error:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [planChat, lang]);
+
   // 滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,7 +81,7 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
     if (isOpen && !sessionId) {
       initDialog();
     }
-  }, [isOpen]);
+  }, [isOpen, sessionId, initDialog]);
 
   // 关闭时重置
   useEffect(() => {
@@ -82,7 +99,7 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
     }
   }, [isOpen]);
 
-  const initDialog = async () => {
+  const initDialog = useCallback(async () => {
     setLoading(true);
     try {
       const data = await planChat({ action: 'init', language: lang });
@@ -102,7 +119,7 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
     } finally {
       setLoading(false);
     }
-  };
+  }, [planChat, lang, generatePlan]);
 
   const handleOptionSelect = async (value: string, questionId?: string) => {
     if (!sessionId) return;
@@ -133,23 +150,6 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
   const handleCustomSubmit = async (questionId?: string) => {
     if (!customInput.trim()) return;
     await handleOptionSelect(customInput.trim(), questionId);
-  };
-
-  const generatePlan = async (sid: string) => {
-    setLoading(true);
-    try {
-      const data = await planChat({ action: 'generate', sessionId: sid, language: lang });
-      if (data) {
-        const newMaxMessages = (data.messages || []).filter((m: Message) => m.role === 'max');
-        setMessages(prev => [...prev, ...newMaxMessages]);
-        setPlanItems(data.planItems || []);
-        setNextAction(data.nextAction || 'review');
-      }
-    } catch (e) {
-      console.error('Generate error:', e);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleSkip = async () => {

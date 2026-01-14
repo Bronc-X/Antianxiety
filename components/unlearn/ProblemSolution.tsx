@@ -2,8 +2,8 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Activity, Brain, AlertTriangle, Heart, Signal, Wifi, Battery } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { Activity, Brain, AlertTriangle, Signal, Wifi, Battery } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import TermPopover from './TermPopover';
 
 export default function ProblemSolution() {
@@ -262,7 +262,7 @@ export default function ProblemSolution() {
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.8 }}
                             >
-                                "现在的健康App，似乎不太懂你的疲惫。"
+                                &ldquo;现在的健康App，似乎不太懂你的疲惫。&rdquo;
                             </motion.blockquote>
 
                             <motion.div

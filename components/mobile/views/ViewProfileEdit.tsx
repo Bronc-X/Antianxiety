@@ -3,15 +3,12 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
-    X,
-    Check,
     Camera,
     User,
     Mail,
-    MapPin,
-    Link as LinkIcon
+    MapPin
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface ViewProfileEditProps {
     onClose: () => void;
@@ -60,7 +57,13 @@ export const ViewProfileEdit = ({ onClose }: ViewProfileEditProps) => {
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative group cursor-pointer mb-3">
                         <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white dark:border-stone-800 shadow-xl">
-                            <img src="https://i.pravatar.cc/150?u=admin" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="Avatar" />
+                            <Image
+                                src="https://i.pravatar.cc/150?u=admin"
+                                width={112}
+                                height={112}
+                                className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                alt="Avatar"
+                            />
                         </div>
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                             <Camera className="text-white" size={24} />

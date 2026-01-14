@@ -73,7 +73,10 @@ export default function AdaptiveOnboardingFlow({ onComplete }: AdaptiveOnboardin
   // Initialize first question
   useEffect(() => {
     if (templateQuestions.length > 0 && !currentQuestion) {
-      setCurrentQuestion(templateQuestions[0]);
+      const timer = setTimeout(() => {
+        setCurrentQuestion(templateQuestions[0]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [templateQuestions, currentQuestion]);
 

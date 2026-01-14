@@ -247,10 +247,10 @@ export const ViewWeeklyCalibration = ({ onBack, onComplete }: ViewWeeklyCalibrat
                             animate={{
                                 y: '-20vh',
                                 opacity: [0, 0.6, 0],
-                                x: [0, Math.random() * 100 - 50, 0],
+                                x: [0, (i % 2 === 0 ? 1 : -1) * (20 + i * 6), 0],
                             }}
                             transition={{
-                                duration: 4 + Math.random() * 2,
+                                duration: 4 + (i % 3) * 0.6,
                                 delay: i * 0.5,
                                 repeat: Infinity,
                                 ease: 'easeOut',

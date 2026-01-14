@@ -55,7 +55,6 @@ export default function HealthProfileForm({ userId, initialData }: HealthProfile
     metabolic_concerns: initialData?.metabolic_concerns || [],
   });
 
-  const totalSteps = 2;
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

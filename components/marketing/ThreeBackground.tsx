@@ -1,13 +1,14 @@
 'use client';
 
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Points, PointMaterial } from '@react-three/drei';
+import type { Points as ThreePoints } from 'three';
 import * as random from 'maath/random/dist/maath-random.cjs';
 
 // --- Particle System Component ---
-function DigitalCortex(props: any) {
-    const ref = useRef<any>();
+function DigitalCortex() {
+    const ref = useRef<ThreePoints>(null);
 
     // Generate 2000 random points in a sphere
     const [sphere] = useState(() => random.inSphere(new Float32Array(3000), { radius: 1.5 }));
@@ -22,7 +23,7 @@ function DigitalCortex(props: any) {
 
     return (
         <group rotation={[0, 0, Math.PI / 4]}>
-            <Points ref={ref} positions={sphere} stride={3} frustumCulled={false} {...props}>
+            <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
                 <PointMaterial
                     transparent
                     color="#D4AF37" // Premium Gold
@@ -36,8 +37,8 @@ function DigitalCortex(props: any) {
     );
 }
 
-function DataStream(props: any) {
-    const ref = useRef<any>();
+function DataStream() {
+    const ref = useRef<ThreePoints>(null);
     const [stream] = useState(() => random.inSphere(new Float32Array(1000), { radius: 2.5 }));
 
     useFrame((state, delta) => {
@@ -48,7 +49,7 @@ function DataStream(props: any) {
 
     return (
         <group rotation={[0, 0, 0]}>
-            <Points ref={ref} positions={stream} stride={3} frustumCulled={false} {...props}>
+            <Points ref={ref} positions={stream} stride={3} frustumCulled={false}>
                 <PointMaterial
                     transparent
                     color="#0EA5E9" // Tech Cyan
@@ -67,7 +68,8 @@ export default function ThreeBackground() {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
+        const timer = setTimeout(() => setMounted(true), 0);
+        return () => clearTimeout(timer);
     }, []);
 
     if (!mounted) return null;

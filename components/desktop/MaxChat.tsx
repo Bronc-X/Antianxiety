@@ -9,7 +9,7 @@ import {
     Send, Plus, Trash2, MessageSquare, RefreshCw,
     AlertCircle, Bot, User
 } from 'lucide-react';
-import { Card, CardContent, Button, Skeleton } from '@/components/ui';
+import { Button, Skeleton } from '@/components/ui';
 import type { UseMaxReturn, LocalMessage } from '@/hooks/domain/useMax';
 
 interface DesktopMaxChatProps {

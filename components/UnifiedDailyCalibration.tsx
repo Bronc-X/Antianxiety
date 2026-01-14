@@ -30,7 +30,7 @@ interface UnifiedDailyCalibrationProps {
 
 // ============ Apple-style Animation Variants ============
 
-const easeApple = [0.25, 0.46, 0.45, 0.94] as any;
+const easeApple: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
 const containerVariants = {
     hidden: { opacity: 0, scale: 0.96 },
@@ -76,7 +76,7 @@ export function UnifiedDailyCalibration({
     userName,
     onComplete,
 }: UnifiedDailyCalibrationProps) {
-    const { t, language } = useI18n();
+    const { language } = useI18n();
 
     // Connect to Domain Hook (ViewModel)
     const {

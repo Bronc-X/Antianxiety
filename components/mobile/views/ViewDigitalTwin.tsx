@@ -24,7 +24,6 @@ import {
     XAxis,
     YAxis,
     Tooltip,
-    Legend,
 } from 'recharts';
 import {
     Brain,
@@ -38,12 +37,11 @@ import {
     AlertCircle,
     CheckCircle,
     Clock,
-    ChevronRight,
     RefreshCw,
     Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useDigitalTwinCurve, getDataQualityStatus, getCurrentMilestone } from '@/hooks/domain';
+import { useDigitalTwinCurve, getDataQualityStatus } from '@/hooks/domain';
 import { ViewDigitalTwinDetail } from './ViewDigitalTwinDetail';
 import type {
     DigitalTwinCurveOutput,
@@ -529,7 +527,7 @@ function DataQualityBanner({ curveData }: DataQualityBannerProps) {
 
 export function ViewDigitalTwin() {
     const { curveData, isLoading, error, generateCurve, refreshCurve } = useDigitalTwinCurve();
-    const [selectedMetrics, setSelectedMetrics] = useState<(keyof typeof METRIC_LABELS)[]>([
+    const [selectedMetrics] = useState<(keyof typeof METRIC_LABELS)[]>([
         'anxietyScore',
         'sleepQuality',
         'moodStability',

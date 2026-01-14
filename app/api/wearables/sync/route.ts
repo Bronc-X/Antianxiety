@@ -220,6 +220,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(_request: NextRequest) {
     try {
+        void _request;
         const cookieStore = await cookies();
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,

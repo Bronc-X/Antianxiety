@@ -3,18 +3,17 @@
 import { useRef, useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { Settings, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Clock, Database, BarChart3, RefreshCw, AlertCircle, Loader2, X, Bell, Shield, Zap, LogIn, Heart, Lightbulb, Target, AlertTriangle, Moon, Activity, Smile, Brain, CheckCircle, Info, ChevronDown } from 'lucide-react';
+import { Settings, TrendingUp, Clock, BarChart3, RefreshCw, AlertCircle, Loader2, X, Bell, Shield, Zap, LogIn, Heart, Lightbulb, Target, AlertTriangle, Moon, Activity, Smile, Brain, CheckCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useDigitalTwinCurve, getDataQualityStatus } from '@/hooks/domain/useDigitalTwinCurve';
 import { useAskMaxExplain } from '@/hooks/domain/useAskMaxExplain';
 import { useAuth } from '@/hooks/domain/useAuth';
 import { useProfile } from '@/hooks/domain/useProfile';
 import type { DigitalTwinCurveOutput, CurveTimepoint, TimelineMilestone, ScaleBaselineItem } from '@/types/digital-twin-curve';
-import { getRecommendations, type HealthRecommendation } from '@/lib/health-recommendations';
+import { getRecommendations } from '@/lib/health-recommendations';
 import MaxAvatar from '@/components/max/MaxAvatar';
 import {
     Area,
-    AreaChart,
     ResponsiveContainer,
     XAxis,
     YAxis,
@@ -35,15 +34,6 @@ const COLORS = {
     energy: '#89B4D6',  // Air Superiority Blue (Flow)
     hrv: '#D69EAC',     // Dusty Rose (Heart)
     // Removed stress
-};
-
-const METRIC_ICONS = {
-    anxietyScore: TrendingDown,
-    sleepQuality: Moon,
-    moodStability: Smile,
-    energyLevel: Activity,
-    hrvScore: Heart,
-    // Removed stressResilience
 };
 
 const METRIC_LABELS = {
@@ -68,17 +58,6 @@ const METRIC_LABELS_CN = {
 
 type ViewType = 'prediction' | 'progress' | 'advice';
 
-interface ApiResponse {
-    status?: 'collecting_data' | 'no_analysis';
-    collectionStatus?: DataCollectionStatus;
-    message?: string;
-    dashboardData?: DashboardData;
-    adaptivePlan?: AdaptivePlan;
-    isStale?: boolean;
-    lastAnalyzed?: string;
-    error?: string;
-}
-
 // ============================================
 // Not Logged In State Component
 // ============================================
@@ -102,29 +81,6 @@ function NotLoggedInState({ language }: { language: string }) {
 }
 
 // ============================================
-// Animated Components
-// ============================================
-
-function AnimatedValue({ value, delay = 0 }: { value: string; delay?: number }) {
-    const [show, setShow] = useState(false);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setShow(true), delay);
-        return () => clearTimeout(timer);
-    }, [delay]);
-
-    return (
-        <motion.span
-            initial={{ opacity: 0, y: 5 }}
-            animate={show ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.3 }}
-        >
-            {value}
-        </motion.span>
-    );
-}
-
-// ============================================
 // Loading State Component
 // ============================================
 
@@ -135,81 +91,6 @@ function LoadingState({ language }: { language: string }) {
             <p className="text-white/70 text-sm">
                 {language === 'en' ? 'Loading your digital twin...' : '正在加载你的数字孪生...'}
             </p>
-        </div>
-    );
-}
-
-// ============================================
-// Data Collection State Component
-// ============================================
-
-function DataCollectionState({
-    status,
-    language
-}: {
-    status: DataCollectionStatus;
-    language: string;
-}) {
-    const calibrationDays = status.calibrationDays ?? status.calibrationCount ?? 0;
-    const estimatedAccuracy = Math.min(95, Math.max(60, 60 + calibrationDays * 5));
-    const dateSummary = status.firstCalibrationDate && status.lastCalibrationDate
-        ? (status.firstCalibrationDate === status.lastCalibrationDate
-            ? status.lastCalibrationDate
-            : `${status.firstCalibrationDate} - ${status.lastCalibrationDate}`)
-        : status.lastCalibrationDate || status.firstCalibrationDate || '';
-
-    return (
-        <div className="flex flex-col items-center justify-center py-16 px-6">
-            <div className="w-20 h-20 rounded-full bg-[#D4AF37]/20 flex items-center justify-center mb-6">
-                <Database className="w-10 h-10 text-[#D4AF37]" />
-            </div>
-            <h3 className="text-white font-semibold text-lg mb-2">
-                {language === 'en' ? 'Your AI prediction is ready' : '你的 AI 预测已生成'}
-            </h3>
-            <p className="text-white/60 text-sm text-center mb-6 max-w-md">
-                {language === 'en'
-                    ? 'Daily calibration quickly improves accuracy. We estimate 6 consecutive check-ins will push accuracy above 90%.'
-                    : '每日校准会快速提升准确性，预估连续 6 天的校准互动将达到 90% 以上。'}
-            </p>
-
-            {/* Progress Bar */}
-            <div className="w-full max-w-xs mb-4">
-                <div className="flex justify-between text-xs text-white/50 mb-2">
-                    <span>{language === 'en' ? 'Prediction accuracy' : '预测准确性'}</span>
-                    <span>{estimatedAccuracy}%</span>
-                </div>
-                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${estimatedAccuracy}%` }}
-                        transition={{ duration: 0.5 }}
-                        className="h-full bg-gradient-to-r from-[#D4AF37] to-[#B8960C]"
-                    />
-                </div>
-            </div>
-
-            {/* Collection Details */}
-            <div className="grid grid-cols-2 gap-4 text-center mt-4">
-                <div className="p-3 bg-white/5 rounded">
-                    <div className="text-[#D4AF37] font-bold">{estimatedAccuracy}%</div>
-                    <div className="text-white/50 text-xs">{language === 'en' ? 'Current accuracy' : '当前准确性'}</div>
-                </div>
-                <div className="p-3 bg-white/5 rounded">
-                    <div className="font-bold text-green-400">90%+</div>
-                    <div className="text-white/50 text-xs">{language === 'en' ? 'After 6 check-ins' : '连续 6 天校准后'}</div>
-                </div>
-            </div>
-
-            <div className="mt-4 text-xs text-white/50">
-                <span>
-                    {language === 'en' ? `Calibrated ${calibrationDays} days` : `已校准 ${calibrationDays} 天`}
-                </span>
-                {dateSummary && (
-                    <span>
-                        {language === 'en' ? ` · Last ${dateSummary}` : ` · 最近 ${dateSummary}`}
-                    </span>
-                )}
-            </div>
         </div>
     );
 }
@@ -317,7 +198,6 @@ export default function ParticipantDigitalTwin() {
     const { profile } = useProfile();
 
     // Local UI state
-    const [timeOffset, setTimeOffset] = useState(0);
     const [activeView, setActiveView] = useState<ViewType>('prediction');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -332,6 +212,7 @@ export default function ParticipantDigitalTwin() {
 
     // Carousel state
     const [activeChartTab, setActiveChartTab] = useState<'chart' | 'table'>('chart');
+    const swipeStartXRef = useRef<number | null>(null);
 
     // Handle metric toggle
     const handleMetricToggle = useCallback((metric: keyof typeof METRIC_LABELS) => {
@@ -394,14 +275,30 @@ export default function ParticipantDigitalTwin() {
             { id: 'advice' as ViewType, label: '健康建议', icon: Heart },
         ];
 
-    const timeLabels = language === 'en'
-        ? ['Time (weeks)', 'Baseline', '3', '6', '9', '12', '15']
-        : ['时间（周）', '基线', '3', '6', '9', '12', '15'];
-
-    const maxOffset = timeLabels.length - 2;
-
     // Extract data from curveData
-    const rawTimepoints = curveData?.A_predictedLongitudinalOutcomes?.timepoints || [];
+    const rawTimepoints = useMemo<CurveTimepoint[]>(
+        () => curveData?.A_predictedLongitudinalOutcomes?.timepoints ?? [],
+        [curveData]
+    );
+
+    const normalizeMetricPrediction = (raw: unknown): { value: number; confidence: string } => {
+        if (raw && typeof raw === 'object') {
+            const rawObj = raw as Record<string, unknown>;
+            const rawValue = rawObj.value ?? rawObj.score ?? raw;
+            const numeric = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+            return {
+                ...rawObj,
+                value: Number.isNaN(numeric) ? 0 : numeric,
+                confidence: typeof rawObj.confidence === 'string' ? rawObj.confidence : 'medium',
+            };
+        }
+
+        const numeric = typeof raw === 'number' ? raw : Number(raw);
+        return {
+            value: Number.isNaN(numeric) ? 0 : numeric,
+            confidence: 'medium',
+        };
+    };
 
     // Debug logging
     useEffect(() => {
@@ -411,36 +308,32 @@ export default function ParticipantDigitalTwin() {
         }
     }, [curveData, rawTimepoints]);
 
-    const timepoints = rawTimepoints.map((tp: any) => ({
+    const timepoints = rawTimepoints.map((tp) => ({
         ...tp,
         metrics: Object.fromEntries(
-            Object.entries(tp.metrics || {}).map(([k, v]: [string, any]) => {
-                const rawVal = typeof v === 'object' && v !== null ? (v.value ?? v.score ?? v) : v;
-                const numVal = typeof rawVal === 'number' ? rawVal : Number(rawVal);
-                return [
-                    k,
-                    {
-                        ... (typeof v === 'object' ? v : {}),
-                        value: isNaN(numVal) ? 0 : numVal,
-                        confidence: v?.confidence || 'medium'
-                    }
-                ];
-            })
-        )
+            Object.entries(tp.metrics ?? {}).map(([key, value]) => [
+                key,
+                normalizeMetricPrediction(value),
+            ])
+        ) as CurveTimepoint['metrics'],
     }));
     const milestones = curveData?.B_timeSinceBaselineVisit?.milestones || [];
-    const baselineScales = (curveData?.C_participantBaselineData?.scales || []).map((s: any) => ({
-        ...s,
-        value: typeof s.value === 'object' && s.value !== null ? s.value.score : s.value
-    }));
+    const baselineScales = (curveData?.C_participantBaselineData?.scales ?? []).map((scale) => {
+        const rawValue = (scale as { value?: unknown }).value;
+        const normalizedValue = rawValue && typeof rawValue === 'object' && 'score' in rawValue
+            ? (rawValue as { score?: unknown }).score
+            : rawValue;
+        const numericValue = typeof normalizedValue === 'number'
+            ? normalizedValue
+            : normalizedValue == null
+                ? null
+                : Number(normalizedValue);
+        return {
+            ...scale,
+            value: typeof numericValue === 'number' && Number.isNaN(numericValue) ? null : numericValue,
+        };
+    });
     const baselineVitals = curveData?.C_participantBaselineData?.vitals || {};
-    const charts = curveData?.D_metricEndpoints?.charts;
-    const rawSummaryStats = curveData?.D_metricEndpoints?.summaryStats;
-    const summaryStats = rawSummaryStats ? {
-        overallImprovement: typeof rawSummaryStats.overallImprovement === 'object' ? (rawSummaryStats.overallImprovement as any).value : rawSummaryStats.overallImprovement,
-        daysToFirstResult: typeof rawSummaryStats.daysToFirstResult === 'object' ? (rawSummaryStats.daysToFirstResult as any).value : rawSummaryStats.daysToFirstResult,
-        consistencyScore: typeof rawSummaryStats.consistencyScore === 'object' ? (rawSummaryStats.consistencyScore as any).value : rawSummaryStats.consistencyScore,
-    } : undefined;
 
     // Derive participant info from profile
     const displayName = profile?.full_name || profile?.nickname || profile?.first_name || 'User';
@@ -640,11 +533,11 @@ export default function ParticipantDigitalTwin() {
                                                 className="overflow-hidden cursor-grab active:cursor-grabbing outline-none"
                                                 onTouchStart={(e) => {
                                                     const touch = e.touches[0];
-                                                    (e.currentTarget as any).startX = touch.clientX;
+                                                    swipeStartXRef.current = touch.clientX;
                                                 }}
                                                 onTouchEnd={(e) => {
                                                     const touch = e.changedTouches[0];
-                                                    const startX = (e.currentTarget as any).startX;
+                                                    const startX = swipeStartXRef.current;
                                                     if (typeof startX === 'number') {
                                                         const diff = touch.clientX - startX;
                                                         if (Math.abs(diff) > 50) {
@@ -652,12 +545,13 @@ export default function ParticipantDigitalTwin() {
                                                             if (diff < 0 && activeChartTab === 'chart') setActiveChartTab('table');
                                                         }
                                                     }
+                                                    swipeStartXRef.current = null;
                                                 }}
                                                 onMouseDown={(e) => {
-                                                    (e.currentTarget as any).startX = e.clientX;
+                                                    swipeStartXRef.current = e.clientX;
                                                 }}
                                                 onMouseUp={(e) => {
-                                                    const startX = (e.currentTarget as any).startX;
+                                                    const startX = swipeStartXRef.current;
                                                     if (typeof startX === 'number') {
                                                         const diff = e.clientX - startX;
                                                         if (Math.abs(diff) > 50) {
@@ -665,10 +559,10 @@ export default function ParticipantDigitalTwin() {
                                                             if (diff < 0 && activeChartTab === 'chart') setActiveChartTab('table');
                                                         }
                                                     }
-                                                    (e.currentTarget as any).startX = null;
+                                                    swipeStartXRef.current = null;
                                                 }}
-                                                onMouseLeave={(e) => {
-                                                    (e.currentTarget as any).startX = null;
+                                                onMouseLeave={() => {
+                                                    swipeStartXRef.current = null;
                                                 }}
                                             >
                                                 <div
@@ -690,10 +584,6 @@ export default function ParticipantDigitalTwin() {
                                                     <div className="w-full flex-shrink-0">
                                                         <CurvePredictionView
                                                             timepoints={curveData.A_predictedLongitudinalOutcomes.timepoints.filter(tp => tp.week <= 12)}
-                                                            timeLabels={curveData.A_predictedLongitudinalOutcomes.timepoints.filter(tp => tp.week <= 12).map(tp => `${tp.week}w`)}
-                                                            timeOffset={timeOffset}
-                                                            setTimeOffset={setTimeOffset}
-                                                            maxOffset={curveData.A_predictedLongitudinalOutcomes.timepoints.filter(tp => tp.week <= 12).length - 1}
                                                             initials={initials}
                                                             displayName={displayName}
                                                             language={language}
@@ -762,7 +652,6 @@ export default function ParticipantDigitalTwin() {
                                         <CurveHealthRecommendationView
                                             scales={baselineScales}
                                             timepoints={timepoints}
-                                            summaryStats={summaryStats}
                                             language={language}
                                         />
                                     </motion.div>
@@ -919,728 +808,17 @@ export default function ParticipantDigitalTwin() {
 
 
 // ============================================
-// Prediction View Component
-// ============================================
-
-function PredictionView({
-    participant,
-    metrics,
-    timeLabels,
-    timeOffset,
-    setTimeOffset,
-    maxOffset,
-    initials,
-    language,
-}: {
-    participant: DashboardData['participant'];
-    metrics: DashboardData['predictionTable']['metrics'];
-    timeLabels: string[];
-    timeOffset: number;
-    setTimeOffset: (offset: number) => void;
-    maxOffset: number;
-    initials: string;
-    language: string;
-}) {
-    const activeColumn = Math.min(1 + timeOffset, timeLabels.length - 1);
-
-    // Localize participant info
-    const displayedParticipant = language === 'en'
-        ? participant
-        : {
-            ...participant,
-            gender: participant.gender === 'Female' ? '女' : participant.gender === 'Male' ? '男' : participant.gender,
-            diagnosis: participant.diagnosis === 'GAD' ? '广泛性焦虑' : participant.diagnosis,
-        };
-
-    return (
-        <motion.div
-            key="prediction"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-        >
-            {/* Participant Info */}
-            <div className="flex items-start gap-6 px-6 py-4" style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.1)' }}>
-                <div className="relative w-16 h-16 overflow-hidden flex-shrink-0">
-                    <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold" style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 100%)', color: '#0B3D2E' }}>
-                        {initials}
-                    </div>
-                </div>
-                <div className="grid grid-cols-3 gap-x-8 gap-y-2 text-sm flex-1">
-                    {displayedParticipant.age && (
-                        <div><span className="text-white/50">{language === 'en' ? 'Age: ' : '年龄：'}</span><span className="text-white">{displayedParticipant.age}</span></div>
-                    )}
-                    <div><span className="text-white/50">{language === 'en' ? 'Diagnosis: ' : '诊断：'}</span><span className="text-white">{displayedParticipant.diagnosis}</span></div>
-                    {displayedParticipant.gender && (
-                        <div><span className="text-white/50">{language === 'en' ? 'Sex: ' : '性别：'}</span><span className="text-white">{displayedParticipant.gender}</span></div>
-                    )}
-                    <div><span className="text-white/50">{language === 'en' ? 'Since: ' : '注册：'}</span><span className="text-white">{new Date(displayedParticipant.registrationDate).toLocaleDateString()}</span></div>
-                </div>
-            </div>
-
-            {/* Time Slider */}
-            <div className="px-6 py-3 flex items-center gap-4" style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
-                <button onClick={() => setTimeOffset(Math.max(0, timeOffset - 1))} disabled={timeOffset === 0} className="p-1 text-white/50 hover:text-white transition-colors disabled:opacity-30">
-                    <ChevronLeft className="w-4 h-4" />
-                </button>
-                <div className="flex-1 flex justify-between text-xs text-white/60">
-                    {timeLabels.map((label, i) => (
-                        <span key={label} className={`${i === 0 ? 'text-white/40' : ''} ${i === activeColumn ? 'text-[#D4AF37]' : ''}`}>{label}</span>
-                    ))}
-                </div>
-                <button onClick={() => setTimeOffset(Math.min(maxOffset, timeOffset + 1))} disabled={timeOffset >= maxOffset} className="p-1 text-white/50 hover:text-white transition-colors disabled:opacity-30">
-                    <ChevronRight className="w-4 h-4" />
-                </button>
-            </div>
-
-            {/* Data Table */}
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)' }}>
-                            <th className="px-4 py-3 text-left text-white/60 font-medium">{language === 'en' ? 'Metric' : '指标'}</th>
-                            <th className="px-4 py-3 text-center text-white/60 font-medium">{language === 'en' ? 'Baseline' : '基线'}</th>
-                            <th className="px-4 py-3 text-center text-white/60 font-medium">{language === 'en' ? '3 wk' : '3周'}</th>
-                            <th className="px-4 py-3 text-center text-white/60 font-medium">{language === 'en' ? '6 wk' : '6周'}</th>
-                            <th className="px-4 py-3 text-center text-white/60 font-medium">{language === 'en' ? '9 wk' : '9周'}</th>
-                            <th className="px-4 py-3 text-center text-white/60 font-medium">{language === 'en' ? '12 wk' : '12周'}</th>
-                            <th className="px-4 py-3 text-center text-white/60 font-medium">{language === 'en' ? '15 wk' : '15周'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {metrics.map((metric, i) => (
-                            <tr key={metric.name} className="border-b border-white/5" style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-                                <td className="px-4 py-3 text-white/80">{metric.name}</td>
-                                <td className="px-4 py-3 text-center text-[#D4AF37]"><AnimatedValue value={String(metric.baseline)} delay={100 + i * 50} /></td>
-                                <td className="px-4 py-3 text-center text-white/60"><AnimatedValue value={metric.predictions['3'] || '—'} delay={150 + i * 50} /></td>
-                                <td className="px-4 py-3 text-center text-white/60"><AnimatedValue value={metric.predictions['6'] || '—'} delay={200 + i * 50} /></td>
-                                <td className="px-4 py-3 text-center text-white/60"><AnimatedValue value={metric.predictions['9'] || '—'} delay={250 + i * 50} /></td>
-                                <td className="px-4 py-3 text-center text-white/60"><AnimatedValue value={metric.predictions['12'] || '—'} delay={300 + i * 50} /></td>
-                                <td className="px-4 py-3 text-center text-white/60"><AnimatedValue value={metric.predictions['15'] || '—'} delay={350 + i * 50} /></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </motion.div>
-    );
-}
-
-// ============================================
-// Timeline View Component
-// ============================================
-
-function TimelineView({
-    timeline,
-    language,
-}: {
-    timeline: TreatmentMilestone[];
-    language: string;
-}) {
-    return (
-        <motion.div
-            key="timeline"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="p-6"
-        >
-            <h3 className="text-white font-semibold mb-6">{language === 'en' ? 'Treatment Timeline' : '治疗时间线'}</h3>
-            <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-white/10" />
-
-                <div className="space-y-6">
-                    {timeline.map((milestone, i) => (
-                        <motion.div
-                            key={milestone.week}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.1 }}
-                            className="relative pl-12"
-                        >
-                            {/* Dot */}
-                            <div className={`absolute left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center ${milestone.status === 'completed' ? 'bg-[#D4AF37] border-[#D4AF37]' :
-                                milestone.status === 'current' ? 'bg-[#0B3D2E] border-[#D4AF37] animate-pulse' :
-                                    'bg-[#0B3D2E] border-white/30'
-                                }`}>
-                                {milestone.status === 'completed' && (
-                                    <svg className="w-3 h-3 text-[#0B3D2E]" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                )}
-                            </div>
-
-                            <div className={`p-4 ${milestone.status === 'current' ? 'bg-[#D4AF37]/10 border border-[#D4AF37]/30' : 'bg-white/5'}`}>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-white font-medium">{milestone.event}</span>
-                                    <span className="text-[#D4AF37] text-sm">{language === 'en' ? `Week ${milestone.week}` : `第 ${milestone.week} 周`}</span>
-                                </div>
-                                <p className="text-white/60 text-sm">{milestone.detail}</p>
-                                {milestone.actualScore !== undefined && (
-                                    <p className="text-[#D4AF37] text-xs mt-1">
-                                        {language === 'en' ? `Score: ${milestone.actualScore}` : `评分: ${milestone.actualScore}`}
-                                    </p>
-                                )}
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
-        </motion.div>
-    );
-}
-
-// ============================================
-// Baseline View Component
-// ============================================
-
-function BaselineView({
-    assessments,
-    vitals,
-    language,
-}: {
-    assessments: DashboardData['baselineData']['assessments'];
-    vitals: DashboardData['baselineData']['vitals'];
-    language: string;
-}) {
-    return (
-        <motion.div
-            key="baseline"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="p-6"
-        >
-            <div className="grid md:grid-cols-2 gap-6">
-                {/* Assessments */}
-                <div>
-                    <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-[#D4AF37]" />
-                        {language === 'en' ? 'Clinical Assessments' : '临床评估'}
-                    </h3>
-                    <div className="space-y-3">
-                        {assessments.map((item, i) => (
-                            <motion.div
-                                key={item.name}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="p-4 bg-white/5 border border-white/10"
-                            >
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className="text-white/70 text-sm">{item.name}</span>
-                                    <span className="text-[#D4AF37] font-bold text-lg">{item.value}</span>
-                                </div>
-                                <span className="text-white/50 text-xs">{item.interpretation}</span>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Vitals */}
-                <div>
-                    <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-[#D4AF37]" />
-                        {language === 'en' ? 'Biometric Vitals' : '生物指标'}
-                    </h3>
-                    <div className="space-y-3">
-                        {vitals.map((item, i) => (
-                            <motion.div
-                                key={item.name}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 + 0.2 }}
-                                className="p-4 bg-white/5 border border-white/10"
-                            >
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className="text-white/70 text-sm">{item.name}</span>
-                                    <span className="text-white font-bold">{item.value}</span>
-                                </div>
-                                <span className={`text-xs ${item.trend === 'normal' || item.trend === 'at_target' ? 'text-green-400' :
-                                    item.trend === 'above_target' ? 'text-blue-400' : 'text-amber-400'
-                                    }`}>
-                                    {language === 'en'
-                                        ? item.trend.replace('_', ' ')
-                                        : item.trend === 'normal' ? '正常'
-                                            : item.trend === 'at_target' ? '达标'
-                                                : item.trend === 'above_target' ? '高于目标'
-                                                    : '低于目标'}
-                                </span>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </motion.div>
-    );
-}
-
-// ============================================
-// Endpoints View Component
-// ============================================
-
-function EndpointsView({
-    charts,
-    summaryStats,
-    language,
-}: {
-    charts?: DashboardData['charts'];
-    summaryStats?: DashboardData['summaryStats'];
-    language: string;
-}) {
-    // Default chart data if not provided
-    const anxietyTrend = charts?.anxietyTrend || [14, 12, 11, 10, 9, 8];
-    const sleepTrend = charts?.sleepTrend || [3, 4, 5, 6, 7, 8];
-    const hrvTrend = charts?.hrvTrend || [42, 48, 52, 55, 58, 62];
-    const energyTrend = charts?.energyTrend || [4, 5, 5.5, 6, 6.5, 7];
-
-    // Calculate improvements
-    const anxietyImprovement = anxietyTrend.length > 1
-        ? Math.round((1 - anxietyTrend[anxietyTrend.length - 1] / anxietyTrend[0]) * 100)
-        : 0;
-    const sleepImprovement = sleepTrend.length > 1
-        ? Math.round((sleepTrend[sleepTrend.length - 1] / sleepTrend[0] - 1) * 100)
-        : 0;
-    const hrvImprovement = hrvTrend.length > 1
-        ? Math.round((hrvTrend[hrvTrend.length - 1] / hrvTrend[0] - 1) * 100)
-        : 0;
-    const energyImprovement = energyTrend.length > 1
-        ? Math.round((energyTrend[energyTrend.length - 1] / energyTrend[0] - 1) * 100)
-        : 0;
-
-    return (
-        <motion.div
-            key="endpoints"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="p-6"
-        >
-            <h3 className="text-white font-semibold mb-6">{language === 'en' ? 'Metric Endpoints Over Time' : '指标终点变化趋势'}</h3>
-
-            {/* Chart Grid */}
-            <div className="grid md:grid-cols-2 gap-6">
-                {/* Anxiety Score Chart */}
-                <div className="bg-white/5 border border-white/10 p-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <span className="text-white/80 text-sm">{language === 'en' ? 'Anxiety Score' : '焦虑评分'}</span>
-                        <span className={`text-xs ${anxietyImprovement > 0 ? 'text-[#D4AF37]' : 'text-white/50'}`}>
-                            {anxietyImprovement > 0 ? `↓ ${anxietyImprovement}%` : '—'}
-                        </span>
-                    </div>
-                    <div className="h-32 flex items-end gap-2">
-                        {anxietyTrend.map((val, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ height: 0 }}
-                                animate={{ height: `${(val / Math.max(...anxietyTrend)) * 100}%` }}
-                                transition={{ delay: i * 0.1, duration: 0.5 }}
-                                className="flex-1 bg-gradient-to-t from-[#D4AF37] to-[#D4AF37]/50 rounded-t"
-                            />
-                        ))}
-                    </div>
-                    <div className="flex justify-between mt-2 text-xs text-white/40">
-                        <span>{language === 'en' ? 'Baseline' : '基线'}</span>
-                        <span>{language === 'en' ? '15 wk' : '15周'}</span>
-                    </div>
-                </div>
-
-                {/* Sleep Quality Chart */}
-                <div className="bg-white/5 border border-white/10 p-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <span className="text-white/80 text-sm">{language === 'en' ? 'Sleep Quality' : '睡眠质量'}</span>
-                        <span className={`text-xs ${sleepImprovement > 0 ? 'text-green-400' : 'text-white/50'}`}>
-                            {sleepImprovement > 0 ? `↑ ${sleepImprovement}%` : '—'}
-                        </span>
-                    </div>
-                    <div className="h-32 flex items-end gap-2">
-                        {sleepTrend.map((val, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ height: 0 }}
-                                animate={{ height: `${(val / 10) * 100}%` }}
-                                transition={{ delay: i * 0.1 + 0.3, duration: 0.5 }}
-                                className="flex-1 bg-gradient-to-t from-green-500 to-green-500/50 rounded-t"
-                            />
-                        ))}
-                    </div>
-                    <div className="flex justify-between mt-2 text-xs text-white/40">
-                        <span>{language === 'en' ? 'Baseline' : '基线'}</span>
-                        <span>{language === 'en' ? '15 wk' : '15周'}</span>
-                    </div>
-                </div>
-
-                {/* HRV Score Chart */}
-                <div className="bg-white/5 border border-white/10 p-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <span className="text-white/80 text-sm">{language === 'en' ? 'HRV Score' : 'HRV 分数'}</span>
-                        <span className={`text-xs ${hrvImprovement > 0 ? 'text-green-400' : 'text-white/50'}`}>
-                            {hrvImprovement > 0 ? `↑ ${hrvImprovement}%` : '—'}
-                        </span>
-                    </div>
-                    <div className="h-32 flex items-end gap-2">
-                        {hrvTrend.map((val, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ height: 0 }}
-                                animate={{ height: `${(val / 70) * 100}%` }}
-                                transition={{ delay: i * 0.1 + 0.6, duration: 0.5 }}
-                                className="flex-1 bg-gradient-to-t from-blue-500 to-blue-500/50 rounded-t"
-                            />
-                        ))}
-                    </div>
-                    <div className="flex justify-between mt-2 text-xs text-white/40">
-                        <span>{language === 'en' ? 'Baseline' : '基线'}</span>
-                        <span>{language === 'en' ? '15 wk' : '15周'}</span>
-                    </div>
-                </div>
-
-                {/* Energy Level Chart */}
-                <div className="bg-white/5 border border-white/10 p-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <span className="text-white/80 text-sm">{language === 'en' ? 'Energy Level' : '能量水平'}</span>
-                        <span className={`text-xs ${energyImprovement > 0 ? 'text-green-400' : 'text-white/50'}`}>
-                            {energyImprovement > 0 ? `↑ ${energyImprovement}%` : '—'}
-                        </span>
-                    </div>
-                    <div className="h-32 flex items-end gap-2">
-                        {energyTrend.map((val, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ height: 0 }}
-                                animate={{ height: `${(val / 10) * 100}%` }}
-                                transition={{ delay: i * 0.1 + 0.9, duration: 0.5 }}
-                                className="flex-1 bg-gradient-to-t from-amber-500 to-amber-500/50 rounded-t"
-                            />
-                        ))}
-                    </div>
-                    <div className="flex justify-between mt-2 text-xs text-white/40">
-                        <span>{language === 'en' ? 'Baseline' : '基线'}</span>
-                        <span>{language === 'en' ? '15 wk' : '15周'}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Summary Stats */}
-            <div className="mt-6 grid grid-cols-3 gap-4">
-                {(language === 'en' ? [
-                    { label: 'Overall Improvement', value: summaryStats?.overallImprovement || '—', color: 'text-[#D4AF37]' },
-                    { label: 'Days to First Result', value: summaryStats?.daysToFirstResult?.toString() || '—', color: 'text-white' },
-                    { label: 'Consistency Score', value: summaryStats?.consistencyScore || '—', color: 'text-green-400' },
-                ] : [
-                    { label: '整体改善', value: summaryStats?.overallImprovement || '—', color: 'text-[#D4AF37]' },
-                    { label: '首次见效天数', value: summaryStats?.daysToFirstResult?.toString() || '—', color: 'text-white' },
-                    { label: '一致性评分', value: summaryStats?.consistencyScore || '—', color: 'text-green-400' },
-                ]).map((stat, i) => (
-                    <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 1.2 + i * 0.1 }}
-                        className="text-center p-4 bg-white/5"
-                    >
-                        <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                        <div className="text-xs text-white/50 mt-1">{stat.label}</div>
-                    </motion.div>
-                ))}
-            </div>
-        </motion.div>
-    );
-}
-
-// ============================================
-// Health Recommendation View Component
-// ============================================
-
-interface HealthRecommendationViewProps {
-    assessments: DashboardData['baselineData']['assessments'];
-    metrics: DashboardData['predictionTable']['metrics'];
-    summaryStats?: DashboardData['summaryStats'];
-    language: string;
-}
-
-function HealthRecommendationView({
-    assessments,
-    metrics,
-    summaryStats,
-    language,
-}: HealthRecommendationViewProps) {
-    // Derive focus areas from assessments
-    const focusAreas = assessments
-        .filter(a => {
-            const val = typeof a.value === 'number' ? a.value : parseInt(a.value as string, 10);
-            // High severity: GAD-7 >= 10, PHQ-9 >= 10, ISI >= 15, PSS-10 >= 20
-            if (a.name.includes('GAD') || a.name.includes('焦虑')) return val >= 10;
-            if (a.name.includes('PHQ') || a.name.includes('抑郁')) return val >= 10;
-            if (a.name.includes('ISI') || a.name.includes('失眠')) return val >= 15;
-            if (a.name.includes('PSS') || a.name.includes('压力')) return val >= 20;
-            return false;
-        })
-        .map(a => ({
-            name: a.name,
-            value: a.value,
-            interpretation: a.interpretation,
-        }));
-
-    // Generate recommendations based on focus areas
-    const generateRecommendations = () => {
-        const recs: { icon: typeof Lightbulb; title: string; description: string; science: string }[] = [];
-
-        const hasAnxiety = assessments.some(a =>
-            (a.name.includes('GAD') || a.name.includes('焦虑')) &&
-            (typeof a.value === 'number' ? a.value : parseInt(a.value as string, 10)) >= 10
-        );
-        const hasDepression = assessments.some(a =>
-            (a.name.includes('PHQ') || a.name.includes('抑郁')) &&
-            (typeof a.value === 'number' ? a.value : parseInt(a.value as string, 10)) >= 10
-        );
-        const hasInsomnia = assessments.some(a =>
-            (a.name.includes('ISI') || a.name.includes('失眠')) &&
-            (typeof a.value === 'number' ? a.value : parseInt(a.value as string, 10)) >= 15
-        );
-        const hasStress = assessments.some(a =>
-            (a.name.includes('PSS') || a.name.includes('压力')) &&
-            (typeof a.value === 'number' ? a.value : parseInt(a.value as string, 10)) >= 20
-        );
-
-        if (hasAnxiety) {
-            recs.push({
-                icon: Lightbulb,
-                title: language === 'en' ? 'Practice Breathing Exercises' : '练习呼吸训练',
-                description: language === 'en'
-                    ? '4-7-8 breathing technique: Inhale 4s, hold 7s, exhale 8s. Practice 2-3 times daily.'
-                    : '4-7-8 呼吸法：吸气4秒，屏息7秒，呼气8秒。每天练习2-3次。',
-                science: language === 'en'
-                    ? 'Activates parasympathetic nervous system, reducing cortisol by 20-30%.'
-                    : '激活副交感神经系统，降低皮质醇20-30%。',
-            });
-        }
-
-        if (hasDepression) {
-            recs.push({
-                icon: Target,
-                title: language === 'en' ? 'Behavioral Activation' : '行为激活',
-                description: language === 'en'
-                    ? 'Schedule one enjoyable activity daily, even 10 minutes. Start small and build momentum.'
-                    : '每天安排一项愉悦活动，哪怕只有10分钟。从小事开始，逐步建立动力。',
-                science: language === 'en'
-                    ? 'Core CBT technique shown to improve mood in 60% of patients within 4 weeks.'
-                    : 'CBT 核心技术，60%患者4周内情绪改善。',
-            });
-        }
-
-        if (hasInsomnia) {
-            recs.push({
-                icon: Clock,
-                title: language === 'en' ? 'Sleep Hygiene' : '睡眠卫生',
-                description: language === 'en'
-                    ? 'No screens 1 hour before bed. Keep bedroom cool (18-20°C) and dark.'
-                    : '睡前1小时不看屏幕。卧室保持凉爽(18-20°C)和黑暗。',
-                science: language === 'en'
-                    ? 'Blue light suppresses melatonin production by up to 50%.'
-                    : '蓝光抑制褪黑素分泌达50%。',
-            });
-        }
-
-        if (hasStress) {
-            recs.push({
-                icon: Zap,
-                title: language === 'en' ? 'Stress Management' : '压力管理',
-                description: language === 'en'
-                    ? 'Take 3 micro-breaks per hour: stand, stretch, look away from screen for 20 seconds.'
-                    : '每小时3次微休息：站起来、拉伸、看向远处20秒。',
-                science: language === 'en'
-                    ? 'Reduces cumulative stress response and prevents burnout.'
-                    : '减少累积压力反应，预防倦怠。',
-            });
-        }
-
-        // Always add general wellness
-        recs.push({
-            icon: Heart,
-            title: language === 'en' ? 'Daily Calibration' : '每日校准',
-            description: language === 'en'
-                ? 'Complete your daily check-in to improve prediction accuracy and track progress.'
-                : '完成每日打卡，提高预测准确度并追踪进展。',
-            science: language === 'en'
-                ? 'Consistent self-monitoring increases treatment adherence by 40%.'
-                : '持续自我监测使治疗依从性提高40%。',
-        });
-
-        return recs;
-    };
-
-    const recommendations = generateRecommendations();
-
-    // Expected progress from metrics
-    const anxietyMetric = metrics.find(m => m.name.includes('Anxiety') || m.name.includes('焦虑'));
-    const moodMetric = metrics.find(m => m.name.includes('Mood') || m.name.includes('情绪'));
-
-    return (
-        <motion.div
-            key="recommendation"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="p-6"
-        >
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-[#D4AF37]/20 rounded-full flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-[#D4AF37]" />
-                </div>
-                <div>
-                    <h3 className="text-white font-semibold">
-                        {language === 'en' ? 'Personalized Health Recommendation' : '个性化健康建议'}
-                    </h3>
-                    <p className="text-white/50 text-sm">
-                        {language === 'en' ? 'Based on your baseline and progress' : '基于你的基线数据和进展'}
-                    </p>
-                </div>
-            </div>
-
-            {/* Focus Areas */}
-            {focusAreas.length > 0 && (
-                <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Target className="w-4 h-4 text-[#D4AF37]" />
-                        <span className="text-white text-sm font-medium">
-                            {language === 'en' ? 'Current Focus Areas' : '当前关注重点'}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        {focusAreas.map((area, i) => (
-                            <motion.div
-                                key={area.name}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 * i }}
-                                className="p-3 bg-red-500/10 border border-red-500/20 rounded"
-                            >
-                                <div className="text-white text-sm font-medium">{area.name}</div>
-                                <div className="text-red-400 text-xs">{area.interpretation}</div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Expected Progress */}
-            {(anxietyMetric || moodMetric) && (
-                <div className="mb-6 p-4 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded">
-                    <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp className="w-4 h-4 text-[#D4AF37]" />
-                        <span className="text-white text-sm font-medium">
-                            {language === 'en' ? 'Expected 15-Week Progress' : '预期15周进展'}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        {anxietyMetric && (
-                            <div>
-                                <span className="text-white/50">{anxietyMetric.name}: </span>
-                                <span className="text-[#D4AF37]">{anxietyMetric.baseline}</span>
-                                <span className="text-white/30"> → </span>
-                                <span className="text-green-400">{anxietyMetric.predictions['15'] || '—'}</span>
-                            </div>
-                        )}
-                        {moodMetric && (
-                            <div>
-                                <span className="text-white/50">{moodMetric.name}: </span>
-                                <span className="text-[#D4AF37]">{moodMetric.baseline}</span>
-                                <span className="text-white/30"> → </span>
-                                <span className="text-green-400">{moodMetric.predictions['15'] || '—'}</span>
-                            </div>
-                        )}
-                    </div>
-                    <p className="text-white/40 text-xs mt-2 italic">
-                        {language === 'en'
-                            ? '💡 Based on exponential recovery model (CBT standard 12-16 weeks)'
-                            : '💡 基于指数恢复模型（CBT标准疗程12-16周）'}
-                    </p>
-                </div>
-            )}
-
-            {/* Recommendations */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                    <Lightbulb className="w-4 h-4 text-[#D4AF37]" />
-                    <span className="text-white text-sm font-medium">
-                        {language === 'en' ? 'Actionable Recommendations' : '可行建议'}
-                    </span>
-                </div>
-                {recommendations.map((rec, i) => (
-                    <motion.div
-                        key={rec.title}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.15 * i }}
-                        className="p-4 bg-white/5 border-l-2 border-[#D4AF37] hover:bg-white/10 transition-colors"
-                    >
-                        <div className="flex items-start gap-3">
-                            <rec.icon className="w-5 h-5 text-[#D4AF37] mt-0.5 flex-shrink-0" />
-                            <div className="flex-1">
-                                <div className="text-white font-medium text-sm">{rec.title}</div>
-                                <div className="text-white/70 text-sm mt-1">{rec.description}</div>
-                                <div className="text-white/40 text-xs mt-2 italic flex items-center gap-1">
-                                    <span>📊</span> {rec.science}
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* Warning/Notes */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded"
-            >
-                <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                        <div className="text-amber-300 font-medium text-sm">
-                            {language === 'en' ? 'Important Note' : '重要提示'}
-                        </div>
-                        <div className="text-amber-200/70 text-sm mt-1">
-                            {language === 'en'
-                                ? 'These recommendations are AI-generated based on your data. For clinical concerns, please consult a healthcare professional.'
-                                : '这些建议由AI基于你的数据生成。如有临床问题，请咨询专业医疗人员。'}
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-}
-
-// ============================================
 // NEW: Curve-based View Components (using useDigitalTwinCurve)
 // ============================================
 
 // Curve Prediction View
 function CurvePredictionView({
     timepoints,
-    timeLabels,
-    timeOffset,
-    setTimeOffset,
-    maxOffset,
     initials,
     displayName,
     language,
 }: {
     timepoints: CurveTimepoint[];
-    timeLabels: string[];
-    timeOffset: number;
-    setTimeOffset: (offset: number) => void;
-    maxOffset: number;
     initials: string;
     displayName: string;
     language: string;
@@ -1689,7 +867,7 @@ function CurvePredictionView({
                         </tr>
                     </thead>
                     <tbody>
-                        {metricKeys.map((key, i) => {
+                        {metricKeys.map((key) => {
                             // Get user's actual baseline value
                             const baselineValue = timepoints[0]?.metrics[key]?.value ?? 0;
                             const targetValue = timepoints[timepoints.length - 1]?.metrics[key]?.value ?? 0;
@@ -1870,53 +1048,6 @@ function CurvePredictionView({
     );
 }
 
-// Curve Timeline View
-function CurveTimelineView({
-    milestones,
-    language,
-}: {
-    milestones: TimelineMilestone[];
-    language: string;
-}) {
-    return (
-        <motion.div
-            key="timeline"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="p-6"
-        >
-            <h3 className="text-white font-semibold mb-4">
-                {language === 'en' ? 'Recovery Timeline' : '恢复时间线'}
-            </h3>
-            <div className="space-y-4">
-                {milestones.map((m, i) => (
-                    <motion.div
-                        key={m.week}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * i }}
-                        className={`flex items-start gap-4 p-4 rounded ${m.status === 'current' ? 'bg-[#D4AF37]/20 border border-[#D4AF37]/30' :
-                            m.status === 'completed' ? 'bg-green-500/10' : 'bg-white/5'
-                            }`}
-                    >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${m.status === 'current' ? 'bg-[#D4AF37] text-[#0B3D2E]' :
-                            m.status === 'completed' ? 'bg-green-500/30 text-green-400' : 'bg-white/10 text-white/50'
-                            }`}>
-                            {m.week}
-                        </div>
-                        <div className="flex-1">
-                            <div className="text-white font-medium">{m.event}</div>
-                            <div className="text-white/50 text-sm">{m.detail}</div>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
-        </motion.div>
-    );
-}
-
 // Curve Baseline View
 function CurveBaselineView({
     scales,
@@ -2017,76 +1148,14 @@ function CurveBaselineView({
     );
 }
 
-// Curve Endpoints View
-function CurveEndpointsView({
-    charts,
-    summaryStats,
-    language,
-}: {
-    charts?: { anxietyTrend?: { points: { week: number; value: number }[] } };
-    summaryStats?: { overallImprovement?: string; daysToFirstResult?: number; consistencyScore?: string };
-    language: string;
-}) {
-    return (
-        <motion.div
-            key="endpoints"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="p-6"
-        >
-            <h3 className="text-white font-semibold mb-4">
-                {language === 'en' ? 'Summary Statistics' : '统计摘要'}
-            </h3>
-
-            {/* Summary Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-white/5 rounded">
-                    <div className="text-2xl font-bold text-[#D4AF37]">{summaryStats?.overallImprovement || '—'}</div>
-                    <div className="text-xs text-white/50 mt-1">{language === 'en' ? 'Overall Improvement' : '整体改善'}</div>
-                </div>
-                <div className="text-center p-4 bg-white/5 rounded">
-                    <div className="text-2xl font-bold text-white">{summaryStats?.daysToFirstResult?.toString() || '—'}</div>
-                    <div className="text-xs text-white/50 mt-1">{language === 'en' ? 'Days to First Result' : '首次见效天数'}</div>
-                </div>
-                <div className="text-center p-4 bg-white/5 rounded">
-                    <div className="text-2xl font-bold text-green-400">{summaryStats?.consistencyScore || '—'}</div>
-                    <div className="text-xs text-white/50 mt-1">{language === 'en' ? 'Consistency Score' : '一致性评分'}</div>
-                </div>
-            </div>
-
-            {/* Simple Chart Representation */}
-            {charts?.anxietyTrend && (
-                <div className="p-4 bg-white/5 rounded">
-                    <div className="text-white/60 text-sm mb-2">{language === 'en' ? 'Anxiety Trend' : '焦虑趋势'}</div>
-                    <div className="flex items-end justify-between h-20 gap-1">
-                        {charts.anxietyTrend.points.map((p, i) => (
-                            <div key={p.week} className="flex-1 flex flex-col items-center">
-                                <div
-                                    className="w-full bg-[#D4AF37]/50 rounded-t"
-                                    style={{ height: `${p.value}%` }}
-                                />
-                                <div className="text-xs text-white/40 mt-1">{p.week === 0 ? '0' : p.week}</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </motion.div>
-    );
-}
-
 // Curve Health Recommendation View
 function CurveHealthRecommendationView({
     scales,
     timepoints,
-    summaryStats,
     language,
 }: {
     scales: ScaleBaselineItem[];
     timepoints: CurveTimepoint[];
-    summaryStats?: { overallImprovement?: string };
     language: string;
 }) {
     // Use Ask Max hook for recommendation explanations
@@ -2446,6 +1515,12 @@ interface RechartsCurveChartProps {
     currentWeek?: number;
 }
 
+interface TooltipEntry {
+    dataKey?: string;
+    value?: number;
+    stroke?: string;
+}
+
 function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, language, currentWeek = 1 }: RechartsCurveChartProps) { // Default to 1 to show some history if currentWeek missing
     // Time Unit State
     const [timeUnit, setTimeUnit] = useState<'day' | 'week' | 'month'>('week');
@@ -2506,8 +1581,6 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
             // Interpolate 7 days for the CURRENT week
             // Start: currentWeek, End: currentWeek + 1
             // Use curve interpolation logic roughly
-            const baseIndex = timepoints.findIndex(tp => tp.week >= currentWeek);
-            const validIndex = baseIndex === -1 ? timepoints.length - 2 : baseIndex; // Safe fallback
             // Actually we need the segment where currentWeek falls.
             // timepoints are 0, 3, 6...
             // currentWeek e.g. 1. Find segment 0-3.
@@ -2750,11 +1823,14 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
                                                     <span className="text-white/60 bg-white/10 px-1.5 rounded text-[10px] ml-2">Currently</span>
                                                 )}
                                             </p>
-                                            {payload
-                                                .filter((entry: any, index: number, self: any[]) =>
-                                                    index === self.findIndex((t: any) => t.dataKey === entry.dataKey)
-                                                )
-                                                .map((entry: any) => {
+                                            {(() => {
+                                                const entries = Array.isArray(payload) ? (payload as TooltipEntry[]) : [];
+                                                const uniqueEntries = entries.filter(
+                                                    (entry, index, self) =>
+                                                        index === self.findIndex((item) => item.dataKey === entry.dataKey)
+                                                );
+
+                                                return uniqueEntries.map((entry) => {
                                                     const metricKey = entry.dataKey as keyof typeof METRIC_LABELS;
                                                     const value = entry.value as number;
                                                     const name = getMetricLabel(metricKey);
@@ -2801,7 +1877,8 @@ function RechartsCurveChart({ timepoints, selectedMetrics, onMetricToggle, langu
                                                             </div>
                                                         </div>
                                                     );
-                                                })}
+                                                });
+                                            })()}
                                         </div>
                                     );
                                 }
@@ -3014,127 +2091,6 @@ function DataQualityBanner({ curveData, language }: DataQualityBannerProps) {
                     </ul>
                 </div>
             </div>
-        </motion.div>
-    );
-}
-
-// ============================================
-// NEW: Methodology Section
-// ============================================
-
-const METHODOLOGY_DATA = {
-    dataSource: {
-        en: [
-            { metric: 'Anxiety Score', source: 'GAD-7 Scale + Daily Stress Calibration', realData: true, formula: '(GAD-7/21)×100' },
-            { metric: 'Sleep Quality', source: 'ISI Scale + Daily Sleep Rating', realData: true, formula: '70%×Scale + 30%×Daily' },
-            { metric: 'Mood Stability', source: 'PHQ-9 Scale + Daily Mood', realData: true, formula: '100-(PHQ-9/27)×100' },
-            { metric: 'Stress Resilience', source: 'PSS-10 Scale + Daily Stress', realData: true, formula: '100-(PSS-10/40)×100' },
-            { metric: 'Energy Level', source: 'Daily Energy Calibration', realData: true, formula: 'Daily Avg × 10' },
-            { metric: 'HRV Index', source: '⚠️ Inferred (No Wearable)', realData: false, formula: '0.3×Sleep + 0.3×(100-Anxiety) + 0.4×Energy' },
-        ],
-        cn: [
-            { metric: '焦虑评分', source: 'GAD-7量表 + 每日压力校准', realData: true, formula: '(GAD-7/21)×100' },
-            { metric: '睡眠质量', source: 'ISI量表 + 每日睡眠评分', realData: true, formula: '70%×量表分 + 30%×日均评分' },
-            { metric: '情绪稳定', source: 'PHQ-9量表 + 每日心情', realData: true, formula: '100-(PHQ-9/27)×100' },
-            { metric: '抗压韧性', source: 'PSS-10量表 + 每日压力', realData: true, formula: '100-(PSS-10/40)×100' },
-            { metric: '能量水平', source: '每日能量校准', realData: true, formula: '日均能量×10' },
-            { metric: 'HRV指数', source: '⚠️ 推断值（无可穿戴设备）', realData: false, formula: '0.3×睡眠 + 0.3×(100-焦虑) + 0.4×能量' },
-        ],
-    },
-    predictionModel: {
-        en: {
-            name: 'Exponential Decay Recovery Model',
-            formula: 'y(t) = Target + (Current - Target) × e^(-k×t)',
-            description: 'Simulates gradual psychological recovery process',
-        },
-        cn: {
-            name: '指数衰减恢复模型',
-            formula: 'y(t) = 目标值 + (当前值 - 目标值) × e^(-k×t)',
-            description: '模拟心理干预的渐进恢复过程',
-        },
-    },
-};
-
-interface MethodologySectionProps {
-    language: string;
-}
-
-function MethodologySection({ language }: MethodologySectionProps) {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white/5 backdrop-blur-sm border border-[#D4AF37]/20 rounded-lg overflow-hidden"
-        >
-            <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
-            >
-                <div className="flex items-center gap-2">
-                    <Info className="w-5 h-5 text-[#D4AF37]" />
-                    <span className="text-white font-medium">
-                        {language === 'en' ? 'Methodology & Scientific Basis' : '计算方法 & 科学依据'}
-                    </span>
-                </div>
-                <ChevronDown className={`w-5 h-5 text-white/50 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-            </button>
-
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="px-4 pb-4 space-y-4"
-                    >
-                        {/* Data Sources */}
-                        <div>
-                            <h4 className="text-white/80 font-medium mb-2">📊 {language === 'en' ? 'Data Sources' : '数据来源'}</h4>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="text-left text-white/50">
-                                            <th className="pb-2">{language === 'en' ? 'Metric' : '指标'}</th>
-                                            <th className="pb-2">{language === 'en' ? 'Source' : '来源'}</th>
-                                            <th className="pb-2">{language === 'en' ? 'Formula' : '公式'}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/10">
-                                        {(language === 'en' ? METHODOLOGY_DATA.dataSource.en : METHODOLOGY_DATA.dataSource.cn).map((item) => (
-                                            <tr key={item.metric} className={item.realData ? '' : 'bg-amber-500/5'}>
-                                                <td className="py-2 text-white">
-                                                    {item.metric}
-                                                    {!item.realData && <span className="ml-1 text-xs text-amber-400">⚠️</span>}
-                                                </td>
-                                                <td className="py-2 text-white/70">{item.source}</td>
-                                                <td className="py-2 font-mono text-xs text-white/50">{item.formula}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Prediction Model */}
-                        <div className="p-3 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/30">
-                            <p className="text-[#D4AF37] font-medium mb-2">📈 {language === 'en' ? METHODOLOGY_DATA.predictionModel.en.name : METHODOLOGY_DATA.predictionModel.cn.name}</p>
-                            <p className="font-mono text-sm text-white/80 bg-black/20 p-2 rounded">{language === 'en' ? METHODOLOGY_DATA.predictionModel.en.formula : METHODOLOGY_DATA.predictionModel.cn.formula}</p>
-                            <p className="text-white/60 text-sm mt-2">{language === 'en' ? METHODOLOGY_DATA.predictionModel.en.description : METHODOLOGY_DATA.predictionModel.cn.description}</p>
-                        </div>
-
-                        {/* Disclaimer */}
-                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                            <p className="text-sm text-amber-200">
-                                ⚠️ {language === 'en'
-                                    ? 'All predictions are statistical models for reference only. HRV index is inferred (requires wearable device for real data).'
-                                    : '所有预测基于统计模型，仅供参考。HRV指数为推断值（需接入可穿戴设备获取真实数据）。'}
-                            </p>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </motion.div>
     );
 }

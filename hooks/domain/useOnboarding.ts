@@ -42,13 +42,20 @@ export interface UseOnboardingReturn {
     reset: () => Promise<boolean>;
 }
 
+export interface UseOnboardingOptions {
+    redirectTo?: string;
+    suppressRedirect?: boolean;
+    onComplete?: () => void;
+}
+
 // ============================================
 // Hook Implementation
 // ============================================
 
-export function useOnboarding(): UseOnboardingReturn {
+export function useOnboarding(options: UseOnboardingOptions = {}): UseOnboardingReturn {
     const router = useRouter();
     const { isOnline } = useNetwork();
+    const { redirectTo = '/unlearn', suppressRedirect = false, onComplete } = options;
 
     const [progress, setProgress] = useState<OnboardingProgress>({
         current_step: 1,
@@ -61,6 +68,15 @@ export function useOnboarding(): UseOnboardingReturn {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const handleComplete = useCallback(() => {
+        if (onComplete) {
+            onComplete();
+        }
+        if (!suppressRedirect) {
+            router.push(redirectTo);
+        }
+    }, [onComplete, redirectTo, router, suppressRedirect]);
+
     // Load progress on mount
     useEffect(() => {
         const loadProgress = async () => {
@@ -72,7 +88,7 @@ export function useOnboarding(): UseOnboardingReturn {
 
                     // Redirect if already complete
                     if (result.data.is_complete) {
-                        router.push('/unlearn');
+                        handleComplete();
                     }
                 }
             } catch {
@@ -83,7 +99,7 @@ export function useOnboarding(): UseOnboardingReturn {
         };
 
         loadProgress();
-    }, [router]);
+    }, [handleComplete]);
 
     // Save step
     const saveStep = useCallback(async (data: Partial<OnboardingData>): Promise<boolean> => {
@@ -97,8 +113,7 @@ export function useOnboarding(): UseOnboardingReturn {
                 setProgress(result.data);
 
                 if (result.data.is_complete) {
-                    // Onboarding complete, redirect
-                    router.push('/unlearn');
+                    handleComplete();
                 } else {
                     setCurrentStep(result.data.current_step);
                 }
@@ -114,7 +129,7 @@ export function useOnboarding(): UseOnboardingReturn {
         } finally {
             setIsSaving(false);
         }
-    }, [currentStep, router]);
+    }, [currentStep, handleComplete]);
 
     // Next step (without saving)
     const nextStep = useCallback(() => {
@@ -138,7 +153,7 @@ export function useOnboarding(): UseOnboardingReturn {
             const result = await skipOnboarding();
 
             if (result.success) {
-                router.push('/unlearn');
+                handleComplete();
                 return true;
             }
 
@@ -148,7 +163,7 @@ export function useOnboarding(): UseOnboardingReturn {
         } finally {
             setIsSaving(false);
         }
-    }, [router]);
+    }, [handleComplete]);
 
     // Reset onboarding
     const reset = useCallback(async (): Promise<boolean> => {

@@ -7,10 +7,11 @@
 import { useState } from 'react';
 import {
     RefreshCw, Bookmark, BookmarkCheck, ExternalLink,
-    Filter, Clock, AlertCircle
+    Clock, AlertCircle
 } from 'lucide-react';
 import { Card, CardContent, Button, Skeleton } from '@/components/ui';
 import type { UseFeedReturn, FeedItem } from '@/hooks/domain/useFeed';
+import Image from 'next/image';
 
 interface DesktopFeedProps {
     feed: UseFeedReturn;
@@ -60,9 +61,11 @@ function FeedCard({
                 <div className="flex gap-4">
                     {item.image_url && (
                         <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                            <img
+                            <Image
                                 src={item.image_url}
                                 alt={item.title}
+                                width={96}
+                                height={96}
                                 className="w-full h-full object-cover"
                             />
                         </div>

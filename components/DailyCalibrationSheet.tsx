@@ -77,7 +77,6 @@ export function DailyCalibrationSheet({
   // Inquiry state
   const [anomalies, setAnomalies] = useState<AnomalyResult[]>([]);
   const [currentAnomalyIndex, setCurrentAnomalyIndex] = useState(0);
-  const [inquiryResponse, setInquiryResponse] = useState<string | undefined>();
 
   // Result state
   const [generatedTask, setGeneratedTask] = useState<GeneratedTask | null>(null);

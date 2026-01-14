@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-    Save, Check, Moon, Sun, Battery, Brain, Heart,
+    Save, Check, Moon, Battery, Brain, Heart,
     AlertCircle, RefreshCw
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Skeleton } from '@/components/ui';
@@ -96,15 +96,18 @@ export function DesktopCalibration({ calibration: hook }: DesktopCalibrationProp
 
     useEffect(() => {
         if (todayData) {
-            setFormData({
-                sleep_quality: todayData.sleep_quality || 7,
-                sleep_duration_minutes: todayData.sleep_duration_minutes || 420,
-                mood_status: todayData.mood_status || 'okay',
-                energy_level: todayData.energy_level || 5,
-                stress_level: todayData.stress_level || 5,
-                anxiety_level: todayData.anxiety_level || 5,
-                notes: todayData.notes || '',
-            });
+            const timer = setTimeout(() => {
+                setFormData({
+                    sleep_quality: todayData.sleep_quality || 7,
+                    sleep_duration_minutes: todayData.sleep_duration_minutes || 420,
+                    mood_status: todayData.mood_status || 'okay',
+                    energy_level: todayData.energy_level || 5,
+                    stress_level: todayData.stress_level || 5,
+                    anxiety_level: todayData.anxiety_level || 5,
+                    notes: todayData.notes || '',
+                });
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [todayData]);
 

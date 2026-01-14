@@ -6,7 +6,7 @@
  * Mobile UI for habit management using useHabits hook.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Plus,
@@ -15,18 +15,11 @@ import {
     Sparkles,
     ChevronLeft,
     Target,
-    Calendar,
     Flame,
     X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHabits, type HabitData, type HabitCreateInput } from "@/hooks/domain/useHabits";
-
-const pageVariants = {
-    initial: { opacity: 0, x: 20 },
-    in: { opacity: 1, x: 0 },
-    out: { opacity: 0, x: -20 }
-};
 
 // ============================================
 // Sub-Components
@@ -253,8 +246,7 @@ export const ViewHabits = ({ onBack }: ViewHabitsProps) => {
         isSaving,
         error,
         create,
-        complete,
-        clearError
+        complete
     } = useHabits();
 
     const [showAddSheet, setShowAddSheet] = useState(false);

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 // MARK: - Liquid Glass Card
@@ -30,7 +30,7 @@ export const LiquidGlassCard = ({
     const Wrapper = interactive ? motion.div : "div";
 
     return (
-        // @ts-ignore - framer motion types
+        // @ts-expect-error - framer motion types
         <Wrapper
             whileTap={interactive ? { scale: 0.98 } : undefined}
             onClick={onClick}

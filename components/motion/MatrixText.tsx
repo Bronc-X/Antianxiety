@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 
 interface MatrixTextProps {
     text: string;
@@ -21,7 +20,7 @@ export default function MatrixText({ text, className = '', speed = 50 }: MatrixT
         let iteration = 0;
 
         const interval = setInterval(() => {
-            setDisplayGiven((prev) => {
+            setDisplayGiven(() => {
                 const result = text.split('').map((char, index) => {
                     if (index < currentIndex) {
                         return text[index];

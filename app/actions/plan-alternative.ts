@@ -66,16 +66,20 @@ ${plan.items?.map((item, i) => `${i + 1}. ${item.text}`).join('\n') || '无'}
 
         const parsed = JSON.parse(jsonMatch[0]);
 
+        type PlanItemPayload = { id?: string; text?: string };
+
         const newPlan: ParsedPlan = {
             title: parsed.title || plan.title,
             content: parsed.description || '',
             difficulty: parsed.difficulty || '⭐⭐',
             duration: parsed.duration,
-            items: parsed.items?.map((item: any) => ({
-                id: item.id,
-                text: item.text,
-                status: 'pending' as const,
-            })) || [],
+            items: Array.isArray(parsed.items)
+                ? parsed.items.map((item: PlanItemPayload, index: number) => ({
+                    id: item.id ?? String(index),
+                    text: item.text ?? '',
+                    status: 'pending' as const,
+                }))
+                : [],
         };
 
         return { success: true, data: newPlan };

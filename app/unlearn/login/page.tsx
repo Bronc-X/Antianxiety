@@ -28,7 +28,6 @@ function LoginFormContent() {
     isLoading: authInitLoading,
     signIn,
     signInWithOAuth,
-    sendPhoneOtp,
     resetPassword,
     isSigningIn: authLoading,
     error: authError,
@@ -44,16 +43,13 @@ function LoginFormContent() {
 
   useEffect(() => {
     const error = searchParams.get('error');
-    const details = searchParams.get('details');
     let hashError = null;
     let errorCode = null;
-    let errorDescription = null;
 
     if (window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       hashError = hashParams.get('error');
       errorCode = hashParams.get('error_code');
-      errorDescription = hashParams.get('error_description');
     }
 
     const finalError = error || hashError;
@@ -93,7 +89,7 @@ function LoginFormContent() {
         return;
       }
       setMessage({ type: 'error', text: authError || t('error.auth') });
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: t('error.unknown') });
     } finally {
       setOauthProviderLoading(null);
@@ -128,7 +124,7 @@ function LoginFormContent() {
       }
       setShowPhoneLogin(false);
       setPhoneNumber('');
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: t('signup.phoneBetaError') });
     } finally {
       setOauthProviderLoading(null);
@@ -193,7 +189,7 @@ function LoginFormContent() {
       setMessage({ type: 'success', text: t('login.resetSent') });
       setShowForgotPassword(false);
       setForgotPasswordEmail('');
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: t('error.unknown') });
     } finally {
       setIsSendingReset(false);

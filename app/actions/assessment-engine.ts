@@ -12,6 +12,13 @@ interface AssessmentAnswerInput {
   input_method?: 'tap' | 'type' | 'voice';
 }
 
+type AssessmentRouteResponse = AssessmentResponse & {
+  success?: boolean;
+  error?: {
+    message?: string;
+  };
+};
+
 async function callAssessmentRoute(
   handler: (req: Request) => Promise<Response>,
   payload: Record<string, unknown>
@@ -24,10 +31,10 @@ async function callAssessmentRoute(
     });
 
     const response = await handler(request);
-    let data: any = null;
+    let data: AssessmentRouteResponse | null = null;
 
     try {
-      data = await response.json();
+      data = (await response.json()) as AssessmentRouteResponse;
     } catch {
       data = null;
     }
@@ -93,10 +100,10 @@ export async function dismissEmergencySession(
     });
 
     const response = await dismissEmergencyRoute(request);
-    let data: any = null;
+    let data: AssessmentRouteResponse | null = null;
 
     try {
-      data = await response.json();
+      data = (await response.json()) as AssessmentRouteResponse;
     } catch {
       data = null;
     }

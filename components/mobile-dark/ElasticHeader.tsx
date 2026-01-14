@@ -3,6 +3,7 @@
 import { motion, useMotionValue, useSpring, useTransform, animate, PanInfo } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
+import Image from 'next/image';
 
 export function ElasticHeader() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -55,7 +56,7 @@ export function ElasticHeader() {
         return () => observer.disconnect();
     }, []);
 
-    const handlePan = (_: any, info: PanInfo) => {
+    const handlePan = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         // Only allow pulling down (positive y)
         if (info.offset.y > 0) {
             dragY.set(info.offset.y);
@@ -135,9 +136,11 @@ export function ElasticHeader() {
                 style={{ y: contentY, scale: contentScale }}
             >
                 <div className="w-16 h-16 rounded-full bg-[#222222] shadow-[inset_2px_2px_4px_rgba(255,255,255,0.05),inset_-2px_-2px_4px_rgba(0,0,0,0.5)] flex items-center justify-center mb-6">
-                    <img
+                    <Image
                         src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
                         alt="User"
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full opacity-80"
                     />
                 </div>

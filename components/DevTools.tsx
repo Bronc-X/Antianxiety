@@ -14,6 +14,16 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 
+type ReactGrabController = {
+  isActive?: () => boolean;
+  activate?: () => void;
+  deactivate?: () => void;
+};
+
+type WindowWithReactGrab = Window & {
+  __REACT_GRAB__?: ReactGrabController;
+};
+
 export function DevTools() {
   const [isActive, setIsActive] = useState(false);
   const [position, setPosition] = useState({ x: 16, y: -1 }); // -1 means use bottom positioning
@@ -24,7 +34,7 @@ export function DevTools() {
   const toggleGrab = useCallback(() => {
     if (isDragging) return; // Don't toggle if dragging
 
-    const grab = (window as any).__REACT_GRAB__;
+    const grab = (window as WindowWithReactGrab).__REACT_GRAB__;
     if (grab) {
       if (grab.isActive?.()) {
         grab.deactivate?.();
@@ -42,7 +52,7 @@ export function DevTools() {
 
     // Listen for state changes from React Grab
     const checkState = () => {
-      const grab = (window as any).__REACT_GRAB__;
+      const grab = (window as WindowWithReactGrab).__REACT_GRAB__;
       if (grab) {
         setIsActive(grab.isActive?.() || false);
       }
@@ -112,7 +122,10 @@ export function DevTools() {
   // Initialize position on first render (bottom-left)
   useEffect(() => {
     if (position.y === -1 && typeof window !== 'undefined') {
-      setPosition({ x: 16, y: window.innerHeight - 100 });
+      const timer = setTimeout(() => {
+        setPosition({ x: 16, y: window.innerHeight - 100 });
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [position.y]);
 

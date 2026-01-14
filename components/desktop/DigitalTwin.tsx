@@ -23,7 +23,6 @@ import {
     YAxis,
     Tooltip,
     CartesianGrid,
-    Legend,
 } from 'recharts';
 import {
     Brain,
@@ -43,7 +42,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardContent, Button, Skeleton } from '@/components/ui';
-import { useDigitalTwinCurve, getDataQualityStatus, getCurrentMilestone, getNextMilestone } from '@/hooks/domain';
+import { useDigitalTwinCurve, getDataQualityStatus } from '@/hooks/domain';
 import type {
     DigitalTwinCurveOutput,
     CurveTimepoint,
@@ -79,15 +78,6 @@ const METRIC_LABELS = {
     moodStability: 'Mood Stability',
     energyLevel: 'Energy Level',
     hrvScore: 'HRV Index',
-};
-
-const METRIC_LABELS_CN = {
-    anxietyScore: '焦虑评分',
-    sleepQuality: '睡眠质量',
-    stressResilience: '抗压韧性',
-    moodStability: '情绪稳定',
-    energyLevel: '能量水平',
-    hrvScore: 'HRV 代理',
 };
 
 // ============================================
@@ -240,10 +230,6 @@ interface MetricCardProps {
 function MetricCard({ metricKey, value, confidence, isNegative, week0Value, isInferred }: MetricCardProps) {
     const Icon = METRIC_ICONS[metricKey];
     const label = METRIC_LABELS[metricKey];
-
-    // Handle null value
-    const displayValue = value ?? 0;
-    const compareValue = week0Value ?? displayValue;
 
     // Calculate trend
     const trend = week0Value !== undefined && week0Value !== null && value !== null

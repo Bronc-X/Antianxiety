@@ -19,7 +19,7 @@ export default function VillainSection() {
                         The Problem
                     </span>
                     <h2 className="brutalist-h2">
-                        The "Close Your Rings"
+                        The &ldquo;Close Your Rings&rdquo;
                         <br />
                         <span className="text-[#FF4444]">Trap.</span>
                     </h2>
@@ -40,7 +40,7 @@ export default function VillainSection() {
                             Hit your steps. Burn your calories. Close your rings.
                         </p>
                         <p className="brutalist-body-lg">
-                            But your body doesn't work that way. It functions in <strong className="text-white">cycles</strong>—
+                            But your body doesn&apos;t work that way. It functions in <strong className="text-white">cycles</strong>—
                             circadian rhythms, hormonal fluctuations, recovery periods.
                         </p>
                         <p className="brutalist-body-lg">
@@ -66,7 +66,7 @@ export default function VillainSection() {
                                 <div>
                                     <h4 className="brutalist-h3 text-[#FF4444] mb-2">Linear Algorithms</h4>
                                     <p className="brutalist-body">
-                                        "You haven't closed your rings in 3 days. Are you giving up?"
+                                        &ldquo;You haven&apos;t closed your rings in 3 days. Are you giving up?&rdquo;
                                     </p>
                                 </div>
                             </div>

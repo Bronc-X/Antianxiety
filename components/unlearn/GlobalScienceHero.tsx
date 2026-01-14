@@ -72,7 +72,10 @@ export default function GlobalScienceHero({
       });
     }
 
-    setParticles(newParticles);
+    const initialTimer = setTimeout(() => {
+      setParticles(newParticles);
+    }, 0);
+    return () => clearTimeout(initialTimer);
   }, []);
 
   // Animate particles

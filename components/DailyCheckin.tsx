@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { MotionButton } from '@/components/motion/MotionButton';
@@ -28,13 +28,7 @@ import {
   generateTask,
   GeneratedTask,
 } from '@/lib/calibration-service';
-import {
-  generateDailyQuestions,
-  shouldEvolve,
-  calculateEvolutionLevel,
-  ANCHOR_QUESTIONS,
-} from '@/lib/calibration-engine';
-import type { CalibrationQuestion, PhaseGoal } from '@/types/adaptive-interaction';
+import { shouldEvolve, calculateEvolutionLevel } from '@/lib/calibration-engine';
 
 type CalibrationStep = 'input' | 'inquiry' | 'result' | 'complete';
 
@@ -43,7 +37,6 @@ interface DailyCheckinProps {
   onOpenChange: (open: boolean) => void;
   onComplete?: (result: { input: CalibrationInput; task: GeneratedTask }) => void;
   weeklyRecords?: CalibrationInput[];
-  phaseGoals?: PhaseGoal[];
   consecutiveDays?: number;
 }
 
@@ -72,7 +65,6 @@ export function DailyCheckin({
   onOpenChange,
   onComplete,
   weeklyRecords = [],
-  phaseGoals = [],
   consecutiveDays = 0,
 }: DailyCheckinProps) {
   const [step, setStep] = useState<CalibrationStep>('input');
@@ -84,30 +76,13 @@ export function DailyCheckin({
 
   // Inquiry state
   const [anomalies, setAnomalies] = useState<AnomalyResult[]>([]);
-  const [inquiryResponse, setInquiryResponse] = useState<string | undefined>();
-
   // Result state
   const [generatedTask, setGeneratedTask] = useState<GeneratedTask | null>(null);
-  
-  // Adaptive questions from CalibrationEngine (Requirements 3.1, 3.2)
-  const [adaptiveQuestions, setAdaptiveQuestions] = useState<CalibrationQuestion[]>([]);
-  const [adaptiveAnswers, setAdaptiveAnswers] = useState<Record<string, string | number>>({});
-  const [currentAdaptiveIndex, setCurrentAdaptiveIndex] = useState(0);
   
   // Evolution state (Requirement 3.3)
   const evolutionLevel = calculateEvolutionLevel(consecutiveDays);
   const isEvolutionDay = shouldEvolve(consecutiveDays);
   
-  // Generate adaptive questions based on Phase Goals
-  useEffect(() => {
-    if (phaseGoals.length > 0) {
-      const questions = generateDailyQuestions(phaseGoals, consecutiveDays);
-      // Filter out anchor questions (handled separately)
-      const nonAnchorQuestions = questions.filter(q => q.type !== 'anchor');
-      setAdaptiveQuestions(nonAnchorQuestions);
-    }
-  }, [phaseGoals, consecutiveDays]);
-
   const stressTone = useMemo<OptionTone>(() => {
     if (stressLevel === 'high') return 'sand';
     if (stressLevel === 'low') return 'sage';
@@ -143,7 +118,6 @@ export function DailyCheckin({
   };
 
   const handleInquiryResponse = (response: string) => {
-    setInquiryResponse(response);
     const task = generateTask(anomalies, response);
     setGeneratedTask(task);
     setStep('result');

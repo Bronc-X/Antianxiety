@@ -68,7 +68,6 @@ const EVOLUTION_QUESTION = {
 // ============ Component ============
 
 export function WeeklyCalibration({
-    userId: _userId,
     userName,
     onComplete,
     onSkip,

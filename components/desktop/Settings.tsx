@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import {
-    Save, RefreshCw, User, Bell, Brain, Sliders,
+    Save, RefreshCw, User, Brain, Sliders,
     AlertCircle, Check
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Skeleton } from '@/components/ui';

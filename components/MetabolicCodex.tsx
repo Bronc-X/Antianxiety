@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Geist } from 'next/font/google';
 
 // 定义衬线字体
@@ -11,15 +11,7 @@ const geistSerif = Geist({
   display: 'swap',
 });
 import { 
-  Activity, 
-  Zap, 
-  Brain, 
-  Flame, 
   AlertTriangle, 
-  Terminal, 
-  Scan, 
-  Wind,
-  Layers,
   Unlock,
   Globe
 } from 'lucide-react';
@@ -191,7 +183,7 @@ export default function MetabolicCodex() {
               {/* 装饰性条形码 */}
               <div className="mt-6 w-full flex justify-between opacity-30">
                 {Array.from({length: 20}).map((_,i) => (
-                  <div key={i} className="w-[2px] bg-white h-4" style={{height: Math.random() * 16 + 4 + 'px'}} />
+                  <div key={i} className="w-[2px] bg-white h-4" style={{height: `${((i * 7) % 16) + 4}px`}} />
                 ))}
               </div>
             </div>

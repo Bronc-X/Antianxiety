@@ -54,14 +54,7 @@ export function MaxSettings({ initialSettings, onSettingsChange }: MaxSettingsPr
   const derivedMode = deriveMode(settings.humor_level);
   const currentModeInfo = MODE_INFO[derivedMode];
 
-  // Fetch settings on mount
-  useEffect(() => {
-    if (!initialSettings) {
-      fetchSettings();
-    }
-  }, [initialSettings]);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const data = await loadSettings();
       if (data?.settings) {
@@ -70,7 +63,14 @@ export function MaxSettings({ initialSettings, onSettingsChange }: MaxSettingsPr
     } catch (error) {
       console.error('Error fetching settings:', error);
     }
-  };
+  }, [loadSettings]);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    if (!initialSettings) {
+      fetchSettings();
+    }
+  }, [fetchSettings, initialSettings]);
 
   const updateSettings = useCallback(async (newSettings: Partial<AISettings>) => {
     const updated = { ...settings, ...newSettings };
@@ -101,7 +101,7 @@ export function MaxSettings({ initialSettings, onSettingsChange }: MaxSettingsPr
       setIsLoading(false);
       setActiveSlider(null);
     }
-  }, [settings, onSettingsChange]);
+  }, [getResponse, onSettingsChange, saveSettings, settings]);
 
   return (
     <div className="relative">

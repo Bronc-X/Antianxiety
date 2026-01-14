@@ -74,8 +74,13 @@ export const HealthMetricCard = ({
 
 // --- Mood Wave Chart ---
 
+interface MoodWaveDatum {
+    value: number;
+    [key: string]: number | string | undefined;
+}
+
 interface MoodWaveChartProps {
-    data: any[];
+    data: MoodWaveDatum[];
     title?: string;
     subtitle?: string;
     color?: string;

@@ -32,7 +32,6 @@ export default function AIAssistantFloatingButton() {
   const [isDragging, setIsDragging] = useState(false);
   // Initialize as false to avoid hydration mismatch, set in useEffect
   const [showGuide, setShowGuide] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
   // 拖动位置状态
   const x = useMotionValue(0);
@@ -40,11 +39,13 @@ export default function AIAssistantFloatingButton() {
 
   // Check localStorage after mount to avoid hydration mismatch
   useEffect(() => {
-    setMounted(true);
-    const dismissed = localStorage.getItem('max_guide_dismissed');
-    if (!dismissed) {
-      setShowGuide(true);
-    }
+    const timer = setTimeout(() => {
+      const dismissed = localStorage.getItem('max_guide_dismissed');
+      if (!dismissed) {
+        setShowGuide(true);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const assistantProfile: AIAssistantProfile | null = profile

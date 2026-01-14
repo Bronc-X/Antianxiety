@@ -244,7 +244,7 @@ export async function generateAnalysis(
         const summary_zh = `在过去${reportType === 'weekly' ? '一周' : '一个月'}内，您记录了${logs.length}天。平均睡眠质量为${metrics.sleep_avg.toFixed(1)}/10，压力水平为${metrics.stress_avg.toFixed(1)}/10。`;
 
         // Save report
-        const { data: reportData, error: saveError } = await supabase
+        const { data: reportData } = await supabase
             .from('analysis_reports')
             .insert({
                 user_id: user.id,

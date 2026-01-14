@@ -13,6 +13,7 @@ import type { PhaseGoal } from '@/types/adaptive-interaction';
 
 export async function GET(request: NextRequest) {
   try {
+    void request;
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     

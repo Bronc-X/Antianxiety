@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/lib/i18n';
+import Image from 'next/image';
 import { useClinicalOnboarding, type OnboardingProgress } from '@/hooks/domain/useClinicalOnboarding';
 import { GAD7, PHQ9, ISI, type ScaleDefinition } from '@/lib/clinical-scales';
 import MaxAvatar from '@/components/max/MaxAvatar';
@@ -93,7 +94,7 @@ const slideVariants = {
 interface ClinicalOnboardingProps {
     userId: string;
     userName?: string;
-    onComplete?: (result: any) => void;
+    onComplete?: (result: unknown) => void;
     onPause?: (progress: OnboardingProgress) => void;
     savedProgress?: OnboardingProgress;
 }
@@ -128,7 +129,6 @@ export function ClinicalOnboarding({
         goBackFromSafety,
         goBackFromEncouragement,
         continueFromEncouragement,
-        pause,
         loadSaved
     } = useClinicalOnboarding(userId, onComplete, onPause);
 
@@ -615,7 +615,13 @@ export function ClinicalOnboarding({
 
                         <div className="relative text-center">
                             <div className="w-28 h-28 mx-auto mb-6 rounded-full overflow-hidden shadow-lg shadow-rose-200/50">
-                                <img src="/images/hug-embrace.png" alt="Embrace" className="w-full h-full object-cover" />
+                                <Image
+                                    src="/images/hug-embrace.png"
+                                    alt="Embrace"
+                                    width={112}
+                                    height={112}
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                             <h2 className="text-2xl md:text-3xl font-semibold text-[#0B3D2E] tracking-tight mb-4">
                                 {language === 'en' ? 'We Care About You' : '我们关心你'}

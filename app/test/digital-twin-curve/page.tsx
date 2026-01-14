@@ -45,8 +45,8 @@ export default function DigitalTwinCurveTestPage() {
 
     // Run validation tests when curveData is available
     useEffect(() => {
-        if (curveData && testStatus === 'testing') {
-            const results = [...testResults];
+        if (curveData && testStatus === 'testing' && testResults.length === 0) {
+            const results: string[] = [];
 
             // Test 2: Validate structure
             results.push('🔄 Validating output structure...');
@@ -97,10 +97,13 @@ export default function DigitalTwinCurveTestPage() {
 
             // All tests passed
             const hasErrors = results.some(r => r.startsWith('❌'));
-            setTestStatus(hasErrors ? 'failed' : 'passed');
-            setTestResults(results);
+            const timer = setTimeout(() => {
+                setTestStatus(hasErrors ? 'failed' : 'passed');
+                setTestResults(results);
+            }, 0);
+            return () => clearTimeout(timer);
         }
-    }, [curveData, testStatus]);
+    }, [curveData, testStatus, testResults]);
 
     return (
         <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -167,7 +170,7 @@ export default function DigitalTwinCurveTestPage() {
                                 </div>
                             ))
                         ) : (
-                            <div className="text-gray-500">点击 "运行测试" 开始</div>
+                            <div className="text-gray-500">点击 &quot;运行测试&quot; 开始</div>
                         )}
                     </div>
                 </div>

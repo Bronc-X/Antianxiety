@@ -187,7 +187,6 @@ function TaskItem({
 
 
 export function DailyTasksCard({ 
-  stressLevel = 5,
   energyLevel = 5, 
   className = '',
   onTaskComplete,
@@ -203,14 +202,17 @@ export function DailyTasksCard({
     const today = new Date().toISOString().split('T')[0];
     const savedTasks = localStorage.getItem(`nma_daily_tasks_${today}`);
     
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    } else {
-      // 使用默认任务
-      const initialTasks = DEFAULT_TASKS.map(t => ({ ...t, completed: false }));
-      setTasks(initialTasks);
-      localStorage.setItem(`nma_daily_tasks_${today}`, JSON.stringify(initialTasks));
-    }
+    const timer = setTimeout(() => {
+      if (savedTasks) {
+        setTasks(JSON.parse(savedTasks));
+      } else {
+        // 使用默认任务
+        const initialTasks = DEFAULT_TASKS.map(t => ({ ...t, completed: false }));
+        setTasks(initialTasks);
+        localStorage.setItem(`nma_daily_tasks_${today}`, JSON.stringify(initialTasks));
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
   
   // 保存任务状态

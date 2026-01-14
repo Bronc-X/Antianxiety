@@ -1,13 +1,11 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MaxPageClient from './MaxPageClient';
 import { useAuth } from '@/hooks/domain/useAuth';
 import { useProfile } from '@/hooks/domain/useProfile';
 import { useCalibrationLog } from '@/hooks/domain/useCalibrationLog';
-import type { DailyLog } from '@/lib/active-inquiry';
-import type { AIAssistantProfile } from '@/types/assistant';
 
 function MaxSkeleton() {
   return (
@@ -25,9 +23,9 @@ function MaxSkeleton() {
  */
 export default function MaxPage() {
   const router = useRouter();
-  const { user, isLoading: authLoading, error: authError, isAuthenticated } = useAuth();
-  const { profile, isLoading: profileLoading, error: profileError } = useProfile();
-  const { history, isLoading: logLoading, error: logError, loadHistory } = useCalibrationLog();
+  const { isLoading: authLoading, error: authError, isAuthenticated } = useAuth();
+  const { isLoading: profileLoading, error: profileError } = useProfile();
+  const { isLoading: logLoading, error: logError, loadHistory } = useCalibrationLog();
 
   const isLoading = authLoading || profileLoading || logLoading;
   const error = authError || profileError || logError;
@@ -43,18 +41,6 @@ export default function MaxPage() {
       router.replace('/unlearn/login');
     }
   }, [authLoading, isAuthenticated, router]);
-
-  const dailyLogs: DailyLog[] = useMemo(() => {
-    return (history || []).map(entry => ({
-      id: entry.id,
-      user_id: entry.user_id,
-      sleep_hours: entry.sleep_duration_minutes != null ? entry.sleep_duration_minutes / 60 : null,
-      hrv: null,
-      stress_level: entry.stress_level ?? null,
-      exercise_duration_minutes: null,
-      created_at: entry.created_at,
-    }));
-  }, [history]);
 
   if (!isAuthenticated && !authLoading) {
     return null;

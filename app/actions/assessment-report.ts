@@ -4,7 +4,14 @@ import type { ActionResult } from '@/types/architecture';
 import { GET as exportReportRoute } from '@/app/api/assessment/export/route';
 import { POST as emailReportRoute } from '@/app/api/assessment/email/route';
 
-async function parseJsonResponse(response: Response): Promise<any> {
+type AssessmentReportPayload = {
+  success?: boolean;
+  error?: {
+    message?: string;
+  };
+} & Record<string, unknown>;
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
   try {
     return JSON.parse(raw);
@@ -16,7 +23,7 @@ async function parseJsonResponse(response: Response): Promise<any> {
 export async function exportAssessmentReport(
   sessionId: string,
   format: 'html' | 'json' = 'html'
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const url = new URL('http://assessment.local/assessment/export');
     url.searchParams.set('session_id', sessionId);
@@ -27,7 +34,8 @@ export async function exportAssessmentReport(
 
     if (!response.ok) {
       const data = await parseJsonResponse(response);
-      return { success: false, error: data?.error?.message || 'Export failed' };
+      const payload = typeof data === 'object' && data !== null ? (data as AssessmentReportPayload) : null;
+      return { success: false, error: payload?.error?.message || 'Export failed' };
     }
 
     if (format === 'json') {
@@ -48,7 +56,7 @@ export async function exportAssessmentReport(
 export async function emailAssessmentReport(
   sessionId: string,
   email?: string
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
   try {
     const request = new Request('http://assessment.local/assessment/email', {
       method: 'POST',
@@ -58,9 +66,10 @@ export async function emailAssessmentReport(
 
     const response = await emailReportRoute(request as Request);
     const data = await parseJsonResponse(response);
+    const payload = typeof data === 'object' && data !== null ? (data as AssessmentReportPayload) : null;
 
-    if (!response.ok || data?.success === false) {
-      return { success: false, error: data?.error?.message || 'Email failed' };
+    if (!response.ok || payload?.success === false) {
+      return { success: false, error: payload?.error?.message || 'Email failed' };
     }
 
     return { success: true, data };

@@ -14,7 +14,7 @@ import { PlanReviewChecklist } from '@/components/PlanReviewChecklist';
 import { useChatAI } from '@/hooks/domain/useChatAI';
 import { useChatConversation } from '@/hooks/domain/useChatConversation';
 import { usePlans } from '@/hooks/domain/usePlans';
-import MaxAvatar from '@/components/max/MaxAvatar';
+import Image from 'next/image';
 
 // --- Icons ---
 const PlusIcon = ({ className }: { className?: string }) => (
@@ -573,7 +573,13 @@ export default function AIAssistantFloatingChat({ initialProfile, onClose }: AIA
                           {(resolveDisplayName(initialProfile) || 'User').charAt(0).toUpperCase()}
                         </span>
                       ) : (
-                        <img src="/max-avatar.png" alt="Max" className="w-full h-full object-cover" />
+                        <Image
+                          src="/max-avatar.png"
+                          alt="Max"
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                        />
                       )}
                     </div>
 

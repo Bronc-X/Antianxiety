@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePlans } from '@/hooks/domain/usePlans';
@@ -26,29 +26,7 @@ export default function PlanStatsPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const { getStatsSummary } = usePlans();
 
-  useEffect(() => {
-    loadStats();
-    
-    // 每分钟刷新一次
-    const interval = setInterval(() => {
-      loadStats();
-    }, 60000);
-    
-    // 监听全局事件，当保存新计划时自动刷新
-    const handlePlanSaved = () => {
-      console.log('🔔 PlanStatsPanel: 收到 planSaved 事件，刷新统计数据');
-      loadStats();
-    };
-    
-    window.addEventListener('planSaved', handlePlanSaved);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('planSaved', handlePlanSaved);
-    };
-  }, []);
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const statsResult = await getStatsSummary(7);
       if (statsResult) {
@@ -71,7 +49,29 @@ export default function PlanStatsPanel() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getStatsSummary]);
+
+  useEffect(() => {
+    loadStats();
+    
+    // 每分钟刷新一次
+    const interval = setInterval(() => {
+      loadStats();
+    }, 60000);
+    
+    // 监听全局事件，当保存新计划时自动刷新
+    const handlePlanSaved = () => {
+      console.log('🔔 PlanStatsPanel: 收到 planSaved 事件，刷新统计数据');
+      loadStats();
+    };
+    
+    window.addEventListener('planSaved', handlePlanSaved);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('planSaved', handlePlanSaved);
+    };
+  }, [loadStats]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {

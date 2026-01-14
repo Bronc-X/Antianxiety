@@ -74,7 +74,10 @@ export const ViewBayesianLoop = ({ onBack }: ViewBayesianLoopProps) => {
     }, [fetchHistory, range]);
 
     useEffect(() => {
-        loadHistory();
+        const timer = window.setTimeout(() => {
+            void loadHistory();
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, [loadHistory]);
 
     const trendIcon = useMemo(() => {

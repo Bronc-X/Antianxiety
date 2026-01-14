@@ -9,13 +9,14 @@ import ReactMarkdown from 'react-markdown';
 import { useChatAI } from '@/hooks/domain/useChatAI';
 import { useChatConversation } from '@/hooks/domain/useChatConversation';
 import { useAuth } from '@/hooks/domain/useAuth';
+import type { RoleType } from '@/types/assistant';
 
 // Types
 interface Message {
-    role: 'user' | 'assistant' | 'system';
+    role: RoleType;
     content: string;
     timestamp: Date;
-    papers?: any[];
+    papers?: unknown[];
 }
 
 export default function BrutalistMax() {
@@ -44,7 +45,7 @@ export default function BrutalistMax() {
             const data = await loadHistory(50);
             if (data && data.length > 0) {
                 const history = data.slice().reverse().map(msg => ({
-                    role: msg.role as any,
+                    role: msg.role,
                     content: msg.content,
                     timestamp: new Date(msg.created_at),
                     papers: msg.metadata?.papers,

@@ -23,7 +23,6 @@ import {
     Mic,
     MicOff,
     Zap,
-    Sparkles,
     Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,22 +42,23 @@ const messageVariants = {
     exit: { opacity: 0, y: -10 }
 };
 
+const THINKING_STEPS = [
+    "正在调用您的健康档案...",
+    "检索历史对话记忆...",
+    "查询最新科学文献...",
+    "Max 正在深思熟虑..."
+];
+
 // ============================================
 // Thinking Process Component - Better explanation
 // ============================================
 
 function ThinkingIndicator() {
-    const steps = [
-        "正在调用您的健康档案...",
-        "检索历史对话记忆...",
-        "查询最新科学文献...",
-        "Max 正在深思熟虑..."
-    ];
     const [currentStep, setCurrentStep] = useState(0);
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
+            setCurrentStep(prev => (prev < THINKING_STEPS.length - 1 ? prev + 1 : prev));
         }, 1500);
         return () => clearInterval(interval);
     }, []);
@@ -71,7 +71,7 @@ function ThinkingIndicator() {
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                     className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full"
                 />
-                <span>{steps[currentStep]}</span>
+                <span>{THINKING_STEPS[currentStep]}</span>
             </div>
             <p className="text-[10px] text-stone-400 pl-5">为您定制专属方案需要一点时间 ☕</p>
         </div>
@@ -177,7 +177,7 @@ function EmptyState({
                 <MaxAvatar size={64} state="idle" />
             </motion.div>
 
-            <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 mb-1">Hi, I'm Max</h2>
+            <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 mb-1">Hi, I&apos;m Max</h2>
             <p className="text-sm text-stone-500 text-center mb-6">你的个人健康 AI 助手</p>
 
             <div className="w-full max-w-xs space-y-2">
@@ -382,11 +382,15 @@ export const ViewMax = () => {
         if (lastMessage.role === 'assistant' && !lastMessage.isStreaming && lastMessage.content) {
             chatToPlan.detectPlansFromMessage(lastMessage.content);
         }
-    }, [messages]);
+    }, [messages, chatToPlan]);
 
     useEffect(() => {
-        if (chatToPlan.hasPlans && !showPlanSelector) setShowPlanSelector(true);
-    }, [chatToPlan.hasPlans]);
+        if (!chatToPlan.hasPlans || showPlanSelector) return;
+        const timer = setTimeout(() => {
+            setShowPlanSelector(true);
+        }, 0);
+        return () => clearTimeout(timer);
+    }, [chatToPlan.hasPlans, showPlanSelector]);
 
     const handleSend = useCallback(async () => {
         if (!input.trim() || isSending) return;

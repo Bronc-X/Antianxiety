@@ -2,18 +2,19 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/lib/i18n';
-import { Activity, Brain, Zap, Watch, Sun, ArrowRight, X, Sparkles, Check } from 'lucide-react';
+import { Activity, Brain, Zap, Watch, Sun, ArrowRight, X, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 export default function FeatureBento() {
-    const { t, language } = useI18n();
+    const { language } = useI18n();
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
 
     // Ensure Portal only renders on client
     useEffect(() => {
-        setMounted(true);
+        const timer = setTimeout(() => setMounted(true), 0);
+        return () => clearTimeout(timer);
     }, []);
 
     const features = [

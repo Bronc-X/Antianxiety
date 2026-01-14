@@ -43,6 +43,10 @@ export interface RedditLoginResult {
 // Helpers
 // ============================================
 
+type AuthJsonPayload = {
+    error?: string;
+} & Record<string, unknown>;
+
 function getAdminSupabase() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -56,13 +60,13 @@ function getAdminSupabase() {
     });
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+async function parseJsonResponse(response: Response): Promise<unknown> {
     const raw = await response.text();
     try {
         return JSON.parse(raw);
-    } catch {
-        return raw;
-    }
+  } catch {
+    return raw;
+  }
 }
 
 async function ensureProfileRow(userId: string): Promise<void> {
@@ -254,12 +258,13 @@ export async function getWeChatQr(): Promise<AuthResult<WeChatQrResult>> {
     try {
         const response = await getWeChatQrRoute(new Request('http://auth.local/wechat/qr'));
         const data = await parseJsonResponse(response);
+        const payload = typeof data === 'object' && data !== null ? (data as AuthJsonPayload) : null;
 
         if (!response.ok) {
-            return { success: false, error: data?.error || 'Failed to load WeChat QR' };
+            return { success: false, error: payload?.error || 'Failed to load WeChat QR' };
         }
 
-        return { success: true, data };
+        return { success: true, data: data as WeChatQrResult };
     } catch (error) {
         return {
             success: false,

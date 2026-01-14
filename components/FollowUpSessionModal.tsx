@@ -50,8 +50,11 @@ export default function FollowUpSessionModal({
       actionItems.forEach(item => {
         initialStatuses[item.id] = { status: 'completed', needsReplacement: false };
       });
-      setItemStatuses(initialStatuses);
-      setCurrentStep('greeting');
+      const timer = setTimeout(() => {
+        setItemStatuses(initialStatuses);
+        setCurrentStep('greeting');
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, session, actionItems]);
 

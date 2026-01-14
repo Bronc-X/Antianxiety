@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import AnimatedSection from '@/components/AnimatedSection';
 import UserProfileMenu from '@/components/UserProfileMenu';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -22,31 +21,8 @@ interface MarketingNavProps {
 }
 
 export default function MarketingNav({ user, profile }: MarketingNavProps) {
-  const pathname = usePathname();
   const { t } = useI18n();
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
-
-  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (pathname !== '/unlearn') {
-      // 如果不在主页，跳转到主页相应部分
-      window.location.href = `/unlearn${href}`;
-      return;
-    }
-
-    e.preventDefault();
-    const targetId = href.replace('#', '');
-    const element = document.getElementById(targetId);
-    if (element) {
-      const offset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
 
   return (
     <AnimatedSection inView variant="fadeIn" className="sticky top-0 z-30 bg-[#FAF6EF]/90 dark:bg-neutral-950/90 backdrop-blur border-b border-[#E7E1D6] dark:border-neutral-800 transition-colors">
