@@ -9,7 +9,6 @@ import * as fc from 'fast-check';
 import {
   calculateEvidenceWeight,
   calculateBayesianPosterior,
-  calculatePosteriorSync,
   calculateLikelihood
 } from '../bayesian-engine';
 import { Paper, EVIDENCE_WEIGHT_RANGE } from '@/types/max';
@@ -134,7 +133,7 @@ describe('Bayesian Engine Property Tests', () => {
     });
 
     it('should return default 0.5 for undefined papers', () => {
-      const weight = calculateEvidenceWeight(undefined as any);
+      const weight = calculateEvidenceWeight(undefined as unknown as Paper[]);
       expect(weight).toBe(0.5);
     });
 

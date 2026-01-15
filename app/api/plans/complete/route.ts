@@ -8,10 +8,30 @@ interface CompletePlanRequest {
   planId: string;
   completionDate?: string; // 可选，默认今天
   status: 'completed' | 'partial' | 'skipped' | 'archived';
-  completedItems?: any;
+  completedItems?: CompletedItem[];
   notes?: string;
   feelingScore?: number; // 1-5分
 }
+
+type CompletedItem = {
+  id?: string | number | null;
+  completed?: boolean | string | null;
+  text?: string | null;
+};
+
+type PlanItemInput = {
+  id?: string | number | null;
+  text?: string | null;
+  title?: string | null;
+  completed?: boolean | string | null;
+  status?: string | null;
+};
+
+type PlanContent = {
+  items?: PlanItemInput[];
+  actions?: PlanItemInput[];
+  [key: string]: unknown;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,10 +44,10 @@ export async function POST(request: NextRequest) {
           get(name: string) {
             return cookieStore.get(name)?.value;
           },
-          set(name: string, value: string, options: any) {
+          set(name: string, value: string, options: Record<string, unknown>) {
             cookieStore.set({ name, value, ...options });
           },
-          remove(name: string, options: any) {
+          remove(name: string, options: Record<string, unknown>) {
             cookieStore.delete({ name, ...options });
           },
         },
@@ -120,13 +140,16 @@ export async function POST(request: NextRequest) {
     // 2. 更新 user_plans.content 中的 items 完成状态
     if (currentPlan && completedItems && Array.isArray(completedItems)) {
       try {
-        const content = typeof currentPlan.content === 'string' 
-          ? JSON.parse(currentPlan.content) 
-          : currentPlan.content || {};
+        const parsedContent = typeof currentPlan.content === 'string'
+          ? JSON.parse(currentPlan.content)
+          : currentPlan.content;
+        const content: PlanContent = (parsedContent && typeof parsedContent === 'object')
+          ? (parsedContent as PlanContent)
+          : {};
         
         // 确保 content.items 存在
-        if (!content.items) {
-          content.items = content.actions || [];
+        if (!Array.isArray(content.items)) {
+          content.items = Array.isArray(content.actions) ? content.actions : [];
         }
         
         console.log(`📋 当前 content.items 数量: ${content.items.length}`);
@@ -134,12 +157,12 @@ export async function POST(request: NextRequest) {
         console.log(`📋 completedItems:`, JSON.stringify(completedItems));
         
         // 更新每个 item 的完成状态
-        content.items = content.items.map((item: any, index: number) => {
+        content.items = content.items.map((item: PlanItemInput, index: number) => {
           // 生成当前 item 的可能 ID
           const itemId = item.id?.toString() || `${planId}-${index}`;
           
           // 在 completedItems 中查找匹配的项
-          const matchedItem = completedItems.find((ci: { id: string; completed: boolean }) => {
+          const matchedItem = completedItems.find((ci: CompletedItem) => {
             const ciId = ci.id?.toString();
             return ciId === itemId || 
                    ciId === `${planId}-${index}` || 
@@ -150,20 +173,21 @@ export async function POST(request: NextRequest) {
           // 如果没找到精确匹配，尝试按索引匹配
           const itemByIndex = completedItems[index];
           
-          const isCompleted = matchedItem?.completed ?? itemByIndex?.completed ?? item.completed;
+          const resolvedCompleted = matchedItem?.completed ?? itemByIndex?.completed ?? item.completed;
+          const isCompleted = resolvedCompleted === true || resolvedCompleted === 'true';
           
           console.log(`  Item ${index}: id=${itemId}, matched=${!!matchedItem}, byIndex=${!!itemByIndex}, completed=${isCompleted}`);
           
           return {
             ...item,
             id: itemId,
-            completed: isCompleted === true,
+            completed: isCompleted,
             status: isCompleted ? 'completed' : 'pending',
           };
         });
         
         // 计算进度
-        const completedCount = content.items.filter((i: any) => i.completed === true).length;
+        const completedCount = content.items.filter((i: PlanItemInput) => i.completed === true).length;
         const progress = content.items.length > 0 
           ? Math.round((completedCount / content.items.length) * 100) 
           : 0;

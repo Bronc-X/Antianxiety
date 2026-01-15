@@ -24,8 +24,7 @@ import type {
   DashboardData,
   UnifiedProfile,
   WellnessLog,
-  HardwareData,
-  ActionResult
+  HardwareData
 } from '@/types/architecture';
 import type { DashboardResponse } from '@/types/digital-twin';
 
@@ -75,11 +74,13 @@ function isCacheStale(key: string): boolean {
 // ============================================
 
 interface ExtendedUseDashboardReturn extends UseDashboardReturn {
-  digitalTwin: DashboardResponse | { status: string; collectionStatus?: any; message?: string } | null;
+  digitalTwin: DigitalTwinState;
   loadingDigitalTwin: boolean;
   loadDigitalTwin: () => Promise<void>;
   analyzeDigitalTwin: (forceRefresh?: boolean) => Promise<boolean>;
 }
+
+type DigitalTwinState = DashboardResponse | { status: string; collectionStatus?: unknown; message?: string } | null;
 
 export function useDashboard(): ExtendedUseDashboardReturn {
   // Network status
@@ -87,7 +88,7 @@ export function useDashboard(): ExtendedUseDashboardReturn {
 
   // Data state
   const [data, setData] = useState<DashboardData | null>(() => getCachedData(CACHE_KEY));
-  const [digitalTwin, setDigitalTwin] = useState<any | null>(() => getCachedData(TWIN_CACHE_KEY));
+  const [digitalTwin, setDigitalTwin] = useState<DigitalTwinState>(() => getCachedData(TWIN_CACHE_KEY));
 
   const [isLoading, setIsLoading] = useState(!getCachedData(CACHE_KEY));
   const [loadingDigitalTwin, setLoadingDigitalTwin] = useState(false);
@@ -98,7 +99,6 @@ export function useDashboard(): ExtendedUseDashboardReturn {
   // Deduplication ref
   const lastFetchRef = useRef<number>(0);
   const fetchingRef = useRef<boolean>(false);
-  const lastTwinFetchRef = useRef<number>(0);
 
   // ============================================
   // Data Fetching

@@ -46,7 +46,7 @@ async function testSemanticScholar(attempt: number): Promise<TestResult> {
     }));
     
     return { api: 'Semantic Scholar', attempt, success: true, papers, time };
-  } catch (e: any) {
+  } catch {
     return { api: 'Semantic Scholar', attempt, success: false, status: 0, papers: [], time: Date.now() - start };
   }
 }
@@ -88,7 +88,7 @@ async function testPubMed(attempt: number): Promise<TestResult> {
     }));
     
     return { api: 'PubMed', attempt, success: true, papers, time };
-  } catch (e: any) {
+  } catch {
     return { api: 'PubMed', attempt, success: false, status: 0, papers: [], time: Date.now() - start };
   }
 }

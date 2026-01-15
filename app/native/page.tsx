@@ -55,6 +55,7 @@ import { DeepLink } from "@/lib/deeplink";
 import { getPushEnabled, initializePushNotifications, setPushEnabled } from "@/lib/push-notifications";
 import { useWearables, type WearableProvider } from "@/hooks/domain/useWearables";
 import { useHealthKitBackgroundSync } from "@/hooks/useHealthKitBackgroundSync";
+import { usePreferences } from "@/hooks/usePreferences";
 
 const WEARABLE_PROVIDERS: WearableProvider[] = ['oura', 'fitbit', 'apple_health', 'garmin', 'whoop'];
 
@@ -181,6 +182,8 @@ export default function NativeAppPage() {
     const [currentView, setCurrentView] = useState<ViewType>("home");
     const biometricDisabledViews: ViewType[] = ['login', 'register', 'onboarding', 'profile-setup', 'membership'];
     const biometricEnabled = !biometricDisabledViews.includes(currentView);
+    const { getJSON } = usePreferences();
+    const [biometricLockEnabled, setBiometricLockEnabled] = useState(true);
     const { handleCallback } = useWearables();
     useHealthKitBackgroundSync();
 
@@ -226,6 +229,24 @@ export default function NativeAppPage() {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (Capacitor.getPlatform() !== 'ios') return;
+        let cancelled = false;
+
+        const loadPreference = async () => {
+            const saved = await getJSON<boolean>('mobile.settings.biometricLock');
+            if (!cancelled && typeof saved === 'boolean') {
+                setBiometricLockEnabled(saved);
+            }
+        };
+
+        void loadPreference();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [getJSON]);
 
     useEffect(() => {
         if (Capacitor.getPlatform() !== 'ios') return;
@@ -278,7 +299,7 @@ export default function NativeAppPage() {
     }, [handleCallback]);
 
     return (
-        <BiometricGate enabled={biometricEnabled}>
+        <BiometricGate enabled={biometricEnabled && biometricLockEnabled}>
             <div className="min-h-screen w-full bg-[#F9F9F7] dark:bg-[#0A0A0A] flex flex-col relative">
                 {/* Content Area - Full Screen */}
                 <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pt-safe pb-28">
@@ -293,7 +314,14 @@ export default function NativeAppPage() {
                                 onNavigate={handleViewChange}
                             />
                         )}
-                        {currentView === "settings" && <ViewSettings key="settings" onNavigate={handleViewChange} />}
+                        {currentView === "settings" && (
+                            <ViewSettings
+                                key="settings"
+                                onNavigate={handleViewChange}
+                                biometricLockEnabled={biometricLockEnabled}
+                                onBiometricToggle={setBiometricLockEnabled}
+                            />
+                        )}
                         {currentView === "calibration" && <ViewCalibration key="calibration" />}
                         {currentView === "digital-twin" && <ViewDigitalTwin key="digital-twin" />}
                         {currentView === "wearables" && <ViewWearables key="wearables" onBack={() => handleViewChange('profile')} />}

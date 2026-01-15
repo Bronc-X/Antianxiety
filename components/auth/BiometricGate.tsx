@@ -39,15 +39,19 @@ export function BiometricGate({
     const canUseBiometrics = enabled && isNative && isIos;
 
     useEffect(() => {
-        if (!enabled || !isNative) return;
-        const enablePrivacy = async () => {
+        if (!isNative) return;
+        const updatePrivacy = async () => {
             try {
-                await PrivacyScreen.enable();
+                if (enabled) {
+                    await PrivacyScreen.enable();
+                } else {
+                    await PrivacyScreen.disable();
+                }
             } catch (e) {
                 console.warn('PrivacyScreen not supported', e);
             }
         };
-        enablePrivacy();
+        void updatePrivacy();
     }, [enabled, isNative]);
 
     useEffect(() => {

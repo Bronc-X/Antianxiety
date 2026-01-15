@@ -14,9 +14,9 @@ export interface UsePhaseGoalsReturn {
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
-  fetchGoals: (userId?: string) => Promise<any>;
-  explainGoal: (goalId: string) => Promise<any>;
-  confirmGoal: (goalId: string, newGoalType: string, newTitle?: string) => Promise<any>;
+  fetchGoals: (userId?: string) => Promise<unknown | null>;
+  explainGoal: (goalId: string) => Promise<unknown | null>;
+  confirmGoal: (goalId: string, newGoalType: string, newTitle?: string) => Promise<unknown | null>;
   clearError: () => void;
 }
 

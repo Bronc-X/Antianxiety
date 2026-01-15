@@ -10,7 +10,6 @@
 import type {
     CalibrationData,
     BaselineData,
-    ConversationSummary,
 } from '@/types/digital-twin';
 
 import type {

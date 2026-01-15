@@ -168,7 +168,7 @@ export function useSpeechRecognition(
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: { error?: string }) => {
       const message = event?.error
         ? `Speech recognition error: ${event.error}`
         : 'Speech recognition error';

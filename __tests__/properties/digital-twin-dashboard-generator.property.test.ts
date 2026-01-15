@@ -13,7 +13,6 @@ import type {
   PhysiologicalAssessment,
   LongitudinalPredictions,
   AdaptivePlan,
-  DashboardData,
 } from '@/types/digital-twin';
 import {
   generateDashboardData,

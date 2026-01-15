@@ -12,7 +12,7 @@ import { getDeepInference, type DeepInferenceInput } from '@/app/actions/deep-in
 export interface UseDeepInferenceReturn {
   isLoading: boolean;
   error: string | null;
-  fetchInference: (input: DeepInferenceInput) => Promise<any>;
+  fetchInference: (input: DeepInferenceInput) => Promise<unknown | null>;
   clearError: () => void;
 }
 

@@ -4,6 +4,17 @@ import { cookies } from 'next/headers';
 
 export const runtime = 'edge';
 
+type PlanContentItem = {
+  id?: string | number | null;
+  text?: string | null;
+  completed?: boolean | string | null;
+  status?: string | null;
+};
+
+type PlanContent = {
+  items?: PlanContentItem[];
+};
+
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -15,10 +26,10 @@ export async function GET(request: NextRequest) {
           get(name: string) {
             return cookieStore.get(name)?.value;
           },
-          set(name: string, value: string, options: any) {
+          set(name: string, value: string, options: Record<string, unknown>) {
             cookieStore.set({ name, value, ...options });
           },
-          remove(name: string, options: any) {
+          remove(name: string, options: Record<string, unknown>) {
             cookieStore.delete({ name, ...options });
           },
         },
@@ -68,14 +79,15 @@ export async function GET(request: NextRequest) {
     // 调试：打印第一个计划的 content 详情
     if (plans && plans.length > 0) {
       const firstPlan = plans[0];
-      console.log('📋 第一个计划的 content:', JSON.stringify(firstPlan.content, null, 2));
-      if (firstPlan.content?.items) {
-        console.log('📋 items 详情:', firstPlan.content.items.map((item: any, i: number) => ({
+      const content = firstPlan.content as PlanContent | null;
+      console.log('📋 第一个计划的 content:', JSON.stringify(content, null, 2));
+      if (content?.items) {
+        console.log('📋 items 详情:', content.items.map((item, i) => ({
           index: i,
           id: item.id,
           text: item.text?.substring(0, 30),
           completed: item.completed,
-          status: item.status
+          status: item.status,
         })));
       }
     }

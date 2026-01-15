@@ -181,8 +181,6 @@ const calculateLinearTrend = (values: number[]): { slope: number; rSquared: numb
   const sumY = values.reduce((a, b) => a + b, 0);
   const sumXY = values.reduce((sum, y, x) => sum + x * y, 0);
   const sumXX = (n * (n - 1) * (2 * n - 1)) / 6; // 0² + 1² + 2² + ... + (n-1)²
-  const sumYY = values.reduce((sum, y) => sum + y * y, 0);
-  
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
   
   // 计算 R²

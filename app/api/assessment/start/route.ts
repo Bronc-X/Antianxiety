@@ -45,6 +45,8 @@ const BASELINE_QUESTIONS = {
   },
 };
 
+type BaselineQuestion = (typeof BASELINE_QUESTIONS)[keyof typeof BASELINE_QUESTIONS];
+
 export async function POST(req: Request) {
   try {
     const supabase = await createServerSupabaseClient();
@@ -188,11 +190,12 @@ export async function POST(req: Request) {
     };
 
     return NextResponse.json(response);
-  } catch (error: any) {
-    console.error('Assessment start error:', error);
-    console.error('Error stack:', error?.stack);
+  } catch (error: unknown) {
+    const errorInfo = error as { message?: string; code?: string; stack?: string };
+    console.error('Assessment start error:', errorInfo);
+    console.error('Error stack:', errorInfo.stack);
 
-    if (error?.message?.includes('relation') && error?.message?.includes('does not exist')) {
+    if (errorInfo.message?.includes('relation') && errorInfo.message?.includes('does not exist')) {
       return NextResponse.json(
         {
           success: false,
@@ -202,7 +205,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (error?.code === '42501' || error?.message?.includes('policy')) {
+    if (errorInfo.code === '42501' || errorInfo.message?.includes('policy')) {
       return NextResponse.json(
         { success: false, error: { code: 'RLS_ERROR', message: '数据库权限错误，请检查 RLS 策略' } },
         { status: 500 },
@@ -210,23 +213,23 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: `服务暂时不可用: ${error?.message || '未知错误'}` } },
+      { success: false, error: { code: 'INTERNAL_ERROR', message: `服务暂时不可用: ${errorInfo.message || '未知错误'}` } },
       { status: 500 },
     );
   }
 }
 
-function restoreSession(session: any, language: string): NextResponse {
+function restoreSession(session: AssessmentSession, language: string): NextResponse {
   const history = session.history || [];
-  const answeredQuestionIds = history.map((h: any) => h.question_id);
+  const answeredQuestionIds = history.map((h) => h.question_id);
 
-  let nextQuestion;
+  let nextQuestion: BaselineQuestion | undefined;
   let progress = 5;
 
   if (session.phase === 'baseline') {
-    const baselineOrder = ['biological_sex', 'age', 'smoking'];
+    const baselineOrder = ['biological_sex', 'age', 'smoking'] as const;
     for (const key of baselineOrder) {
-      const q = BASELINE_QUESTIONS[key as keyof typeof BASELINE_QUESTIONS];
+      const q = BASELINE_QUESTIONS[key];
       if (!answeredQuestionIds.includes(q.id)) {
         nextQuestion = q;
         progress = baselineOrder.indexOf(key) * 10 + 5;
@@ -261,17 +264,12 @@ function restoreSession(session: any, language: string): NextResponse {
     question: {
       id: nextQuestion.id,
       text: language === 'zh' ? nextQuestion.text_zh : nextQuestion.text_en,
-      description:
-        'description_zh' in nextQuestion
-          ? language === 'zh'
-            ? (nextQuestion as any).description_zh
-            : (nextQuestion as any).description_en
-          : undefined,
+      description: language === 'zh' ? nextQuestion.description_zh : nextQuestion.description_en,
       type: nextQuestion.type,
       options: nextQuestion.options.map((opt) => ({
         value: opt.value,
         label: language === 'zh' ? opt.label_zh : opt.label_en,
-        icon: 'icon' in opt ? String((opt as any).icon) : undefined,
+        icon: opt.icon,
       })),
       progress,
       category: nextQuestion.category,

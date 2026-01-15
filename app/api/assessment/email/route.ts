@@ -114,7 +114,7 @@ export async function POST(req: Request) {
         : `Report sent to ${targetEmail}`,
       messageId: result.messageId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Assessment email error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: '服务暂时不可用' } },

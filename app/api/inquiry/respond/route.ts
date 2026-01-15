@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       const today = new Date().toISOString().split('T')[0];
       
       // Map response values to calibration data
-      const calibrationUpdate: Record<string, any> = {};
+      const calibrationUpdate: Record<string, unknown> = {};
       
       switch (gapField) {
         case 'sleep_hours':

@@ -12,7 +12,7 @@ import { getDebugSession } from '@/app/actions/debug';
 export interface UseDebugSessionReturn {
   isLoading: boolean;
   error: string | null;
-  load: () => Promise<any | null>;
+  load: () => Promise<unknown | null>;
   clearError: () => void;
 }
 

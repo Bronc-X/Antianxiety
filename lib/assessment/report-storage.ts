@@ -1,12 +1,18 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { Condition, UrgencyLevel, AnswerRecord } from '@/types/assessment';
-import { generateNextSteps, generateDisclaimer } from './report-generator';
+import { Condition, UrgencyLevel } from '@/types/assessment';
 
 export interface ReportData {
   conditions: Condition[];
   urgency: UrgencyLevel;
   next_steps: { action: string; icon: string }[];
 }
+
+type AssessmentMemoryMetadata = {
+  chief_complaint?: string;
+  symptoms?: string[];
+  conditions?: Array<{ name?: string | null }>;
+  urgency?: string;
+};
 
 /**
  * 存储报告到数据库并更新会话状态
@@ -18,6 +24,7 @@ export async function storeReport(
   language: 'zh' | 'en'
 ): Promise<{ success: boolean; reportId?: string; error?: string }> {
   const supabase = await createServerSupabaseClient();
+  void language;
 
   try {
     // 1. 存储报告到 assessment_reports 表
@@ -54,9 +61,10 @@ export async function storeReport(
     }
 
     return { success: true, reportId: report.id };
-  } catch (error: any) {
-    console.error('Store report error:', error);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const errorInfo = error as { message?: string };
+    console.error('Store report error:', errorInfo);
+    return { success: false, error: errorInfo.message || 'Unknown error' };
   }
 }
 
@@ -108,9 +116,10 @@ export async function storeAssessmentToMemory(
     }
 
     return { success: true };
-  } catch (error: any) {
-    console.error('Store to memory error:', error);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const errorInfo = error as { message?: string };
+    console.error('Store to memory error:', errorInfo);
+    return { success: false, error: errorInfo.message || 'Unknown error' };
   }
 }
 
@@ -141,12 +150,15 @@ export async function getHistoricalAssessments(
       return [];
     }
 
-    return memories.map(m => ({
+    return memories.map(m => {
+      const metadata = m.metadata as AssessmentMemoryMetadata;
+      return ({
       date: m.created_at,
-      chiefComplaint: (m.metadata as any)?.chief_complaint || '',
-      topCondition: (m.metadata as any)?.conditions?.[0]?.name || '',
-      urgency: (m.metadata as any)?.urgency || '',
-    }));
+      chiefComplaint: metadata?.chief_complaint || '',
+      topCondition: metadata?.conditions?.[0]?.name || '',
+      urgency: metadata?.urgency || '',
+    });
+    });
   } catch (error) {
     console.error('Get historical assessments error:', error);
     return [];
@@ -185,7 +197,7 @@ export async function findSimilarAssessments(
     // 过滤出有相似症状的记录
     const similar = memories
       .map(m => {
-        const metadata = m.metadata as any;
+        const metadata = m.metadata as AssessmentMemoryMetadata;
         const historicalSymptoms: string[] = metadata?.symptoms || [];
         const matched = symptoms.filter(s => 
           historicalSymptoms.some(hs => 

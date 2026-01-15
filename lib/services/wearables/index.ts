@@ -11,7 +11,6 @@ export * from './data-normalizer';
 import type { WearableConnector, WearableProvider } from '@/types/wearable';
 import { fitbitConnector } from './fitbit-connector';
 import { ouraConnector } from './oura-connector';
-import { healthKitBridge } from './healthkit-bridge';
 
 /**
  * 获取指定提供商的连接器

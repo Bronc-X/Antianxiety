@@ -102,7 +102,7 @@ export function t(key: keyof typeof UI_LABELS, language: SupportedLanguage): str
 export function detectLanguage(): SupportedLanguage {
   if (typeof window === 'undefined') return 'zh';
   
-  const browserLang = navigator.language || (navigator as any).userLanguage;
+  const browserLang = navigator.language || (navigator as { userLanguage?: string }).userLanguage || 'zh';
   
   if (browserLang.startsWith('zh')) return 'zh';
   if (browserLang.startsWith('en')) return 'en';

@@ -1,3 +1,20 @@
+## 2026-01-15 - Mobile Hooks 接入补齐 + Capacitor 配置分流 ✅
+
+### 🎯 核心更新
+1. ✅ `useBayesianNudge` 接入移动端：`ViewDashboard` 挂载 `PassiveNudge`，习惯完成自动提示。
+2. ✅ `usePreferences` 接入设置页：通知/主题/语言本地持久化（Capacitor Preferences）。
+3. ✅ `useProfileSync` 接入 Profile Setup：保存资料后触发后台聚合。
+4. ✅ `capacitor.config.ts` dev/prod 分流：支持 `CAPACITOR_ENV` / `CAPACITOR_SERVER_URL`。
+
+### 🧪 测试
+- ✅ `npm run lint`（0 errors, 292 warnings）
+- ⚠️ `baseline-browser-mapping` 提示可更新（可选）
+
+### 🚀 下一步
+- [ ] 如需真机/云 Mac 构建，执行 `CAPACITOR_ENV=production npx cap sync ios`
+
+---
+
 ## 2026-01-13 - 移动端 Curated Feed 已读记录 + Onboarding 流程 UI ✅
 
 ### 🎯 核心更新

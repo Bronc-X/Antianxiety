@@ -367,7 +367,7 @@ export function useProactiveInquiry(
         } else if (patterns.responseRate < 0.3) {
             adjustFrequency('low');
         }
-    }, [currentInquiry, inquiryRecordId, inquiryStartTime, dismissInquiry]);
+    }, [adjustFrequency, currentInquiry, inquiryRecordId, inquiryStartTime, dismissInquiry]);
 
     // Pause/Resume timer
     const pause = useCallback(() => {

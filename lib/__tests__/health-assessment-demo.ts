@@ -6,7 +6,6 @@
 
 import {
     runHealthAssessment,
-    extractTagsForStorage,
     requiresImmediateAttention,
     type UserProfile,
     type QuestionnaireScores,

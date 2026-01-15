@@ -21,6 +21,7 @@ const DEFAULT_CONFIG: PersonaConfig = {
  * 构建人设提示
  */
 export function buildPersonaPrompt(config: PersonaConfig = DEFAULT_CONFIG, turnCount: number = 1): string {
+  void config;
   const parts: string[] = [];
 
   parts.push('[AI PERSONA - 顶级医生 + 风趣朋友]');

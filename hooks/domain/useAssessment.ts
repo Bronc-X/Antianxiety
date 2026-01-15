@@ -86,7 +86,7 @@ export function useAssessment(): UseAssessmentReturn {
                     if (code && code.length === 2) {
                         setState(prev => ({ ...prev, countryCode: code }));
                     }
-                } catch (e) {
+                } catch {
                     // Ignore errors
                 }
             };

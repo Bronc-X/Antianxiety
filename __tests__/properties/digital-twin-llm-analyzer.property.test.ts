@@ -43,7 +43,7 @@ const metricScoreArb: fc.Arbitrary<MetricScore> = fc.record({
 /** 生成有效的预测值 */
 const predictionValueArb = fc.record({
   value: fc.float({ min: 0, max: 10, noNaN: true }),
-  confidence: fc.string().map(s => `${(Math.random() * 10).toFixed(1)} ± ${(Math.random() * 2).toFixed(1)}`),
+  confidence: fc.string().map(() => `${(Math.random() * 10).toFixed(1)} ± ${(Math.random() * 2).toFixed(1)}`),
 });
 
 /** 生成有效的时间点预测 */

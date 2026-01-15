@@ -99,16 +99,6 @@ export function generateActiveInquiry(context: ActiveInquiryContext): Diagnostic
 function generatePlanExecutionCheckIn(plan: ActivePlan, name: string, day: number, isMorning: boolean): DiagnosticQuestion {
   // 尝试解析 Plan Items
   const items = plan.items || [];
-  const hasItems = items.length > 0;
-
-  // Fallback if no items
-  let focusItem = "上次制定的计划";
-  if (hasItems) {
-    focusItem = `"${items[0].text.substring(0, 15)}..."`;
-  } else if (plan.content) {
-    const match = plan.content.match(/(?:1\.|-|•)\s*([^。\\n]+)/);
-    if (match) focusItem = `"${match[1].substring(0, 15)}..."`;
-  }
 
   if (isMorning) {
     // Morning: Readiness Check

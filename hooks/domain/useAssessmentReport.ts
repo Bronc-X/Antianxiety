@@ -16,7 +16,7 @@ export interface UseAssessmentReportReturn {
   isExporting: boolean;
   isSending: boolean;
   error: string | null;
-  exportReport: (sessionId: string, format?: 'html' | 'json') => Promise<any>;
+  exportReport: (sessionId: string, format?: 'html' | 'json') => Promise<unknown | null>;
   sendEmail: (sessionId: string, email?: string) => Promise<boolean>;
   clearError: () => void;
 }

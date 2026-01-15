@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   recordExecution,
   getExecutionHistory,
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     if (actionItemId) {
       if (!isAdmin) {
         const supabase = getSupabaseClient();
-        const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
+        const ownerId = await getActionItemOwnerId(supabase, actionItemId);
         if (!ownerId) {
           return NextResponse.json(
             { error: 'Action item not found' },
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     if (planId) {
       if (!isAdmin) {
         const supabase = getSupabaseClient();
-        const ownerId = await getPlanOwnerId(supabase as any, planId);
+        const ownerId = await getPlanOwnerId(supabase, planId);
         if (!ownerId) {
           return NextResponse.json(
             { error: 'Plan not found' },
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
-    const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
+    const ownerId = await getActionItemOwnerId(supabase, actionItemId);
     if (!ownerId) {
       return NextResponse.json(
         { error: 'Action item not found' },
@@ -249,7 +249,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!isAdmin) {
       const supabase = getSupabaseClient();
-      const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
+      const ownerId = await getActionItemOwnerId(supabase, actionItemId);
       if (!ownerId) {
         return NextResponse.json(
           { error: 'Action item not found' },
@@ -277,7 +277,7 @@ export async function PATCH(request: NextRequest) {
 
  
 async function getActionItemOwnerId(
-  supabase: any,
+  supabase: SupabaseClient,
   actionItemId: string
 ): Promise<string | null> {
   const { data: actionItem } = await supabase
@@ -299,7 +299,7 @@ async function getActionItemOwnerId(
 
  
 async function getPlanOwnerId(
-  supabase: any,
+  supabase: SupabaseClient,
   planId: string
 ): Promise<string | null> {
   const { data: plan } = await supabase

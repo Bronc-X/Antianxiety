@@ -8,7 +8,10 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * 开发模式：使用 localhost:3000（需要 adb reverse）
  * 生产模式：使用 Vercel 部署的 URL
  */
-const isDev = process.env.NODE_ENV === 'development';
+const devServerUrl = process.env.CAPACITOR_SERVER_URL ?? 'http://172.20.10.4:3000/native';
+const isDev = process.env.CAPACITOR_ENV === 'development'
+  || process.env.NODE_ENV === 'development'
+  || Boolean(process.env.CAPACITOR_SERVER_URL);
 const productionUrl = process.env.NEXT_PUBLIC_VERCEL_URL
   ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/native`
   : 'https://www.antianxiety.app/native';
@@ -25,12 +28,14 @@ const config: CapacitorConfig = {
 
   server: {
     // 本地开发模式：使用 Mac 的 IP 地址（iOS 模拟器需要）
-    url: 'http://172.20.10.4:3000/native',
-    cleartext: true,
+    url: isDev ? devServerUrl : productionUrl,
+    cleartext: isDev,
     // 允许所有导航在 WebView 内部进行，不跳转 Safari
     allowNavigation: [
       '192.168.1.12:*',
+      '172.20.10.4:*',
       'localhost:*',
+      '127.0.0.1:*',
       '*.antianxiety.app',
       'antianxiety.app'
     ]

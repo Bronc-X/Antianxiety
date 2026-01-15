@@ -8,6 +8,15 @@ export const runtime = 'nodejs';
 
 type CuratedSource = 'pubmed' | 'semantic_scholar' | 'youtube' | 'x' | 'reddit';
 
+type ScaleScoreSummary = {
+  GAD7?: { score?: number };
+  ISI?: { score?: number };
+};
+
+type MetabolicProfile = {
+  tags?: string[];
+};
+
 interface CuratedFeedItem {
   id: string;
   title: string;
@@ -308,12 +317,12 @@ export async function GET(request: NextRequest) {
       const unifiedProfile = unifiedProfileResult.data;
 
       if (profile) {
-        const scores = profile.inferred_scale_scores as any;
+        const scores = profile.inferred_scale_scores as ScaleScoreSummary | null;
         if (scores?.GAD7?.score >= 10) userTags.push('高皮质醇风险');
         if (scores?.GAD7?.score >= 15) userTags.push('重度焦虑');
         if (scores?.ISI?.score >= 15) userTags.push('失眠');
 
-        const metabolic = profile.metabolic_profile as any;
+        const metabolic = profile.metabolic_profile as MetabolicProfile | null;
         if (Array.isArray(metabolic?.tags)) {
           userTags.push(...metabolic.tags);
         }
@@ -472,7 +481,7 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (profile?.inferred_scale_scores) {
-        const scores = profile.inferred_scale_scores as any;
+        const scores = profile.inferred_scale_scores as ScaleScoreSummary | null;
         gadScore = scores?.GAD7?.score ?? null;
         phqScore = scores?.PHQ9?.score ?? null;
         isiScore = scores?.ISI?.score ?? null;

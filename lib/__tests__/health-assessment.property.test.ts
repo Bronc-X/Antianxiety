@@ -11,13 +11,10 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import {
-    HealthAssessmentEngine,
     runHealthAssessment,
     extractTagsForStorage,
     requiresImmediateAttention,
     AVAILABLE_TAGS,
-    type UserProfile,
-    type QuestionnaireScores,
 } from '../health-assessment-engine';
 import {
     calculateScaleScore,

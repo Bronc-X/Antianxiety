@@ -196,7 +196,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json(diagnosis);
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       success: false,
       error: error.message || '未知错误',

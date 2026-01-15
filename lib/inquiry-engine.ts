@@ -10,7 +10,6 @@
 
 import type {
   InquiryQuestion,
-  InquiryContext,
   InquiryTiming,
   DataGap,
   PhaseGoal,

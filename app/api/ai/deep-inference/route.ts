@@ -60,9 +60,17 @@ const SCIENTIFIC_CITATIONS = [
   },
 ];
 
+type DeepInferenceAnalysis = Partial<{
+  metabolic_rate_estimate: string;
+  sleep_quality: string;
+  stress_resilience: string;
+  recovery_capacity: string;
+  cortisol_pattern: string;
+}>;
+
 interface DeepInferenceRequest {
-  analysisResult: any;
-  recentLogs: any[];
+  analysisResult: DeepInferenceAnalysis | null;
+  recentLogs: unknown[];
 }
 
 export async function POST(request: NextRequest) {
@@ -91,7 +99,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateDeepInference(analysisResult: any, recentLogs: any[]) {
+function generateDeepInference(analysisResult: DeepInferenceAnalysis | null, recentLogs: unknown[]) {
   // 数据分析部分
   const dataAnalysis = generateDataAnalysis(analysisResult, recentLogs);
   
@@ -114,7 +122,7 @@ function generateDeepInference(analysisResult: any, recentLogs: any[]) {
   };
 }
 
-function generateDataAnalysis(analysisResult: any, recentLogs: any[]) {
+function generateDataAnalysis(analysisResult: DeepInferenceAnalysis | null, recentLogs: unknown[]) {
   const metrics = [];
   
   if (analysisResult?.metabolic_rate_estimate) {
@@ -156,7 +164,7 @@ function generateDataAnalysis(analysisResult: any, recentLogs: any[]) {
   };
 }
 
-function generateInferenceLogic(analysisResult: any) {
+function generateInferenceLogic(analysisResult: DeepInferenceAnalysis | null) {
   const steps = [];
   let stepNum = 1;
 
@@ -212,7 +220,7 @@ function generateInferenceLogic(analysisResult: any) {
   };
 }
 
-function generateScientificBasis(analysisResult: any) {
+function generateScientificBasis(analysisResult: DeepInferenceAnalysis | null) {
   const relevantCitations = [];
 
   // 根据分析结果选择相关文献
@@ -240,7 +248,7 @@ function generateScientificBasis(analysisResult: any) {
   };
 }
 
-function generateConclusions(analysisResult: any) {
+function generateConclusions(analysisResult: DeepInferenceAnalysis | null) {
   const findings = [];
   const recommendations = [];
 

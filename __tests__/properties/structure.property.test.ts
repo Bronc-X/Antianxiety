@@ -34,20 +34,6 @@ function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
   return arrayOfFiles;
 }
 
-/**
- * 获取目录下所有子目录名
- */
-function getSubDirectories(dirPath: string): string[] {
-  if (!fs.existsSync(dirPath)) {
-    return [];
-  }
-
-  return fs.readdirSync(dirPath).filter((file) => {
-    const fullPath = path.join(dirPath, file);
-    return fs.statSync(fullPath).isDirectory();
-  });
-}
-
 describe('Property 9: 在线运行时 API 路由说明', () => {
   /**
    * **Feature: nextjs-capacitor-migration, Property 9: 在线运行时 API 路由说明**

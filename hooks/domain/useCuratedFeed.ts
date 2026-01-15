@@ -19,7 +19,7 @@ import {
 export interface UseCuratedFeedReturn {
   isLoading: boolean;
   error: string | null;
-  fetchPage: (params?: CuratedFeedParams) => Promise<any>;
+  fetchPage: (params?: CuratedFeedParams) => Promise<unknown | null>;
   sendFeedback: (input: FeedFeedbackInput) => Promise<'added' | 'removed' | null>;
   markRead: (input: CuratedReadInput) => Promise<boolean>;
   clearError: () => void;

@@ -226,6 +226,7 @@ function generateBreathingExercises(
   assessment: PhysiologicalAssessment,
   preferences?: UserPreferences
 ): BreathingExercise[] {
+  void preferences;
   const exercises: BreathingExercise[] = [];
   
   // 基础呼吸练习
@@ -276,6 +277,7 @@ function generateSleepRecommendations(
   assessment: PhysiologicalAssessment,
   preferences?: UserPreferences
 ): SleepRecommendation[] {
+  void preferences;
   const recommendations: SleepRecommendation[] = [];
   
   // 基础建议

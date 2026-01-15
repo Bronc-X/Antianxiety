@@ -127,7 +127,7 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
     return denominator === 0 ? 0 : dotProduct / denominator;
 }
 
-async function parseJsonResponse(response: Response): Promise<any> {
+async function parseJsonResponse(response: Response): Promise<unknown> {
     const raw = await response.text();
     try {
         return JSON.parse(raw);
@@ -245,18 +245,19 @@ export async function getFeed(
                     .limit(100);
 
                 if (allContent && allContent.length > 0) {
-                    const scored = allContent
-                        .map((item: any) => {
+                    const allContentItems = allContent as ContentFeedVector[];
+                    const scored = allContentItems
+                        .map((item) => {
                             if (!item.embedding || !Array.isArray(item.embedding)) {
                                 return { ...item, relevance_score: 0 };
                             }
                             const similarity = cosineSimilarity(profile.user_persona_embedding!, item.embedding);
                             return { ...item, relevance_score: similarity };
                         })
-                        .filter((item: any) => item.relevance_score >= 0.3)
-                        .sort((a: any, b: any) => b.relevance_score - a.relevance_score)
+                        .filter((item) => (item.relevance_score ?? 0) >= 0.3)
+                        .sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0))
                         // Apply filters (e.g. source type) locally since we fetched 100
-                        .filter((item: any) => !filters?.sourceType || item.source_type === filters.sourceType)
+                        .filter((item) => !filters?.sourceType || item.source_type === filters.sourceType)
                         .slice((page - 1) * limit, page * limit);
 
                     items = scored;
@@ -282,7 +283,8 @@ export async function getFeed(
                 const { data: latestContent } = await query.range((page - 1) * limit, page * limit - 1);
 
                 if (latestContent) {
-                    items = latestContent.map((item: any) => ({ ...item, relevance_score: 0.1 })); // Low score
+                    const latestContentItems = latestContent as ContentFeedVector[];
+                    items = latestContentItems.map((item) => ({ ...item, relevance_score: 0.1 })); // Low score
                     personalizationMeta = {
                         ready: false,
                         reason: resolvedLanguage === 'en' ? 'No personalized matches found' : '未找到高相关匹配',
@@ -410,7 +412,7 @@ export async function getFeed(
             }
         });
 
-    } catch {
+    } catch (error) {
         console.error('[Feed Action] getFeed error:', error);
         return { success: false, error: 'Failed to load feed' };
     }
@@ -421,7 +423,7 @@ export async function getFeed(
  */
 export async function getCuratedFeed(
     params: CuratedFeedParams = {}
-): Promise<ActionResult<any>> {
+): Promise<ActionResult<unknown>> {
     try {
         const url = new URL('http://feed.local/api/curated-feed');
         if (typeof params.limit === 'number') {
@@ -446,9 +448,10 @@ export async function getCuratedFeed(
         const request = new NextRequest(url.toString());
         const response = await getCuratedFeedRoute(request);
         const data = await parseJsonResponse(response);
+        const payload = typeof data === 'object' && data !== null ? (data as { error?: string }) : null;
 
         if (!response.ok) {
-            return { success: false, error: data?.error || 'Failed to load feed' };
+            return { success: false, error: payload?.error || 'Failed to load feed' };
         }
 
         return { success: true, data };

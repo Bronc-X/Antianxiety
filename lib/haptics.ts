@@ -79,7 +79,7 @@ export const triggerHaptic = {
             setTimeout(async () => {
                 await Haptics.impact({ style: ImpactStyle.Medium });
             }, 80);
-        } catch (e) { }
+        } catch { }
     },
 
     // Breathing: A slow, rhythmic pattern for meditation

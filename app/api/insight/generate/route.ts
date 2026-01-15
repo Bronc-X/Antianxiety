@@ -99,11 +99,12 @@ ${exercise_minutes !== undefined ? `- 运动时长: ${exercise_minutes} 分钟` 
 
         console.log('✅ 开始流式响应');
         return result.toTextStreamResponse();
-      } catch (llmError: any) {
+      } catch (llmError: unknown) {
+        const llmInfo = llmError as { message?: string; statusCode?: number };
         console.error('❌ Insight LLM 调用失败:', {
           model: modelName,
-          message: llmError?.message,
-          statusCode: llmError?.statusCode,
+          message: llmInfo.message,
+          statusCode: llmInfo.statusCode,
         });
       }
     }

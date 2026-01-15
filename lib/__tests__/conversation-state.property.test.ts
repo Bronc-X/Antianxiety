@@ -13,7 +13,6 @@ import {
   extractCitedPapers,
   detectResponseFormat,
   extractEndearment,
-  extractUserDetails,
   shouldMentionHealthContext,
   getUnusedEndearments,
   getExcludedPaperIds,

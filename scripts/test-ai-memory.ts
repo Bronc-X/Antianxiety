@@ -120,18 +120,22 @@ async function main() {
   // 测试 1: 向量生成
   const embedding = await testEmbedding();
   
-  // 测试 2: 记忆存储（需要有效的用户 ID）
-  // await testStoreMemory(embedding);
-  console.log('\n📊 测试 2: 记忆存储');
-  console.log('='.repeat(50));
-  console.log('⏭️ 跳过：需要有效的用户 ID');
-  console.log('   提示: 设置 TEST_USER_ID 环境变量后可测试存储功能');
-  
-  // 测试 3: 记忆检索（需要有效的用户 ID）
-  // await testRetrieveMemories(embedding);
-  console.log('\n📊 测试 3: 记忆检索');
-  console.log('='.repeat(50));
-  console.log('⏭️ 跳过：需要有效的用户 ID');
+  const hasTestUser = Boolean(process.env.TEST_USER_ID);
+  if (hasTestUser) {
+    await testStoreMemory(embedding);
+    await testRetrieveMemories(embedding);
+  } else {
+    // 测试 2: 记忆存储（需要有效的用户 ID）
+    console.log('\n📊 测试 2: 记忆存储');
+    console.log('='.repeat(50));
+    console.log('⏭️ 跳过：需要有效的用户 ID');
+    console.log('   提示: 设置 TEST_USER_ID 环境变量后可测试存储功能');
+
+    // 测试 3: 记忆检索（需要有效的用户 ID）
+    console.log('\n📊 测试 3: 记忆检索');
+    console.log('='.repeat(50));
+    console.log('⏭️ 跳过：需要有效的用户 ID');
+  }
   
   console.log('\n' + '='.repeat(50));
   console.log('🏁 测试完成！');

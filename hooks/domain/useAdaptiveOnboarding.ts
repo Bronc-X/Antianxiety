@@ -12,7 +12,7 @@ import { recommendGoals } from '@/app/actions/onboarding';
 export interface UseAdaptiveOnboardingReturn {
   isLoading: boolean;
   error: string | null;
-  recommend: (answers: Record<string, string>) => Promise<any>;
+  recommend: (answers: Record<string, string>) => Promise<unknown | null>;
   clearError: () => void;
 }
 

@@ -75,8 +75,8 @@ export function getDailyCalibrationQuestions(): DailyCalibrationQuestion[] {
         type: q.options ? 'single' : 'slider',
         category: q.category,
         options: q.options,
-        min: (q as any).min,
-        max: (q as any).max,
+        min: (q as { min?: number }).min,
+        max: (q as { max?: number }).max,
         isSafetyQuestion: q.isSafetyQuestion,
     }));
 }
@@ -261,7 +261,7 @@ export async function getUserCalibrationFrequency(userId: string): Promise<{
  * Check if user should do calibration today
  */
 export async function shouldCalibrateToday(userId: string): Promise<boolean> {
-    const { dailyFrequency, nextDailyDate } = await getUserCalibrationFrequency(userId);
+    const { nextDailyDate } = await getUserCalibrationFrequency(userId);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     nextDailyDate.setHours(0, 0, 0, 0);

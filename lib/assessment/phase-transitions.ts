@@ -23,7 +23,7 @@ export function isBaselineComplete(history: Array<{ question_id: string }>): boo
 export async function handlePhaseTransition(
   sessionId: string,
   currentPhase: AssessmentPhase,
-  history: Array<{ question_id: string; value: any }>,
+  history: Array<{ question_id: string; value: unknown }>,
   chiefComplaint: string | null,
   symptoms: string[]
 ): Promise<{ newPhase: AssessmentPhase; shouldTransition: boolean }> {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useNetwork } from '@/hooks/useNetwork';
 import { useAuth } from '@/hooks/domain/useAuth';
 import {
     getDailyCalibrationQuestions,
@@ -27,7 +26,6 @@ export interface UseCalibrationReturn {
     answers: Record<string, number>;
     result: DailyCalibrationResult | null;
     isLoading: boolean;
-    isSaving: boolean; // separate saving state if needed
 
     // Frequency State
     frequency: 'daily' | 'every_other_day';
@@ -62,7 +60,6 @@ export function useCalibration(initialUserId?: string): UseCalibrationReturn {
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [result, setResult] = useState<DailyCalibrationResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
 
     // Frequency State
     const [frequency, setFrequency] = useState<'daily' | 'every_other_day'>('daily');
@@ -222,7 +219,6 @@ export function useCalibration(initialUserId?: string): UseCalibrationReturn {
         answers,
         result,
         isLoading,
-        isSaving,
         frequency,
         frequencyReason,
         shouldShowToday,

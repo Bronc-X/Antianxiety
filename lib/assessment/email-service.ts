@@ -50,9 +50,10 @@ export async function sendReportEmail(params: EmailReportParams): Promise<{
     }
 
     return { success: true, messageId: data?.id };
-  } catch (error: any) {
-    console.error('Email send error:', error);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const errorInfo = error as { message?: string };
+    console.error('Email send error:', errorInfo);
+    return { success: false, error: errorInfo.message || 'Email send failed' };
   }
 }
 

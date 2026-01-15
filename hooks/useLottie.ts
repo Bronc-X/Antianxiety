@@ -37,6 +37,7 @@ export function useLottie(
   animationPath: string,
   options: UseLottieOptions = {}
 ): UseLottieReturn {
+  void options;
   const [animationData, setAnimationData] = useState<object | null>(null);
   const [loadedPath, setLoadedPath] = useState<string | null>(null);
   const [errorState, setErrorState] = useState<{ path: string; error: Error } | null>(null);

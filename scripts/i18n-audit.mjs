@@ -4,10 +4,6 @@ import ts from 'typescript';
 
 const repoRoot = process.cwd();
 
-function read(filePath) {
-  return fs.readFileSync(path.join(repoRoot, filePath), 'utf8');
-}
-
 function extractObjectLiteral(node) {
   if (!node) return null;
   if (ts.isAsExpression(node)) return extractObjectLiteral(node.expression);

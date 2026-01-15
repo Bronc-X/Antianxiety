@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, vi } from 'vitest';
 import * as fc from 'fast-check';
 import { MOTION_BUTTON_TAP_SCALE } from '../../components/motion/MotionButton';
 

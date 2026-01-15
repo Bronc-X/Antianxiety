@@ -186,7 +186,7 @@ export function useSettings(options?: UseSettingsOptions): UseSettingsReturn {
         } finally {
             setIsLoading(false);
         }
-    }, [userId]);
+    }, []);
 
     return {
         settings,

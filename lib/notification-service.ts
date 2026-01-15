@@ -4,9 +4,13 @@
  */
 
 import { Capacitor } from '@capacitor/core';
+import type {
+  LocalNotificationsPlugin,
+  LocalNotificationActionPerformed,
+} from '@capacitor/local-notifications';
 
 // Dynamic import for Capacitor plugins (only on native)
-let LocalNotifications: any = null;
+let LocalNotifications: LocalNotificationsPlugin | null = null;
 
 async function getLocalNotifications() {
   if (LocalNotifications) return LocalNotifications;
@@ -115,7 +119,7 @@ export async function checkNotificationStatus(): Promise<boolean> {
   try {
     const result = await LN.checkPermissions();
     return result.display === 'granted';
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -151,7 +155,7 @@ export async function registerNotificationHandlers(
     });
 
     // Listen for notification actions
-    LN.addListener('localNotificationActionPerformed', (notification: any) => {
+    LN.addListener('localNotificationActionPerformed', (notification: LocalNotificationActionPerformed) => {
       if (notification.notification.id === CALIBRATION_NOTIFICATION_ID) {
         if (notification.actionId === 'open' || notification.actionId === 'tap') {
           onCalibrationOpen();

@@ -57,6 +57,7 @@ import { useSettings } from "@/hooks/domain/useSettings";
 import { useAuth } from "@/hooks/domain/useAuth";
 import { useProfile } from "@/hooks/domain/useProfile";
 import { useHaptics, ImpactStyle } from "@/hooks/useHaptics";
+import { usePreferences } from "@/hooks/usePreferences";
 import { getPushEnabled, setPushEnabled } from '@/lib/push-notifications';
 import { exportUserData } from '@/app/actions/data-export';
 
@@ -67,6 +68,8 @@ import { exportUserData } from '@/app/actions/data-export';
 interface ViewSettingsProps {
     onNavigate?: (view: string) => void;
     onBack?: () => void;
+    biometricLockEnabled?: boolean;
+    onBiometricToggle?: (enabled: boolean) => void;
 }
 
 type ActiveSheet =
@@ -541,11 +544,17 @@ function ConfirmDialog({
 // Main Component
 // ============================================
 
-export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
+export const ViewSettings = ({
+    onNavigate,
+    onBack,
+    biometricLockEnabled: biometricLockEnabledProp,
+    onBiometricToggle
+}: ViewSettingsProps) => {
     const { settings, isLoading, isSaving, isOffline, error, update } = useSettings();
     const { user, signOut, isSigningOut } = useAuth();
     const { remove, isSaving: isDeleting } = useProfile();
     const { impact, notification } = useHaptics();
+    const { get, set, getJSON, setJSON } = usePreferences();
     const isIosNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 
     // Local state
@@ -562,6 +571,9 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
         sound: true,
         haptics: true,
     });
+
+    const [localBiometricLockEnabled, setLocalBiometricLockEnabled] = useState(true);
+    const biometricLockEnabled = biometricLockEnabledProp ?? localBiometricLockEnabled;
 
     useEffect(() => {
         if (!isIosNative) return;
@@ -584,6 +596,55 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
     // Theme state
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
     const [language, setLanguage] = useState<'zh' | 'en'>('zh');
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadPreferences = async () => {
+            const savedNotifications = await getJSON<Partial<typeof notifications>>('mobile.settings.notifications');
+            if (!cancelled && savedNotifications) {
+                setNotifications(prev => ({ ...prev, ...savedNotifications }));
+            }
+
+            const savedTheme = await get('mobile.settings.theme');
+            if (!cancelled && (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system')) {
+                setTheme(savedTheme);
+            }
+
+            const savedLanguage = await get('mobile.settings.language');
+            if (!cancelled && (savedLanguage === 'zh' || savedLanguage === 'en')) {
+                setLanguage(savedLanguage);
+            }
+
+            const savedBiometricLock = await getJSON<boolean>('mobile.settings.biometricLock');
+            if (!cancelled && typeof savedBiometricLock === 'boolean') {
+                setLocalBiometricLockEnabled(savedBiometricLock);
+                onBiometricToggle?.(savedBiometricLock);
+            }
+        };
+
+        void loadPreferences();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [get, getJSON, onBiometricToggle]);
+
+    useEffect(() => {
+        void setJSON('mobile.settings.notifications', notifications);
+    }, [notifications, setJSON]);
+
+    useEffect(() => {
+        void setJSON('mobile.settings.biometricLock', biometricLockEnabled);
+    }, [biometricLockEnabled, setJSON]);
+
+    useEffect(() => {
+        void set('mobile.settings.theme', theme);
+    }, [theme, set]);
+
+    useEffect(() => {
+        void set('mobile.settings.language', language);
+    }, [language, set]);
 
     // Sync settings
     useEffect(() => {
@@ -932,7 +993,17 @@ export const ViewSettings = ({ onNavigate, onBack }: ViewSettingsProps) => {
                         iconBg="bg-green-100 dark:bg-green-500/20"
                         label="生物识别锁定"
                         description="使用 Face ID / Touch ID"
-                        rightElement={<ToggleSwitch checked={false} onChange={() => { }} />}
+                        rightElement={
+                            <ToggleSwitch
+                                checked={biometricLockEnabled}
+                                onChange={(value) => {
+                                    if (biometricLockEnabledProp === undefined) {
+                                        setLocalBiometricLockEnabled(value);
+                                    }
+                                    onBiometricToggle?.(value);
+                                }}
+                            />
+                        }
                     />
                     <SettingsRow
                         icon={Download}

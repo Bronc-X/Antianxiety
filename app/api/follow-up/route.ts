@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   scheduleSession,
   startSession,
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     if (sessionId) {
       if (!isAdmin) {
         const supabase = getSupabaseClient();
-        const ownerId = await getFollowUpSessionOwnerId(supabase as any, sessionId);
+        const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
         if (!ownerId) {
           return NextResponse.json({ error: 'Session not found' }, { status: 404 });
         }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       }
 
       const supabase = getSupabaseClient();
-      const planOwnerId = await getPlanOwnerId(supabase as any, planId);
+      const planOwnerId = await getPlanOwnerId(supabase, planId);
       if (!planOwnerId) {
         return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
       }
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
       if (!isAdmin) {
         const supabase = getSupabaseClient();
-        const ownerId = await getFollowUpSessionOwnerId(supabase as any, sessionId);
+        const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
         if (!ownerId) {
           return NextResponse.json({ error: 'Session not found' }, { status: 404 });
         }
@@ -199,7 +199,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!isAdmin) {
       const supabase = getSupabaseClient();
-      const ownerId = await getFollowUpSessionOwnerId(supabase as any, sessionId);
+      const ownerId = await getFollowUpSessionOwnerId(supabase, sessionId);
       if (!ownerId) {
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });
       }
@@ -238,7 +238,7 @@ export async function PATCH(request: NextRequest) {
 
  
 async function getPlanOwnerId(
-  supabase: any,
+  supabase: SupabaseClient,
   planId: string
 ): Promise<string | null> {
   const { data: plan } = await supabase
@@ -252,7 +252,7 @@ async function getPlanOwnerId(
 
  
 async function getFollowUpSessionOwnerId(
-  supabase: any,
+  supabase: SupabaseClient,
   sessionId: string
 ): Promise<string | null> {
   const { data: session } = await supabase

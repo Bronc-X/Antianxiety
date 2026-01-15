@@ -11,14 +11,12 @@ import * as fc from 'fast-check';
 import type {
   PhysiologicalAssessment,
   CalibrationData,
-  TreatmentMilestone,
 } from '@/types/digital-twin';
 import {
   generatePredictions,
   calculateMilestones,
   validatePredictions,
   validateMilestones,
-  PREDICTION_WEEKS,
 } from '@/lib/digital-twin/prediction-engine';
 
 // 配置 fast-check 运行 100 次迭代
@@ -161,12 +159,10 @@ describe('Digital Twin Prediction Engine Properties', () => {
           expect(weeks).toEqual([0, 3, 6, 9, 12, 15]);
           
           // 验证状态一致性
-          let foundCurrent = false;
           let afterCurrent = false;
           
           for (const milestone of milestones) {
             if (milestone.status === 'current') {
-              foundCurrent = true;
             } else if (milestone.status === 'upcoming') {
               afterCurrent = true;
             } else if (milestone.status === 'completed') {

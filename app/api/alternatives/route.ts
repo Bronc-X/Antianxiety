@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   generateAlternatives,
   selectAlternative,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseClient();
 
-    const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
+    const ownerId = await getActionItemOwnerId(supabase, actionItemId);
     if (!ownerId) {
       return NextResponse.json(
         { error: 'Action item not found' },
@@ -159,7 +159,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
-    const ownerId = await getActionItemOwnerId(supabase as any, originalActionId);
+    const ownerId = await getActionItemOwnerId(supabase, originalActionId);
     if (!ownerId) {
       return NextResponse.json(
         { error: 'Action item not found' },
@@ -224,7 +224,7 @@ export async function GET(request: NextRequest) {
 
     if (!isAdmin) {
       const supabase = getSupabaseClient();
-      const ownerId = await getActionItemOwnerId(supabase as any, actionItemId);
+      const ownerId = await getActionItemOwnerId(supabase, actionItemId);
       if (!ownerId) {
         return NextResponse.json(
           { error: 'Action item not found' },
@@ -295,7 +295,7 @@ function mapDbToActionItem(db: DbActionItem): ActionItem {
 
  
 async function getActionItemOwnerId(
-  supabase: any,
+  supabase: SupabaseClient,
   actionItemId: string
 ): Promise<string | null> {
   const { data: actionItem } = await supabase

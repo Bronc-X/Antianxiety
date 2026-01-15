@@ -45,7 +45,6 @@ export interface LLMAnalysisResult {
 // 常量
 // ============================================
 
-const ANALYSIS_TIMEOUT_MS = 60000;
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [2000, 4000, 8000];
 
@@ -87,8 +86,6 @@ export async function analyzeWithLLM(
   const modelName = getModelForUseCase('reasoning');
   logModelCall(modelName, 'digital-twin-analysis');
   
-  let lastError: Error | null = null;
-  
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const { text } = await generateText({
@@ -103,7 +100,6 @@ export async function analyzeWithLLM(
       return result;
       
     } catch (error) {
-      lastError = error as Error;
       console.error(`❌ LLM 分析失败 (尝试 ${attempt + 1}/${MAX_RETRIES}):`, error);
       
       if (attempt < MAX_RETRIES - 1) {
@@ -377,33 +373,40 @@ export function parseAnalysisResponse(
 // 验证函数
 // ============================================
 
-function validateAssessment(raw: any, papers: Paper[]): PhysiologicalAssessment {
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  return value as Record<string, unknown>;
+}
+
+function validateAssessment(raw: unknown, papers: Paper[]): PhysiologicalAssessment {
   const defaultMetric: MetricScore = { score: 5, trend: '数据收集中', confidence: 0.5 };
+  const rawRecord = asRecord(raw);
   
   return {
-    overallStatus: raw?.overallStatus || 'stable',
-    anxietyLevel: validateMetricScore(raw?.anxietyLevel) || defaultMetric,
-    sleepHealth: validateMetricScore(raw?.sleepHealth) || defaultMetric,
-    stressResilience: validateMetricScore(raw?.stressResilience) || defaultMetric,
-    moodStability: validateMetricScore(raw?.moodStability) || defaultMetric,
-    energyLevel: validateMetricScore(raw?.energyLevel) || defaultMetric,
-    hrvEstimate: validateMetricScore(raw?.hrvEstimate) || defaultMetric,
-    riskFactors: Array.isArray(raw?.riskFactors) ? raw.riskFactors : [],
-    strengths: Array.isArray(raw?.strengths) ? raw.strengths : [],
-    scientificBasis: validateScientificBasis(raw?.scientificBasis, papers),
+    overallStatus: (rawRecord?.overallStatus as string) || 'stable',
+    anxietyLevel: validateMetricScore(rawRecord?.anxietyLevel) || defaultMetric,
+    sleepHealth: validateMetricScore(rawRecord?.sleepHealth) || defaultMetric,
+    stressResilience: validateMetricScore(rawRecord?.stressResilience) || defaultMetric,
+    moodStability: validateMetricScore(rawRecord?.moodStability) || defaultMetric,
+    energyLevel: validateMetricScore(rawRecord?.energyLevel) || defaultMetric,
+    hrvEstimate: validateMetricScore(rawRecord?.hrvEstimate) || defaultMetric,
+    riskFactors: Array.isArray(rawRecord?.riskFactors) ? (rawRecord?.riskFactors as string[]) : [],
+    strengths: Array.isArray(rawRecord?.strengths) ? (rawRecord?.strengths as string[]) : [],
+    scientificBasis: validateScientificBasis(rawRecord?.scientificBasis, papers),
   };
 }
 
-function validateMetricScore(raw: any): MetricScore | null {
-  if (!raw) return null;
+function validateMetricScore(raw: unknown): MetricScore | null {
+  const rawRecord = asRecord(raw);
+  if (!rawRecord) return null;
   return {
-    score: typeof raw.score === 'number' ? Math.max(0, Math.min(10, raw.score)) : 5,
-    trend: raw.trend || '稳定',
-    confidence: typeof raw.confidence === 'number' ? Math.max(0, Math.min(1, raw.confidence)) : 0.5,
+    score: typeof rawRecord.score === 'number' ? Math.max(0, Math.min(10, rawRecord.score)) : 5,
+    trend: (rawRecord.trend as string) || '稳定',
+    confidence: typeof rawRecord.confidence === 'number' ? Math.max(0, Math.min(1, rawRecord.confidence)) : 0.5,
   };
 }
 
-function validateScientificBasis(raw: any[], papers: Paper[]): ScientificBasis[] {
+function validateScientificBasis(raw: unknown, papers: Paper[]): ScientificBasis[] {
   if (!Array.isArray(raw) || raw.length === 0) {
     // 使用提供的论文生成科学依据
     return papers.slice(0, 3).map(paper => ({
@@ -413,58 +416,76 @@ function validateScientificBasis(raw: any[], papers: Paper[]): ScientificBasis[]
       citationCount: paper.citationCount,
     }));
   }
-  
-  return raw.map(item => ({
-    claim: item.claim || '',
-    paperTitle: item.paperTitle || '',
-    paperUrl: item.paperUrl || '',
-    citationCount: item.citationCount || 0,
-  }));
+
+  return raw.map((item) => {
+    const itemRecord = asRecord(item) || {};
+    return {
+      claim: (itemRecord.claim as string) || '',
+      paperTitle: (itemRecord.paperTitle as string) || '',
+      paperUrl: (itemRecord.paperUrl as string) || '',
+      citationCount: typeof itemRecord.citationCount === 'number' ? itemRecord.citationCount : 0,
+    };
+  });
 }
 
-function validatePredictions(raw: any): LongitudinalPredictions {
+function validatePredictions(raw: unknown): LongitudinalPredictions {
+  const rawRecord = asRecord(raw);
   const requiredWeeks = [0, 3, 6, 9, 12, 15];
+  const timepointsRaw = Array.isArray(rawRecord?.timepoints) ? rawRecord?.timepoints : [];
   
   const timepoints: PredictionTimepoint[] = requiredWeeks.map(week => {
-    const existing = raw?.timepoints?.find((t: any) => t.week === week);
+    const existing = (timepointsRaw as Array<Record<string, unknown>>).find(
+      (t) => (t as { week?: number }).week === week
+    );
+    const predictionRecord = asRecord(existing?.predictions);
     return {
       week,
       predictions: {
-        anxietyScore: validatePredictionValue(existing?.predictions?.anxietyScore, 5),
-        sleepQuality: validatePredictionValue(existing?.predictions?.sleepQuality, 6),
-        stressResilience: validatePredictionValue(existing?.predictions?.stressResilience, 5),
-        moodStability: validatePredictionValue(existing?.predictions?.moodStability, 6),
-        energyLevel: validatePredictionValue(existing?.predictions?.energyLevel, 6),
-        hrvScore: validatePredictionValue(existing?.predictions?.hrvScore, 5),
+        anxietyScore: validatePredictionValue(predictionRecord?.anxietyScore, 5),
+        sleepQuality: validatePredictionValue(predictionRecord?.sleepQuality, 6),
+        stressResilience: validatePredictionValue(predictionRecord?.stressResilience, 5),
+        moodStability: validatePredictionValue(predictionRecord?.moodStability, 6),
+        energyLevel: validatePredictionValue(predictionRecord?.energyLevel, 6),
+        hrvScore: validatePredictionValue(predictionRecord?.hrvScore, 5),
       },
     };
   });
   
   return {
     timepoints,
-    baselineComparison: Array.isArray(raw?.baselineComparison) ? raw.baselineComparison : [],
+    baselineComparison: Array.isArray(rawRecord?.baselineComparison) ? (rawRecord?.baselineComparison as string[]) : [],
   };
 }
 
-function validatePredictionValue(raw: any, defaultValue: number): { value: number; confidence: string } {
-  if (!raw) {
+function validatePredictionValue(raw: unknown, defaultValue: number): { value: number; confidence: string } {
+  const rawRecord = asRecord(raw);
+  if (!rawRecord) {
     return { value: defaultValue, confidence: `${defaultValue.toFixed(1)} ± 1.0` };
   }
   
-  const value = typeof raw.value === 'number' ? raw.value : defaultValue;
-  const confidence = typeof raw.confidence === 'string' ? raw.confidence : `${value.toFixed(1)} ± 1.0`;
+  const value = typeof rawRecord.value === 'number' ? rawRecord.value : defaultValue;
+  const confidence = typeof rawRecord.confidence === 'string' ? rawRecord.confidence : `${value.toFixed(1)} ± 1.0`;
   
   return { value, confidence };
 }
 
-function validateAdaptivePlan(raw: any): AdaptivePlan {
+function validateAdaptivePlan(raw: unknown): AdaptivePlan {
+  const rawRecord = asRecord(raw);
   return {
-    dailyFocus: Array.isArray(raw?.dailyFocus) ? raw.dailyFocus : getDefaultDailyFocus(),
-    breathingExercises: Array.isArray(raw?.breathingExercises) ? raw.breathingExercises : getDefaultBreathingExercises(),
-    sleepRecommendations: Array.isArray(raw?.sleepRecommendations) ? raw.sleepRecommendations : getDefaultSleepRecommendations(),
-    activitySuggestions: Array.isArray(raw?.activitySuggestions) ? raw.activitySuggestions : [],
-    avoidanceBehaviors: Array.isArray(raw?.avoidanceBehaviors) ? raw.avoidanceBehaviors : [],
-    nextCheckpoint: raw?.nextCheckpoint || {
+    dailyFocus: Array.isArray(rawRecord?.dailyFocus) ? (rawRecord?.dailyFocus as AdaptivePlan['dailyFocus']) : getDefaultDailyFocus(),
+    breathingExercises: Array.isArray(rawRecord?.breathingExercises)
+      ? (rawRecord?.breathingExercises as AdaptivePlan['breathingExercises'])
+      : getDefaultBreathingExercises(),
+    sleepRecommendations: Array.isArray(rawRecord?.sleepRecommendations)
+      ? (rawRecord?.sleepRecommendations as AdaptivePlan['sleepRecommendations'])
+      : getDefaultSleepRecommendations(),
+    activitySuggestions: Array.isArray(rawRecord?.activitySuggestions)
+      ? (rawRecord?.activitySuggestions as AdaptivePlan['activitySuggestions'])
+      : [],
+    avoidanceBehaviors: Array.isArray(rawRecord?.avoidanceBehaviors)
+      ? (rawRecord?.avoidanceBehaviors as AdaptivePlan['avoidanceBehaviors'])
+      : [],
+    nextCheckpoint: (rawRecord?.nextCheckpoint as AdaptivePlan['nextCheckpoint']) || {
       date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       focus: '整体进展评估',
     },

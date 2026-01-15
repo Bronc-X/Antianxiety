@@ -19,12 +19,12 @@ import {
 export interface UseMaxApiReturn {
   isLoading: boolean;
   error: string | null;
-  getResponse: (payload: Record<string, unknown>) => Promise<any>;
-  submitBelief: (payload: Record<string, unknown>) => Promise<any>;
-  planChat: (payload: Record<string, unknown>) => Promise<any>;
-  planReplace: (payload: Record<string, unknown>) => Promise<any>;
-  loadSettings: () => Promise<any>;
-  saveSettings: (payload: Record<string, unknown>) => Promise<any>;
+  getResponse: (payload: Record<string, unknown>) => Promise<unknown | null>;
+  submitBelief: (payload: Record<string, unknown>) => Promise<unknown | null>;
+  planChat: (payload: Record<string, unknown>) => Promise<unknown | null>;
+  planReplace: (payload: Record<string, unknown>) => Promise<unknown | null>;
+  loadSettings: () => Promise<unknown | null>;
+  saveSettings: (payload: Record<string, unknown>) => Promise<unknown | null>;
   clearError: () => void;
 }
 
