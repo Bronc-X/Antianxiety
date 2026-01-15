@@ -260,7 +260,8 @@ async function searchOpenAlex(query: string, maxResults = 20): Promise<OpenAlexW
     const data = await response.json();
     return data?.results || [];
   } catch (error) {
-    if ((error as any).name === 'AbortError') {
+    const errorInfo = error as { name?: string };
+    if (errorInfo.name === 'AbortError') {
       console.error('OpenAlex timeout');
     } else {
       console.error('OpenAlex search error:', error);
@@ -486,7 +487,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
         // 生成向量
         try {
           item.embedding = await generateEmbedding(item.content_text);
-        } catch (e) {
+        } catch {
           console.warn('Embedding generation failed, storing without embedding');
         }
 
@@ -511,7 +512,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-    } catch (e) {
+    } catch {
       errors.push(`PubMed crawl error for "${query}": ${e}`);
     }
 
@@ -535,7 +536,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
         // 生成向量
         try {
           item.embedding = await generateEmbedding(item.content_text);
-        } catch (e) {
+        } catch {
           console.warn('Embedding generation failed, storing without embedding');
         }
 
@@ -560,7 +561,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
-    } catch (e) {
+    } catch {
       errors.push(`Semantic Scholar crawl error for "${query}": ${e}`);
     }
 
@@ -582,7 +583,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
 
         try {
           item.embedding = await generateEmbedding(item.content_text);
-        } catch (e) {
+        } catch {
           console.warn('Embedding generation failed, storing without embedding');
         }
 
@@ -605,7 +606,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
 
         await new Promise(resolve => setTimeout(resolve, 800));
       }
-    } catch (e) {
+    } catch {
       errors.push(`OpenAlex crawl error for "${query}": ${e}`);
     }
 
@@ -629,7 +630,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
 
       try {
         item.embedding = await generateEmbedding(item.content_text);
-      } catch (e) {
+      } catch {
         console.warn('Embedding generation failed for Reddit item');
       }
 
@@ -652,7 +653,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
 
       await new Promise(resolve => setTimeout(resolve, 300));
     }
-  } catch (e) {
+  } catch {
     errors.push(`Reddit crawl error: ${e}`);
   }
 
@@ -669,7 +670,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
 
       try {
         item.embedding = await generateEmbedding(item.content_text);
-      } catch (e) {
+      } catch {
         console.warn('Embedding generation failed for X item');
       }
 
@@ -692,7 +693,7 @@ export async function crawlAndStoreArticles(maxPerQuery = 10): Promise<{
 
       await new Promise(resolve => setTimeout(resolve, 300));
     }
-  } catch (e) {
+  } catch {
     errors.push(`X crawl error: ${e}`);
   }
 
@@ -758,7 +759,7 @@ export async function quickCrawl(): Promise<{
       try {
         item.embedding = await generateEmbedding(item.content_text);
         console.log(`✅ Generated embedding for: ${article.uid}`);
-      } catch (e) {
+      } catch {
         console.warn('Embedding generation failed');
       }
 
@@ -784,7 +785,7 @@ export async function quickCrawl(): Promise<{
 
       await new Promise(resolve => setTimeout(resolve, 300));
     }
-  } catch (e) {
+  } catch {
     errors.push(`Quick crawl error: ${e}`);
     console.error('Quick crawl error:', e);
   }
@@ -809,7 +810,7 @@ export async function quickCrawl(): Promise<{
 
       try {
         item.embedding = await generateEmbedding(item.content_text);
-      } catch (e) {
+      } catch {
         console.warn('Embedding generation failed');
       }
 
@@ -834,7 +835,7 @@ export async function quickCrawl(): Promise<{
 
       await new Promise(resolve => setTimeout(resolve, 400));
     }
-  } catch (e) {
+  } catch {
     errors.push(`OpenAlex quick crawl error: ${e}`);
   }
 
@@ -853,7 +854,7 @@ export async function quickCrawl(): Promise<{
 
       try {
         item.embedding = await generateEmbedding(item.content_text);
-      } catch (e) {
+      } catch {
         console.warn('Embedding generation failed for Reddit item');
       }
 
@@ -876,7 +877,7 @@ export async function quickCrawl(): Promise<{
 
       await new Promise(resolve => setTimeout(resolve, 200));
     }
-  } catch (e) {
+  } catch {
     errors.push(`Reddit crawl error: ${e}`);
   }
 
@@ -893,7 +894,7 @@ export async function quickCrawl(): Promise<{
 
       try {
         item.embedding = await generateEmbedding(item.content_text);
-      } catch (e) {
+      } catch {
         console.warn('Embedding generation failed for X item');
       }
 
@@ -916,7 +917,7 @@ export async function quickCrawl(): Promise<{
 
       await new Promise(resolve => setTimeout(resolve, 200));
     }
-  } catch (e) {
+  } catch {
     errors.push(`X crawl error: ${e}`);
   }
 

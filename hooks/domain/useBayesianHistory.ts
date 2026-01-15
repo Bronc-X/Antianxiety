@@ -12,7 +12,7 @@ import { getBayesianHistory, type BayesianHistoryRange } from '@/app/actions/bay
 export interface UseBayesianHistoryReturn {
   isLoading: boolean;
   error: string | null;
-  fetchHistory: (range?: BayesianHistoryRange, context?: string | null) => Promise<any>;
+  fetchHistory: (range?: BayesianHistoryRange, context?: string | null) => Promise<unknown | null>;
   clearError: () => void;
 }
 

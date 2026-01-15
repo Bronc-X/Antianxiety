@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { extractStateFromMessages } from '../conversation-state';
 import { selectVariationStrategy, generateVariationInstructions } from '../response-variation';
-import { optimizeContextInjection, buildOptimizedContextBlock } from '../context-optimizer';
+import { optimizeContextInjection } from '../context-optimizer';
 import { buildFullPersonaSystemPrompt } from '../persona-prompt';
 
 // Arbitrary generators

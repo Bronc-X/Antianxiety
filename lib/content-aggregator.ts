@@ -10,7 +10,7 @@
  */
 
 import type { PhaseGoal, GoalType } from '@/types/adaptive-interaction';
-import { fetchVideosByTags, type YouTubeVideo } from './services/youtube-rss';
+import { fetchVideosByTags } from './services/youtube-rss';
 
 // ============ Types ============
 

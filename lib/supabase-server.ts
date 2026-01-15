@@ -22,7 +22,7 @@ export async function createServerSupabaseClient() {
           // 在 Server Components 中静默跳过
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {
+          } catch {
             // 静默处理：Server Component 中无法写入 cookie
           }
         },
@@ -31,7 +31,7 @@ export async function createServerSupabaseClient() {
           // 在 Server Components 中静默跳过
           try {
             cookieStore.delete({ name, ...options });
-          } catch (error) {
+          } catch {
             // 静默处理：Server Component 中无法删除 cookie
           }
         },

@@ -16,8 +16,6 @@ import type {
   CalibrationQuestion,
   PhaseGoal,
   GoalType,
-  CalibrationRecord,
-  ProgressMetrics,
 } from '@/types/adaptive-interaction';
 
 // ============ Question Source Configuration ============
@@ -272,8 +270,7 @@ export function calculateEvolutionLevel(consecutiveDays: number): number {
  */
 export function generateDailyQuestions(
   phaseGoals: PhaseGoal[],
-  consecutiveDays: number = 0,
-  previousQuestions: CalibrationQuestion[] = []
+  consecutiveDays: number = 0
 ): CalibrationQuestion[] {
   const questions: CalibrationQuestion[] = [];
 

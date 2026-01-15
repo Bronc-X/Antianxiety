@@ -93,7 +93,7 @@ export async function POST(req: Request) {
         'Content-Disposition': `attachment; filename="assessment-report-${session_id.slice(0, 8)}.html"`,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Assessment export error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: '服务暂时不可用' } },
@@ -180,7 +180,7 @@ export async function GET(req: Request) {
         'Content-Type': 'text/html; charset=utf-8',
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Assessment export GET error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: '服务暂时不可用' } },

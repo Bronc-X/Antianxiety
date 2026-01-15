@@ -49,7 +49,7 @@ export interface UsePlansReturn {
     archive: (planId: string) => Promise<boolean>;
     remove: (planId: string) => Promise<boolean>;
     refresh: () => Promise<void>;
-    getStatsSummary: (days?: number) => Promise<any | null>;
+    getStatsSummary: (days?: number) => Promise<unknown | null>;
 }
 
 // ============================================
@@ -57,7 +57,6 @@ export interface UsePlansReturn {
 // ============================================
 
 const CACHE_KEY = 'plans-data';
-const STALE_TIME = 30 * 1000;
 const DEDUPE_INTERVAL = 5 * 1000;
 
 interface CacheEntry<T> {

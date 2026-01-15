@@ -46,7 +46,7 @@ export interface UseProfileReturn {
     uploadPhoto: (file: File) => Promise<string | null>;
     refresh: () => Promise<void>;
     remove: () => Promise<boolean>;
-    saveHealthProfile: (input: SaveHealthProfileInput) => Promise<ActionResult<any>>;
+    saveHealthProfile: (input: SaveHealthProfileInput) => Promise<ActionResult<unknown>>;
 }
 
 // ============================================
@@ -254,7 +254,7 @@ export function useProfile(): UseProfileReturn {
     }, []);
 
     // Save extended health profile
-    const saveHealthProfile = useCallback(async (input: SaveHealthProfileInput): Promise<ActionResult<any>> => {
+    const saveHealthProfile = useCallback(async (input: SaveHealthProfileInput): Promise<ActionResult<unknown>> => {
         setIsSaving(true);
         setError(null);
         try {

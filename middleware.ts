@@ -72,7 +72,7 @@ function checkRateLimit(
 }
 
 export function middleware(req: NextRequest) {
-  const { pathname, hostname } = req.nextUrl;
+  const { pathname } = req.nextUrl;
 
   // Language-based redirect for root domain
   // REMOVED: Single domain strategy. Language is handled by client-side i18n.

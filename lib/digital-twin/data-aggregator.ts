@@ -21,6 +21,35 @@ import type {
   DataCollectionStatus,
 } from '@/types/digital-twin';
 
+type SupabaseClient = Awaited<ReturnType<typeof createServerSupabaseClient>>;
+
+type DailyCalibrationRow = {
+  date: string;
+  sleep_hours?: number | null;
+  sleep_duration?: number | null;
+  sleep_quality?: number | null;
+  mood_score?: number | null;
+  mood?: number | null;
+  stress_level?: number | null;
+  energy_level?: number | null;
+};
+
+type InquirySessionRow = {
+  created_at: string;
+  topic?: string | null;
+  question_type?: string | null;
+  user_response?: string | null;
+  extracted_data?: Record<string, unknown> | null;
+};
+
+type ChatMessageRow = {
+  created_at: string;
+  emotion_label?: string | null;
+  sentiment?: string | null;
+  topic?: string | null;
+  category?: string | null;
+};
+
 // ============================================
 // 常量
 // ============================================
@@ -154,7 +183,7 @@ export async function aggregateUserData(userId: string): Promise<AggregatedUserD
 /**
  * 获取问卷基线数据
  */
-async function fetchBaselineData(supabase: any, userId: string): Promise<BaselineData | null> {
+async function fetchBaselineData(supabase: SupabaseClient, userId: string): Promise<BaselineData | null> {
   // 从 profiles 表获取推断的量表分数
   const { data: profile } = await supabase
     .from('profiles')
@@ -201,7 +230,7 @@ async function fetchBaselineData(supabase: any, userId: string): Promise<Baselin
  * 获取每日校准数据
  */
 async function fetchCalibrationData(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   days: number
 ): Promise<CalibrationData[]> {
@@ -219,7 +248,7 @@ async function fetchCalibrationData(
     return [];
   }
 
-  return calibrations.map((c: any) => ({
+  return (calibrations as DailyCalibrationRow[]).map((c) => ({
     date: c.date,
     sleepHours: c.sleep_hours ?? c.sleep_duration ?? 0,
     sleepQuality: c.sleep_quality ?? 0,
@@ -232,7 +261,7 @@ async function fetchCalibrationData(
 /**
  * 获取主动问询洞察
  */
-async function fetchInquiryInsights(supabase: any, userId: string): Promise<InquiryInsight[]> {
+async function fetchInquiryInsights(supabase: SupabaseClient, userId: string): Promise<InquiryInsight[]> {
   const { data: sessions } = await supabase
     .from('active_inquiry_sessions')
     .select('*')
@@ -244,7 +273,7 @@ async function fetchInquiryInsights(supabase: any, userId: string): Promise<Inqu
     return [];
   }
 
-  return sessions.map((s: any) => ({
+  return (sessions as InquirySessionRow[]).map((s) => ({
     date: s.created_at,
     topic: s.topic || s.question_type || 'general',
     userResponse: s.user_response || '',
@@ -256,7 +285,7 @@ async function fetchInquiryInsights(supabase: any, userId: string): Promise<Inqu
  * 获取对话摘要
  */
 async function fetchConversationSummary(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   days: number
 ): Promise<ConversationSummary> {
@@ -279,9 +308,9 @@ async function fetchConversationSummary(
 
   if (messages && messages.length > 0) {
     // 分析最近消息的情绪标签（如果有）
-    const recentEmotions = messages
+    const recentEmotions = (messages as ChatMessageRow[])
       .slice(0, 10)
-      .map((m: any) => m.emotion_label || m.sentiment)
+      .map((m) => m.emotion_label || m.sentiment)
       .filter(Boolean);
 
     if (recentEmotions.length > 0) {
@@ -304,7 +333,7 @@ async function fetchConversationSummary(
   const frequentTopics: string[] = [];
   if (messages && messages.length > 0) {
     const topicCounts: Record<string, number> = {};
-    messages.forEach((m: any) => {
+    (messages as ChatMessageRow[]).forEach((m) => {
       const topic = m.topic || m.category;
       if (topic) {
         topicCounts[topic] = (topicCounts[topic] || 0) + 1;
@@ -330,7 +359,7 @@ async function fetchConversationSummary(
 /**
  * 获取用户画像
  */
-async function fetchUserProfile(supabase: any, userId: string): Promise<UserProfile> {
+async function fetchUserProfile(supabase: SupabaseClient, userId: string): Promise<UserProfile> {
   const { data: profile } = await supabase
     .from('profiles')
     .select('age, gender, primary_concern, created_at, medical_history_consent')

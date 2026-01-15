@@ -39,7 +39,7 @@ export async function hybridSearch(
   queryEmbedding: number[],
   matchThreshold = 0.5,
   limit = 5
-): Promise<any[]> {
+): Promise<unknown[]> {
   if (!queryEmbedding || queryEmbedding.length === 0) {
     console.warn('⚠️ Empty embedding, falling back to recent memories');
     return getRecentMemories(limit);
@@ -67,7 +67,7 @@ export async function hybridSearch(
 /**
  * Fallback: get recent memories without vector search
  */
-async function getRecentMemories(limit: number): Promise<any[]> {
+async function getRecentMemories(limit: number): Promise<unknown[]> {
   const { data, error } = await supabaseAdmin
     .from('user_memories')
     .select('*')
@@ -124,7 +124,7 @@ export async function searchMemories(
   userId: string,
   query: string,
   limit = 5
-): Promise<any[]> {
+): Promise<unknown[]> {
   const embedding = await generateEmbedding(query);
   
   if (embedding.length === 0) {

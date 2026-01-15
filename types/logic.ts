@@ -21,7 +21,7 @@ export interface EnrichedDailyLog {
   stress_level?: number | null;
   hrv?: number | null;
   exercise_duration_minutes?: number | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface UserStateAnalysis {

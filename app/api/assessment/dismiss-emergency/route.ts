@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Dismiss emergency error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: '服务暂时不可用' } },

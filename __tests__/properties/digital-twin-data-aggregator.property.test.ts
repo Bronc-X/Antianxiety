@@ -9,7 +9,6 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import type {
-  AggregatedUserData,
   BaselineData,
   CalibrationData,
 } from '@/types/digital-twin';
@@ -74,30 +73,6 @@ const calibrationDataArb: fc.Arbitrary<CalibrationData> = fc.record({
   moodScore: fc.integer({ min: 0, max: 10 }),
   stressLevel: fc.integer({ min: 0, max: 10 }),
   energyLevel: fc.integer({ min: 0, max: 10 }),
-});
-
-/** 生成有效的聚合用户数据 */
-const aggregatedUserDataArb = (
-  hasBaseline: boolean,
-  calibrationCount: number
-): fc.Arbitrary<AggregatedUserData> => fc.record({
-  userId: fc.uuid(),
-  baseline: hasBaseline ? baselineDataArb : fc.constant(null),
-  calibrations: fc.array(calibrationDataArb, { minLength: calibrationCount, maxLength: calibrationCount }),
-  inquiryInsights: fc.constant([]),
-  conversationSummary: fc.constant({
-    totalMessages: 0,
-    emotionalTrend: 'stable' as const,
-    frequentTopics: [],
-    lastInteraction: new Date().toISOString(),
-  }),
-  profile: fc.record({
-    age: fc.option(fc.integer({ min: 18, max: 100 }), { nil: undefined }),
-    gender: fc.option(fc.constantFrom('male', 'female', 'other'), { nil: undefined }),
-    primaryConcern: fc.option(fc.string(), { nil: undefined }),
-    registrationDate: fc.date().map(d => d.toISOString()),
-    medicalHistoryConsent: fc.boolean(),
-  }),
 });
 
 // ============================================

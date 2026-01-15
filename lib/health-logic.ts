@@ -38,7 +38,6 @@ export function determineUserMode(
     : 7;
   
   const stress = Number(latestLog.stress_level) || 5;
-  const hrv = Number(latestLog.hrv) || 50;
 
   // 逻辑 A: 恢复模式 (强行接管)
   if (sleepHours < 6 || stress > 7) {
@@ -86,7 +85,7 @@ export function getRecommendedTask(
   mode: UserMode, 
   userConcern: PrimaryConcern,
   metabolicProfile?: MetabolicProfile | null,
-  latestLog?: any | null  // 最新的每日日志数据
+  latestLog?: EnrichedDailyLog | null  // 最新的每日日志数据
 ): RecommendedTask {
   
   // === CRITICAL: 无日志数据时，返回基线任务 ===

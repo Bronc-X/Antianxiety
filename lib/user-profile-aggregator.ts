@@ -8,19 +8,6 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-// Types
-interface UserProfile {
-    gender?: string;
-    birth_year?: number;
-    height?: number;
-    weight?: number;
-    phase_goals?: Array<{ goal_text: string; category: string }>;
-    metabolic_concerns?: string[];
-    sleep_hours?: number;
-    exercise_frequency?: string;
-    stress_level?: string;
-}
-
 interface WellnessLog {
     mood_score: number;
     energy_level: number;
@@ -198,7 +185,7 @@ export async function aggregateUserProfile(userId: string): Promise<{ success: b
                 .order('priority', { ascending: true })
                 .limit(10);
             phaseGoals = data;
-        } catch (e) {
+        } catch {
             console.log('phase_goals table not available, skipping');
         }
 

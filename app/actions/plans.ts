@@ -83,16 +83,56 @@ export interface PlanStatsData {
         title: string;
         plan_type?: string | null;
     }>;
-    completions: any[];
+    completions: PlanCompletionRow[];
     summary: PlanStatsSummary;
 }
 
-function parsePlanItems(plan: any): PlanItem[] {
+type PlanItemRaw = {
+    id?: string | number | null;
+    text?: string | null;
+    title?: string | null;
+    completed?: boolean | null;
+    status?: string | null;
+};
+
+type PlanContent = {
+    items?: Array<PlanItemRaw | string>;
+    actions?: Array<PlanItemRaw | string>;
+    [key: string]: unknown;
+};
+
+type PlanRow = {
+    id: string;
+    user_id: string;
+    name?: string | null;
+    title?: string | null;
+    description?: string | null;
+    category?: string | null;
+    status?: string | null;
+    progress?: number | null;
+    content?: string | PlanContent | null;
+    target_date?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    difficulty?: 'easy' | 'medium' | 'hard' | null;
+    plan_type?: string | null;
+    expected_duration_days?: number | null;
+};
+
+type PlanCompletionRow = {
+    plan_id?: string | null;
+    completed_items?: unknown;
+    status?: string | null;
+    completion_date?: string | null;
+    feeling_score?: number | null;
+};
+
+function parsePlanItems(plan: PlanRow): PlanItem[] {
     let items: PlanItem[] = [];
     try {
         const content = typeof plan.content === 'string'
-            ? JSON.parse(plan.content)
-            : plan.content || {};
+            ? (JSON.parse(plan.content) as PlanContent)
+            : (plan.content || {});
 
         const rawItems = Array.isArray(content.items)
             ? content.items
@@ -100,26 +140,43 @@ function parsePlanItems(plan: any): PlanItem[] {
                 ? content.actions
                 : [];
 
-        items = rawItems.map((item: any, index: number) => ({
-            id: item.id?.toString() || `${plan.id}-${index}`,
-            text: item.text || item.title || String(item),
-            completed: item.completed === true || item.status === 'completed',
-        }));
+        items = rawItems.map((item, index) => {
+            if (typeof item === 'string') {
+                return {
+                    id: `${plan.id}-${index}`,
+                    text: item,
+                    completed: false,
+                };
+            }
+            const resolved = item as PlanItemRaw;
+            return {
+                id: resolved.id?.toString() || `${plan.id}-${index}`,
+                text: resolved.text || resolved.title || '',
+                completed: resolved.completed === true || resolved.status === 'completed',
+            };
+        });
     } catch (e) {
         console.error('Failed to parse plan content:', e);
     }
     return items;
 }
 
-function normalizeCompletedItems(raw: any): PlanCompletionItem[] {
+function normalizeCompletedItems(raw: unknown): PlanCompletionItem[] {
     if (!raw) return [];
     if (Array.isArray(raw)) {
         return raw
             .filter(Boolean)
-            .map((item: any) => ({
-                id: item?.id?.toString() || '',
-                completed: item?.completed === true || item?.completed === 'true',
-            }))
+            .map((item) => {
+                if (!item || typeof item !== 'object') {
+                    return null;
+                }
+                const record = item as { id?: string | number | null; completed?: boolean | string | null };
+                return {
+                    id: record.id?.toString() || '',
+                    completed: record.completed === true || record.completed === 'true',
+                };
+            })
+            .filter((item): item is PlanCompletionItem => Boolean(item?.id))
             .filter(item => item.id);
     }
     if (typeof raw === 'string') {
@@ -158,7 +215,7 @@ function applyCompletionItems(
     });
 }
 
-function mapPlanRow(plan: any): PlanData {
+function mapPlanRow(plan: PlanRow): PlanData {
     const items = parsePlanItems(plan);
 
     return {
@@ -222,8 +279,9 @@ export async function getPlans(): Promise<ActionResult<PlanData[]>> {
             .order('completion_date', { ascending: false });
 
         const completionMap = new Map<string, PlanCompletionItem[]>();
-        (completions || []).forEach((row: any) => {
-            if (completionMap.has(row.plan_id)) return;
+        const completionRows = (completions || []) as PlanCompletionRow[];
+        completionRows.forEach((row) => {
+            if (!row.plan_id || completionMap.has(row.plan_id)) return;
             const normalized = normalizeCompletedItems(row.completed_items);
             if (normalized.length > 0) {
                 completionMap.set(row.plan_id, normalized);
@@ -474,15 +532,36 @@ export async function completePlan(
 
         try {
             const content = typeof plan.content === 'string'
-                ? JSON.parse(plan.content)
-                : plan.content || {};
+                ? (JSON.parse(plan.content) as PlanContent)
+                : (plan.content || {});
 
-            if (!content.items) {
-                content.items = content.actions || [];
-            }
+            const baseItems = Array.isArray(content.items)
+                ? content.items
+                : Array.isArray(content.actions)
+                    ? content.actions
+                    : [];
+
+            const normalizedItems: PlanItemRaw[] = baseItems.map((item, index) => {
+                if (typeof item === 'string') {
+                    return {
+                        id: `${input.planId}-${index}`,
+                        text: item,
+                        completed: false,
+                        status: 'pending',
+                    };
+                }
+                const resolved = item as PlanItemRaw;
+                return {
+                    ...resolved,
+                    id: resolved.id?.toString() || `${input.planId}-${index}`,
+                    text: resolved.text || resolved.title || '',
+                    completed: resolved.completed === true || resolved.status === 'completed',
+                    status: resolved.status || 'pending',
+                };
+            });
 
             if (Array.isArray(input.completedItems)) {
-                content.items = content.items.map((item: any, index: number) => {
+                content.items = normalizedItems.map((item, index) => {
                     const itemId = item.id?.toString() || `${input.planId}-${index}`;
                     const matched = input.completedItems?.find(ci => {
                         const ciId = ci.id?.toString();
@@ -504,9 +583,11 @@ export async function completePlan(
                         status: isCompleted ? 'completed' : 'pending',
                     };
                 });
+            } else {
+                content.items = normalizedItems;
             }
 
-            const completedCount = content.items.filter((i: any) => i.completed === true).length;
+            const completedCount = content.items.filter((i) => i.completed === true).length;
             const progress = content.items.length > 0
                 ? Math.round((completedCount / content.items.length) * 100)
                 : 0;

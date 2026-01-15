@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useNetwork } from '@/hooks/useNetwork';
+import { useState, useCallback } from 'react';
 import {
     saveClinicalAssessment,
     type ClinicalAssessmentResult
@@ -77,7 +75,6 @@ export interface UseClinicalOnboardingReturn {
 
     // States
     isLoading: boolean;
-    isSaving: boolean;
 
     // Actions
     start: () => void;
@@ -98,11 +95,10 @@ export interface UseClinicalOnboardingReturn {
 
 export function useClinicalOnboarding(
     userId: string,
-    onComplete?: (result: any) => void,
+    onComplete?: (result: ClinicalAssessmentResult) => void,
     onPause?: (progress: OnboardingProgress) => void
 ): UseClinicalOnboardingReturn {
     // Dependencies
-    const router = useRouter();
     const { language } = useI18n();
 
     // State
@@ -110,10 +106,8 @@ export function useClinicalOnboarding(
     const [currentPage, setCurrentPage] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [isLoading, setIsLoading] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const [safetyMessage, setSafetyMessage] = useState('');
     const [result, setResult] = useState<ClinicalAssessmentResult | null>(null);
-    const [pendingSafetyQuestion, setPendingSafetyQuestion] = useState<string | null>(null);
 
     // Derived State
     const pageStart = currentPage * QUESTIONS_PER_PAGE;
@@ -137,13 +131,11 @@ export function useClinicalOnboarding(
         if (checkSafetyTrigger(questionId, value)) {
             await logSafetyEvent(userId, questionId, value);
             setSafetyMessage(getSafetyMessage(language));
-            setPendingSafetyQuestion(questionId);
             setStep('safety');
         }
     }, [answers, userId, language]);
 
     const continueAfterSafety = useCallback(() => {
-        setPendingSafetyQuestion(null);
         setStep('questions');
     }, []);
 
@@ -291,7 +283,6 @@ export function useClinicalOnboarding(
         result,
         isPageComplete,
         isLoading,
-        isSaving,
         start,
         handleAnswer,
         nextPage,

@@ -331,6 +331,7 @@ function generateFallbackAlternatives(
   actionItem: ActionItem,
   replacementReason: string
 ): AlternativeAction[] {
+  void replacementReason;
   // Generate simple fallback alternatives based on common patterns
   const fallbacks: AlternativeAction[] = [
     {
@@ -405,7 +406,7 @@ async function recordPlanEvolution(
   const supabase = getSupabaseClient();
   
   // Get current version
-  const { data: history, error: historyError } = await supabase
+  const { data: history } = await supabase
     .from('plan_evolution_history')
     .select('version')
     .eq('plan_id', planId)

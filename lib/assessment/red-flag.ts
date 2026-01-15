@@ -105,7 +105,7 @@ export async function logRedFlagEvent(
   symptomData: {
     chief_complaint: string;
     symptoms: string[];
-    history: any[];
+    history: unknown[];
   }
 ): Promise<void> {
   try {

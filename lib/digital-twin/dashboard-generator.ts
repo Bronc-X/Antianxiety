@@ -14,7 +14,6 @@ import type {
   DashboardData,
   ParticipantInfo,
   PredictionTableMetric,
-  TreatmentMilestone,
   BaselineAssessment,
   VitalMetric,
   ChartData,

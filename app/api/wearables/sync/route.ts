@@ -16,6 +16,16 @@ interface SyncRequest {
     daysBack?: number;
 }
 
+type HealthDataRow = {
+    data_type: string;
+    value?: number | string | null;
+    score?: number | string | null;
+    quality?: number | string | null;
+    metadata?: unknown;
+    recorded_at: string;
+    source?: string | null;
+};
+
 export async function POST(request: NextRequest) {
     const startTime = Date.now();
 
@@ -279,9 +289,9 @@ export async function GET(_request: NextRequest) {
             .order('recorded_at', { ascending: false })
             .limit(100);
 
-        const latestByType: Record<string, any> = {};
+        const latestByType: Record<string, HealthDataRow> = {};
         const latestBySource: Record<string, string> = {};
-        healthData?.forEach((item) => {
+        healthData?.forEach((item: HealthDataRow) => {
             if (!latestByType[item.data_type]) {
                 latestByType[item.data_type] = item;
             }

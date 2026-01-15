@@ -6,6 +6,12 @@
 import { createServerSupabaseClient } from './supabase-server';
 import { generateEmbedding } from './aiMemory';
 
+type DailyLogRow = {
+  sleep_duration_minutes?: number | null;
+  stress_level?: number | null;
+  exercise_duration_minutes?: number | null;
+};
+
 /**
  * 生成用户画像文本
  * 汇总用户的所有关键信息，用于生成向量
@@ -118,14 +124,14 @@ export async function generateUserPersonaText(userId: string): Promise<string> {
 
     // 每日状态趋势（最近 14 天）
     if (dailyLogs && dailyLogs.length > 0) {
-      const sleepHours = dailyLogs
-        .map((row: any) => (typeof row.sleep_duration_minutes === 'number' ? row.sleep_duration_minutes / 60 : null))
+      const sleepHours = (dailyLogs as DailyLogRow[])
+        .map((row) => (typeof row.sleep_duration_minutes === 'number' ? row.sleep_duration_minutes / 60 : null))
         .filter((v: number | null) => v !== null) as number[];
-      const stressLevels = dailyLogs
-        .map((row: any) => (typeof row.stress_level === 'number' ? row.stress_level : null))
+      const stressLevels = (dailyLogs as DailyLogRow[])
+        .map((row) => (typeof row.stress_level === 'number' ? row.stress_level : null))
         .filter((v: number | null) => v !== null) as number[];
-      const exerciseMinutes = dailyLogs
-        .map((row: any) =>
+      const exerciseMinutes = (dailyLogs as DailyLogRow[])
+        .map((row) =>
           typeof row.exercise_duration_minutes === 'number' ? row.exercise_duration_minutes : null
         )
         .filter((v: number | null) => v !== null) as number[];

@@ -12,8 +12,8 @@ import { callChatPayload, getChatPapers } from '@/app/actions/chat-ai';
 export interface UseChatAIReturn {
   isLoading: boolean;
   error: string | null;
-  sendPayload: (payload: Record<string, unknown>) => Promise<any>;
-  fetchPapers: (query: string) => Promise<any>;
+  sendPayload: (payload: Record<string, unknown>) => Promise<unknown | null>;
+  fetchPapers: (query: string) => Promise<unknown | null>;
   clearError: () => void;
 }
 

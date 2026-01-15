@@ -39,6 +39,23 @@ interface Paper {
     category: string;
 }
 
+type SemanticScholarPaper = {
+    paperId?: string;
+    title?: string;
+    abstract?: string;
+    url?: string;
+    year?: number;
+};
+
+type ScaleScoreSummary = {
+    GAD7?: { score?: number };
+    ISI?: { score?: number };
+};
+
+type MetabolicProfile = {
+    tags?: string[];
+};
+
 /**
  * Calculate match score based on keyword hits
  */
@@ -99,11 +116,12 @@ async function fetchSemanticScholar(query: string, limit: number = 5): Promise<P
 
         const data = await response.json();
 
-        return (data.data || []).map((paper: any) => ({
-            id: paper.paperId,
+        const papers = (data.data || []) as SemanticScholarPaper[];
+        return papers.map((paper) => ({
+            id: paper.paperId || '',
             title: paper.title || 'Untitled',
             abstract: paper.abstract || '',
-            url: paper.url || `https://www.semanticscholar.org/paper/${paper.paperId}`,
+            url: paper.url || `https://www.semanticscholar.org/paper/${paper.paperId || ''}`,
             year: paper.year || new Date().getFullYear(),
             source: 'semantic_scholar' as const,
             matchScore: 0, // Will be calculated later
@@ -195,7 +213,7 @@ export async function GET(request: NextRequest) {
 
             if (profile) {
                 // Extract tags from scale scores
-                const scores = profile.inferred_scale_scores as any;
+                const scores = profile.inferred_scale_scores as ScaleScoreSummary | null;
 
                 if (scores?.GAD7?.score >= 10) {
                     userTags.push('高皮质醇风险');
@@ -208,7 +226,7 @@ export async function GET(request: NextRequest) {
                 }
 
                 // Add tags from metabolic profile if available
-                const metabolic = profile.metabolic_profile as any;
+                const metabolic = profile.metabolic_profile as MetabolicProfile | null;
                 if (metabolic?.tags) {
                     userTags.push(...metabolic.tags);
                 }

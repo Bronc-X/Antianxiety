@@ -46,7 +46,6 @@ export interface UseGoalsReturn {
 // ============================================
 
 const CACHE_KEY = 'goals-data';
-const STALE_TIME = 30 * 1000;
 const DEDUPE_INTERVAL = 5 * 1000;
 
 interface CacheEntry<T> {

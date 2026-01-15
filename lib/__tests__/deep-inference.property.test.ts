@@ -73,15 +73,18 @@ const SCIENTIFIC_CITATIONS: Citation[] = [
   },
 ];
 
-function generateMockDeepInference(analysisResult: any): DeepInferenceResponse {
+function generateMockDeepInference(analysisResult: unknown): DeepInferenceResponse {
+  const resultRecord = (analysisResult && typeof analysisResult === 'object')
+    ? (analysisResult as Record<string, unknown>)
+    : {};
   return {
     sections: {
       dataAnalysis: {
         title: '数据分析',
         content: '基于您提供的健康数据进行分析',
         metrics: [
-          { name: '代谢率', value: analysisResult?.metabolic_rate_estimate || '中等', trend: '稳定' },
-          { name: '睡眠质量', value: analysisResult?.sleep_quality || '一般', trend: '数据积累中' },
+          { name: '代谢率', value: (resultRecord.metabolic_rate_estimate as string) || '中等', trend: '稳定' },
+          { name: '睡眠质量', value: (resultRecord.sleep_quality as string) || '一般', trend: '数据积累中' },
         ],
       },
       inferenceLogic: {

@@ -40,6 +40,8 @@ import {
 } from "recharts";
 import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
+import { PassiveNudge } from "@/components/bayesian/PassiveNudge";
+import { useBayesianNudge } from "@/hooks/useBayesianNudge";
 
 // MARK: - Types & Constants
 
@@ -599,6 +601,7 @@ const WorkoutsView = () => {
 export const ViewDashboard = ({ onNavigate }: { onNavigate?: (view: string) => void }) => {
     void onNavigate;
     const [activeTab, setActiveTab] = useState<Tab>(Tab.Today);
+    const { nudgeState, dismissNudge } = useBayesianNudge();
 
     const tabs = [
         { id: Tab.Today, label: "Today", icon: FileText },
@@ -608,6 +611,13 @@ export const ViewDashboard = ({ onNavigate }: { onNavigate?: (view: string) => v
 
     return (
         <div className="bg-[#0B0B0D] min-h-screen text-white font-sans selection:bg-emerald-500/30">
+            {nudgeState?.isVisible && (
+                <PassiveNudge
+                    actionType={nudgeState.actionType}
+                    correction={nudgeState.correction}
+                    onComplete={dismissNudge}
+                />
+            )}
             <AnimatePresence mode="wait">
                 <motion.div
                     key={activeTab}

@@ -33,7 +33,7 @@ async function testSemanticScholar(query: string): Promise<TestResult> {
     
     const data = await response.json();
     return { api: 'Semantic Scholar', query, success: true, count: data?.data?.length || 0, time };
-  } catch (e: any) {
+  } catch {
     return { api: 'Semantic Scholar', query, success: false, status: 0, time: Date.now() - start };
   }
 }
@@ -52,7 +52,7 @@ async function testPubMed(query: string): Promise<TestResult> {
     
     const data = await response.json();
     return { api: 'PubMed', query, success: true, count: data?.esearchresult?.idlist?.length || 0, time };
-  } catch (e: any) {
+  } catch {
     return { api: 'PubMed', query, success: false, status: 0, time: Date.now() - start };
   }
 }

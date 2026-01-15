@@ -258,11 +258,12 @@ export async function POST(req: Request) {
     let result: Awaited<ReturnType<typeof generateText>>;
     try {
       result = await callLlmWithFallback(systemPrompt);
-    } catch (llmError: any) {
+    } catch (llmError: unknown) {
+      const llmInfo = llmError as { message?: string; statusCode?: number; responseBody?: unknown };
       console.error('AI 调用失败，使用兜底问题。', {
-        message: llmError?.message,
-        statusCode: llmError?.statusCode,
-        responseBody: llmError?.responseBody,
+        message: llmInfo.message,
+        statusCode: llmInfo.statusCode,
+        responseBody: llmInfo.responseBody,
       });
       return NextResponse.json(buildFallbackQuestion(session_id, questionCount, language, 'timing'));
     }
@@ -413,16 +414,17 @@ export async function POST(req: Request) {
     };
 
     return NextResponse.json(response);
-  } catch (error: any) {
-    console.error('Assessment next error:', error);
+  } catch (error: unknown) {
+    const errorInfo = error as { message?: string; statusCode?: number; responseBody?: unknown; cause?: unknown };
+    console.error('Assessment next error:', errorInfo);
     console.error('Error details:', {
-      message: error?.message,
-      statusCode: error?.statusCode,
-      responseBody: error?.responseBody,
-      cause: error?.cause,
+      message: errorInfo.message,
+      statusCode: errorInfo.statusCode,
+      responseBody: errorInfo.responseBody,
+      cause: errorInfo.cause,
     });
 
-    if (error?.message?.includes('relation') && error?.message?.includes('does not exist')) {
+    if (errorInfo.message?.includes('relation') && errorInfo.message?.includes('does not exist')) {
       return NextResponse.json(
         {
           success: false,
@@ -435,20 +437,20 @@ export async function POST(req: Request) {
       );
     }
 
-    if (error?.statusCode === 403) {
+    if (errorInfo.statusCode === 403) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: 'AI_FORBIDDEN',
-            message: `AI API 访问被拒绝(403): ${error?.responseBody || '请检查 API 密钥和中转站配置'}`,
+            message: `AI API 访问被拒绝(403): ${errorInfo.responseBody || '请检查 API 密钥和中转站配置'}`,
           },
         },
         { status: 500 },
       );
     }
 
-    if (error?.statusCode === 401) {
+    if (errorInfo.statusCode === 401) {
       return NextResponse.json(
         { success: false, error: { code: 'AI_UNAUTHORIZED', message: 'AI API 密钥无效 (401)' } },
         { status: 500 },
@@ -456,7 +458,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: `服务暂时不可用: ${error?.message || '未知错误'}` } },
+      { success: false, error: { code: 'INTERNAL_ERROR', message: `服务暂时不可用: ${errorInfo.message || '未知错误'}` } },
       { status: 500 },
     );
   }
@@ -561,8 +563,14 @@ function getNextBaselineQuestion(sessionId: string, history: AnswerRecord[], lan
   return null;
 }
 
+type PromptSession = {
+  demographics?: unknown;
+  chief_complaint?: string | null;
+  symptoms?: string[] | null;
+};
+
 function buildSystemPrompt(
-  session: any,
+  session: PromptSession,
   history: AnswerRecord[],
   language: string,
   shouldTerminate: boolean,

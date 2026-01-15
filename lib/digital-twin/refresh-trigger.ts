@@ -82,6 +82,7 @@ export async function triggerDigitalTwinAnalysis(
  */
 export async function onCalibrationComplete(userId: string): Promise<void> {
   try {
+      void userId;
       console.log('🔄 每日校准完成，请求数字孪生分析...');
       
       // 异步触发分析，不阻塞校准流程

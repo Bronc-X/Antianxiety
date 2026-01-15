@@ -170,7 +170,7 @@ async function main() {
 
   // 提取机制（Mechanisms）
   const mechanisms = database.core_pathology_mechanisms || {};
-  Object.entries(mechanisms).forEach(([key, mech]) => {
+  Object.entries(mechanisms).forEach(([, mech]) => {
     const symptoms = mech.user_symptoms?.zh || [];
     entries.push({
       content: `${mech.name_zh}\n\n机制：${mech.mechanism.zh}\n\n相关症状：${symptoms.join('、')}`,
@@ -189,7 +189,7 @@ async function main() {
 
   // 提取干预策略（Interventions）
   const interventions = database.intervention_strategies || {};
-  Object.entries(interventions).forEach(([key, intervention]) => {
+  Object.entries(interventions).forEach(([, intervention]) => {
     const symptoms = intervention.user_symptoms?.zh || [];
     entries.push({
       content: `${intervention.name_zh}\n\n机制：${intervention.mechanism.zh}\n\n方案：${intervention.protocol.zh}`,
@@ -208,7 +208,7 @@ async function main() {
 
   // 提取研究亮点（Research）
   const research = database.key_research || {};
-  Object.entries(research).forEach(([key, study]) => {
+  Object.entries(research).forEach(([, study]) => {
     const findings = study.key_findings_zh || [];
     entries.push({
       content: `${study.title}\n\n作者：${study.authors}\n\n期刊：${study.journal} (${study.year})\n\n关键发现：${findings.join('；')}`,

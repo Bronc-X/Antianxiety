@@ -534,7 +534,7 @@ export function getGradientGlass(gradient: GlassGradient): string {
 // Default Export
 // ============================================
 
-export default {
+const liquidGlass = {
   // Classes
   glassBase,
   glassCard,
@@ -581,3 +581,4 @@ export default {
   pageFadeVariants,
 };
 
+export default liquidGlass;

@@ -15,7 +15,6 @@ import {
   generateVariationInstructions,
   validateResponseVariation,
 } from '../response-variation';
-import { createInitialState, type ConversationState } from '../conversation-state';
 
 // Arbitrary generators
 const formatArb = fc.constantFrom('structured', 'conversational', 'concise', 'detailed', 'plan');
@@ -66,7 +65,6 @@ describe('ResponseVariationEngine Property Tests', () => {
         fc.array(formatArb, { minLength: 1, maxLength: 5 }),
         (turnCount, usedFormats) => {
           const format = selectFormatStyle(turnCount, usedFormats);
-          const lastFormat = usedFormats[usedFormats.length - 1];
           
           // Format should be different from last used (when possible)
           if (usedFormats.length > 0 && turnCount > 1) {

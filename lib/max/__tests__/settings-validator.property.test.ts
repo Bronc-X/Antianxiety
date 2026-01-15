@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { validateAISettings, isValidMode, getDefaultSettings } from '../settings-validator';
-import { HONESTY_RANGE, HUMOR_RANGE, VALID_MODES } from '@/types/max';
+import { HONESTY_RANGE, HUMOR_RANGE, VALID_MODES, type MaxMode } from '@/types/max';
 
 // Configure fast-check for 100 iterations
 fc.configureGlobal({ numRuns: 100 });
@@ -125,9 +125,9 @@ describe('Settings Validator Property Tests', () => {
     it('should accept only valid mode strings', () => {
       fc.assert(
         fc.property(fc.string(), (modeInput) => {
-          const result = validateAISettings({ mode: modeInput as any });
+          const result = validateAISettings({ mode: modeInput as unknown as MaxMode });
           
-          if (VALID_MODES.includes(modeInput as any)) {
+          if (VALID_MODES.includes(modeInput as MaxMode)) {
             // Valid mode should be accepted
             expect(result.sanitized.mode).toBe(modeInput);
             const modeErrors = result.errors.filter(e => e.includes('mode'));
@@ -146,7 +146,7 @@ describe('Settings Validator Property Tests', () => {
     it('should always return a valid mode in sanitized output', () => {
       fc.assert(
         fc.property(fc.anything(), (input) => {
-          const result = validateAISettings({ mode: input as any });
+          const result = validateAISettings({ mode: input as unknown as MaxMode });
           expect(VALID_MODES).toContain(result.sanitized.mode);
         })
       );
@@ -161,7 +161,7 @@ describe('Settings Validator Property Tests', () => {
       // Property test for invalid modes
       fc.assert(
         fc.property(
-          fc.string().filter(s => !VALID_MODES.includes(s as any)),
+          fc.string().filter(s => !VALID_MODES.includes(s as MaxMode)),
           (invalidMode) => {
             expect(isValidMode(invalidMode)).toBe(false);
           }

@@ -94,9 +94,12 @@ export async function generatePersonalizedStarters(userId: string): Promise<stri
         recentLogs: recentLogs || [],
         activePlan: activePlan ? {
             title: activePlan.title,
-            item_count: typeof activePlan.content === 'object'
-                ? ((activePlan.content as any)?.items?.length || 0)
-                : 0
+            item_count: (() => {
+                const content = activePlan.content;
+                if (!content || typeof content !== 'object') return 0;
+                const items = (content as { items?: unknown[] }).items;
+                return Array.isArray(items) ? items.length : 0;
+            })(),
         } : null,
         profile: profile || null,
         recentTopics: recentConvs?.map(c => c.title).filter(Boolean) || [],

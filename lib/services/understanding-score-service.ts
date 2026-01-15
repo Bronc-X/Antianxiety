@@ -236,6 +236,8 @@ export async function getScoreHistory(
   userId: string,
   days: number = 30
 ): Promise<ScoreHistoryEntry[]> {
+  void userId;
+  void days;
   // Note: This would require a separate history table or audit log
   // For now, return empty array as history tracking is not implemented
   return [];

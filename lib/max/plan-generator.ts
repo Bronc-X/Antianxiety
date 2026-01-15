@@ -130,8 +130,10 @@ export async function generatePlan(
   const systemPrompt = language === 'zh' ? SYSTEM_PROMPT_ZH : SYSTEM_PROMPT_EN;
   const userPrompt = buildUserPrompt(userDataSummary, language);
 
-  // 先尝试 DeepSeek，失败则尝试 Gemini
-  const modelsToTry: AIModel[] = ['deepseek', 'gemini'];
+  // 优先尝试传入模型，然后回退到默认顺序
+  const modelsToTry: AIModel[] = [model, 'deepseek', 'gemini'].filter(
+    (value, index, self) => self.indexOf(value) === index
+  );
   
   for (const currentModel of modelsToTry) {
     try {

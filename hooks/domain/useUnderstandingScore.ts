@@ -13,7 +13,7 @@ import type { ActionResult } from '@/types/architecture';
 export interface UseUnderstandingScoreReturn {
   isLoading: boolean;
   error: string | null;
-  fetchScore: (options?: UnderstandingScoreOptions) => Promise<ActionResult<any>>;
+  fetchScore: (options?: UnderstandingScoreOptions) => Promise<ActionResult<unknown>>;
   clearError: () => void;
 }
 
@@ -21,7 +21,7 @@ export function useUnderstandingScore(): UseUnderstandingScoreReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchScore = useCallback(async (options: UnderstandingScoreOptions = {}): Promise<ActionResult<any>> => {
+  const fetchScore = useCallback(async (options: UnderstandingScoreOptions = {}): Promise<ActionResult<unknown>> => {
     setIsLoading(true);
     setError(null);
     try {

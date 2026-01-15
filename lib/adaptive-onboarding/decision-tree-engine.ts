@@ -14,10 +14,7 @@
 import type {
   DecisionTreeQuestion,
   PhaseGoal,
-  GoalType,
-  Citation,
   MetabolicProfile,
-  OnboardingQuestion,
 } from '@/types/adaptive-interaction';
 
 // Constants

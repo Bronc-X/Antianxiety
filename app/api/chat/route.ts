@@ -346,13 +346,13 @@ function buildUserContext(
   // 基线方案（用于对话一致性：避免和已生成的微习惯建议打架）
   if (profile.ai_analysis_result || profile.ai_recommendation_plan) {
     parts.push(`\n[AI BASELINE - 既有分析/方案]`);
-    const analysis = profile.ai_analysis_result;
+    const analysis = profile.ai_analysis_result as { confidence_score?: number; risk_factors?: string[] } | null;
     const plan = profile.ai_recommendation_plan as { micro_habits?: Array<{ name?: string }> } | null;
     if (analysis && typeof analysis.confidence_score === 'number') {
       parts.push(`AI 分析置信度: ${analysis.confidence_score}%`);
     }
-    if (analysis && Array.isArray((analysis as any).risk_factors) && (analysis as any).risk_factors.length > 0) {
-      parts.push(`主要关注点: ${(analysis as any).risk_factors.slice(0, 6).join('、')}`);
+    if (analysis && Array.isArray(analysis.risk_factors) && analysis.risk_factors.length > 0) {
+      parts.push(`主要关注点: ${analysis.risk_factors.slice(0, 6).join('、')}`);
     }
     if (plan?.micro_habits && Array.isArray(plan.micro_habits) && plan.micro_habits.length > 0) {
       const habitNames = plan.micro_habits.map((h) => h?.name).filter(Boolean).slice(0, 6);

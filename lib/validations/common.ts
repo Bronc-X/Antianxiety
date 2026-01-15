@@ -62,8 +62,10 @@ export const dateSchema = z
   .refine((val) => !isNaN(Date.parse(val)), '请输入有效的日期');
 
 // Confirm password schema factory
-export const confirmPasswordSchema = (passwordField: string = 'password') =>
-  z.string().min(1, '请确认密码');
+export const confirmPasswordSchema = (passwordField: string = 'password') => {
+  void passwordField;
+  return z.string().min(1, '请确认密码');
+};
 
 // Login form schema
 export const loginFormSchema = z.object({

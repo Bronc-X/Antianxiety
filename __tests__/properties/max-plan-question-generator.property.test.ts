@@ -47,16 +47,6 @@ const missingDataStatusArb: fc.Arbitrary<DataStatus> = fc.record({
   hasHrvData: fc.boolean(),
 });
 
-/** Generate a data status with all data present */
-const completeDataStatusArb: fc.Arbitrary<DataStatus> = fc.record({
-  hasInquiryData: fc.constant(true),
-  hasCalibrationData: fc.constant(true),
-  hasHrvData: fc.constant(true),
-  inquirySummary: fc.string({ minLength: 1, maxLength: 50 }),
-  calibrationSummary: fc.string({ minLength: 1, maxLength: 50 }),
-  hrvSummary: fc.string({ minLength: 1, maxLength: 50 }),
-});
-
 /** Generate a language */
 const languageArb = fc.constantFrom('zh' as const, 'en' as const);
 
@@ -102,8 +92,7 @@ describe('Feature: max-plan-creation-dialog, Property 2: Data-Driven Question Ge
           hasCalibrationData: fc.boolean(),
           hasHrvData: fc.boolean(),
         }),
-        languageArb,
-        (dataStatus, language) => {
+        (dataStatus) => {
           const missingData = identifyMissingData(dataStatus);
           
           // Property: Missing inquiry data should trigger concern question
@@ -122,8 +111,7 @@ describe('Feature: max-plan-creation-dialog, Property 2: Data-Driven Question Ge
           hasCalibrationData: fc.constant(false),
           hasHrvData: fc.boolean(),
         }),
-        languageArb,
-        (dataStatus, language) => {
+        (dataStatus) => {
           const missingData = identifyMissingData(dataStatus);
           
           // Property: Missing calibration data should trigger sleep, stress, energy questions

@@ -11,8 +11,7 @@ import * as fc from 'fast-check';
 import { 
   filterPapersByCitation, 
   mockSummarize,
-  CONFIG,
-  Paper
+  CONFIG
 } from '../../lib/services/semantic-scholar';
 
 // 配置 fast-check 运行 100 次迭代

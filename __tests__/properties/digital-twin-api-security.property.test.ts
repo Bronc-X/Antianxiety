@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
-import type { DashboardData, AdaptivePlan } from '@/types/digital-twin';
+import type { DashboardData } from '@/types/digital-twin';
 import { filterSensitiveData } from '@/lib/digital-twin/dashboard-generator';
 
 // 配置 fast-check 运行 100 次迭代

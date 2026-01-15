@@ -86,8 +86,11 @@ export async function getInquiryContext(userId: string): Promise<InquiryContextS
             
           case 'stress_level':
             if (!insights.recentStressLevel) {
-              insights.recentStressLevel = inquiry.user_response as any;
-              
+              const response = typeof inquiry.user_response === 'string' ? inquiry.user_response : null;
+              if (response && ['low', 'medium', 'high'].includes(response)) {
+                insights.recentStressLevel = response as InquiryInsight['recentStressLevel'];
+              }
+
               if (insights.recentStressLevel === 'high') {
                 suggestedTopics.push('stress_management', 'cortisol_regulation', 'breathing_exercises');
               }
@@ -96,8 +99,11 @@ export async function getInquiryContext(userId: string): Promise<InquiryContextS
             
           case 'exercise_duration':
             if (!insights.recentExercise) {
-              insights.recentExercise = inquiry.user_response as any;
-              
+              const response = typeof inquiry.user_response === 'string' ? inquiry.user_response : null;
+              if (response && ['none', 'light', 'moderate', 'intense'].includes(response)) {
+                insights.recentExercise = response as InquiryInsight['recentExercise'];
+              }
+
               if (insights.recentExercise === 'none') {
                 suggestedTopics.push('exercise_benefits', 'zone2_cardio');
               }
@@ -106,8 +112,11 @@ export async function getInquiryContext(userId: string): Promise<InquiryContextS
             
           case 'mood':
             if (!insights.recentMood) {
-              insights.recentMood = inquiry.user_response as any;
-              
+              const response = typeof inquiry.user_response === 'string' ? inquiry.user_response : null;
+              if (response && ['bad', 'okay', 'great'].includes(response)) {
+                insights.recentMood = response as InquiryInsight['recentMood'];
+              }
+
               if (insights.recentMood === 'bad') {
                 suggestedTopics.push('mental_health', 'neurotransmitters');
               }

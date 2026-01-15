@@ -19,7 +19,6 @@ import {
   isValidActionItem,
   isValidScientificExplanation,
   ExecutionRecord,
-  UserUnderstandingScore,
   ScoreBreakdown,
 } from '@/types/adaptive-plan';
 

@@ -12,7 +12,7 @@ import { analyzeVoiceInput, type VoiceAnalysisInput } from '@/app/actions/voice-
 export interface UseVoiceAnalysisReturn {
   isProcessing: boolean;
   error: string | null;
-  analyze: (input: VoiceAnalysisInput) => Promise<any>;
+  analyze: (input: VoiceAnalysisInput) => Promise<unknown | null>;
   clearError: () => void;
 }
 

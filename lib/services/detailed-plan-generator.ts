@@ -304,6 +304,7 @@ function parseActionItemsFromResponse(
 }
 
 function generateFallbackActionItems(problemDescription: string): Partial<ActionItem>[] {
+  void problemDescription;
   return [
     {
       title: '晨间呼吸练习',

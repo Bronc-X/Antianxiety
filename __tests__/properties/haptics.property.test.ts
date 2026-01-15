@@ -6,7 +6,7 @@
  * **Validates: Requirements 5.1**
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -120,8 +120,6 @@ describe('Property 12: 触觉反馈一致性', () => {
   });
 
   describe('ImpactStyle Values', () => {
-    const impactStyles = ['Light', 'Medium', 'Heavy'];
-    
     it('should support all ImpactStyle values', () => {
       const hookPath = path.resolve(__dirname, '../../hooks/useHaptics.ts');
       const content = fs.readFileSync(hookPath, 'utf-8');
@@ -141,8 +139,6 @@ describe('Property 12: 触觉反馈一致性', () => {
   });
 
   describe('NotificationType Values', () => {
-    const notificationTypes = ['Success', 'Warning', 'Error'];
-    
     it('should support all NotificationType values', () => {
       const hookPath = path.resolve(__dirname, '../../hooks/useHaptics.ts');
       const content = fs.readFileSync(hookPath, 'utf-8');

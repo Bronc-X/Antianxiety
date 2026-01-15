@@ -40,6 +40,16 @@ export interface LocalMessage extends ChatMessage {
 
 export type ModelMode = 'fast' | 'think';
 
+type ChatMessageInput = {
+    role: 'user' | 'assistant';
+    content: string;
+    experimental_attachments?: Array<{
+        name?: string;
+        contentType?: string;
+        url?: string;
+    }>;
+};
+
 export interface UseMaxReturn {
     // Data
     messages: LocalMessage[];
@@ -179,7 +189,7 @@ export function useMax(): UseMaxReturn {
             setError('Failed to create conversation');
             return null;
         }
-    }, []);
+    }, [loadStarterQuestions]);
 
     // Switch to a conversation
     const switchConversation = useCallback(async (id: string) => {
@@ -348,12 +358,12 @@ export function useMax(): UseMaxReturn {
             // For now, let's keep the history simple text-only (since we don't store images yet)
             // and pass the images in the last message.
 
-            const historyForAi = [
+            const historyForAi: ChatMessageInput[] = [
                 ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
                 currentMessagePayload
             ];
 
-            const result = await generateChatResponse(historyForAi as any, language, modelMode);
+            const result = await generateChatResponse(historyForAi, language, modelMode);
 
             if (generationIdRef.current !== currentGenId) return false; // check cancel
 
@@ -364,7 +374,7 @@ export function useMax(): UseMaxReturn {
             } else {
                 assistantContent = result.data || '';
             }
-        } catch (err) {
+        } catch {
             if (generationIdRef.current !== currentGenId) return false; // check cancel
             assistantContent = language === 'en'
                 ? 'Network error. Please try again.'

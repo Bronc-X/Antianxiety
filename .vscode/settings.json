@@ -1,4 +1,8 @@
 {
     "cursor.general.disableHttp2": true,
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.exclusions": [
+        "**/node_modules/**",
+        "**/android/**"
+    ]
 }

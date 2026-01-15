@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/domain/useProfile";
+import { useProfileSync } from "@/hooks/useProfileSync";
 import MaxAvatar from "@/components/max/MaxAvatar";
 
 const pageVariants = {
@@ -42,6 +43,7 @@ const GOALS = [
 
 export const ViewProfileSetup = ({ onNavigate, onComplete }: ViewProfileSetupProps) => {
     const { profile, update, isSaving } = useProfile();
+    const { syncProfile } = useProfileSync();
 
     const [nickname, setNickname] = useState(profile?.nickname || "");
     const [age, setAge] = useState(profile?.age?.toString() || "");
@@ -55,13 +57,17 @@ export const ViewProfileSetup = ({ onNavigate, onComplete }: ViewProfileSetupPro
 
         if (!isFormValid) return;
 
-        await update({
+        const success = await update({
             nickname: nickname.trim(),
             age: parseInt(age),
             gender: gender as 'male' | 'female' | 'other',
             primary_goal: primaryGoal,
             onboarding_completed: true,
         });
+
+        if (!success) return;
+
+        void syncProfile();
 
         // Navigate to membership page
         if (onComplete) {

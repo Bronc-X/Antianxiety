@@ -9,6 +9,16 @@ export interface HealthProfile {
   medications?: string[];
 }
 
+type MemoryMetadata = {
+  allergies?: string[];
+  medications?: string[];
+  medical_history?: string[];
+  smoking_status?: string;
+  conditions?: Array<{ name?: string | null }>;
+  symptoms?: string[];
+  chief_complaint?: string;
+};
+
 /**
  * 从 The Brain 获取用户健康档案
  */
@@ -60,7 +70,7 @@ export async function getUserHealthProfile(userId: string): Promise<HealthProfil
 
     // 从 ai_memory 填充更多信息
     if (profileData?.metadata) {
-      const metadata = profileData.metadata as any;
+      const metadata = profileData.metadata as MemoryMetadata;
       if (metadata.allergies) {
         profile.knownAllergies = metadata.allergies;
       }
@@ -80,9 +90,9 @@ export async function getUserHealthProfile(userId: string): Promise<HealthProfil
     if (recentAssessments && recentAssessments.length > 0) {
       const conditions = new Set<string>();
       recentAssessments.forEach(a => {
-        const metadata = a.metadata as any;
-        if (metadata?.conditions) {
-          metadata.conditions.forEach((c: any) => {
+        const metadata = a.metadata as MemoryMetadata;
+        if (Array.isArray(metadata?.conditions)) {
+          metadata.conditions.forEach((c) => {
             if (c.name) conditions.add(c.name);
           });
         }
@@ -235,9 +245,10 @@ export async function storeHealthProfile(
     }
 
     return { success: true };
-  } catch (error: any) {
-    console.error('Failed to store health profile:', error);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const errorInfo = error as { message?: string };
+    console.error('Failed to store health profile:', errorInfo);
+    return { success: false, error: errorInfo.message || 'Unknown error' };
   }
 }
 
@@ -274,7 +285,7 @@ export async function findSimilarHistoricalAssessments(
     
     const results = assessments
       .map(a => {
-        const metadata = a.metadata as any;
+        const metadata = a.metadata as MemoryMetadata;
         const historicalSymptoms: string[] = metadata?.symptoms || [];
         const historicalComplaint: string = metadata?.chief_complaint || '';
         

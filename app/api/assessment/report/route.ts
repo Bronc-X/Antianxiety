@@ -83,7 +83,7 @@ export async function POST(req: Request) {
       { success: false, error: { code: 'REPORT_NOT_FOUND', message: '报告未找到' } },
       { status: 404 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Assessment report error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: '服务暂时不可用' } },
@@ -128,7 +128,8 @@ export async function GET(req: Request) {
       );
     }
 
-    const language = (report.assessment_sessions as any)?.language || 'zh';
+    const assessmentSession = report.assessment_sessions as { language?: string | null } | null;
+    const language = assessmentSession?.language || 'zh';
 
     const response: ReportStep = {
       step_type: 'report',
@@ -145,7 +146,7 @@ export async function GET(req: Request) {
     };
 
     return NextResponse.json(response);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Assessment report GET error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: '服务暂时不可用' } },

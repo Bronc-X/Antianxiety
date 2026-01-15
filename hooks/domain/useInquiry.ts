@@ -10,17 +10,17 @@ import { useCallback, useState } from 'react';
 import { getPendingInquiry, respondToInquiry } from '@/app/actions/inquiry';
 
 export interface UseInquiryReturn {
-  pending: any | null;
+  pending: unknown | null;
   isLoading: boolean;
   isResponding: boolean;
   error: string | null;
-  loadPending: (language?: 'zh' | 'en') => Promise<any | null>;
+  loadPending: (language?: 'zh' | 'en') => Promise<unknown | null>;
   respond: (id: string, response: string) => Promise<boolean>;
   clearError: () => void;
 }
 
 export function useInquiry(): UseInquiryReturn {
-  const [pending, setPending] = useState<any | null>(null);
+  const [pending, setPending] = useState<unknown | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
   const [error, setError] = useState<string | null>(null);

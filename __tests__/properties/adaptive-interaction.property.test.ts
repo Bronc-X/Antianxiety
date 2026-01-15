@@ -15,8 +15,6 @@ import type {
   Citation,
   OnboardingQuestion,
   CalibrationQuestion,
-  CalibrationQuestionType,
-  InquiryQuestion,
   DataGap,
   CuratedContent,
   InquiryPriority,
@@ -64,35 +62,6 @@ const phaseGoalArb: fc.Arbitrary<PhaseGoal> = fc.record({
   updated_at: safeDateArb,
 });
 
-const questionOptionArb = fc.record({
-  label: fc.string({ minLength: 1, maxLength: 100 }),
-  value: fc.string({ minLength: 1, maxLength: 50 }),
-  score: fc.option(fc.integer({ min: 1, max: 3 }), { nil: undefined }),
-});
-
-const onboardingQuestionArb: fc.Arbitrary<OnboardingQuestion> = fc.record({
-  id: fc.string({ minLength: 1, maxLength: 50 }),
-  question: fc.string({ minLength: 10, maxLength: 200 }),
-  description: fc.option(fc.string({ minLength: 1, maxLength: 200 }), { nil: undefined }),
-  options: fc.array(questionOptionArb, { minLength: 2, maxLength: 5 }),
-  type: fc.constantFrom('single', 'multi'),
-});
-
-const calibrationQuestionTypeArb: fc.Arbitrary<CalibrationQuestionType> = fc.constantFrom(
-  'anchor', 'adaptive', 'evolution'
-);
-
-const calibrationQuestionArb: fc.Arbitrary<CalibrationQuestion> = fc.record({
-  id: fc.string({ minLength: 1, maxLength: 50 }),
-  type: calibrationQuestionTypeArb,
-  question: fc.string({ minLength: 10, maxLength: 200 }),
-  description: fc.option(fc.string({ minLength: 1, maxLength: 200 }), { nil: undefined }),
-  inputType: fc.constantFrom('slider', 'single', 'multi', 'text'),
-  options: fc.option(fc.array(questionOptionArb, { minLength: 2, maxLength: 5 }), { nil: undefined }),
-  min: fc.option(fc.integer({ min: 0, max: 10 }), { nil: undefined }),
-  max: fc.option(fc.integer({ min: 1, max: 12 }), { nil: undefined }),
-  goalRelation: fc.option(goalTypeArb, { nil: undefined }),
-});
 
 const dataGapArb: fc.Arbitrary<DataGap> = fc.record({
   field: fc.string({ minLength: 1, maxLength: 50 }),
@@ -330,8 +299,7 @@ describe('Property 8: Anchor Question Presence', () => {
    */
 
   function generateCalibrationQuestions(
-    phaseGoal: GoalType,
-    evolutionLevel: number
+    phaseGoal: GoalType
   ): CalibrationQuestion[] {
     // Always include anchor questions
     const anchorQuestions: CalibrationQuestion[] = [
@@ -589,12 +557,6 @@ describe('Property 6: Goal Modification Persistence', () => {
    * 
    * **Validates: Requirements 2.4**
    */
-
-  interface GoalModification {
-    originalGoal: PhaseGoal;
-    newGoalType: GoalType;
-    newTitle?: string;
-  }
 
   function applyGoalModification(
     goal: PhaseGoal,

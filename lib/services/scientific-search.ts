@@ -311,16 +311,17 @@ export async function searchSemanticScholar(query: string, limit: number, retrie
       }
 
       const data = await response.json();
-      const results = Array.isArray(data?.data) ? data.data : [];
+      const results: Array<Record<string, unknown>> = Array.isArray(data?.data) ? data.data : [];
 
-      return results.map((paper: any): ScientificPaper => {
-        const doi = paper?.externalIds?.DOI || null;
+      return results.map((paper): ScientificPaper => {
+        const externalIds = paper.externalIds as { DOI?: string } | undefined;
+        const doi = externalIds?.DOI || null;
         return {
-          id: paper.paperId,
-          title: paper.title || 'Untitled',
-          abstract: paper.abstract || '',
-          url: paper.url || (doi ? `https://doi.org/${doi}` : `https://www.semanticscholar.org/paper/${paper.paperId}`),
-          year: paper.year ?? null,
+          id: String(paper.paperId || ''),
+          title: (paper.title as string) || 'Untitled',
+          abstract: (paper.abstract as string) || '',
+          url: (paper.url as string) || (doi ? `https://doi.org/${doi}` : `https://www.semanticscholar.org/paper/${paper.paperId}`),
+          year: typeof paper.year === 'number' ? paper.year : null,
           citationCount: typeof paper.citationCount === 'number' ? paper.citationCount : 0,
           doi,
           source: 'semantic_scholar',
@@ -366,28 +367,29 @@ async function searchOpenAlex(query: string, limit: number): Promise<ScientificP
     }
 
     const data = await response.json();
-    const results = Array.isArray(data?.results) ? data.results : [];
+    const results: Array<Record<string, unknown>> = Array.isArray(data?.results) ? data.results : [];
 
-    return results.map((item: any): ScientificPaper => {
-      const doi = normalizeOpenAlexDoi(item?.doi);
-      const abstract = openAlexAbstractToText(item?.abstract_inverted_index);
+    return results.map((item): ScientificPaper => {
+      const doi = normalizeOpenAlexDoi(item?.doi as string | null | undefined);
+      const abstract = openAlexAbstractToText(item?.abstract_inverted_index as Record<string, number[]> | null | undefined);
 
       return {
-        id: item?.id || `openalex_${item?.doi || Math.random().toString(36).slice(2)}`,
-        title: item?.display_name || item?.title || 'Untitled',
+        id: (item?.id as string) || `openalex_${item?.doi || Math.random().toString(36).slice(2)}`,
+        title: (item?.display_name as string) || (item?.title as string) || 'Untitled',
         abstract: abstract || '',
-        url: item?.id || (doi ? `https://doi.org/${doi}` : ''),
-        year: item?.publication_year || null,
+        url: (item?.id as string) || (doi ? `https://doi.org/${doi}` : ''),
+        year: typeof item?.publication_year === 'number' ? item.publication_year : null,
         citationCount: typeof item?.cited_by_count === 'number' ? item.cited_by_count : 0,
         doi,
         source: 'openalex',
       };
     });
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    const errorInfo = error as { name?: string; message?: string };
+    if (errorInfo.name === 'AbortError') {
       console.error('OpenAlex timeout');
     } else {
-      console.error('OpenAlex fetch error:', error);
+      console.error('OpenAlex fetch error:', errorInfo);
     }
     return [];
   }
@@ -566,11 +568,12 @@ export async function searchPubMed(query: string, limit: number, retries = 2): P
       console.log(`✅ PubMed returned ${papers.length} papers`);
       return papers;
 
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      const errorInfo = error as { name?: string; message?: string };
+      if (errorInfo.name === 'AbortError') {
         console.error(`⏱️ PubMed timeout (attempt ${attempt + 1}/${retries + 1})`);
       } else {
-        console.error('PubMed fetch error:', error.message);
+        console.error('PubMed fetch error:', errorInfo.message);
       }
       if (attempt < retries) continue;
       return [];

@@ -65,13 +65,14 @@ export async function POST(request: NextRequest) {
       message: 'Feedback submitted successfully'
     });
     
-  } catch (error: any) {
-    console.error('Error submitting feedback:', error);
+  } catch (error: unknown) {
+    const errorInfo = error as { message?: string };
+    console.error('Error submitting feedback:', errorInfo);
     
     return NextResponse.json(
       { 
         success: false,
-        error: error.message || 'Internal server error' 
+        error: errorInfo.message || 'Internal server error' 
       },
       { status: 500 }
     );

@@ -3,7 +3,7 @@
  * 动态调整回复格式和语气策略
  */
 
-import type { ConversationState, ResponseStructure } from './conversation-state';
+import type { ConversationState } from './conversation-state';
 
 export type FormatStyle = 'structured' | 'conversational' | 'concise' | 'detailed' | 'plan';
 export type CitationStyle = 'formal' | 'casual' | 'minimal';

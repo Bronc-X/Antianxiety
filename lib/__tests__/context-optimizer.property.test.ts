@@ -15,7 +15,7 @@ import {
   buildHealthReminder,
   shouldExcludePaper,
 } from '../context-optimizer';
-import { createInitialState, type ConversationState } from '../conversation-state';
+import { createInitialState } from '../conversation-state';
 
 // Arbitrary generators
 const userProfileArb = fc.record({
