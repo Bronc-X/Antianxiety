@@ -71,6 +71,28 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
     }
   }, [planChat, lang]);
 
+  const initDialog = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await planChat({ action: 'init', language: lang });
+      if (data) {
+        setSessionId(data.sessionId);
+        setMessages(data.messages || []);
+        setNextAction(data.nextAction || 'question');
+        if (data.nextAction === 'generate') {
+          await generatePlan(data.sessionId);
+        }
+      } else {
+        setMessages([{ id: 'error', role: 'max', content: lang === 'zh' ? '初始化失败，请重试' : 'Failed to initialize' }]);
+      }
+    } catch (e) {
+      console.error('Init error:', e);
+      setMessages([{ id: 'error', role: 'max', content: lang === 'zh' ? '初始化失败，请重试' : 'Failed to initialize' }]);
+    } finally {
+      setLoading(false);
+    }
+  }, [planChat, lang, generatePlan]);
+
   // 滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -98,28 +120,6 @@ export default function MaxPlanDialogSimple({ isOpen, onClose, onPlanCreated }: 
       }, 300);
     }
   }, [isOpen]);
-
-  const initDialog = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await planChat({ action: 'init', language: lang });
-      if (data) {
-        setSessionId(data.sessionId);
-        setMessages(data.messages || []);
-        setNextAction(data.nextAction || 'question');
-        if (data.nextAction === 'generate') {
-          await generatePlan(data.sessionId);
-        }
-      } else {
-        setMessages([{ id: 'error', role: 'max', content: lang === 'zh' ? '初始化失败，请重试' : 'Failed to initialize' }]);
-      }
-    } catch (e) {
-      console.error('Init error:', e);
-      setMessages([{ id: 'error', role: 'max', content: lang === 'zh' ? '初始化失败，请重试' : 'Failed to initialize' }]);
-    } finally {
-      setLoading(false);
-    }
-  }, [planChat, lang, generatePlan]);
 
   const handleOptionSelect = async (value: string, questionId?: string) => {
     if (!sessionId) return;
