@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n";
 import { ToastProvider } from "@/components/ui/toast";
 import MotionProvider from "@/components/MotionProvider";
+import EnvBadge from "@/components/EnvBadge";
 
 export const metadata: Metadata = {
     title: "AntiAnxiety™ - Native App",
@@ -52,6 +53,7 @@ export default function NativeLayout({
                     <I18nProvider>
                         <MotionProvider>
                             <ToastProvider>
+                                <EnvBadge />
                                 {/* 仅渲染页面内容，不包含全局导航和底部栏 */}
                                 {children}
                             </ToastProvider>

@@ -1,17 +1,17 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
- * Capacitor 配置文件（在线运行模式）
+ * Capacitor 配置文件（本地开发优先）
  *
- * 使用远程 URL 加载 Web 应用，webDir 仅作为占位。
- * 
- * 开发模式：使用 localhost:3000（需要 adb reverse）
- * 生产模式：使用 Vercel 部署的 URL
+ * 默认使用本地 dev server（热更新），除非显式设置 CAPACITOR_ENV=production。
+ * - 开发模式：使用本地 URL（可通过 CAPACITOR_SERVER_URL 覆盖）
+ * - 生产模式：使用部署 URL
  */
-const devServerUrl = process.env.CAPACITOR_SERVER_URL ?? 'http://172.20.10.4:3000/native';
-const isDev = process.env.CAPACITOR_ENV === 'development'
-  || process.env.NODE_ENV === 'development'
-  || Boolean(process.env.CAPACITOR_SERVER_URL);
+const devServerUrl = process.env.CAPACITOR_SERVER_URL ?? 'http://localhost:3000/native';
+const capacitorEnv = process.env.CAPACITOR_ENV?.toLowerCase();
+const nodeEnv = process.env.NODE_ENV?.toLowerCase();
+const isProd = capacitorEnv === 'production' || capacitorEnv === 'prod' || nodeEnv === 'production';
+const isDev = !isProd;
 const productionUrl = process.env.NEXT_PUBLIC_VERCEL_URL
   ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/native`
   : 'https://www.antianxiety.app/native';

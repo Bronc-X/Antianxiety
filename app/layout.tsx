@@ -24,6 +24,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { ToastProvider } from "@/components/ui/toast";
 import DevTools from "@/components/DevTools";
 import TraditionalChineseAutoConvert from "@/components/TraditionalChineseAutoConvert";
+import EnvBadge from "@/components/EnvBadge";
 
 
 
@@ -89,6 +90,7 @@ export default function RootLayout({
             <TraditionalChineseAutoConvert />
             <MotionProvider>
               <ToastProvider>
+                <EnvBadge />
                 <GlobalNav />
                 <RouteTransition>{children}</RouteTransition>
                 <MobileBottomNav />

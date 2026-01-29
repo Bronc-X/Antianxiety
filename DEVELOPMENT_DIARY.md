@@ -3416,3 +3416,63 @@ hooks/
 - [ ] 准备 Android 构建
 
 ---
+## 2026-01-30 - iOS 构建兼容性修复与调试增强 ✅
+
+### 🎯 核心更新
+
+#### 1. Capacitor 降级 (v6 → v5) ✅
+- **原因**: 解决新版 Capacitor 与当前 Xcode 版本的编译不兼容问题。
+- **操作**: 将 `@capacitor/core`, `@capacitor/cli`, `@capacitor/ios` 等全系列组件从 v6.x 降级至 v5.7.8。
+- **影响**: 修复了 Xcode 中的编译错误，确保项目可以正常在本地环境运行和打包。
+
+#### 2. 环境标识组件 (EnvBadge) ✅
+- **新增**: `components/EnvBadge.tsx`
+- **功能**: 在页面右上角显示当前运行环境（如：`IOS · DEV` 或 `WEB · PROD`），方便开发调试。
+- **集成**: 已在 `app/layout.tsx` 和 `app/native/layout.tsx` 中全局挂载。
+
+#### 3. Git 忽略规则优化 ✅
+- **新增**: 更新 `.gitignore`，防止 `ios_old`, `node_modules`, `.DS_Store` 等无关文件干扰版本库。
+- **目的**: 保持仓库整洁，只追踪核心项目文件。
+
+### 📊 代码统计
+- **修改文件**: 7 个 (`.gitignore`, `package.json`, `capacitor.config.ts` 等)
+- **新增文件**: 1 个 (`components/EnvBadge.tsx`)
+
+### 🚀 下一步
+- [ ] 尝试在本地 Xcode 执行 `App` 方案编译。
+- [ ] 验证推送通知在降级后的兼容性。
+
+---
+
+## 2026-01-29 - 生产站点白屏排查与修复 ✅
+
+### 🧯 症状
+- 登录并完成引导后，首页出现 `Application error: a client-side exception has occurred`
+- Console 报错：`Cannot access 'L' before initialization`、`i is not defined`
+
+### 🔍 根因复盘
+1. **TDZ（Temporal Dead Zone）**  
+   - `components/max/MaxPlanDialogSimple.tsx` 中 `useEffect` 依赖了 `initDialog`，但 `initDialog` 在文件后面才声明。  
+   - 生产构建后触发 `Cannot access 'L' before initialization`（压缩变量名 L）。
+2. **map 回调缺 index**  
+   - `components/unlearn/ParticipantDigitalTwin.tsx` 里 `metricKeys.map((key) => { ... i ... })` 使用了 `i` 却未传入。  
+   - 生产构建触发 `i is not defined`，页面白屏。
+
+### ✅ 修复
+- `MaxPlanDialogSimple`: 将 `initDialog` 定义提前到 `useEffect` 之前，避免 TDZ。  
+  提交：`6720c4e`
+- `ParticipantDigitalTwin`: `metricKeys.map((key, i) => ...)` 补上 index。  
+  提交：`687edbb`
+
+### 🧪 干扰项（非致命）
+- `open-meteo` 逆地理编码 CORS 报错（仅影响显示城市，不导致白屏）。
+- Recharts 容器 `width/height` 警告（样式问题，不致命）。
+- `lockdown-install.js` 为浏览器扩展日志。
+
+### 🧯 排查经验 / 防止复发
+- **构建后仍报旧 chunk**：先 `curl` 验证旧 chunk 是否 404，避免被本地缓存误导。
+- **禁止 TDZ**：函数/回调先声明再引用；避免 `useEffect` 依赖未声明变量。
+- **map 默认传 index**：在需要 `i` 的地方显式写 `map((item, i) => ...)`。
+- **建议开启 ESLint 规则**：`no-use-before-define`（或至少对 hooks 文件启用）。
+
+---
