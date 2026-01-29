@@ -73,6 +73,16 @@ function checkRateLimit(
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  let effectivePathname = pathname;
+  let shouldRewriteApi = false;
+  const normalizedPathname = pathname.endsWith('/') && pathname !== '/'
+    ? pathname.slice(0, -1)
+    : pathname;
+
+  if (pathname.startsWith('/api/') && pathname.length > 1 && pathname.endsWith('/')) {
+    effectivePathname = pathname.slice(0, -1);
+    shouldRewriteApi = true;
+  }
 
   // Language-based redirect for root domain
   // REMOVED: Single domain strategy. Language is handled by client-side i18n.
@@ -90,14 +100,14 @@ export function middleware(req: NextRequest) {
   */
 
   // Only apply rate limiting to API routes
-  if (pathname.startsWith('/api/')) {
+  if (effectivePathname.startsWith('/api/')) {
     const identifier = getClientIdentifier(req);
 
     // Determine rate limit type
     let limitType: 'chat' | 'ai' | 'api' = 'api';
-    if (pathname === '/api/chat') {
+    if (effectivePathname === '/api/chat') {
       limitType = 'chat';
-    } else if (pathname.startsWith('/api/ai/')) {
+    } else if (effectivePathname.startsWith('/api/ai/')) {
       limitType = 'ai';
     }
 
@@ -128,22 +138,29 @@ export function middleware(req: NextRequest) {
     }
 
     // Add rate limit info to response headers
-    const response = NextResponse.next();
+    let response: NextResponse;
+    if (shouldRewriteApi) {
+      const normalizedUrl = req.nextUrl.clone();
+      normalizedUrl.pathname = effectivePathname;
+      response = NextResponse.rewrite(normalizedUrl);
+    } else {
+      response = NextResponse.next();
+    }
     response.headers.set('X-RateLimit-Remaining', String(remaining));
     return response;
   }
 
-  const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname.startsWith('/onboarding') || pathname.startsWith('/auth');
-  const isUnlearnRoute = pathname === '/unlearn' || pathname.startsWith('/unlearn/');
-  const isMobileRoute = pathname === '/mobile' || pathname.startsWith('/mobile/');
+  const isAuthRoute = normalizedPathname === '/login' || normalizedPathname === '/signup' || normalizedPathname.startsWith('/onboarding') || normalizedPathname.startsWith('/auth');
+  const isUnlearnRoute = normalizedPathname === '/unlearn' || normalizedPathname.startsWith('/unlearn/');
+  const isMobileRoute = normalizedPathname === '/mobile' || normalizedPathname.startsWith('/mobile/');
   const isTestRoute = pathname.startsWith('/test/'); // Allow test pages
-  const isDigitalTwinRoute = pathname === '/digital-twin' || pathname.startsWith('/digital-twin/');
-  const isMarketingRoute = pathname === '/unlearn/app' || pathname === '/thanks' || pathname.startsWith('/poster'); // Public marketing landing page
-  const isERoute = pathname === '/e' || pathname.startsWith('/e/') || pathname === '/eee' || pathname.startsWith('/eee/');
-  const isWhitepaperPreviewRoute = pathname === '/agent-whitepaper-preview' || pathname.startsWith('/agent-whitepaper-preview/');
-  const isRoot = pathname === '/';
+  const isDigitalTwinRoute = normalizedPathname === '/digital-twin' || normalizedPathname.startsWith('/digital-twin/');
+  const isMarketingRoute = normalizedPathname === '/unlearn/app' || normalizedPathname === '/thanks' || normalizedPathname.startsWith('/poster'); // Public marketing landing page
+  const isERoute = normalizedPathname === '/e' || normalizedPathname.startsWith('/e/') || normalizedPathname === '/eee' || normalizedPathname.startsWith('/eee/');
+  const isWhitepaperPreviewRoute = normalizedPathname === '/agent-whitepaper-preview' || normalizedPathname.startsWith('/agent-whitepaper-preview/');
+  const isRoot = normalizedPathname === '/';
 
-  const isNativeRoute = pathname === '/native' || pathname.startsWith('/native/');
+  const isNativeRoute = normalizedPathname === '/native' || normalizedPathname.startsWith('/native/');
 
   if (!isRoot && !isUnlearnRoute && !isAuthRoute && !isMobileRoute && !isNativeRoute && !isTestRoute && !isDigitalTwinRoute && !isMarketingRoute && !isERoute && !isWhitepaperPreviewRoute) {
     const redirectUrl = req.nextUrl.clone();
