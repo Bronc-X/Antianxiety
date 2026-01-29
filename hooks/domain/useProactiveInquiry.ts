@@ -333,6 +333,58 @@ export function useProactiveInquiry(
         setTimeout(() => setCurrentInquiry(null), 300);
     }, [currentInquiry, inquiryRecordId]);
 
+    // Helper to calculate patterns from history
+    const getResponsePatternsFromHistory = (history: InquiryHistoryItem[]): ResponsePattern => {
+        const total = history.length;
+        const answered = history.filter(h => h.answer !== null).length;
+        const dismissed = history.filter(h => h.dismissed).length;
+        const responseTimes = history
+            .filter(h => h.responseTimeMs !== null)
+            .map(h => h.responseTimeMs!);
+
+        const avgResponseTime = responseTimes.length > 0
+            ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+            : 0;
+
+        const responseRate = total > 0 ? answered / total : 0;
+
+        let engLevel: 'high' | 'medium' | 'low' = 'medium';
+        if (responseRate > 0.7) engLevel = 'high';
+        else if (responseRate < 0.3) engLevel = 'low';
+
+        // Find preferred topics from answered questions
+        const topics = history
+            .filter(h => h.answer !== null)
+            .map(h => h.questionType);
+        const topicCounts = topics.reduce((acc, t) => {
+            acc[t] = (acc[t] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        const preferredTopics = Object.entries(topicCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([topic]) => topic);
+
+        return {
+            totalInquiries: total,
+            answeredCount: answered,
+            dismissedCount: dismissed,
+            responseRate,
+            avgResponseTimeMs: avgResponseTime,
+            preferredTopics,
+            engagementLevel: engLevel,
+        };
+    };
+
+    // NEW: Adjust frequency based on engagement
+    const adjustFrequency = useCallback((engagement: 'high' | 'medium' | 'low') => {
+        setEngagementLevel(engagement);
+        const newInterval = getIntervalForEngagement(engagement);
+        setCurrentInterval(newInterval);
+        saveEngagement(engagement);
+        console.log(`[ProactiveInquiry] Adjusted frequency to ${engagement}: ${newInterval}ms`);
+    }, []);
+
     // Submit answer
     const submitAnswer = useCallback(async (answer: string) => {
         if (!currentInquiry) return;
@@ -387,49 +439,6 @@ export function useProactiveInquiry(
         return getStoredHistory().slice(0, limit);
     }, []);
 
-    // Helper to calculate patterns from history
-    const getResponsePatternsFromHistory = (history: InquiryHistoryItem[]): ResponsePattern => {
-        const total = history.length;
-        const answered = history.filter(h => h.answer !== null).length;
-        const dismissed = history.filter(h => h.dismissed).length;
-        const responseTimes = history
-            .filter(h => h.responseTimeMs !== null)
-            .map(h => h.responseTimeMs!);
-
-        const avgResponseTime = responseTimes.length > 0
-            ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-            : 0;
-
-        const responseRate = total > 0 ? answered / total : 0;
-
-        let engLevel: 'high' | 'medium' | 'low' = 'medium';
-        if (responseRate > 0.7) engLevel = 'high';
-        else if (responseRate < 0.3) engLevel = 'low';
-
-        // Find preferred topics from answered questions
-        const topics = history
-            .filter(h => h.answer !== null)
-            .map(h => h.questionType);
-        const topicCounts = topics.reduce((acc, t) => {
-            acc[t] = (acc[t] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
-        const preferredTopics = Object.entries(topicCounts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(([topic]) => topic);
-
-        return {
-            totalInquiries: total,
-            answeredCount: answered,
-            dismissedCount: dismissed,
-            responseRate,
-            avgResponseTimeMs: avgResponseTime,
-            preferredTopics,
-            engagementLevel: engLevel,
-        };
-    };
-
     // NEW: Get response patterns
     const getResponsePatterns = useCallback((): ResponsePattern => {
         return getResponsePatternsFromHistory(getStoredHistory());
@@ -440,15 +449,6 @@ export function useProactiveInquiry(
         if (typeof window !== 'undefined') {
             localStorage.removeItem(HISTORY_STORAGE_KEY);
         }
-    }, []);
-
-    // NEW: Adjust frequency based on engagement
-    const adjustFrequency = useCallback((engagement: 'high' | 'medium' | 'low') => {
-        setEngagementLevel(engagement);
-        const newInterval = getIntervalForEngagement(engagement);
-        setCurrentInterval(newInterval);
-        saveEngagement(engagement);
-        console.log(`[ProactiveInquiry] Adjusted frequency to ${engagement}: ${newInterval}ms`);
     }, []);
 
     // Ref for latest callback
