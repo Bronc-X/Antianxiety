@@ -867,7 +867,7 @@ function CurvePredictionView({
                         </tr>
                     </thead>
                     <tbody>
-                        {metricKeys.map((key) => {
+                        {metricKeys.map((key, i) => {
                             // Get user's actual baseline value
                             const baselineValue = timepoints[0]?.metrics[key]?.value ?? 0;
                             const targetValue = timepoints[timepoints.length - 1]?.metrics[key]?.value ?? 0;
