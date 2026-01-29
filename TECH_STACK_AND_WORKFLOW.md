@@ -29,6 +29,8 @@
 | 浏览器 | @capacitor/browser | 7.0.2 |
 | 目标平台 | Android | - |
 
+> iOS 原生工程使用 SwiftUI，位于 `antianxietynew/`，不通过 Capacitor。
+
 ### 后端/BaaS
 
 | 类别 | 技术 | 用途 |

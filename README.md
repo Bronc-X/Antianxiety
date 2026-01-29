@@ -129,6 +129,8 @@ supabase/      SQL 与数据库脚本
 scripts/       构建与部署脚本
 public/        静态资源
 __tests__/     单元/属性测试
+android/       Android 原生工程（Capacitor）
+antianxietynew/ iOS 原生工程（SwiftUI）
 ```
 
 ---

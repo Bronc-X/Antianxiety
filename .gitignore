@@ -47,3 +47,19 @@ next-env.d.ts
 *.jks
 *.keystore
 keystore.properties
+
+# Native iOS (antianxietynew)
+antianxietynew/build/
+antianxietynew/build-deriv/
+antianxietynew/build.log
+antianxietynew/Secrets.xcconfig
+**/xcuserdata/
+**/*.xcuserstate
+**/DerivedData/
+**/IDEWorkspaceChecks.plist
+*.pbxproj.backup
+
+# Archived Legacy Projects
+ios_ARCHIVED_DO_NOT_USE/
+Antianxietyios_ARCHIVED_DO_NOT_USE/
+.archived/
