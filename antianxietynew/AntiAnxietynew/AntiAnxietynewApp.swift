@@ -15,6 +15,7 @@ struct AntiAnxietynewApp: App {
         print("🚀 [App] AntiAnxiety iOS 启动")
 
         configureTabBarAppearance()
+        configureNavigationBarAppearance()
         
         if let apiBase = Bundle.main.infoDictionary?["APP_API_BASE_URL"] as? String {
             print("✅ [Config] APP_API_BASE_URL = \(apiBase)")
@@ -53,8 +54,9 @@ struct AntiAnxietynewApp: App {
     private func configureTabBarAppearance() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(Color.bgPrimary)
-        appearance.shadowColor = UIColor.black.withAlphaComponent(0.25)
+        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
+        appearance.backgroundColor = UIColor(Color.bgPrimary).withAlphaComponent(0.95)
+        appearance.shadowColor = UIColor.black.withAlphaComponent(0.2)
 
         let normalAttributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: UIColor(Color.textTertiary),
@@ -75,9 +77,35 @@ struct AntiAnxietynewApp: App {
         appearance.inlineLayoutAppearance = itemAppearance
         appearance.compactInlineLayoutAppearance = itemAppearance
 
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-        UITabBar.appearance().isTranslucent = false
-        UITabBar.appearance().tintColor = UIColor(Color.liquidGlassAccent)
+        let tabBar = UITabBar.appearance()
+        tabBar.standardAppearance = appearance
+        tabBar.scrollEdgeAppearance = appearance
+        tabBar.isTranslucent = true
+        tabBar.tintColor = UIColor(Color.liquidGlassAccent)
+        tabBar.unselectedItemTintColor = UIColor(Color.textTertiary)
+        tabBar.itemPositioning = .centered
+        tabBar.itemSpacing = 18
+        tabBar.itemWidth = 56
+    }
+
+    private func configureNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.bgPrimary)
+        appearance.shadowColor = UIColor.black.withAlphaComponent(0.2)
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor(Color.textPrimary),
+            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
+        ]
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(Color.textPrimary),
+            .font: UIFont.systemFont(ofSize: 28, weight: .bold)
+        ]
+
+        let navBar = UINavigationBar.appearance()
+        navBar.standardAppearance = appearance
+        navBar.scrollEdgeAppearance = appearance
+        navBar.compactAppearance = appearance
+        navBar.tintColor = UIColor(Color.liquidGlassAccent)
     }
 }

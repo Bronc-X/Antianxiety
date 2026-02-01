@@ -967,14 +967,38 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         request.timeoutInterval = 2
 
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
-                return (200...299).contains(httpResponse.statusCode)
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    return false
+                }
+                if let payload = try? JSONDecoder().decode(AppAPIHealthPayload.self, from: data) {
+                    if let healthSupabase = payload.supabaseUrl,
+                       let healthHost = URL(string: healthSupabase)?.host?.lowercased(),
+                       let localHost = SupabaseConfig.url.host?.lowercased(),
+                       healthHost != localHost {
+                        print("[AppAPI] Health check mismatch: \(healthHost) != \(localHost)")
+                        return false
+                    }
+                }
+                return true
             }
         } catch {
             return false
         }
         return false
+    }
+
+    private struct AppAPIHealthPayload: Decodable {
+        let ok: Bool?
+        let timestamp: String?
+        let supabaseUrl: String?
+    }
+
+    private func ensureAppAPIBaseURLReady() async {
+        if let current = currentAppAPIBaseURL(), isPrivateHost(current.host) {
+            await refreshAppAPIBaseURL()
+        }
     }
 
     private func buildAppAPIURL(baseURL: URL, path: String, queryItems: [URLQueryItem] = []) -> URL? {
@@ -1023,6 +1047,21 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     }
 
     private func performAppAPIRequest(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        do {
+            return try await performAppAPIRequestOnce(request)
+        } catch {
+            if shouldRetryAppAPIRequest(error, request: request) {
+                await refreshAppAPIBaseURL()
+                if let newBase = currentAppAPIBaseURL(),
+                   let retryRequest = rebuildAppAPIRequest(request, baseURL: newBase) {
+                    return try await performAppAPIRequestOnce(retryRequest)
+                }
+            }
+            throw error
+        }
+    }
+
+    private func performAppAPIRequestOnce(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw SupabaseError.requestFailed
@@ -1042,15 +1081,38 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         return (data, httpResponse)
     }
 
+    private func shouldRetryAppAPIRequest(_ error: Error, request: URLRequest) -> Bool {
+        guard let url = request.url, isPrivateHost(url.host) else { return false }
+        let nsError = error as NSError
+        if nsError.domain != NSURLErrorDomain { return false }
+        guard let code = URLError.Code(rawValue: nsError.code) else { return false }
+        switch code {
+        case .cannotConnectToHost, .cannotFindHost, .notConnectedToInternet,
+             .networkConnectionLost, .timedOut, .dnsLookupFailed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func rebuildAppAPIRequest(_ request: URLRequest, baseURL: URL) -> URLRequest? {
+        guard let originalURL = request.url else { return nil }
+        let originalComponents = URLComponents(url: originalURL, resolvingAgainstBaseURL: false)
+        let path = originalComponents?.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")) ?? ""
+        let queryItems = originalComponents?.queryItems ?? []
+        guard let newURL = buildAppAPIURL(baseURL: baseURL, path: path, queryItems: queryItems) else {
+            return nil
+        }
+        var newRequest = request
+        newRequest.url = newURL
+        return newRequest
+    }
+
     // MARK: - Max Chat (Next API)
 
     func chatWithMax(messages: [ChatRequestMessage], mode: String = "fast") async throws -> String {
-        var url = appAPIURL(path: "api/chat")
-        if let current = url, isPrivateHost(current.host) {
-            await refreshAppAPIBaseURL()
-            url = appAPIURL(path: "api/chat")
-        }
-        guard let finalURL = url else {
+        await ensureAppAPIBaseURLReady()
+        guard let finalURL = appAPIURL(path: "api/chat") else {
             print("[MaxChat] ❌ APP_API_BASE_URL 未配置")
             throw SupabaseError.missingAppApiBaseUrl
         }
@@ -1159,6 +1221,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     // MARK: - Digital Twin Trigger (Next API)
 
     func triggerDigitalTwinAnalysis(forceRefresh: Bool = false) async -> DigitalTwinTriggerResult {
+        await ensureAppAPIBaseURLReady()
         guard let url = appAPIURL(path: "api/digital-twin/analyze") else {
             return DigitalTwinTriggerResult(triggered: false, reason: "Missing APP_API_BASE_URL")
         }
@@ -1196,6 +1259,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     // MARK: - Digital Twin Dashboard (Next API)
 
     func getDigitalTwinDashboard() async throws -> DigitalTwinDashboardPayload {
+        await ensureAppAPIBaseURLReady()
         guard let url = appAPIURL(path: "api/digital-twin/dashboard") else {
             throw SupabaseError.missingAppApiBaseUrl
         }
@@ -1222,6 +1286,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         if devMode {
             queryItems.append(URLQueryItem(name: "dev", value: "true"))
         }
+        await ensureAppAPIBaseURLReady()
         guard let url = appAPIURL(path: "api/digital-twin/curve", queryItems: queryItems) else {
             throw SupabaseError.missingAppApiBaseUrl
         }
@@ -1241,6 +1306,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     }
 
     func generateDigitalTwinCurve(conversationTrend: String? = nil) async throws -> DigitalTwinCurveResponse {
+        await ensureAppAPIBaseURLReady()
         guard let url = appAPIURL(path: "api/digital-twin/curve") else {
             throw SupabaseError.missingAppApiBaseUrl
         }
@@ -1444,6 +1510,7 @@ extension SupabaseManager {
 extension SupabaseManager {
     /// 获取个性化起始问题
     func getStarterQuestions() async throws -> [String] {
+        await ensureAppAPIBaseURLReady()
         guard let url = appAPIURL(path: "api/starter-questions") else {
             print("[StarterQuestions] ⚠️ APP_API_BASE_URL 未配置，使用默认问题")
             throw SupabaseError.missingAppApiBaseUrl

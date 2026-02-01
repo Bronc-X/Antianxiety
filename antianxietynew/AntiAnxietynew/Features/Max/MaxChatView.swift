@@ -88,7 +88,7 @@ struct MaxChatView: View {
             }
             .navigationTitle("Max")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbarBackground(Color.bgPrimary, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .onReceive(NotificationCenter.default.publisher(for: .askMax)) { notification in
                 guard let question = notification.userInfo?["question"] as? String,
