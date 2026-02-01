@@ -1047,6 +1047,55 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         return candidates
     }
 
+    private func maxAgentBaseURLCandidates() -> [URL] {
+        var candidates: [URL] = []
+        var seen: Set<String> = []
+
+        func addCandidate(_ raw: String?) {
+            guard let raw = raw,
+                  let sanitized = sanitizeAppAPIBaseURLString(raw),
+                  let url = URL(string: sanitized),
+                  url.scheme != nil,
+                  url.host != nil else {
+                return
+            }
+            let key = sanitized.lowercased()
+            if !seen.contains(key) {
+                seen.insert(key)
+                candidates.append(url)
+            }
+        }
+
+        addCandidate(UserDefaults.standard.string(forKey: AppAPIConfig.overrideBaseURLKey))
+        addCandidate(UserDefaults.standard.string(forKey: AppAPIConfig.cachedBaseURLKey))
+        addCandidate(appAPIBaseURLFromInfoPlist())
+        AppAPIConfig.fallbackBaseURLs.forEach { addCandidate($0) }
+
+        return candidates.filter { !isPrivateHost($0.host) }
+    }
+
+    private func resolveMaxAgentBaseURL() async throws -> URL {
+        if let current = currentAppAPIBaseURL(), !isPrivateHost(current.host) {
+            return current
+        }
+
+        let candidates = maxAgentBaseURLCandidates()
+        guard !candidates.isEmpty else {
+            print("[MaxAgent] ❌ 没有可用的远程 App API")
+            throw SupabaseError.appApiRequiresRemote
+        }
+
+        for candidate in candidates {
+            if await isAppAPIHealthy(baseURL: candidate) {
+                print("[MaxAgent] ✅ 使用远程 App API: \(candidate.absoluteString)")
+                return candidate
+            }
+        }
+
+        print("[MaxAgent] ❌ 远程 App API 不可达")
+        throw SupabaseError.appApiRequiresRemote
+    }
+
     private func appAPIBaseURLFromInfoPlist() -> String? {
         guard let baseURLString = Bundle.main.infoDictionary?["APP_API_BASE_URL"] as? String else {
             return nil
@@ -1260,8 +1309,8 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     // MARK: - Max Chat (Next API)
 
     func chatWithMax(messages: [ChatRequestMessage], mode: String = "fast") async throws -> String {
-        await ensureAppAPIBaseURLReady()
-        guard let finalURL = appAPIURL(path: "api/chat") else {
+        let baseURL = try await resolveMaxAgentBaseURL()
+        guard let finalURL = buildAppAPIURL(baseURL: baseURL, path: "api/chat") else {
             print("[MaxChat] ❌ APP_API_BASE_URL 未配置")
             throw SupabaseError.missingAppApiBaseUrl
         }
@@ -1306,18 +1355,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         do {
             (data, httpResponse) = try await performRequest(url: finalURL)
         } catch {
-            if let current = appAPIURL(path: "api/chat"),
-               isPrivateHost(current.host) {
-                print("[MaxChat] ⚠️ 本地 API 不可达，尝试刷新并切换远程")
-                await refreshAppAPIBaseURL()
-                if let retryURL = appAPIURL(path: "api/chat") {
-                    (data, httpResponse) = try await performRequest(url: retryURL)
-                } else {
-                    throw error
-                }
-            } else {
-                throw error
-            }
+            throw error
         }
         
         print("[MaxChat] 响应状态码: \(httpResponse.statusCode)")
@@ -1331,7 +1369,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             do {
                 try await refreshSession()
                 // 重新构建请求
-                let retryURL = appAPIURL(path: "api/chat") ?? finalURL
+                let retryURL = buildAppAPIURL(baseURL: baseURL, path: "api/chat") ?? finalURL
                 let (retryData, retryResponse) = try await performRequest(url: retryURL)
                 if (200...299).contains(retryResponse.statusCode) {
                     let decoded = try JSONDecoder().decode(ChatAPIResponse.self, from: retryData)
@@ -1659,8 +1697,8 @@ extension SupabaseManager {
 extension SupabaseManager {
     /// 获取个性化起始问题
     func getStarterQuestions() async throws -> [String] {
-        await ensureAppAPIBaseURLReady()
-        guard let url = appAPIURL(path: "api/starter-questions") else {
+        let baseURL = try await resolveMaxAgentBaseURL()
+        guard let url = buildAppAPIURL(baseURL: baseURL, path: "api/starter-questions") else {
             print("[StarterQuestions] ⚠️ APP_API_BASE_URL 未配置，使用默认问题")
             throw SupabaseError.missingAppApiBaseUrl
         }
@@ -2158,6 +2196,7 @@ enum SupabaseError: LocalizedError {
     case requestFailed
     case decodingFailed
     case missingAppApiBaseUrl
+    case appApiRequiresRemote
     
     var errorDescription: String? {
         switch self {
@@ -2166,6 +2205,7 @@ enum SupabaseError: LocalizedError {
         case .requestFailed: return "请求失败"
         case .decodingFailed: return "数据解析失败"
         case .missingAppApiBaseUrl: return "未配置 APP_API_BASE_URL"
+        case .appApiRequiresRemote: return "Max 必须连接远程 App API（https://antianxiety.app），请检查 APP_API_BASE_URL 或网络"
         }
     }
 }

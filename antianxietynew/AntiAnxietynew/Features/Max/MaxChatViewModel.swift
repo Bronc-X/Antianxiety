@@ -282,11 +282,12 @@ class MaxChatViewModel: ObservableObject {
                 guard generationId == currentGenId else { return }
                 
                 isTyping = false
+                let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 messages.append(ChatMessage(
                     role: .assistant,
-                    content: "抱歉，Max 现在无法连接。请检查网络。"
+                    content: "抱歉，Max 无法连接：\(description)"
                 ))
-                self.error = "发送失败: \(error.localizedDescription)"
+                self.error = "发送失败: \(description)"
                 print("❌ MaxChat Error: \(error)")
             }
         }
