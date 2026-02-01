@@ -42,7 +42,6 @@ class MaxChatViewModel: ObservableObject {
     
     // 🆕 P2 功能 - 离线状态
     @Published var isOffline = false
-    @Published var isPersistenceAvailable = true
     private var networkMonitor: NWPathMonitor?
     
     // 🆕 停止生成 - 任务引用
@@ -128,12 +127,11 @@ class MaxChatViewModel: ObservableObject {
         isLoading = true
         do {
             conversations = try await SupabaseManager.shared.getConversations()
-            isPersistenceAvailable = true
             print("✅ 加载了 \(conversations.count) 个对话")
         } catch {
             conversations = []
-            isPersistenceAvailable = false
-            print("❌ 加载对话列表失败(将进入本地模式): \(error)")
+            self.error = "加载对话失败: \(error.localizedDescription)"
+            print("❌ 加载对话列表失败: \(error)")
         }
         isLoading = false
     }
@@ -141,10 +139,6 @@ class MaxChatViewModel: ObservableObject {
     /// 切换到指定对话
     func switchConversation(_ conversationId: String) async {
         currentConversationId = conversationId
-        if isLocalConversation(conversationId) {
-            messages = []
-            return
-        }
         isLoading = true
         
         do {
@@ -154,9 +148,7 @@ class MaxChatViewModel: ObservableObject {
         } catch {
             print("❌ 加载对话历史失败: \(error)")
             messages = []
-            if isPersistenceAvailable {
-                self.error = "加载对话失败"
-            }
+            self.error = "加载对话失败: \(error.localizedDescription)"
         }
         
         isLoading = false
@@ -169,42 +161,23 @@ class MaxChatViewModel: ObservableObject {
         
         Task {
             do {
-                if let conversation = try await createConversationSafely() {
-                    conversations.insert(conversation, at: 0)
-                    currentConversationId = conversation.id
-                    messages = []
-                    isPersistenceAvailable = true
-                    print("✅ 创建新对话: \(conversation.id)")
-                } else {
-                    let local = localConversation(title: "新对话")
-                    currentConversationId = local.id
-                    messages = []
-                    isPersistenceAvailable = false
-                    print("⚠️ 进入本地对话模式: \(local.id)")
-                }
+                let conversation = try await SupabaseManager.shared.createConversation()
+                conversations.insert(conversation, at: 0)
+                currentConversationId = conversation.id
+                messages = []
+                print("✅ 创建新对话: \(conversation.id)")
 
                 // 重新加载 Starter Questions
                 await loadStarterQuestions()
             } catch {
                 print("❌ 创建对话失败: \(error)")
-                let local = localConversation(title: "新对话")
-                currentConversationId = local.id
-                messages = []
-                isPersistenceAvailable = false
+                self.error = "创建对话失败: \(error.localizedDescription)"
             }
         }
     }
     
     /// 删除对话
     func deleteConversation(_ conversationId: String) async -> Bool {
-        if isLocalConversation(conversationId) {
-            conversations.removeAll { $0.id == conversationId }
-            if currentConversationId == conversationId {
-                currentConversationId = nil
-                messages = []
-            }
-            return true
-        }
         do {
             try await SupabaseManager.shared.deleteConversation(conversationId: conversationId)
             conversations.removeAll { $0.id == conversationId }
@@ -249,35 +222,26 @@ class MaxChatViewModel: ObservableObject {
         // 1. 如果没有对话，先创建一个
                 var conversationId = currentConversationId
                 if conversationId == nil {
-                    if let conversation = try await createConversationSafely(title: deriveTitle(from: text)) {
-                        conversations.insert(conversation, at: 0)
-                        currentConversationId = conversation.id
-                        conversationId = conversation.id
-                        isPersistenceAvailable = true
-                    } else {
-                        let local = localConversation(title: deriveTitle(from: text))
-                        currentConversationId = local.id
-                        conversationId = local.id
-                        isPersistenceAvailable = false
-                    }
+                    let conversation = try await SupabaseManager.shared.createConversation(title: deriveTitle(from: text))
+                    conversations.insert(conversation, at: 0)
+                    currentConversationId = conversation.id
+                    conversationId = conversation.id
                 }
-                
-                let shouldPersist = (conversationId != nil && !isLocalConversation(conversationId))
+                guard let convId = conversationId else {
+                    throw SupabaseError.requestFailed
+                }
                 
                 // 检查是否已取消
                 guard generationId == currentGenId else { return }
                 
                 // 2. 保存用户消息到数据库
-                if shouldPersist, let convId = conversationId {
-                    if let savedUserMsg = try? await SupabaseManager.shared.appendMessage(
-                        conversationId: convId,
-                        role: "user",
-                        content: text
-                    ) {
-                        if let index = messages.lastIndex(where: { $0.content == text && $0.role == .user }) {
-                            messages[index].remoteId = savedUserMsg.id
-                        }
-                    }
+                let savedUserMsg = try await SupabaseManager.shared.appendMessage(
+                    conversationId: convId,
+                    role: "user",
+                    content: text
+                )
+                if let index = messages.lastIndex(where: { $0.content == text && $0.role == .user }) {
+                    messages[index].remoteId = savedUserMsg.id
                 }
                 
                 // 检查是否已取消
@@ -299,23 +263,18 @@ class MaxChatViewModel: ObservableObject {
                 guard generationId == currentGenId else { return }
                 
                 // 4. 保存 AI 回复到数据库
-                var savedAssistantId: String? = nil
-                if shouldPersist, let convId = conversationId {
-                    if let savedAssistantMsg = try? await SupabaseManager.shared.appendMessage(
-                        conversationId: convId,
-                        role: "assistant",
-                        content: responseText
-                    ) {
-                        savedAssistantId = savedAssistantMsg.id
-                    }
-                }
+                let savedAssistantMsg = try await SupabaseManager.shared.appendMessage(
+                    conversationId: convId,
+                    role: "assistant",
+                    content: responseText
+                )
                 
                 // 5. 更新 UI
                 isTyping = false
                 messages.append(ChatMessage(
                     role: .assistant,
                     content: responseText,
-                    remoteId: savedAssistantId
+                    remoteId: savedAssistantMsg.id
                 ))
                 
             } catch {
@@ -357,28 +316,4 @@ class MaxChatViewModel: ObservableObject {
         return String(trimmed.prefix(20)) + "..."
     }
 
-    private func isLocalConversation(_ id: String?) -> Bool {
-        guard let id else { return false }
-        return id.hasPrefix("local-")
-    }
-
-    private func localConversation(title: String) -> Conversation {
-        Conversation(
-            id: "local-\(UUID().uuidString)",
-            user_id: SupabaseManager.shared.currentUser?.id ?? "local",
-            title: title,
-            last_message_at: nil,
-            message_count: nil,
-            created_at: ISO8601DateFormatter().string(from: Date())
-        )
-    }
-
-    private func createConversationSafely(title: String = "新对话") async throws -> Conversation? {
-        do {
-            return try await SupabaseManager.shared.createConversation(title: title)
-        } catch {
-            print("⚠️ 创建对话失败(将使用本地对话): \(error)")
-            return nil
-        }
-    }
 }

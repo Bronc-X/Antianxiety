@@ -3444,6 +3444,18 @@ hooks/
 
 ---
 
+## 2026-02-02 - Max 对话与数字孪生稳定性修复 ✅
+
+### ✅ 修复内容
+- Max 对话持久化改为兼容 `chat_conversations`，避免缺少 `conversations` 表导致对话失败。
+- 移除本地对话兜底，Max 必须打通后端与 AI，否则直接报错便于定位。
+- 数字孪生对话摘要改为优先读取 `chat_conversations`，兼容旧 `chat_messages`。
+
+### 🧪 运行提示
+- 模拟器请确保本地 Next 服务在 `http://localhost:3000` 运行（`npm run dev`）。
+
+---
+
 ## 2026-01-29 - 生产站点白屏排查与修复 ✅
 
 ### 🧯 症状

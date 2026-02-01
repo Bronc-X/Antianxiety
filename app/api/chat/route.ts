@@ -571,6 +571,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { messages, stream = true, message, conversationHistory, trigger_checkin, mode = 'fast' } = body; // 🆕 Added trigger_checkin + mode
 
+    if (!process.env.OPENAI_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'Missing OPENAI_API_KEY' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // 🆕 兼容旧版 /api/ai/chat 的请求格式（Android 客户端）
     // 旧格式: { message: string, conversationHistory: [] }
     // 新格式: { messages: [] }

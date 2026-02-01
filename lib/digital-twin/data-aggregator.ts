@@ -48,6 +48,8 @@ type ChatMessageRow = {
   sentiment?: string | null;
   topic?: string | null;
   category?: string | null;
+  role?: string | null;
+  content?: string | null;
 };
 
 // ============================================
@@ -293,14 +295,31 @@ async function fetchConversationSummary(
   startDate.setDate(startDate.getDate() - days);
 
   // 获取消息统计
-  const { data: messages, count } = await supabase
-    .from('chat_messages')
+  let messages: ChatMessageRow[] | null = null;
+  let totalMessages = 0;
+
+  const primaryQuery = await supabase
+    .from('chat_conversations')
     .select('*', { count: 'exact' })
     .eq('user_id', userId)
     .gte('created_at', startDate.toISOString())
     .order('created_at', { ascending: false });
 
-  const totalMessages = count || 0;
+  if (!primaryQuery.error) {
+    messages = primaryQuery.data as ChatMessageRow[] | null;
+    totalMessages = primaryQuery.count || 0;
+  } else {
+    const fallbackQuery = await supabase
+      .from('chat_messages')
+      .select('*', { count: 'exact' })
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (!fallbackQuery.error) {
+      messages = fallbackQuery.data as ChatMessageRow[] | null;
+      totalMessages = fallbackQuery.count || 0;
+    }
+  }
   const lastInteraction = messages?.[0]?.created_at || new Date().toISOString();
 
   // 简单的情绪趋势分析（基于消息数量变化）

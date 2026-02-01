@@ -7,7 +7,7 @@ import Foundation
 
 // MARK: - Conversation 对话
 
-/// 对话模型 - 对应 `conversations` 表
+/// 对话模型 - 逻辑对话（可能由 chat_conversations.session_id 生成）
 struct Conversation: Codable, Identifiable {
     let id: String
     let user_id: String
@@ -33,7 +33,7 @@ struct Conversation: Codable, Identifiable {
 
 // MARK: - ChatMessageDTO 消息 DTO
 
-/// 消息 DTO - 对应 `chat_messages` 表
+/// 消息 DTO - 对应 `chat_messages` 或 `chat_conversations`
 struct ChatMessageDTO: Codable, Identifiable {
     let id: String
     let conversation_id: String

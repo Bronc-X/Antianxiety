@@ -444,65 +444,204 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     }
     
     // MARK: - Chat API Methods (对话管理)
+
+    private struct ChatConversationRow: Codable {
+        let id: String
+        let user_id: String
+        let role: String
+        let content: String
+        let session_id: String?
+        let created_at: String?
+    }
+
+    private struct ChatConversationInsert: Encodable {
+        let user_id: String
+        let role: String
+        let content: String
+        let session_id: String?
+    }
     
     /// 获取所有对话列表
     func getConversations() async throws -> [Conversation] {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
-        
-        let endpoint = "conversations?user_id=eq.\(user.id)&select=*&order=last_message_at.desc.nullsfirst"
-        return try await request(endpoint)
+
+        do {
+            let endpoint = "conversations?user_id=eq.\(user.id)&select=*&order=last_message_at.desc.nullsfirst"
+            return try await request(endpoint)
+        } catch {
+            return try await getChatConversationsFallback(userId: user.id)
+        }
     }
     
     /// 创建新对话
     func createConversation(title: String = "新对话") async throws -> Conversation {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
-        
-        let body = CreateConversationRequest(user_id: user.id, title: title)
-        let endpoint = "conversations"
-        let results: [Conversation] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
-        
-        guard let conversation = results.first else {
-            throw SupabaseError.requestFailed
+
+        do {
+            let body = CreateConversationRequest(user_id: user.id, title: title)
+            let endpoint = "conversations"
+            let results: [Conversation] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
+            guard let conversation = results.first else {
+                throw SupabaseError.requestFailed
+            }
+            return conversation
+        } catch {
+            // Fallback: use session_id grouping in chat_conversations
+            let sessionId = UUID().uuidString
+            return Conversation(
+                id: sessionId,
+                user_id: user.id,
+                title: title,
+                last_message_at: nil,
+                message_count: nil,
+                created_at: ISO8601DateFormatter().string(from: Date())
+            )
         }
-        return conversation
     }
     
     /// 获取对话历史消息
     func getChatHistory(conversationId: String) async throws -> [ChatMessageDTO] {
-        let endpoint = "chat_messages?conversation_id=eq.\(conversationId)&select=*&order=created_at.asc"
-        return try await request(endpoint)
+        do {
+            let endpoint = "chat_messages?conversation_id=eq.\(conversationId)&select=*&order=created_at.asc"
+            return try await request(endpoint)
+        } catch {
+            guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+            do {
+                let endpoint = "chat_conversations?user_id=eq.\(user.id)&session_id=eq.\(conversationId)&select=*&order=created_at.asc"
+                let rows: [ChatConversationRow] = try await request(endpoint)
+                return rows.map { row in
+                    ChatMessageDTO(
+                        id: row.id,
+                        conversation_id: conversationId,
+                        role: row.role,
+                        content: row.content,
+                        created_at: row.created_at
+                    )
+                }
+            } catch {
+                let endpoint = "chat_conversations?user_id=eq.\(user.id)&select=*&order=created_at.asc"
+                let rows: [ChatConversationRow] = try await request(endpoint)
+                return rows.map { row in
+                    ChatMessageDTO(
+                        id: row.id,
+                        conversation_id: conversationId,
+                        role: row.role,
+                        content: row.content,
+                        created_at: row.created_at
+                    )
+                }
+            }
+        }
     }
     
     /// 追加消息到对话
     func appendMessage(conversationId: String, role: String, content: String) async throws -> ChatMessageDTO {
-        let body = AppendMessageRequest(conversation_id: conversationId, role: role, content: content)
-        let endpoint = "chat_messages"
-        let results: [ChatMessageDTO] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
-        
-        guard let message = results.first else {
-            throw SupabaseError.requestFailed
+        do {
+            let body = AppendMessageRequest(conversation_id: conversationId, role: role, content: content)
+            let endpoint = "chat_messages"
+            let results: [ChatMessageDTO] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
+            guard let message = results.first else {
+                throw SupabaseError.requestFailed
+            }
+
+            // 更新对话的 last_message_at
+            let updateEndpoint = "conversations?id=eq.\(conversationId)"
+            struct UpdateLastMessage: Encodable {
+                let last_message_at: String
+            }
+            let now = ISO8601DateFormatter().string(from: Date())
+            try await requestVoid(updateEndpoint, method: "PATCH", body: UpdateLastMessage(last_message_at: now))
+
+            return message
+        } catch {
+            guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+            let endpoint = "chat_conversations"
+            do {
+                let body = ChatConversationInsert(user_id: user.id, role: role, content: content, session_id: conversationId)
+                let results: [ChatConversationRow] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
+                guard let row = results.first else {
+                    throw SupabaseError.requestFailed
+                }
+                return ChatMessageDTO(
+                    id: row.id,
+                    conversation_id: conversationId,
+                    role: row.role,
+                    content: row.content,
+                    created_at: row.created_at
+                )
+            } catch {
+                let body = ChatConversationInsert(user_id: user.id, role: role, content: content, session_id: nil)
+                let results: [ChatConversationRow] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
+                guard let row = results.first else {
+                    throw SupabaseError.requestFailed
+                }
+                return ChatMessageDTO(
+                    id: row.id,
+                    conversation_id: conversationId,
+                    role: row.role,
+                    content: row.content,
+                    created_at: row.created_at
+                )
+            }
         }
-        
-        // 更新对话的 last_message_at
-        let updateEndpoint = "conversations?id=eq.\(conversationId)"
-        struct UpdateLastMessage: Encodable {
-            let last_message_at: String
-        }
-        let now = ISO8601DateFormatter().string(from: Date())
-        try await requestVoid(updateEndpoint, method: "PATCH", body: UpdateLastMessage(last_message_at: now))
-        
-        return message
     }
     
     /// 删除对话
     func deleteConversation(conversationId: String) async throws {
-        // 先删除消息
-        let messagesEndpoint = "chat_messages?conversation_id=eq.\(conversationId)"
-        try await requestVoid(messagesEndpoint, method: "DELETE")
-        
-        // 再删除对话
-        let conversationEndpoint = "conversations?id=eq.\(conversationId)"
-        try await requestVoid(conversationEndpoint, method: "DELETE")
+        do {
+            // 先删除消息
+            let messagesEndpoint = "chat_messages?conversation_id=eq.\(conversationId)"
+            try await requestVoid(messagesEndpoint, method: "DELETE")
+
+            // 再删除对话
+            let conversationEndpoint = "conversations?id=eq.\(conversationId)"
+            try await requestVoid(conversationEndpoint, method: "DELETE")
+        } catch {
+            guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+            let endpoint = "chat_conversations?user_id=eq.\(user.id)&session_id=eq.\(conversationId)"
+            try await requestVoid(endpoint, method: "DELETE")
+        }
+    }
+
+    private func getChatConversationsFallback(userId: String) async throws -> [Conversation] {
+        let rows: [ChatConversationRow]
+        do {
+            let endpoint = "chat_conversations?user_id=eq.\(userId)&select=id,session_id,role,content,created_at&order=created_at.desc&limit=200"
+            rows = try await request(endpoint)
+        } catch {
+            let endpoint = "chat_conversations?user_id=eq.\(userId)&select=id,role,content,created_at&order=created_at.desc&limit=200"
+            rows = try await request(endpoint)
+        }
+        if rows.isEmpty {
+            return []
+        }
+
+        var seen: Set<String> = []
+        var conversations: [Conversation] = []
+        let formatter = ISO8601DateFormatter()
+
+        for row in rows {
+            let sessionId = row.session_id ?? "default"
+            guard !seen.contains(sessionId) else { continue }
+            seen.insert(sessionId)
+
+            let title = row.role == "user" ? String(row.content.prefix(20)) : "新对话"
+            let lastMessageAt = row.created_at
+            let createdAt = row.created_at ?? formatter.string(from: Date())
+
+            conversations.append(
+                Conversation(
+                    id: sessionId,
+                    user_id: userId,
+                    title: title.isEmpty ? "新对话" : title,
+                    last_message_at: lastMessageAt,
+                    message_count: nil,
+                    created_at: createdAt
+                )
+            )
+        }
+
+        return conversations
     }
     
     // MARK: - Dashboard API Methods
