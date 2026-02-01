@@ -1,17 +1,28 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
+  const headerStore = await headers();
+  const authHeader = headerStore.get('authorization') ?? headerStore.get('Authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+  const globalHeaders: Record<string, string> = {};
+  if (bearerToken) {
+    globalHeaders.Authorization = `Bearer ${bearerToken}`;
+  }
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: Object.keys(globalHeaders).length > 0 ? { headers: globalHeaders } : undefined,
       cookies: {
         get(name: string) {
           try {
-            return cookieStore.get(name)?.value;
+            const value = cookieStore.get(name)?.value;
+            if (value) return value;
+            if (name === 'sb-access-token' && bearerToken) return bearerToken;
+            return undefined;
           } catch (error) {
             console.error('Error getting cookie:', error);
             return undefined;

@@ -158,17 +158,22 @@ class ClinicalOnboardingViewModel: ObservableObject {
         let isi = isiQuestions.compactMap { answers[$0.id] }.reduce(0, +)
         let scores = ["gad7": gad7, "phq9": phq9, "isi": isi, "pss10": 0]
         
+        print("[ClinicalOnboarding] 准备保存分数: \(scores)")
+        
         Task {
             do {
                 guard let user = SupabaseManager.shared.currentUser else {
+                    print("[ClinicalOnboarding] ❌ 无用户，跳过保存")
                     await MainActor.run { isLoading = false; phase = .complete }
                     return
                 }
-                struct ScaleUpdate: Encodable { let inferred_scale_scores: [String: Int] }
-                let endpoint = "profiles?id=eq.\(user.id)"
-                try await SupabaseManager.shared.requestVoid(endpoint, method: "PATCH", body: ScaleUpdate(inferred_scale_scores: scores), prefer: "return=representation")
+                print("[ClinicalOnboarding] 用户 ID: \(user.id)")
+                try await SupabaseManager.shared.upsertClinicalScores(scores)
+                print("[ClinicalOnboarding] ✅ 分数已保存到 Supabase")
+                print("[ClinicalOnboarding] ✅ isClinicalComplete 已设置为 true")
                 await MainActor.run { isLoading = false; phase = .complete }
             } catch {
+                print("[ClinicalOnboarding] ❌ 保存失败: \(error)")
                 await MainActor.run { self.error = error.localizedDescription; isLoading = false; phase = .complete }
             }
         }
@@ -180,6 +185,7 @@ class ClinicalOnboardingViewModel: ObservableObject {
 struct ClinicalOnboardingView: View {
     @StateObject private var viewModel = ClinicalOnboardingViewModel()
     @Binding var isComplete: Bool
+    @Environment(\.screenMetrics) private var metrics
     
     var body: some View {
         GeometryReader { geo in
@@ -241,7 +247,7 @@ struct ClinicalOnboardingView: View {
             }
             .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
             .padding(.horizontal, 24)
-            .padding(.bottom, geo.safeAreaInsets.bottom + 24)
+            .padding(.bottom, metrics.safeAreaInsets.bottom + 24)
         }
     }
     
@@ -268,14 +274,23 @@ struct ClinicalOnboardingView: View {
     // MARK: - Questions (全屏铺满，动态宽度)
     
     private func questionsView(geo: GeometryProxy) -> some View {
-        let screenWidth = geo.size.width
-        let horizontalPadding: CGFloat = 16
-        let contentWidth = screenWidth - horizontalPadding * 2
-        let questionWidth = contentWidth * 0.38  // 题目占 38%
+        let screenWidth = metrics.safeWidth
+        let horizontalPadding: CGFloat = metrics.isCompactWidth ? 14 : 16
+        let contentWidth = max(0, screenWidth - horizontalPadding * 2)
+        let rowHorizontalInset: CGFloat = 12
+        let availableWidth = max(0, contentWidth - rowHorizontalInset * 2)
+        let optionCount = max(viewModel.currentOptionLabels.count, viewModel.currentPageQuestions.map(\.values.count).max() ?? 4)
+        let optionSpacing: CGFloat = 8
+        let minOptionWidth: CGFloat = metrics.isCompactWidth ? 22 : 26
+        let spacingTotal = CGFloat(optionCount) * optionSpacing
+        let minOptionsTotal = CGFloat(optionCount) * minOptionWidth
+        let maxQuestionWidth = max(80, availableWidth - minOptionsTotal - spacingTotal)
+        let questionWidth = min(availableWidth * 0.55, maxQuestionWidth)
+        let optionWidth = max(minOptionWidth, (availableWidth - questionWidth - spacingTotal) / CGFloat(optionCount))
         
         return VStack(spacing: 0) {
             // 顶部安全区占位
-            Color.clear.frame(height: geo.safeAreaInsets.top)
+            Color.clear.frame(height: metrics.safeAreaInsets.top)
             
             // 头部：科学依据 + 页码
             HStack {
@@ -300,14 +315,26 @@ struct ClinicalOnboardingView: View {
             .padding(.bottom, 8)
             
             // 选项标签行
-            optionLabelsRow(questionWidth: questionWidth)
+            optionLabelsRow(
+                questionWidth: questionWidth,
+                optionWidth: optionWidth,
+                optionSpacing: optionSpacing,
+                rowHorizontalInset: rowHorizontalInset
+            )
                 .padding(.horizontal, horizontalPadding)
             
             // 问题列表
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(Array(viewModel.currentPageQuestions.enumerated()), id: \.element.id) { idx, q in
-                        questionRow(q, globalIndex: viewModel.currentPage * viewModel.questionsPerPage + idx, questionWidth: questionWidth)
+                        questionRow(
+                            q,
+                            globalIndex: viewModel.currentPage * viewModel.questionsPerPage + idx,
+                            questionWidth: questionWidth,
+                            optionWidth: optionWidth,
+                            optionSpacing: optionSpacing,
+                            rowHorizontalInset: rowHorizontalInset
+                        )
                     }
                 }
                 .padding(.horizontal, horizontalPadding)
@@ -319,24 +346,36 @@ struct ClinicalOnboardingView: View {
         }
     }
     
-    private func optionLabelsRow(questionWidth: CGFloat) -> some View {
-        HStack(spacing: 8) {
+    private func optionLabelsRow(
+        questionWidth: CGFloat,
+        optionWidth: CGFloat,
+        optionSpacing: CGFloat,
+        rowHorizontalInset: CGFloat
+    ) -> some View {
+        HStack(spacing: optionSpacing) {
             Text("")
                 .frame(width: questionWidth, alignment: .leading)
             ForEach(viewModel.currentOptionLabels, id: \.self) { label in
                 Text(label)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.textSecondary)
-                    .frame(maxWidth: .infinity)
+                    .frame(width: optionWidth)
                     .multilineTextAlignment(.center)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, rowHorizontalInset)
         .padding(.vertical, 8)
     }
     
-    private func questionRow(_ question: ClinicalScaleQuestion, globalIndex: Int, questionWidth: CGFloat) -> some View {
-        HStack(spacing: 8) {
+    private func questionRow(
+        _ question: ClinicalScaleQuestion,
+        globalIndex: Int,
+        questionWidth: CGFloat,
+        optionWidth: CGFloat,
+        optionSpacing: CGFloat,
+        rowHorizontalInset: CGFloat
+    ) -> some View {
+        HStack(spacing: optionSpacing) {
             // 题号 + 题目（动态宽度）
             HStack(spacing: 4) {
                 Text("\(globalIndex + 1).")
@@ -345,31 +384,32 @@ struct ClinicalOnboardingView: View {
                 Text(question.text)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(width: questionWidth, alignment: .leading)
             
             // 选项圆圈
+            let optionSize = min(28, optionWidth)
             ForEach(Array(question.values.enumerated()), id: \.offset) { _, value in
                 Button(action: { viewModel.answer(questionId: question.id, value: value, globalIndex: globalIndex) }) {
                     ZStack {
                         Circle()
                             .stroke(viewModel.answers[question.id] == value ? Color.liquidGlassAccent : Color.white.opacity(0.3), lineWidth: 2)
-                            .frame(width: 28, height: 28)
+                            .frame(width: optionSize, height: optionSize)
                         if viewModel.answers[question.id] == value {
                             Circle()
                                 .fill(Color.liquidGlassAccent)
-                                .frame(width: 14, height: 14)
+                                .frame(width: optionSize * 0.5, height: optionSize * 0.5)
                         }
                     }
                 }
                 .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
+                .frame(width: optionWidth)
             }
         }
         .padding(.vertical, 16)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, rowHorizontalInset)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(viewModel.answers[question.id] != nil ? Color.liquidGlassAccent.opacity(0.1) : Color.white.opacity(0.04))
@@ -397,7 +437,7 @@ struct ClinicalOnboardingView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
-        .padding(.bottom, geo.safeAreaInsets.bottom + 16)
+        .padding(.bottom, metrics.safeAreaInsets.bottom + 16)
         .background(
             LinearGradient(
                 colors: [Color.bgPrimary.opacity(0), Color.bgPrimary.opacity(0.95)],
@@ -453,7 +493,7 @@ struct ClinicalOnboardingView: View {
             
             Spacer()
             
-            HStack(spacing: 16) {
+        HStack(spacing: 16) {
                 Button(action: { viewModel.goBackFromEncouragement() }) {
                     Label("返回", systemImage: "chevron.left")
                         .frame(maxWidth: .infinity)
@@ -467,16 +507,16 @@ struct ClinicalOnboardingView: View {
                         .frame(height: 52)
                 }
                 .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, geo.safeAreaInsets.bottom + 24)
         }
+        .padding(.horizontal, 24)
+        .padding(.bottom, metrics.safeAreaInsets.bottom + 24)
+    }
     }
     
     // MARK: - Safety
     
     private func safetyView(geo: GeometryProxy) -> some View {
-        let bottomPad = geo.safeAreaInsets.bottom + 24
+        let bottomPad = metrics.safeAreaInsets.bottom + 24
         
         return ScrollView {
             VStack(spacing: 24) {
@@ -595,7 +635,7 @@ struct ClinicalOnboardingView: View {
             }
             .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
             .padding(.horizontal, 24)
-            .padding(.bottom, geo.safeAreaInsets.bottom + 24)
+            .padding(.bottom, metrics.safeAreaInsets.bottom + 24)
         }
     }
     

@@ -128,6 +128,8 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
                 UserDefaults.standard.set(authResponse.refreshToken, forKey: "supabase_refresh_token")
                 currentUser = authResponse.user
                 isAuthenticated = true
+                await ensureProfileRow()
+                await checkClinicalStatus()
             } else {
                 // 如果需要验证邮箱，可能只返回 User 信息而无 Token
                 // 这里暂时假设需要登录，或者提示用户去验证邮箱
@@ -178,11 +180,13 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             UserDefaults.standard.set(authResponse.refreshToken, forKey: "supabase_refresh_token")
             
             currentUser = authResponse.user
-            currentUser = authResponse.user
-            isAuthenticated = true
             
-            // 检查临床量表状态
-            Task { await checkClinicalStatus() }
+            // 先检查临床量表状态，确保在 UI 渲染前完成
+            await ensureProfileRow()
+            await checkClinicalStatus()
+            
+            // 最后设置认证状态，触发 UI 更新
+            isAuthenticated = true
         } else {
             // 尝试解析错误信息
             if let errorDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -219,6 +223,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             currentUser = user
             isAuthenticated = true
             // 检查临床量表状态
+            await ensureProfileRow()
             await checkClinicalStatus()
         } catch {
             // Token 无效，尝试刷新
@@ -270,7 +275,10 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         currentUser = authResponse.user
         isAuthenticated = true
         // 刷新会话也检查临床状态
-        Task { await checkClinicalStatus() }
+        Task {
+            await ensureProfileRow()
+            await checkClinicalStatus()
+        }
     }
 
     
@@ -297,6 +305,28 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         }
         return refreshed
     }
+
+    private func buildRestURL(endpoint: String) -> URL? {
+        var endpointPath = endpoint
+        var query: String?
+
+        if let queryIndex = endpoint.firstIndex(of: "?") {
+            endpointPath = String(endpoint[..<queryIndex])
+            let nextIndex = endpoint.index(after: queryIndex)
+            query = nextIndex < endpoint.endIndex ? String(endpoint[nextIndex...]) : nil
+        }
+
+        let baseURL = SupabaseConfig.url
+        var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
+        let basePath = components?.path ?? ""
+        let trimmedBasePath = basePath.hasSuffix("/") ? String(basePath.dropLast()) : basePath
+        let trimmedEndpointPath = endpointPath.hasPrefix("/") ? String(endpointPath.dropFirst()) : endpointPath
+        components?.path = "\(trimmedBasePath)/rest/v1/\(trimmedEndpointPath)"
+        if let query {
+            components?.percentEncodedQuery = query
+        }
+        return components?.url
+    }
     
     func request<T: Decodable>(
         _ endpoint: String,
@@ -306,7 +336,12 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     ) async throws -> T {
         let token = try await ensureAccessToken()
         
-        let url = SupabaseConfig.url.appendingPathComponent("rest/v1/\(endpoint)")
+        guard let url = buildRestURL(endpoint: endpoint) else {
+            throw SupabaseError.requestFailed
+        }
+        print("[SupabaseManager.request] URL: \(url.absoluteString)")
+        print("[SupabaseManager.request] Method: \(method)")
+        
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -323,6 +358,13 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         }
         
         let (data, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse {
+            print("[SupabaseManager.request] Status: \(httpResponse.statusCode)")
+            if let responseStr = String(data: data, encoding: .utf8) {
+                print("[SupabaseManager.request] Response: \(responseStr.prefix(500))")
+            }
+        }
 
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
             try await refreshSession()
@@ -351,7 +393,12 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     ) async throws {
         let token = try await ensureAccessToken()
 
-        let url = SupabaseConfig.url.appendingPathComponent("rest/v1/\(endpoint)")
+        guard let url = buildRestURL(endpoint: endpoint) else {
+            throw SupabaseError.requestFailed
+        }
+        print("[SupabaseManager.requestVoid] URL: \(url.absoluteString)")
+        print("[SupabaseManager.requestVoid] Method: \(method)")
+        
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -364,10 +411,22 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         }
 
         if let body = body {
-            request.httpBody = try JSONEncoder().encode(body)
+            let bodyData = try JSONEncoder().encode(body)
+            request.httpBody = bodyData
+            if let bodyStr = String(data: bodyData, encoding: .utf8) {
+                print("[SupabaseManager.requestVoid] Body: \(bodyStr)")
+            }
         }
 
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse {
+            print("[SupabaseManager.requestVoid] Status: \(httpResponse.statusCode)")
+            if let responseStr = String(data: data, encoding: .utf8), !responseStr.isEmpty {
+                print("[SupabaseManager.requestVoid] Response: \(responseStr.prefix(500))")
+            }
+        }
+        
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
             try await refreshSession()
             let retryToken = try await ensureAccessToken()
@@ -583,21 +642,72 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         
         return updatedProfile
     }
+
+    private func ensureProfileRow() async {
+        guard let user = currentUser else { return }
+
+        do {
+            let endpoint = "profiles?id=eq.\(user.id)&select=id&limit=1"
+            let results: [ProfileRow] = try await request(endpoint)
+            if !results.isEmpty { return }
+        } catch {
+            print("[SupabaseManager] ⚠️ ensureProfileRow select failed: \(error)")
+        }
+
+        do {
+            let payload = ProfileUpsertPayload(id: user.id, email: user.email, inferred_scale_scores: nil)
+            try await requestVoid(
+                "profiles?on_conflict=id",
+                method: "POST",
+                body: payload,
+                prefer: "resolution=merge-duplicates,return=representation"
+            )
+            print("[SupabaseManager] ✅ profile row ensured")
+        } catch {
+            print("[SupabaseManager] ⚠️ ensureProfileRow upsert failed: \(error)")
+        }
+    }
+
+    func upsertClinicalScores(_ scores: [String: Int]) async throws {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        let payload = ProfileUpsertPayload(id: user.id, email: user.email, inferred_scale_scores: scores)
+        try await requestVoid(
+            "profiles?on_conflict=id",
+            method: "POST",
+            body: payload,
+            prefer: "resolution=merge-duplicates,return=representation"
+        )
+        self.isClinicalComplete = true
+    }
     
     // MARK: - Clinical Status Check
     func checkClinicalStatus() async {
+        print("[SupabaseManager] 开始检查临床量表状态...")
         do {
-            guard let profile = try await getProfileSettings() else { return }
+            var profile = try await getProfileSettings()
+            if profile == nil {
+                await ensureProfileRow()
+                profile = try await getProfileSettings()
+            }
+            guard let profile else {
+                print("[SupabaseManager] ❌ 未获取到 profile")
+                self.isClinicalComplete = false
+                return
+            }
+            print("[SupabaseManager] 获取到 profile，inferred_scale_scores = \(String(describing: profile.inferred_scale_scores))")
             // 检查是否有 baseline scores (GAD-7 etc)
             if let scores = profile.inferred_scale_scores, !scores.isEmpty {
                 // 更严格的检查：确保包含 gad7, phq9, isi
                 // 但简单非空通常足够，或者检查 keys
                 self.isClinicalComplete = true
+                print("[SupabaseManager] ✅ isClinicalComplete = true")
             } else {
                 self.isClinicalComplete = false
+                print("[SupabaseManager] ⚠️ isClinicalComplete = false (no scores)")
             }
         } catch {
-            print("[SupabaseManager] Check clinical status error: \(error)")
+            print("[SupabaseManager] ❌ Check clinical status error: \(error)")
         }
     }
 
@@ -1191,6 +1301,29 @@ struct ProfileSettingsUpdate: Encodable {
         if let ai_persona_context { try container.encode(ai_persona_context, forKey: .ai_persona_context) }
         if let ai_settings { try container.encode(ai_settings, forKey: .ai_settings) }
         if let preferred_language { try container.encode(preferred_language, forKey: .preferred_language) }
+    }
+}
+
+private struct ProfileRow: Decodable {
+    let id: String
+}
+
+private struct ProfileUpsertPayload: Encodable {
+    let id: String
+    let email: String?
+    let inferred_scale_scores: [String: Int]?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case inferred_scale_scores
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        if let email { try container.encode(email, forKey: .email) }
+        if let inferred_scale_scores { try container.encode(inferred_scale_scores, forKey: .inferred_scale_scores) }
     }
 }
 
