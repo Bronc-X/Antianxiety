@@ -897,9 +897,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             }
         }
 
-        if !isSimulator {
-            AppAPIConfig.fallbackBaseURLs.forEach { addCandidate($0) }
-        }
+        AppAPIConfig.fallbackBaseURLs.forEach { addCandidate($0) }
 
         return candidates
     }
