@@ -748,7 +748,12 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         static let overrideBaseURLKey = "app_api_base_url_override"
         static let resolvedAtKey = "app_api_base_url_resolved_at"
         static let healthPath = "api/health"
-        static let enforceSingleSource = true
+        static let enforceSingleSource = false
+        static let fallbackBaseURLs = [
+            "https://project-metabasis.vercel.app",
+            "https://antianxiety.app",
+            "https://www.antianxiety.app"
+        ]
     }
 
     func refreshAppAPIBaseURL() async {
@@ -816,6 +821,9 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
 
         if let infoBase = appAPIBaseURLFromInfoPlist(),
            let infoURL = URL(string: infoBase) {
+            if !isSimulator, isPrivateHost(infoURL.host), let fallback = fallbackRemoteBaseURL() {
+                return fallback
+            }
             if isSimulator, isPrivateHost(infoURL.host) {
                 let port = infoURL.port ?? 3001
                 return URL(string: "http://localhost:\(port)")
@@ -827,7 +835,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             return URL(string: "http://localhost:3001") ?? URL(string: "http://localhost:3000")
         }
 
-        return nil
+        return fallbackRemoteBaseURL()
     }
 
     func currentAppAPIBaseURLString() -> String? {
@@ -889,6 +897,10 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             }
         }
 
+        if !isSimulator {
+            AppAPIConfig.fallbackBaseURLs.forEach { addCandidate($0) }
+        }
+
         return candidates
     }
 
@@ -932,6 +944,19 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let value = resolvedURL.absoluteString.hasSuffix("/") ? String(resolvedURL.absoluteString.dropLast()) : resolvedURL.absoluteString
         UserDefaults.standard.set(value, forKey: AppAPIConfig.cachedBaseURLKey)
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: AppAPIConfig.resolvedAtKey)
+    }
+
+    private func fallbackRemoteBaseURL() -> URL? {
+        for raw in AppAPIConfig.fallbackBaseURLs {
+            guard let sanitized = sanitizeAppAPIBaseURLString(raw),
+                  let url = URL(string: sanitized),
+                  url.scheme != nil,
+                  url.host != nil else {
+                continue
+            }
+            return url
+        }
+        return nil
     }
 
     private func isAppAPIHealthy(baseURL: URL) async -> Bool {

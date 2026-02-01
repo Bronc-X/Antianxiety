@@ -102,10 +102,14 @@ struct MaxChatView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { viewModel.startNewConversation() } label: {
                         Image(systemName: "plus.bubble")
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
                     }
-                    .buttonStyle(LiquidGlassButtonStyle(isProminent: false))
-                    .scaleEffect(0.8)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("新建对话")
                 }
                 
                 // 🆕 P2 离线状态指示
@@ -342,108 +346,18 @@ struct InputBarV2: View {
     @State private var isRecording = false
     @Environment(\.screenMetrics) private var metrics
     
-    var body: some View {
-        let controlSize: CGFloat = metrics.isCompactWidth ? 32 : 36
-        let iconSize: CGFloat = metrics.isCompactWidth ? 16 : 18
-        let sendSize: CGFloat = metrics.isCompactWidth ? 32 : 36
-        let fieldHorizontalPadding: CGFloat = metrics.isCompactWidth ? 12 : 14
-        let fieldVerticalPadding: CGFloat = metrics.isCompactHeight ? 8 : 10
-        let barCornerRadius: CGFloat = metrics.isCompactWidth ? 20 : 24
+    private var controlSize: CGFloat { metrics.isCompactWidth ? 32 : 36 }
+    private var iconSize: CGFloat { metrics.isCompactWidth ? 16 : 18 }
+    private var sendSize: CGFloat { metrics.isCompactWidth ? 32 : 36 }
+    private var fieldHorizontalPadding: CGFloat { metrics.isCompactWidth ? 12 : 14 }
+    private var fieldVerticalPadding: CGFloat { metrics.isCompactHeight ? 8 : 10 }
+    private var barCornerRadius: CGFloat { metrics.isCompactWidth ? 20 : 24 }
 
+    var body: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 10) {
-                // 🆕 附件按钮（图片）
-                Button(action: {
-                    let impact = UIImpactFeedbackGenerator(style: .light)
-                    impact.impactOccurred()
-                    showImagePicker = true
-                }) {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .font(.system(size: iconSize))
-                        .foregroundColor(.white.opacity(0.7))
-                        .frame(width: controlSize, height: controlSize)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                }
-                .disabled(isTyping)
-                .opacity(isTyping ? 0.5 : 1)
-                
-                // 模式切换按钮
-                Button(action: {
-                    let impact = UIImpactFeedbackGenerator(style: .light)
-                    impact.impactOccurred()
-                    onToggleMode()
-                }) {
-                    Image(systemName: modelMode.icon)
-                        .font(.system(size: iconSize))
-                        .foregroundColor(modelMode == .think ? .liquidGlassAccent : .white.opacity(0.7))
-                        .frame(width: controlSize, height: controlSize)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(modelMode == .think ? Color.liquidGlassAccent.opacity(0.5) : Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                }
-                .disabled(isTyping)
-                .opacity(isTyping ? 0.5 : 1)
-                
-                // 输入框
-                TextField("与 Max 对话...", text: $text)
-                    .focused(isFocused)
-                    .textFieldStyle(.plain)
-                    .padding(.horizontal, fieldHorizontalPadding)
-                    .padding(.vertical, fieldVerticalPadding)
-                    .background {
-                        RoundedRectangle(cornerRadius: barCornerRadius)
-                            .stroke(Color(white: 0.2), lineWidth: 1)
-                    }
-                    .foregroundColor(.white)
-                
-                // 🆕 语音输入按钮
-                Button(action: {
-                    let impact = UIImpactFeedbackGenerator(style: .light)
-                    impact.impactOccurred()
-                    showVoiceRecorder = true
-                }) {
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: iconSize))
-                        .foregroundColor(.white.opacity(0.7))
-                        .frame(width: controlSize, height: controlSize)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                }
-                .disabled(isTyping)
-                .opacity(isTyping ? 0.5 : 1)
-                
-                // 发送/停止按钮
-                if isTyping {
-                    Button(action: {
-                        let impact = UIImpactFeedbackGenerator(style: .medium)
-                        impact.impactOccurred()
-                        onStop()
-                    }) {
-                        Image(systemName: "stop.circle.fill")
-                            .font(.system(size: sendSize))
-                            .foregroundStyle(.red.opacity(0.9))
-                            .shadow(color: .red.opacity(0.4), radius: 8)
-                    }
-                } else {
-                    Button { onSend() } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: sendSize))
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(Color.bgPrimary, Color.liquidGlassAccent)
-                            .shadow(color: .liquidGlassAccent.opacity(0.4), radius: 8)
-                    }
-                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
+            ViewThatFits(in: .horizontal) {
+                inputRow(showExtras: true)
+                inputRow(showExtras: false)
             }
         }
         .padding(.horizontal, metrics.isCompactWidth ? 10 : 12)
@@ -465,6 +379,158 @@ struct InputBarV2: View {
                 text = transcribedText
             }
         }
+    }
+
+    @ViewBuilder
+    private func inputRow(showExtras: Bool) -> some View {
+        HStack(spacing: 10) {
+            if showExtras {
+                attachmentButton
+            } else {
+                compactExtrasMenu
+            }
+
+            modeButton
+
+            textFieldView
+
+            if showExtras {
+                voiceButton
+            }
+
+            sendButton
+        }
+    }
+
+    private var attachmentButton: some View {
+        Button(action: {
+            lightImpact()
+            showImagePicker = true
+        }) {
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.system(size: iconSize))
+                .foregroundColor(.white.opacity(0.7))
+                .frame(width: controlSize, height: controlSize)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .overlay(
+                    Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        }
+        .disabled(isTyping)
+        .opacity(isTyping ? 0.5 : 1)
+    }
+
+    private var voiceButton: some View {
+        Button(action: {
+            lightImpact()
+            showVoiceRecorder = true
+        }) {
+            Image(systemName: "mic.fill")
+                .font(.system(size: iconSize))
+                .foregroundColor(.white.opacity(0.7))
+                .frame(width: controlSize, height: controlSize)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .overlay(
+                    Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        }
+        .disabled(isTyping)
+        .opacity(isTyping ? 0.5 : 1)
+    }
+
+    private var compactExtrasMenu: some View {
+        Menu {
+            Button {
+                lightImpact()
+                showImagePicker = true
+            } label: {
+                Label("上传图片", systemImage: "photo.on.rectangle.angled")
+            }
+            Button {
+                lightImpact()
+                showVoiceRecorder = true
+            } label: {
+                Label("语音输入", systemImage: "mic.fill")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: iconSize))
+                .foregroundColor(.white.opacity(0.7))
+                .frame(width: controlSize, height: controlSize)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .overlay(
+                    Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        }
+        .disabled(isTyping)
+        .opacity(isTyping ? 0.5 : 1)
+    }
+
+    private var modeButton: some View {
+        Button(action: {
+            lightImpact()
+            onToggleMode()
+        }) {
+            Image(systemName: modelMode.icon)
+                .font(.system(size: iconSize))
+                .foregroundColor(modelMode == .think ? .liquidGlassAccent : .white.opacity(0.7))
+                .frame(width: controlSize, height: controlSize)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(modelMode == .think ? Color.liquidGlassAccent.opacity(0.5) : Color.white.opacity(0.1), lineWidth: 1)
+                )
+        }
+        .disabled(isTyping)
+        .opacity(isTyping ? 0.5 : 1)
+    }
+
+    private var textFieldView: some View {
+        TextField("与 Max 对话...", text: $text)
+            .focused(isFocused)
+            .textFieldStyle(.plain)
+            .padding(.horizontal, fieldHorizontalPadding)
+            .padding(.vertical, fieldVerticalPadding)
+            .background {
+                RoundedRectangle(cornerRadius: barCornerRadius)
+                    .stroke(Color(white: 0.2), lineWidth: 1)
+            }
+            .foregroundColor(.white)
+            .layoutPriority(1)
+    }
+
+    @ViewBuilder
+    private var sendButton: some View {
+        if isTyping {
+            Button(action: {
+                let impact = UIImpactFeedbackGenerator(style: .medium)
+                impact.impactOccurred()
+                onStop()
+            }) {
+                Image(systemName: "stop.circle.fill")
+                    .font(.system(size: sendSize))
+                    .foregroundStyle(.red.opacity(0.9))
+                    .shadow(color: .red.opacity(0.4), radius: 8)
+            }
+        } else {
+            Button { onSend() } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: sendSize))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.bgPrimary, Color.liquidGlassAccent)
+                    .shadow(color: .liquidGlassAccent.opacity(0.4), radius: 8)
+            }
+            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
+    private func lightImpact() {
+        let impact = UIImpactFeedbackGenerator(style: .light)
+        impact.impactOccurred()
     }
 }
 

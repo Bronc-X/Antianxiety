@@ -38,7 +38,7 @@ struct ScreenMetrics {
     }
 
     var tabBarWidth: CGFloat {
-        min(size.width - tabBarHorizontalPadding * 2, 560)
+        min(max(0, safeWidth - tabBarHorizontalPadding * 2), 560)
     }
 
     var bottomContentInset: CGFloat {
