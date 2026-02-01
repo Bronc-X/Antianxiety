@@ -2,6 +2,7 @@
 // 应用入口
 
 import SwiftUI
+import UIKit
 
 @main
 struct AntiAnxietynewApp: App {
@@ -12,6 +13,8 @@ struct AntiAnxietynewApp: App {
     init() {
         // 启动调试日志
         print("🚀 [App] AntiAnxiety iOS 启动")
+
+        configureTabBarAppearance()
         
         if let apiBase = Bundle.main.infoDictionary?["APP_API_BASE_URL"] as? String {
             print("✅ [Config] APP_API_BASE_URL = \(apiBase)")
@@ -45,5 +48,36 @@ struct AntiAnxietynewApp: App {
                     await supabase.checkSession()
                 }
         }
+    }
+
+    private func configureTabBarAppearance() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.bgPrimary)
+        appearance.shadowColor = UIColor.black.withAlphaComponent(0.25)
+
+        let normalAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor(Color.textTertiary),
+            .font: UIFont.systemFont(ofSize: 11, weight: .semibold)
+        ]
+        let selectedAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor(Color.liquidGlassAccent),
+            .font: UIFont.systemFont(ofSize: 11, weight: .bold)
+        ]
+
+        let itemAppearance = UITabBarItemAppearance()
+        itemAppearance.normal.iconColor = UIColor(Color.textTertiary)
+        itemAppearance.normal.titleTextAttributes = normalAttributes
+        itemAppearance.selected.iconColor = UIColor(Color.liquidGlassAccent)
+        itemAppearance.selected.titleTextAttributes = selectedAttributes
+
+        appearance.stackedLayoutAppearance = itemAppearance
+        appearance.inlineLayoutAppearance = itemAppearance
+        appearance.compactInlineLayoutAppearance = itemAppearance
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        UITabBar.appearance().isTranslucent = false
+        UITabBar.appearance().tintColor = UIColor(Color.liquidGlassAccent)
     }
 }

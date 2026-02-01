@@ -1045,7 +1045,12 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     // MARK: - Max Chat (Next API)
 
     func chatWithMax(messages: [ChatRequestMessage], mode: String = "fast") async throws -> String {
-        guard let url = appAPIURL(path: "api/chat") else {
+        var url = appAPIURL(path: "api/chat")
+        if let current = url, isPrivateHost(current.host) {
+            await refreshAppAPIBaseURL()
+            url = appAPIURL(path: "api/chat")
+        }
+        guard let finalURL = url else {
             print("[MaxChat] ❌ APP_API_BASE_URL 未配置")
             throw SupabaseError.missingAppApiBaseUrl
         }
@@ -1063,19 +1068,45 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             throw SupabaseError.notAuthenticated
         }
         
-        print("[MaxChat] 请求 URL: \(url.absoluteString)")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
+        print("[MaxChat] 请求 URL: \(finalURL.absoluteString)")
 
         let payload = ChatAPIRequest(messages: messages, stream: false, mode: mode)
-        request.httpBody = try JSONEncoder().encode(payload)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
+        func makeRequest(url: URL) throws -> URLRequest {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            attachSupabaseCookies(to: &request)
+            request.httpBody = try JSONEncoder().encode(payload)
+            return request
+        }
+
+        func performRequest(url: URL) async throws -> (Data, HTTPURLResponse) {
+            let request = try makeRequest(url: url)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw SupabaseError.requestFailed
+            }
+            return (data, httpResponse)
+        }
+
+        var data: Data
+        var httpResponse: HTTPURLResponse
+        do {
+            (data, httpResponse) = try await performRequest(url: finalURL)
+        } catch {
+            if let current = appAPIURL(path: "api/chat"),
+               isPrivateHost(current.host) {
+                print("[MaxChat] ⚠️ 本地 API 不可达，尝试刷新并切换远程")
+                await refreshAppAPIBaseURL()
+                if let retryURL = appAPIURL(path: "api/chat") {
+                    (data, httpResponse) = try await performRequest(url: retryURL)
+                } else {
+                    throw error
+                }
+            } else {
+                throw error
+            }
         }
         
         print("[MaxChat] 响应状态码: \(httpResponse.statusCode)")
@@ -1089,14 +1120,9 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             do {
                 try await refreshSession()
                 // 重新构建请求
-                var retryRequest = URLRequest(url: url)
-                retryRequest.httpMethod = "POST"
-                retryRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                attachSupabaseCookies(to: &retryRequest)
-                retryRequest.httpBody = try JSONEncoder().encode(payload)
-                
-                let (retryData, retryResponse) = try await URLSession.shared.data(for: retryRequest)
-                if let retryHttp = retryResponse as? HTTPURLResponse, (200...299).contains(retryHttp.statusCode) {
+                let retryURL = appAPIURL(path: "api/chat") ?? finalURL
+                let (retryData, retryResponse) = try await performRequest(url: retryURL)
+                if (200...299).contains(retryResponse.statusCode) {
                     let decoded = try JSONDecoder().decode(ChatAPIResponse.self, from: retryData)
                     print("[MaxChat] ✅ 重试成功")
                     return decoded.response
