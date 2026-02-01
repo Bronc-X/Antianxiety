@@ -748,7 +748,13 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         static let overrideBaseURLKey = "app_api_base_url_override"
         static let resolvedAtKey = "app_api_base_url_resolved_at"
         static let healthPath = "api/health"
-        static let enforceSingleSource = false
+        static var enforceSingleSource: Bool {
+#if targetEnvironment(simulator)
+            true
+#else
+            false
+#endif
+        }
         static let fallbackBaseURLs = [
             "https://project-metabasis.vercel.app",
             "https://antianxiety.app",
@@ -1085,10 +1091,14 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         guard let url = request.url, isPrivateHost(url.host) else { return false }
         let nsError = error as NSError
         if nsError.domain != NSURLErrorDomain { return false }
-        guard let code = URLError.Code(rawValue: nsError.code) else { return false }
+        let code = nsError.code
         switch code {
-        case .cannotConnectToHost, .cannotFindHost, .notConnectedToInternet,
-             .networkConnectionLost, .timedOut, .dnsLookupFailed:
+        case URLError.Code.cannotConnectToHost.rawValue,
+             URLError.Code.cannotFindHost.rawValue,
+             URLError.Code.notConnectedToInternet.rawValue,
+             URLError.Code.networkConnectionLost.rawValue,
+             URLError.Code.timedOut.rawValue,
+             URLError.Code.dnsLookupFailed.rawValue:
             return true
         default:
             return false
