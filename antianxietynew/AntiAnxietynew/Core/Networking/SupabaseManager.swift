@@ -777,7 +777,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             ? BaselineScores(gad7: gad7, phq9: phq9, isi: isi, pss10: pss10)
             : nil
 
-        let logs = (try? getMonthlyWellnessLogs()) ?? []
+        let logs = (try? await getMonthlyWellnessLogs()) ?? []
         let registrationDate = profileRow?.created_at ?? ISO8601DateFormatter().string(from: Date())
         let profile = ProfileSnapshot(
             age: profileRow?.age,
