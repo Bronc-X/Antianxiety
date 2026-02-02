@@ -124,6 +124,30 @@ Max SHOULD say:
 
 ---
 
+## V-B. Build Reliability Protocol (2026-02-02 新增)
+
+为避免“改一处、Build 继续爆错”的低效循环，新增以下强制规则：
+
+1. **一次性修复同一根因链**  
+   触发编译错误时，先定位“根因类型/协议/模型”，一次性修完所有引用点，禁止只修单点。
+
+2. **核心层禁止依赖 UI 类型**  
+   `Core/*`、`Networking/*`、`Services/*` 不得依赖 SwiftUI/Color。共享模型必须放在 Core 层并可被 UI 复用。
+
+3. **模型归属清晰**  
+   DB Schema/响应体 → Core Models；UI 展示扩展（如颜色）→ UI 层 extension。
+
+4. **最小可验证编译门槛**  
+   每轮改动完成后，必须通过一次最小编译验证（至少 Xcode Build for Running / `xcodebuild ... build`）再继续下一轮。
+
+5. **异步/可选类型必须同轮收口**  
+   async/await、Optional、类型推断等错误必须在同一轮内彻底收口，禁止“留后续补丁”。
+
+6. **变更边界清晰**  
+   单轮改动不跨越无关模块；如需跨模块，先列清依赖图与影响清单后再动手。
+
+--- 
+
 ## VI. Specific Terminology Dictionary
 
 | Term | Meaning |

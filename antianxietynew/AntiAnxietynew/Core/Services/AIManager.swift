@@ -14,6 +14,10 @@ enum AIModel: String {
 final class AIManager: ObservableObject, AIManaging {
     static let shared = AIManager()
     
+    private let requestTimeout: TimeInterval = 25
+    private let embeddingCacheTTL: TimeInterval = 6 * 3600
+    private var embeddingCache: [String: (vector: [Double], timestamp: Date)] = [:]
+    
     private var apiKey: String {
         guard let key = Bundle.main.infoDictionary?["OPENAI_API_KEY"] as? String else {
             fatalError("Missing OPENAI_API_KEY in Info.plist. Please configure Secrets.xcconfig.")
@@ -28,6 +32,22 @@ final class AIManager: ObservableObject, AIManaging {
         let cleaned = url.replacingOccurrences(of: "\\", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
         let normalized = cleaned.replacingOccurrences(of: "/chat/completions", with: "")
         return normalized.hasSuffix("/") ? String(normalized.dropLast()) : normalized
+    }
+
+    private var embeddingURL: String {
+        if let url = Bundle.main.infoDictionary?["OPENAI_EMBEDDING_API_URL"] as? String,
+           !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return url.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return "\(baseURL)/embeddings"
+    }
+
+    private var embeddingModel: String {
+        if let model = Bundle.main.infoDictionary?["OPENAI_EMBEDDING_MODEL"] as? String,
+           !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return model
+        }
+        return "text-embedding-3-small"
     }
 
     private var defaultModel: String {
@@ -61,6 +81,7 @@ final class AIManager: ObservableObject, AIManaging {
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = requestTimeout
         
         // Convert internal ChatMessage to API format
         var apiMessages: [[String: String]] = []
@@ -91,6 +112,51 @@ final class AIManager: ObservableObject, AIManaging {
         
         let result = try JSONDecoder().decode(OpenAIChatResponse.self, from: data)
         return result.choices.first?.message.content ?? "思考中遇到了一些问题..."
+    }
+
+    func createEmbedding(for text: String) async throws -> [Double] {
+        let cacheKey = embeddingCacheKey(for: text)
+        if let cached = embeddingCache[cacheKey],
+           Date().timeIntervalSince(cached.timestamp) < embeddingCacheTTL {
+            return cached.vector
+        }
+
+        let url = URL(string: embeddingURL)!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = requestTimeout
+
+        let body: [String: Any] = [
+            "model": embeddingModel,
+            "input": String(text.prefix(8000))
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            if let errorStr = String(data: data, encoding: .utf8) {
+                print("Embedding API Error: \(errorStr)")
+            }
+            throw URLError(.badServerResponse)
+        }
+
+        if let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let dataArray = parsed["data"] as? [[String: Any]],
+           let first = dataArray.first,
+           let embedding = first["embedding"] as? [Double] {
+            embeddingCache[cacheKey] = (embedding, Date())
+            return embedding
+        }
+
+        throw URLError(.cannotDecodeRawData)
+    }
+
+    private func embeddingCacheKey(for text: String) -> String {
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return String(normalized.prefix(200))
     }
 }
 

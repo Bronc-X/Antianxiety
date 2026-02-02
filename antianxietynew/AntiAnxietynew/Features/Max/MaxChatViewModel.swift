@@ -2,6 +2,7 @@
 // Max 对话视图模型 - 支持消息持久化、多对话管理、P1/P2 功能
 
 import SwiftUI
+import Foundation
 import Network
 
 // MARK: - 模型模式枚举
@@ -48,6 +49,10 @@ class MaxChatViewModel: ObservableObject {
     private var currentGenerationTask: Task<Void, Never>? = nil
     private var generationId: Int = 0
     
+    // 🆕 个性化上下文缓存
+    private var cachedUserContext: String? = nil
+    private var cachedUserContextAt: Date? = nil
+    
     // MARK: - Init
     
     init() {
@@ -68,6 +73,8 @@ class MaxChatViewModel: ObservableObject {
     - 输出结构化建议（要点/步骤）
     - 不要编造数据；不确定就说不确定
     """
+    
+    private let userContextCacheTTL: TimeInterval = 300
     
     // MARK: - 🆕 P2 网络状态监听
     
@@ -254,12 +261,16 @@ class MaxChatViewModel: ObservableObject {
                 // 检查是否已取消
                 guard generationId == currentGenId else { return }
                 
-                // 3. 直连 AICAN API（纯 Swift）
-                let responseText = try await AIManager.shared.chatCompletion(
-                    messages: messages,
-                    systemPrompt: maxSystemPrompt,
-                    model: modelMode == .think ? .deepseekV3Thinking : .deepseekV3Exp,
-                    temperature: 0.7
+                // 3. 通过 SupabaseManager 统一调用 Max（含记忆/问询/科学上下文）
+                let requestMessages = messages.map { message in
+                    ChatRequestMessage(
+                        role: message.role == .user ? "user" : "assistant",
+                        content: message.content
+                    )
+                }
+                let responseText = try await SupabaseManager.shared.chatWithMax(
+                    messages: requestMessages,
+                    mode: modelMode == .think ? "think" : "fast"
                 )
                 
                 // 检查是否已取消
@@ -318,6 +329,165 @@ class MaxChatViewModel: ObservableObject {
             return trimmed
         }
         return String(trimmed.prefix(20)) + "..."
+    }
+    
+    // MARK: - 个性化上下文
+    
+    private func buildSystemPrompt(userContext: String?) -> String {
+        var prompt = maxSystemPrompt
+        if let userContext, !userContext.isEmpty {
+            prompt += "\n\n以下是用户已录入信息，仅用于定制回答（不要编造或虚构）：\n\(userContext)"
+        } else {
+            prompt += "\n\n如果缺少用户数据，请直接说明缺少，不要编造。"
+        }
+        return prompt
+    }
+    
+    private func loadUserContextSummary(forceRefresh: Bool = false) async -> String? {
+        if !forceRefresh,
+           let cached = cachedUserContext,
+           let cachedAt = cachedUserContextAt,
+           Date().timeIntervalSince(cachedAt) < userContextCacheTTL {
+            return cached
+        }
+        
+        let profile = try? await SupabaseManager.shared.getProfileSettings()
+        let dashboard = try? await SupabaseManager.shared.getDashboardData()
+        
+        var lines: [String] = []
+        
+        if let name = profile?.full_name, !name.isEmpty {
+            lines.append("姓名: \(name)")
+        }
+        if let language = profile?.preferred_language, !language.isEmpty {
+            lines.append("偏好语言: \(language)")
+        }
+        if let goal = profile?.primary_goal, !goal.isEmpty {
+            lines.append("主要目标: \(goal)")
+        }
+        if let focus = profile?.current_focus, !focus.isEmpty {
+            lines.append("当前关注: \(focus)")
+        }
+        if let personality = profile?.ai_personality, !personality.isEmpty {
+            lines.append("沟通风格偏好: \(personality)")
+        }
+        if let persona = profile?.ai_persona_context, !persona.isEmpty {
+            lines.append("人设补充: \(persona)")
+        }
+        if let settings = profile?.ai_settings {
+            var settingParts: [String] = []
+            if let honesty = settings.honesty_level { settingParts.append("坦诚度=\(honesty)") }
+            if let humor = settings.humor_level { settingParts.append("幽默度=\(humor)") }
+            if let mode = settings.mode, !mode.isEmpty { settingParts.append("模式=\(mode)") }
+            if !settingParts.isEmpty {
+                lines.append("AI偏好设置: \(settingParts.joined(separator: ", "))")
+            }
+        }
+        if let scores = profile?.inferred_scale_scores, !scores.isEmpty {
+            let gad7 = scores["gad7"]
+            let phq9 = scores["phq9"]
+            let isi = scores["isi"]
+            let pss10 = scores["pss10"]
+            var parts: [String] = []
+            if let gad7 { parts.append("GAD7=\(gad7)") }
+            if let phq9 { parts.append("PHQ9=\(phq9)") }
+            if let isi { parts.append("ISI=\(isi)") }
+            if let pss10 { parts.append("PSS10=\(pss10)") }
+            if !parts.isEmpty {
+                lines.append("量表分数: \(parts.joined(separator: ", "))")
+            }
+        }
+        
+        if let dashboard {
+            let logs = dashboard.weeklyLogs
+            if !logs.isEmpty {
+                let avgSleep = average(logs.map { $0.sleep_duration_minutes }).map { String(format: "%.1f", $0 / 60.0) }
+                let avgStress = average(logs.map { $0.stress_level }).map { String(format: "%.1f", $0) }
+                let avgEnergy = average(logs.map { $0.energy_level }).map { String(format: "%.1f", $0) }
+                let avgAnxiety = average(logs.map { $0.anxiety_level }).map { String(format: "%.1f", $0) }
+                let avgExercise = average(logs.map { $0.exercise_duration_minutes }).map { String(format: "%.0f", $0) }
+                let avgMindfulness = average(logs.map { $0.mindfulness_minutes }).map { String(format: "%.0f", $0) }
+                var summaryParts: [String] = []
+                if let avgSleep { summaryParts.append("平均睡眠=\(avgSleep)小时") }
+                if let avgStress { summaryParts.append("平均压力=\(avgStress)") }
+                if let avgAnxiety { summaryParts.append("平均焦虑=\(avgAnxiety)") }
+                if let avgEnergy { summaryParts.append("平均精力=\(avgEnergy)") }
+                if let avgExercise { summaryParts.append("平均运动=\(avgExercise)分钟") }
+                if let avgMindfulness { summaryParts.append("平均冥想=\(avgMindfulness)分钟") }
+                if !summaryParts.isEmpty {
+                    lines.append("最近7天: \(summaryParts.joined(separator: ", "))")
+                }
+            }
+            
+            if let unified = dashboard.profile {
+                if let name = unified.full_name, !name.isEmpty {
+                    lines.append("画像姓名: \(name)")
+                }
+                if let demographics = unified.demographics {
+                    var demoParts: [String] = []
+                    if let age = demographics.age { demoParts.append("年龄=\(age)") }
+                    if let gender = demographics.gender, !gender.isEmpty { demoParts.append("性别=\(gender)") }
+                    if let bmi = demographics.bmi { demoParts.append("BMI=\(String(format: "%.1f", bmi))") }
+                    if !demoParts.isEmpty {
+                        lines.append("人口统计: \(demoParts.joined(separator: ", "))")
+                    }
+                }
+                if let goals = unified.health_goals, !goals.isEmpty {
+                    let goalTexts = goals.map { $0.goal_text }.filter { !$0.isEmpty }
+                    if !goalTexts.isEmpty {
+                        lines.append("健康目标: \(goalTexts.joined(separator: "、"))")
+                    }
+                }
+                if let concerns = unified.health_concerns, !concerns.isEmpty {
+                    lines.append("健康关注: \(concerns.joined(separator: "、"))")
+                }
+                if let lifestyle = unified.lifestyle_factors {
+                    var lifestyleParts: [String] = []
+                    if let exercise = lifestyle.exercise_frequency, !exercise.isEmpty { lifestyleParts.append("运动频率=\(exercise)") }
+                    if let sleepPattern = lifestyle.sleep_pattern, !sleepPattern.isEmpty { lifestyleParts.append("睡眠习惯=\(sleepPattern)") }
+                    if let sleepHours = lifestyle.sleep_hours { lifestyleParts.append("睡眠时长=\(String(format: "%.1f", sleepHours))小时") }
+                    if let stress = lifestyle.stress_level, !stress.isEmpty { lifestyleParts.append("压力水平=\(stress)") }
+                    if let diet = lifestyle.diet_preference, !diet.isEmpty { lifestyleParts.append("饮食偏好=\(diet)") }
+                    if !lifestyleParts.isEmpty {
+                        lines.append("生活方式: \(lifestyleParts.joined(separator: ", "))")
+                    }
+                }
+                if let trend = unified.recent_mood_trend, !trend.isEmpty {
+                    lines.append("最近情绪趋势: \(trend)")
+                }
+                if let traits = unified.ai_inferred_traits, !traits.isEmpty {
+                    let traitPairs = traits.map { "\($0.key)=\($0.value)" }.sorted()
+                    lines.append("AI推断特质: \(traitPairs.joined(separator: ", "))")
+                }
+            }
+            
+            if let hardware = dashboard.hardwareData {
+                var hardwareParts: [String] = []
+                if let hrv = hardware.hrv?.value { hardwareParts.append("HRV=\(String(format: "%.0f", hrv))") }
+                if let rhr = hardware.resting_heart_rate?.value { hardwareParts.append("静息心率=\(String(format: "%.0f", rhr))") }
+                if let sleepScore = hardware.sleep_score?.value { hardwareParts.append("睡眠评分=\(String(format: "%.0f", sleepScore))") }
+                if let spo2 = hardware.spo2?.value { hardwareParts.append("血氧=\(String(format: "%.0f", spo2))") }
+                if let steps = hardware.steps?.value { hardwareParts.append("步数=\(String(format: "%.0f", steps))") }
+                if !hardwareParts.isEmpty {
+                    lines.append("穿戴设备: \(hardwareParts.joined(separator: ", "))")
+                }
+            }
+        }
+        
+        let context = lines.joined(separator: "\n")
+        if !context.isEmpty {
+            cachedUserContext = context
+            cachedUserContextAt = Date()
+            return context
+        }
+        
+        return nil
+    }
+    
+    private func average(_ values: [Int?]) -> Double? {
+        let nums = values.compactMap { $0 }
+        guard !nums.isEmpty else { return nil }
+        return Double(nums.reduce(0, +)) / Double(nums.count)
     }
 
 }

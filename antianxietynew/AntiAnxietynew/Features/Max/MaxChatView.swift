@@ -12,9 +12,9 @@ struct MaxChatView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // 1. Bioluminescent 深渊背景
-                // 1. Vercel Style Background (Pure Black)
-                Color.black.ignoresSafeArea()
+                // 背景与全局主题一致
+                LinearGradient.magazineWash.ignoresSafeArea()
+                LinearGradient.mossVeil.ignoresSafeArea()
                 
                 // Error Banner
                 if let error = viewModel.error {
@@ -45,7 +45,7 @@ struct MaxChatView: View {
                 VStack(spacing: 0) {
                     ScrollViewReader { proxy in
                         ScrollView {
-                            LazyVStack(spacing: metrics.sectionSpacing) {
+                            LazyVStack(alignment: .leading, spacing: metrics.sectionSpacing) {
                                 // 🆕 空消息时显示 Starter Questions
                                 if viewModel.messages.isEmpty && !viewModel.starterQuestions.isEmpty {
                                     StarterQuestionsView(questions: viewModel.starterQuestions) { question in
@@ -179,18 +179,20 @@ struct MessageBubble: View {
                         }
                     }
                     .font(.body)
-                    .foregroundColor(.white)
+                    .foregroundColor(.textPrimary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .background {
-                        if message.role == .user {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(white: 0.15))
-                        } else {
-                            Color.clear // AI message is transparent/clean
-                        }
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(message.role == .user
+                                  ? Color.liquidGlassAccent.opacity(0.22)
+                                  : Color.white.opacity(0.08))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     // 🆕 P2 长按复制
                     .contextMenu {
                         Button {
@@ -217,6 +219,7 @@ struct MessageBubble: View {
                 Spacer()
             }
         }
+        .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
     }
     
     func formatTime(_ date: Date) -> String {
@@ -316,6 +319,7 @@ struct TypingIndicator: View {
             
             Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear {
             dotOffset = -6
             pulseScale = 1.2
@@ -362,9 +366,9 @@ struct InputBarV2: View {
         }
         .padding(.horizontal, metrics.isCompactWidth ? 10 : 12)
         .padding(.vertical, metrics.isCompactHeight ? 12 : 16)
-        .background(Color.black)
+        .background(Color.bgPrimary.opacity(0.92))
         .overlay(
-            Rectangle().frame(height: 1).foregroundColor(Color(white: 0.2)), alignment: .top
+            Rectangle().frame(height: 1).foregroundColor(Color.white.opacity(0.08)), alignment: .top
         )
         .liquidGlassPageWidth(alignment: .center)
         // 🆕 图片选择器 Sheet
@@ -497,7 +501,7 @@ struct InputBarV2: View {
             .padding(.vertical, fieldVerticalPadding)
             .background {
                 RoundedRectangle(cornerRadius: barCornerRadius)
-                    .stroke(Color(white: 0.2), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
             }
             .foregroundColor(.white)
             .layoutPriority(1)

@@ -7,6 +7,9 @@ struct DigitalTwinLocalInput {
     let userId: String
     let baselineScores: BaselineScores?
     let logs: [WellnessLog]
+    let calibrations: [CalibrationData]
+    let inquiryInsights: [InquiryInsight]
+    let conversationSummary: ConversationSummary
     let profile: ProfileSnapshot
     let now: Date
 }
@@ -35,7 +38,7 @@ enum DigitalTwinLocalEngine {
                 error: "缺少基线评估，请先完成基础量表",
                 status: "no_baseline",
                 hasBaseline: false,
-                calibrationCount: input.logs.count
+                calibrationCount: input.calibrations.count
             )
         }
 
@@ -46,7 +49,7 @@ enum DigitalTwinLocalEngine {
             error: nil,
             status: "ok",
             hasBaseline: true,
-            calibrationCount: input.logs.count
+            calibrationCount: input.calibrations.count
         )
     }
 
@@ -109,23 +112,24 @@ enum DigitalTwinLocalEngine {
 
 private extension DigitalTwinLocalEngine {
     static func buildCurveOutput(input: DigitalTwinLocalInput, baseline: BaselineScores, conversationTrend: String?) -> DigitalTwinCurveOutput {
-        let baselineMetrics = normalizedMetrics(baseline: baseline)
-        let timepoints = buildTimepoints(baseline: baselineMetrics)
-        let currentWeek = currentWeek(from: input.logs, now: input.now)
+        let baselineMetrics = normalizedMetrics(baseline: baseline, calibrations: input.calibrations)
+        let trend = conversationTrend ?? input.conversationSummary.emotionalTrend
+        let timepoints = buildTimepoints(baseline: baselineMetrics, conversationTrend: trend, calibrationCount: input.calibrations.count)
+        let currentWeek = currentWeek(from: input.calibrations, logs: input.logs, now: input.now)
 
         let meta = DigitalTwinCurveMeta(
             ruleVersion: "swift-local-1.0",
             asOfDate: isoDate(input.now),
-            baselineDate: baselineDate(from: input.logs),
-            daysSinceBaseline: daysSinceBaseline(from: input.logs, now: input.now),
+            baselineDate: baselineDate(from: input.calibrations, logs: input.logs),
+            daysSinceBaseline: daysSinceBaseline(from: input.calibrations, logs: input.logs, now: input.now),
             currentWeek: currentWeek,
             dataQualityFlags: DigitalTwinDataQualityFlags(
-                baselineMissing: [],
-                dailyCalibrationSparse: input.logs.count < 3,
-                conversationTrendMissing: conversationTrend == nil,
+                baselineMissing: baselineMissing(from: baseline),
+                dailyCalibrationSparse: input.calibrations.count < 7,
+                conversationTrendMissing: trend.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 pss10Missing: baseline.pss10 <= 0,
-                hrvIsInferred: true,
-                sleepHoursOutOfRange: nil,
+                hrvIsInferred: !input.calibrations.contains { $0.hrv != nil },
+                sleepHoursOutOfRange: hasSleepOutOfRange(input.calibrations),
                 scaleMismatchFlag: nil
             )
         )
@@ -171,22 +175,52 @@ private extension DigitalTwinLocalEngine {
         )
     }
 
-    static func normalizedMetrics(baseline: BaselineScores) -> (anxiety: Double, sleep: Double, stress: Double, mood: Double, energy: Double, hrv: Double) {
-        let anxiety = scaleTo100(value: Double(baseline.gad7), max: 21)
-        let sleep = 100 - scaleTo100(value: Double(baseline.isi), max: 28)
-        let stress = 100 - scaleTo100(value: Double(baseline.pss10), max: 40)
-        let mood = 100 - scaleTo100(value: Double(baseline.phq9), max: 27)
-        let energy = clamp((sleep + stress) / 2.0, min: 30, max: 95)
-        let hrv = clamp(55 + (energy - 50) * 0.3, min: 30, max: 90)
+    static func normalizedMetrics(
+        baseline: BaselineScores,
+        calibrations: [CalibrationData]
+    ) -> (anxiety: Double, sleep: Double, stress: Double, mood: Double, energy: Double, hrv: Double) {
+        let baselineAnxiety = scaleTo100(value: Double(baseline.gad7), max: 21)
+        let baselineSleep = 100 - scaleTo100(value: Double(baseline.isi), max: 28)
+        let baselineStress = 100 - scaleTo100(value: Double(baseline.pss10), max: 40)
+        let baselineMood = 100 - scaleTo100(value: Double(baseline.phq9), max: 27)
+
+        let recent = Array(calibrations.suffix(14))
+        let sleepFromCal = average(recent.compactMap { sleepCompositeScore($0) })
+        let stressFromCal = average(recent.compactMap { $0.stressLevel > 0 ? (100 - adaptiveNormalize(Double($0.stressLevel))) : nil })
+        let moodFromCal = average(recent.compactMap { $0.moodScore > 0 ? adaptiveNormalize(Double($0.moodScore)) : nil })
+        let energyFromCal = average(recent.compactMap { $0.energyLevel > 0 ? adaptiveNormalize(Double($0.energyLevel)) : nil })
+        let hrvFromCal = average(recent.compactMap { $0.hrv })
+
+        let anxiety = clamp(blend(baselineAnxiety, calibration: stressFromCal.map { 100 - $0 }, weight: 0.35), min: 5, max: 100)
+        let sleep = clamp(blend(baselineSleep, calibration: sleepFromCal, weight: 0.45), min: 10, max: 100)
+        let stress = clamp(blend(baselineStress, calibration: stressFromCal, weight: 0.45), min: 10, max: 100)
+        let mood = clamp(blend(baselineMood, calibration: moodFromCal, weight: 0.4), min: 10, max: 100)
+        let energyBase = clamp((sleep + stress) / 2.0, min: 30, max: 95)
+        let energy = clamp(blend(energyBase, calibration: energyFromCal, weight: 0.4), min: 10, max: 100)
+        let hrv = clamp(hrvFromCal ?? (55 + (energy - 50) * 0.3), min: 25, max: 95)
+
         return (anxiety, sleep, stress, mood, energy, hrv)
     }
 
-    static func buildTimepoints(baseline: (anxiety: Double, sleep: Double, stress: Double, mood: Double, energy: Double, hrv: Double)) -> [DigitalTwinCurveTimepoint] {
+    static func buildTimepoints(
+        baseline: (anxiety: Double, sleep: Double, stress: Double, mood: Double, energy: Double, hrv: Double),
+        conversationTrend: String?,
+        calibrationCount: Int = 0
+    ) -> [DigitalTwinCurveTimepoint] {
         let weeks = [0, 3, 6, 9, 12, 15]
+        let trendMultiplier: Double
+        switch conversationTrend {
+        case "improving":
+            trendMultiplier = 1.1
+        case "declining":
+            trendMultiplier = 0.75
+        default:
+            trendMultiplier = 0.95
+        }
         return weeks.enumerated().map { index, week in
             let progress = Double(index) / Double(max(1, weeks.count - 1))
-            let improve = 0.25 * progress
-            let anxiety = clamp(baseline.anxiety * (1 - improve), min: 10, max: 100)
+            let improve = min(0.35, 0.22 * progress * trendMultiplier)
+            let anxiety = clamp(baseline.anxiety * (1 - improve), min: 5, max: 100)
             let sleep = clamp(baseline.sleep + (100 - baseline.sleep) * improve, min: 10, max: 100)
             let stress = clamp(baseline.stress + (100 - baseline.stress) * improve, min: 10, max: 100)
             let mood = clamp(baseline.mood + (100 - baseline.mood) * improve, min: 10, max: 100)
@@ -196,12 +230,12 @@ private extension DigitalTwinLocalEngine {
             return DigitalTwinCurveTimepoint(
                 week: week,
                 metrics: DigitalTwinTimepointMetrics(
-                    anxietyScore: DigitalTwinMetricPrediction(value: anxiety, confidence: confidenceLabel(progress: progress)),
-                    sleepQuality: DigitalTwinMetricPrediction(value: sleep, confidence: confidenceLabel(progress: progress)),
-                    stressResilience: DigitalTwinMetricPrediction(value: stress, confidence: confidenceLabel(progress: progress)),
-                    moodStability: DigitalTwinMetricPrediction(value: mood, confidence: confidenceLabel(progress: progress)),
-                    energyLevel: DigitalTwinMetricPrediction(value: energy, confidence: confidenceLabel(progress: progress)),
-                    hrvScore: DigitalTwinMetricPrediction(value: hrv, confidence: confidenceLabel(progress: progress))
+                    anxietyScore: DigitalTwinMetricPrediction(value: anxiety, confidence: confidenceLabel(progress: progress, calibrationCount: calibrationCount)),
+                    sleepQuality: DigitalTwinMetricPrediction(value: sleep, confidence: confidenceLabel(progress: progress, calibrationCount: calibrationCount)),
+                    stressResilience: DigitalTwinMetricPrediction(value: stress, confidence: confidenceLabel(progress: progress, calibrationCount: calibrationCount)),
+                    moodStability: DigitalTwinMetricPrediction(value: mood, confidence: confidenceLabel(progress: progress, calibrationCount: calibrationCount)),
+                    energyLevel: DigitalTwinMetricPrediction(value: energy, confidence: confidenceLabel(progress: progress, calibrationCount: calibrationCount)),
+                    hrvScore: DigitalTwinMetricPrediction(value: hrv, confidence: confidenceLabel(progress: progress, calibrationCount: calibrationCount))
                 )
             )
         }
@@ -307,10 +341,14 @@ private extension DigitalTwinLocalEngine {
             energyTrend: curve.predictedLongitudinalOutcomes.timepoints.map { $0.metrics.energyLevel.value }
         )
 
+        let curveSummary = curve.metricEndpoints.summaryStats
+        let overallValue = curveSummary.overallImprovement.value ?? 0
+        let daysValue = curveSummary.daysToFirstResult.value ?? 0
+        let consistencyValue = curveSummary.consistencyScore.value ?? 0
         let summary = SummaryStats(
-            overallImprovement: "预计改善 \(Int(max(0, baseline.gad7 - 2))) 分",
-            daysToFirstResult: 21,
-            consistencyScore: "78%"
+            overallImprovement: "\(Int(overallValue))\(curveSummary.overallImprovement.unit)",
+            daysToFirstResult: Int(daysValue),
+            consistencyScore: "\(Int(consistencyValue))\(curveSummary.consistencyScore.unit)"
         )
 
         return DigitalTwinDashboardData(
@@ -337,15 +375,16 @@ private extension DigitalTwinLocalEngine {
     }
 
     static func buildCollectionStatus(input: DigitalTwinLocalInput, hasBaseline: Bool) -> DataCollectionStatus {
-        let count = input.logs.count
+        let count = input.calibrations.count
         let required = 3
         let progress = min(1.0, Double(count) / Double(required))
+        let sortedDates = input.calibrations.map { $0.date }.sorted()
         return DataCollectionStatus(
             hasBaseline: hasBaseline,
             calibrationCount: count,
             calibrationDays: count,
-            firstCalibrationDate: input.logs.last?.log_date,
-            lastCalibrationDate: input.logs.first?.log_date,
+            firstCalibrationDate: sortedDates.first,
+            lastCalibrationDate: sortedDates.last,
             requiredCalibrations: required,
             isReady: hasBaseline && count >= 1,
             progress: progress,
@@ -430,12 +469,13 @@ private extension DigitalTwinLocalEngine {
     }
 
     static func buildAggregatedUserData(input: DigitalTwinLocalInput, baseline: BaselineScores) -> AggregatedUserData {
+        let assessmentDate = baselineDate(from: input.calibrations, logs: input.logs) ?? isoDate(input.now)
         let baselineData = BaselineData(
             gad7Score: baseline.gad7,
             phq9Score: baseline.phq9,
             isiScore: baseline.isi,
             pss10Score: baseline.pss10,
-            assessmentDate: isoDate(input.now),
+            assessmentDate: assessmentDate,
             interpretations: BaselineInterpretations(
                 gad7: interpretGAD7(baseline.gad7),
                 phq9: interpretPHQ9(baseline.phq9),
@@ -444,28 +484,8 @@ private extension DigitalTwinLocalEngine {
             )
         )
 
-        let calibrations: [CalibrationData] = input.logs.map { log in
-            CalibrationData(
-                date: log.log_date,
-                sleepHours: log.sleepHours,
-                sleepQuality: Int(log.sleep_quality ?? "") ?? 0,
-                moodScore: log.anxiety_level ?? 0,
-                stressLevel: log.stress_level ?? 0,
-                energyLevel: log.energy_level ?? 0,
-                restingHeartRate: nil,
-                hrv: nil,
-                stepCount: nil,
-                deviceSleepScore: nil,
-                activityScore: nil
-            )
-        }
-
-        let conversationSummary = ConversationSummary(
-            totalMessages: 0,
-            emotionalTrend: "stable",
-            frequentTopics: [],
-            lastInteraction: isoDate(input.now)
-        )
+        let calibrations = input.calibrations
+        let conversationSummary = input.conversationSummary
 
         let profile = UserProfileSnapshot(
             age: input.profile.age,
@@ -479,7 +499,7 @@ private extension DigitalTwinLocalEngine {
             userId: input.userId,
             baseline: baselineData,
             calibrations: calibrations,
-            inquiryInsights: [],
+            inquiryInsights: input.inquiryInsights,
             conversationSummary: conversationSummary,
             profile: profile
         )
@@ -512,10 +532,81 @@ private extension DigitalTwinLocalEngine {
         return value
     }
 
-    static func confidenceLabel(progress: Double) -> String {
-        if progress < 0.3 { return "±10" }
-        if progress < 0.6 { return "±8" }
-        return "±6"
+    static func confidenceLabel(progress: Double, calibrationCount: Int) -> String {
+        var base: Double
+        if progress < 0.3 {
+            base = 10
+        } else if progress < 0.6 {
+            base = 8
+        } else {
+            base = 6
+        }
+        if calibrationCount < 3 {
+            base += 4
+        } else if calibrationCount < 7 {
+            base += 2
+        }
+        return "±\(Int(base))"
+    }
+
+    static func adaptiveNormalize(_ value: Double?) -> Double {
+        guard let value else { return 50 }
+        if value <= 5 {
+            return clamp(((value - 1) / 4) * 100, min: 0, max: 100)
+        }
+        if value <= 10 {
+            return clamp((value / 10) * 100, min: 0, max: 100)
+        }
+        if value <= 100 {
+            return clamp(value, min: 0, max: 100)
+        }
+        return 100
+    }
+
+    static func sleepHoursToScore(_ hours: Double) -> Double {
+        if hours >= 7 && hours <= 9 {
+            return 100
+        }
+        if hours < 7 {
+            return clamp(100 - (7 - hours) * 20, min: 0, max: 100)
+        }
+        return clamp(100 - (hours - 9) * 15, min: 0, max: 100)
+    }
+
+    static func sleepCompositeScore(_ calibration: CalibrationData) -> Double? {
+        let qualityScore = calibration.sleepQuality > 0 ? adaptiveNormalize(Double(calibration.sleepQuality)) : nil
+        let durationScore = calibration.sleepHours > 0 ? sleepHoursToScore(calibration.sleepHours) : nil
+
+        if let qualityScore, let durationScore {
+            return 0.6 * qualityScore + 0.4 * durationScore
+        }
+        return qualityScore ?? durationScore
+    }
+
+    static func average(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    static func blend(_ base: Double, calibration: Double?, weight: Double) -> Double {
+        guard let calibration else { return base }
+        let w = clamp(weight, min: 0, max: 1)
+        return base * (1 - w) + calibration * w
+    }
+
+    static func baselineMissing(from baseline: BaselineScores) -> [String] {
+        var missing: [String] = []
+        if baseline.gad7 <= 0 { missing.append("GAD-7") }
+        if baseline.phq9 <= 0 { missing.append("PHQ-9") }
+        if baseline.isi <= 0 { missing.append("ISI") }
+        if baseline.pss10 <= 0 { missing.append("PSS-10") }
+        return missing
+    }
+
+    static func hasSleepOutOfRange(_ calibrations: [CalibrationData]) -> Bool? {
+        let outliers = calibrations.filter { $0.sleepHours > 0 && ($0.sleepHours < 3 || $0.sleepHours > 12) }
+        guard !outliers.isEmpty else { return nil }
+        return true
     }
 
     static func interpretGAD7(_ score: Int) -> String {
@@ -564,21 +655,34 @@ private extension DigitalTwinLocalEngine {
         ISO8601DateFormatter().string(from: date)
     }
 
-    static func baselineDate(from logs: [WellnessLog]) -> String? {
-        logs.last?.log_date
+    static func baselineDate(from calibrations: [CalibrationData], logs: [WellnessLog]) -> String? {
+        if let earliestCalibration = calibrations.compactMap({ parseDate($0.date) }).min() {
+            return isoDate(earliestCalibration)
+        }
+        if let earliestLog = logs.compactMap({ parseDate($0.log_date) }).min() {
+            return isoDate(earliestLog)
+        }
+        return nil
     }
 
-    static func daysSinceBaseline(from logs: [WellnessLog], now: Date) -> Int? {
-        guard let dateString = baselineDate(from: logs) else { return nil }
+    static func daysSinceBaseline(from calibrations: [CalibrationData], logs: [WellnessLog], now: Date) -> Int? {
+        guard let dateString = baselineDate(from: calibrations, logs: logs),
+              let baseline = parseDate(dateString) else { return nil }
+        return Calendar.current.dateComponents([.day], from: baseline, to: now).day
+    }
+
+    static func currentWeek(from calibrations: [CalibrationData], logs: [WellnessLog], now: Date) -> Int? {
+        guard let days = daysSinceBaseline(from: calibrations, logs: logs, now: now) else { return nil }
+        return max(0, days / 7)
+    }
+
+    static func parseDate(_ dateString: String) -> Date? {
+        if let date = ISO8601DateFormatter().date(from: dateString) {
+            return date
+        }
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        guard let baselineDate = formatter.date(from: dateString) else { return nil }
-        return Calendar.current.dateComponents([.day], from: baselineDate, to: now).day
-    }
-
-    static func currentWeek(from logs: [WellnessLog], now: Date) -> Int? {
-        guard let days = daysSinceBaseline(from: logs, now: now) else { return nil }
-        return max(0, days / 7)
+        return formatter.date(from: dateString)
     }
 
     static func initials(from name: String?) -> String {
@@ -586,4 +690,3 @@ private extension DigitalTwinLocalEngine {
         return String(name.prefix(1))
     }
 }
-

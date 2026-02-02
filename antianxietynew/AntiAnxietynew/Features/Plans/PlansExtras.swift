@@ -207,8 +207,7 @@ struct PlanCreatorView: View {
 
 struct HabitsView: View {
     @Environment(\.screenMetrics) private var metrics
-    @State private var habits = HabitItem.sample()
-    @State private var savedMessage: String?
+    @StateObject private var viewModel = HabitsViewModel()
 
     var body: some View {
         ZStack {
@@ -220,7 +219,7 @@ struct HabitsView: View {
 
                     LiquidGlassCard(style: .standard, padding: 16) {
                         VStack(spacing: 12) {
-                            ForEach($habits) { $habit in
+                            ForEach($viewModel.habits) { $habit in
                                 Toggle(isOn: $habit.isCompleted) {
                                     Text(habit.title)
                                         .font(.subheadline)
@@ -232,17 +231,21 @@ struct HabitsView: View {
                     }
 
                     Button {
-                        save()
+                        viewModel.save()
                     } label: {
                         Text("保存今日习惯")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
 
-                    if let savedMessage {
+                    if let savedMessage = viewModel.statusMessage {
                         Text(savedMessage)
                             .font(.caption2)
                             .foregroundColor(.statusSuccess)
+                    } else if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.caption2)
+                            .foregroundColor(.statusError)
                     }
                 }
                 .liquidGlassPageWidth()
@@ -251,6 +254,9 @@ struct HabitsView: View {
         }
         .navigationTitle("习惯追踪")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await viewModel.load()
+        }
     }
 
     private var header: some View {
@@ -265,20 +271,11 @@ struct HabitsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func save() {
-        habits.forEach { habit in
-            UserDefaults.standard.set(habit.isCompleted, forKey: habit.storageKey)
-        }
-        savedMessage = "已保存 \(Date().formatted(date: .abbreviated, time: .shortened))"
-    }
 }
 
 struct AiRemindersView: View {
     @Environment(\.screenMetrics) private var metrics
-    @State private var morningReminder = UserDefaults.standard.bool(forKey: "reminder_morning")
-    @State private var eveningReminder = UserDefaults.standard.bool(forKey: "reminder_evening")
-    @State private var breathingReminder = UserDefaults.standard.bool(forKey: "reminder_breathing")
-    @State private var statusMessage: String?
+    @StateObject private var viewModel = AiRemindersViewModel()
 
     var body: some View {
         ZStack {
@@ -290,27 +287,31 @@ struct AiRemindersView: View {
 
                     LiquidGlassCard(style: .standard, padding: 16) {
                         VStack(spacing: 12) {
-                            Toggle("晨间提醒", isOn: $morningReminder)
+                            Toggle("晨间提醒", isOn: $viewModel.morningReminder)
                                 .toggleStyle(LiquidGlassToggleStyle())
-                            Toggle("晚间复盘", isOn: $eveningReminder)
+                            Toggle("晚间复盘", isOn: $viewModel.eveningReminder)
                                 .toggleStyle(LiquidGlassToggleStyle())
-                            Toggle("呼吸练习", isOn: $breathingReminder)
+                            Toggle("呼吸练习", isOn: $viewModel.breathingReminder)
                                 .toggleStyle(LiquidGlassToggleStyle())
                         }
                     }
 
                     Button {
-                        save()
+                        viewModel.save()
                     } label: {
                         Text("保存提醒")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
 
-                    if let statusMessage {
+                    if let statusMessage = viewModel.statusMessage {
                         Text(statusMessage)
                             .font(.caption2)
                             .foregroundColor(.statusSuccess)
+                    } else if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.caption2)
+                            .foregroundColor(.statusError)
                     }
                 }
                 .liquidGlassPageWidth()
@@ -319,6 +320,9 @@ struct AiRemindersView: View {
         }
         .navigationTitle("AI 提醒")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await viewModel.load()
+        }
     }
 
     private var header: some View {
@@ -333,32 +337,105 @@ struct AiRemindersView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func save() {
-        UserDefaults.standard.set(morningReminder, forKey: "reminder_morning")
-        UserDefaults.standard.set(eveningReminder, forKey: "reminder_evening")
-        UserDefaults.standard.set(breathingReminder, forKey: "reminder_breathing")
-        statusMessage = "提醒设置已保存"
+}
+
+@MainActor
+final class HabitsViewModel: ObservableObject {
+    @Published var habits: [SupabaseManager.HabitStatus] = []
+    @Published var statusMessage: String?
+    @Published var errorMessage: String?
+    @Published var isLoading = false
+
+    private var initialCompletedIds: Set<String> = []
+    private let supabase = SupabaseManager.shared
+
+    func load() async {
+        isLoading = true
+        statusMessage = nil
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            habits = try await supabase.getHabitsForToday()
+            initialCompletedIds = Set(habits.filter { $0.isCompleted }.map { $0.id })
+        } catch {
+            errorMessage = "加载失败: \(error.localizedDescription)"
+        }
+    }
+
+    func save() {
+        Task { await saveHabits() }
+    }
+
+    private func saveHabits() async {
+        statusMessage = nil
+        errorMessage = nil
+
+        let currentCompleted = Set(habits.filter { $0.isCompleted }.map { $0.id })
+        let toAdd = currentCompleted.subtracting(initialCompletedIds)
+        let toRemove = initialCompletedIds.subtracting(currentCompleted)
+
+        do {
+            for id in toAdd {
+                try await supabase.setHabitCompletion(habitId: id, isCompleted: true)
+            }
+            for id in toRemove {
+                try await supabase.setHabitCompletion(habitId: id, isCompleted: false)
+            }
+            initialCompletedIds = currentCompleted
+            statusMessage = "已保存 \(Date().formatted(date: .abbreviated, time: .shortened))"
+        } catch {
+            errorMessage = "保存失败: \(error.localizedDescription)"
+        }
     }
 }
 
-struct HabitItem: Identifiable {
-    let id = UUID()
-    let title: String
-    var isCompleted: Bool
+@MainActor
+final class AiRemindersViewModel: ObservableObject {
+    @Published var morningReminder = false
+    @Published var eveningReminder = false
+    @Published var breathingReminder = false
+    @Published var statusMessage: String?
+    @Published var errorMessage: String?
+    @Published var isLoading = false
 
-    var storageKey: String {
-        "habit_\(title)"
+    private let supabase = SupabaseManager.shared
+
+    func load() async {
+        isLoading = true
+        statusMessage = nil
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let prefs = try await supabase.getReminderPreferences()
+            morningReminder = prefs.morning ?? false
+            eveningReminder = prefs.evening ?? false
+            breathingReminder = prefs.breathing ?? false
+        } catch {
+            errorMessage = "加载失败: \(error.localizedDescription)"
+        }
     }
 
-    static func sample() -> [HabitItem] {
-        let titles = [
-            "补水 2000ml",
-            "完成 5 分钟呼吸",
-            "完成 20 分钟运动",
-            "22:30 前入睡"
-        ]
-        return titles.map { title in
-            HabitItem(title: title, isCompleted: UserDefaults.standard.bool(forKey: "habit_\(title)"))
+    func save() {
+        Task { await savePreferences() }
+    }
+
+    private func savePreferences() async {
+        statusMessage = nil
+        errorMessage = nil
+
+        let prefs = ReminderPreferences(
+            morning: morningReminder,
+            evening: eveningReminder,
+            breathing: breathingReminder
+        )
+
+        do {
+            _ = try await supabase.updateReminderPreferences(prefs)
+            statusMessage = "提醒设置已保存"
+        } catch {
+            errorMessage = "保存失败: \(error.localizedDescription)"
         }
     }
 }

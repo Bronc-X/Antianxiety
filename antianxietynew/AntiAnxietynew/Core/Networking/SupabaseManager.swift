@@ -67,6 +67,48 @@ struct FeedFeedbackInput: Codable {
     }
 }
 
+// MARK: - Evidence Models
+struct EvidenceItem: Codable, Identifiable {
+    let id: UUID
+    let type: EvidenceType
+    let value: String
+    let weight: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case value
+        case weight
+    }
+
+    init(id: UUID = UUID(), type: EvidenceType, value: String, weight: Double? = nil) {
+        self.id = id
+        self.type = type
+        self.value = value
+        self.weight = weight
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = (try? container.decode(EvidenceType.self, forKey: .type)) ?? .bio
+        value = (try? container.decode(String.self, forKey: .value)) ?? ""
+        weight = try? container.decode(Double.self, forKey: .weight)
+        id = UUID()
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(type, forKey: .type)
+        try container.encode(value, forKey: .value)
+        try container.encodeIfPresent(weight, forKey: .weight)
+    }
+}
+
+enum EvidenceType: String, Codable {
+    case bio
+    case science
+    case action
+}
+
 // MARK: - Supabase 配置 (从 Info.plist 读取，由 xcconfig 注入)
 private enum SupabaseConfig {
     static var url: URL {
@@ -94,6 +136,12 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     @Published var isAuthenticated = false
     @Published var isSessionRestored = false
     @Published var isClinicalComplete = false
+
+    private enum HabitsBackend {
+        case v2
+        case legacy
+    }
+    private var habitsBackendCache: HabitsBackend?
     
     private init() {
         // 初始化时检查会话
@@ -207,6 +255,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         currentUser = nil
         isAuthenticated = false
         isClinicalComplete = false
+        habitsBackendCache = nil
     }
     
     func checkSession() async {
@@ -323,9 +372,45 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let trimmedEndpointPath = endpointPath.hasPrefix("/") ? String(endpointPath.dropFirst()) : endpointPath
         components?.path = "\(trimmedBasePath)/rest/v1/\(trimmedEndpointPath)"
         if let query {
-            components?.percentEncodedQuery = query
+            components?.percentEncodedQuery = sanitizePercentEncodedQuery(query)
         }
         return components?.url
+    }
+
+    private func sanitizePercentEncodedQuery(_ query: String) -> String {
+        // URLComponents.percentEncodedQuery requires all '%' to be valid percent escapes.
+        var output = ""
+        let characters = Array(query)
+        var index = 0
+        while index < characters.count {
+            let char = characters[index]
+            if char == "%" {
+                if index + 2 < characters.count,
+                   isHexDigit(characters[index + 1]),
+                   isHexDigit(characters[index + 2]) {
+                    output.append(char)
+                    output.append(characters[index + 1])
+                    output.append(characters[index + 2])
+                    index += 3
+                    continue
+                }
+                output.append("%25")
+                index += 1
+                continue
+            }
+            if char == " " {
+                output.append("%20")
+                index += 1
+                continue
+            }
+            output.append(char)
+            index += 1
+        }
+        return output
+    }
+
+    private func isHexDigit(_ char: Character) -> Bool {
+        return ("0"..."9").contains(char) || ("a"..."f").contains(char) || ("A"..."F").contains(char)
     }
     
     func request<T: Decodable>(
@@ -778,6 +863,9 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             : nil
 
         let logs = (try? await getMonthlyWellnessLogs()) ?? []
+        let calibrations = await fetchDigitalTwinCalibrations(userId: user.id, logs: logs)
+        let inquiryInsights = await fetchDigitalTwinInquiryInsights(userId: user.id)
+        let conversationSummary = await fetchDigitalTwinConversationSummary(userId: user.id)
         let registrationDate = profileRow?.created_at ?? ISO8601DateFormatter().string(from: Date())
         let profile = ProfileSnapshot(
             age: profileRow?.age,
@@ -791,9 +879,248 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             userId: user.id,
             baselineScores: baseline,
             logs: logs,
+            calibrations: calibrations,
+            inquiryInsights: inquiryInsights,
+            conversationSummary: conversationSummary,
             profile: profile,
             now: Date()
         )
+    }
+
+    private func fetchDigitalTwinCalibrations(userId: String, logs: [WellnessLog]) async -> [CalibrationData] {
+        struct CalibrationRow: Codable {
+            let date: String
+            let sleep_hours: Double?
+            let stress_level: Int?
+            let exercise_duration: Int?
+            let meal_quality: String?
+            let mood_score: Int?
+            let water_intake: String?
+        }
+
+        let endpoint = "daily_calibrations?user_id=eq.\(userId)&select=date,sleep_hours,stress_level,exercise_duration,meal_quality,mood_score,water_intake&order=date.asc&limit=60"
+        let rows: [CalibrationRow] = (try? await request(endpoint)) ?? []
+
+        if !rows.isEmpty {
+            return rows.map { row in
+                let sleepHours = row.sleep_hours ?? 0
+                let sleepQuality = sleepQualityFromHours(sleepHours)
+                let mood = normalizeTo10(row.mood_score)
+                let stress = normalizeTo10(row.stress_level)
+                let energy = estimateEnergyLevel(mood: mood, stress: stress, exercise: row.exercise_duration)
+                return CalibrationData(
+                    date: row.date,
+                    sleepHours: sleepHours,
+                    sleepQuality: sleepQuality,
+                    moodScore: mood,
+                    stressLevel: stress,
+                    energyLevel: energy,
+                    restingHeartRate: nil,
+                    hrv: nil,
+                    stepCount: nil,
+                    deviceSleepScore: nil,
+                    activityScore: nil
+                )
+            }
+        }
+
+        let sortedLogs = logs.sorted { $0.log_date < $1.log_date }
+        return sortedLogs.map { log in
+            let sleepHours = log.sleepHours
+            let sleepQuality = sleepQualityFromLog(log, fallbackHours: sleepHours)
+            let mood = moodScoreFromLog(log)
+            let stress = normalizeTo10(log.stress_level)
+            let energy = log.energy_level ?? log.morning_energy ?? estimateEnergyLevel(mood: mood, stress: stress, exercise: log.exercise_duration_minutes)
+            return CalibrationData(
+                date: log.log_date,
+                sleepHours: sleepHours,
+                sleepQuality: sleepQuality,
+                moodScore: mood,
+                stressLevel: stress,
+                energyLevel: normalizeTo10(Int?(energy)),
+                restingHeartRate: nil,
+                hrv: nil,
+                stepCount: nil,
+                deviceSleepScore: nil,
+                activityScore: nil
+            )
+        }
+    }
+
+    private func fetchDigitalTwinInquiryInsights(userId: String) async -> [InquiryInsight] {
+        struct InquiryRow: Codable {
+            let question_text: String?
+            let question_type: String?
+            let user_response: String?
+            let data_gaps_addressed: [String]?
+            let created_at: String?
+            let responded_at: String?
+        }
+
+        let endpoint = "inquiry_history?user_id=eq.\(userId)&select=question_text,question_type,user_response,data_gaps_addressed,created_at,responded_at&order=created_at.desc&limit=10"
+        let rows: [InquiryRow] = (try? await request(endpoint)) ?? []
+
+        return rows.compactMap { row in
+            guard let response = row.user_response, !response.isEmpty else { return nil }
+            let date = row.responded_at ?? row.created_at ?? isoDate(Date())
+            var indicators: [String: CodableValue] = [:]
+            if let gaps = row.data_gaps_addressed {
+                for gap in gaps {
+                    indicators[gap] = .string(response)
+                }
+            }
+            if indicators.isEmpty, let question = row.question_text {
+                indicators["question"] = .string(question)
+            }
+            return InquiryInsight(
+                date: date,
+                topic: row.question_type ?? "general",
+                userResponse: response,
+                extractedIndicators: indicators
+            )
+        }
+    }
+
+    private func fetchDigitalTwinConversationSummary(userId: String) async -> ConversationSummary {
+        struct ConversationRow: Codable {
+            let role: String?
+            let content: String?
+            let created_at: String?
+        }
+
+        let endpoint = "chat_conversations?user_id=eq.\(userId)&select=role,content,created_at&order=created_at.desc&limit=100"
+        let rows: [ConversationRow] = (try? await request(endpoint)) ?? []
+
+        let total = rows.count
+        let lastInteraction = rows.first?.created_at ?? isoDate(Date())
+        let userMessages = rows.filter { ($0.role ?? "") == "user" }
+
+        let negativeKeywords = ["焦虑", "压力", "紧张", "恐慌", "失眠", "难受", "崩溃", "panic", "anxiety", "stress"]
+        let positiveKeywords = ["好转", "改善", "平静", "放松", "舒服", "稳定", "开心", "进步", "calm", "better"]
+
+        var score = 0
+        var topicCounts: [String: Int] = [:]
+        let topicKeywords: [String: [String]] = [
+            "睡眠": ["睡眠", "失眠", "睡不着", "sleep"],
+            "压力": ["压力", "紧张", "stress"],
+            "焦虑": ["焦虑", "恐慌", "anxiety"],
+            "能量": ["能量", "精力", "疲劳", "energy"],
+            "运动": ["运动", "锻炼", "exercise"],
+            "饮食": ["饮食", "吃", "diet"]
+        ]
+
+        for message in userMessages {
+            let content = message.content?.lowercased() ?? ""
+            for keyword in negativeKeywords where content.contains(keyword) {
+                score += 1
+            }
+            for keyword in positiveKeywords where content.contains(keyword) {
+                score -= 1
+            }
+            for (topic, keywords) in topicKeywords {
+                if keywords.contains(where: { content.contains($0) }) {
+                    topicCounts[topic, default: 0] += 1
+                }
+            }
+        }
+
+        let emotionalTrend: String
+        if score >= 2 {
+            emotionalTrend = "declining"
+        } else if score <= -2 {
+            emotionalTrend = "improving"
+        } else {
+            emotionalTrend = "stable"
+        }
+
+        let frequentTopics = topicCounts
+            .sorted { $0.value > $1.value }
+            .prefix(3)
+            .map { $0.key }
+
+        return ConversationSummary(
+            totalMessages: total,
+            emotionalTrend: emotionalTrend,
+            frequentTopics: frequentTopics,
+            lastInteraction: lastInteraction
+        )
+    }
+
+    private func moodScoreFromLog(_ log: WellnessLog) -> Int {
+        if let mood = log.mood_status?.lowercased() {
+            switch mood {
+            case "great", "excellent": return 9
+            case "good": return 7
+            case "okay", "neutral": return 5
+            case "bad", "poor": return 3
+            case "terrible": return 1
+            default: break
+            }
+        }
+        if let anxiety = log.anxiety_level {
+            return max(0, 10 - anxiety)
+        }
+        return 5
+    }
+
+    private func sleepQualityFromLog(_ log: WellnessLog, fallbackHours: Double) -> Int {
+        if let qualityString = log.sleep_quality {
+            if let quality = Int(qualityString) {
+                return normalizeTo10(quality)
+            }
+            switch qualityString.lowercased() {
+            case "poor", "bad": return 3
+            case "okay", "neutral": return 5
+            case "good": return 7
+            case "great", "excellent": return 9
+            default: break
+            }
+        }
+        return sleepQualityFromHours(fallbackHours)
+    }
+
+    private func sleepQualityFromHours(_ hours: Double) -> Int {
+        if hours <= 0 { return 0 }
+        if hours >= 7 && hours <= 9 { return 10 }
+        if hours < 7 {
+            let penalty = Int(round((7 - hours) * 2))
+            return max(0, 10 - penalty)
+        }
+        let penalty = Int(round((hours - 9) * 1.5))
+        return max(0, 10 - penalty)
+    }
+
+    private func estimateEnergyLevel(mood: Int?, stress: Int?, exercise: Int?) -> Int {
+        var energy = 5.0
+        if let mood {
+            energy += Double(mood - 5) * 0.6
+        }
+        if let stress {
+            energy -= Double(stress - 5) * 0.5
+        }
+        if let exercise, exercise > 0 {
+            energy += min(3.0, Double(exercise) / 30.0)
+        }
+        return normalizeTo10(energy)
+    }
+
+    private func normalizeTo10(_ value: Int?) -> Int {
+        guard let value else { return 0 }
+        if value <= 10 { return max(0, value) }
+        if value <= 100 { return max(0, min(10, value / 10)) }
+        return 10
+    }
+
+    private func normalizeTo10(_ value: Double) -> Int {
+        if value <= 10 { return max(0, min(10, Int(round(value)))) }
+        if value <= 100 { return max(0, min(10, Int(round(value / 10)))) }
+        return 10
+    }
+
+    private func isoDate(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        return formatter.string(from: date)
     }
     
     /// 获取最新的数字孪生分析结果
@@ -881,7 +1208,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     func getProfileSettings() async throws -> ProfileSettings? {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
 
-        let endpoint = "profiles?id=eq.\(user.id)&select=id,full_name,avatar_url,ai_personality,ai_persona_context,ai_settings,preferred_language,primary_goal,current_focus,inferred_scale_scores&limit=1"
+        let endpoint = "profiles?id=eq.\(user.id)&select=id,full_name,avatar_url,ai_personality,ai_persona_context,ai_settings,preferred_language,primary_goal,current_focus,inferred_scale_scores,reminder_preferences&limit=1"
         let results: [ProfileSettings] = try await request(endpoint)
         return results.first
     }
@@ -899,6 +1226,17 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         }
         
         return updatedProfile
+    }
+
+    func getReminderPreferences() async throws -> ReminderPreferences {
+        let profile = try await getProfileSettings()
+        return profile?.reminder_preferences ?? ReminderPreferences(morning: false, evening: false, breathing: false)
+    }
+
+    func updateReminderPreferences(_ preferences: ReminderPreferences) async throws -> ReminderPreferences {
+        let update = ProfileSettingsUpdate(reminder_preferences: preferences)
+        let profile = try await updateProfileSettings(update)
+        return profile?.reminder_preferences ?? preferences
     }
 
     private func ensureProfileRow() async {
@@ -1441,20 +1779,177 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     // MARK: - Max Chat (Next API)
 
     func chatWithMax(messages: [ChatRequestMessage], mode: String = "fast") async throws -> String {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
         let localMessages = messages.map { message in
             ChatMessage(
                 role: message.role == "user" ? .user : .assistant,
                 content: message.content
             )
         }
-        let prompt = "你是 Max，一个高效、直接、简洁的健康共情型助手。中文回答，避免冗长。"
+        let profile = try? await getProfileSettings()
+        let language = profile?.preferred_language ?? "zh"
+        let conversationState = MaxConversationStateTracker.extractState(from: localMessages)
+        let inquirySummary = try? await getInquiryContextSummary(language: language)
+
+        let lastUserMessage = localMessages.last { $0.role == .user }
+        var memoryContext: String? = nil
+        var playbookContext: String? = nil
+        if let lastUserMessage {
+            let ragContext = await MaxRAGService.buildContext(
+                userId: user.id,
+                query: lastUserMessage.content,
+                language: language
+            )
+            memoryContext = ragContext.memoryBlock
+            playbookContext = ragContext.playbookBlock
+        }
+
+        var contextBlock: String? = nil
+        if let lastUserMessage {
+            let searchResult = await ScientificSearchService.searchScientificTruth(query: lastUserMessage.content)
+            let papers = searchResult.papers.map { ScientificPaperLite(title: $0.title, year: $0.year) }
+            let decision = MaxContextOptimizer.optimize(
+                state: conversationState,
+                healthFocus: profile?.current_focus ?? profile?.primary_goal,
+                scientificPapers: papers
+            )
+            contextBlock = MaxContextOptimizer.buildContextBlock(decision: decision)
+        } else if let healthFocus = profile?.current_focus ?? profile?.primary_goal {
+            let decision = MaxContextOptimizer.optimize(
+                state: conversationState,
+                healthFocus: healthFocus,
+                scientificPapers: []
+            )
+            contextBlock = MaxContextOptimizer.buildContextBlock(decision: decision)
+        }
+
+        let userContext = await buildUserContextSummary(profile: profile)
+        var combinedContext: [String] = []
+        if let userContext, !userContext.isEmpty {
+            combinedContext.append("[USER CONTEXT]\n\(userContext)")
+        }
+        if let contextBlock, !contextBlock.isEmpty {
+            combinedContext.append(contextBlock)
+        }
+        let finalContextBlock = combinedContext.isEmpty ? nil : combinedContext.joined(separator: "\n")
+
+        let prompt = MaxPromptBuilder.build(input: MaxPromptInput(
+            conversationState: conversationState,
+            aiSettings: profile?.ai_settings,
+            aiPersonaContext: profile?.ai_persona_context,
+            personality: profile?.ai_personality,
+            healthFocus: profile?.current_focus ?? profile?.primary_goal,
+            inquirySummary: inquirySummary,
+            memoryContext: memoryContext,
+            playbookContext: playbookContext,
+            contextBlock: finalContextBlock,
+            language: language
+        ))
         let model: AIModel = (mode == "think") ? .deepseekV3Thinking : .deepseekV3Exp
-        return try await AIManager.shared.chatCompletion(
+        let response = try await AIManager.shared.chatCompletion(
             messages: localMessages,
             systemPrompt: prompt,
             model: model,
             temperature: 0.7
         )
+        let cleaned = stripReasoningContent(response)
+
+        if let lastUserMessage {
+            await MaxMemoryService.storeMemory(
+                userId: user.id,
+                content: lastUserMessage.content,
+                role: "user",
+                metadata: ["source": "max_chat"]
+            )
+        }
+        await MaxMemoryService.storeMemory(
+            userId: user.id,
+            content: cleaned,
+            role: "assistant",
+            metadata: ["source": "max_chat"]
+        )
+
+        return cleaned
+    }
+
+    private func buildMemoryContext(_ records: [MaxMemoryRecord]) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let lines = records.prefix(6).map { record -> String in
+            if let date = formatter.date(from: record.created_at) {
+                let dateString = ISO8601DateFormatter().string(from: date)
+                return "[\(dateString)] \(record.role): \(record.content_text)"
+            }
+            return "[\(record.created_at)] \(record.role): \(record.content_text)"
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func stripReasoningContent(_ text: String) -> String {
+        var cleaned = text
+        if let regex = try? NSRegularExpression(pattern: "<think>[\\s\\S]*?</think>", options: [.caseInsensitive]) {
+            let range = NSRange(cleaned.startIndex..<cleaned.endIndex, in: cleaned)
+            cleaned = regex.stringByReplacingMatches(in: cleaned, options: [], range: range, withTemplate: "")
+        }
+        if cleaned.contains("reasoning_content") {
+            let lines = cleaned.split(separator: "\n").filter { !$0.contains("reasoning_content") }
+            cleaned = lines.joined(separator: "\n")
+        }
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func buildUserContextSummary(profile: ProfileSettings?) async -> String? {
+        var lines: [String] = []
+
+        if let profile {
+            if let name = profile.full_name, !name.isEmpty { lines.append("姓名: \(name)") }
+            if let language = profile.preferred_language, !language.isEmpty { lines.append("偏好语言: \(language)") }
+            if let goal = profile.primary_goal, !goal.isEmpty { lines.append("主要目标: \(goal)") }
+            if let focus = profile.current_focus, !focus.isEmpty { lines.append("当前关注: \(focus)") }
+            if let personality = profile.ai_personality, !personality.isEmpty { lines.append("沟通风格: \(personality)") }
+            if let scores = profile.inferred_scale_scores, !scores.isEmpty {
+                let gad7 = scores["gad7"].map { "GAD7=\($0)" }
+                let phq9 = scores["phq9"].map { "PHQ9=\($0)" }
+                let isi = scores["isi"].map { "ISI=\($0)" }
+                let pss10 = scores["pss10"].map { "PSS10=\($0)" }
+                let parts = [gad7, phq9, isi, pss10].compactMap { $0 }
+                if !parts.isEmpty { lines.append("量表分数: \(parts.joined(separator: ", "))") }
+            }
+        }
+
+        if let dashboard = try? await getDashboardData() {
+            let logs = dashboard.weeklyLogs
+            if !logs.isEmpty {
+                let avgSleep = average(logs.map { $0.sleep_duration_minutes }).map { String(format: "%.1f", $0 / 60.0) }
+                let avgStress = average(logs.map { $0.stress_level }).map { String(format: "%.1f", $0) }
+                let avgEnergy = average(logs.map { $0.energy_level }).map { String(format: "%.1f", $0) }
+                let avgAnxiety = average(logs.map { $0.anxiety_level }).map { String(format: "%.1f", $0) }
+                var summaryParts: [String] = []
+                if let avgSleep { summaryParts.append("平均睡眠=\(avgSleep)小时") }
+                if let avgStress { summaryParts.append("平均压力=\(avgStress)") }
+                if let avgAnxiety { summaryParts.append("平均焦虑=\(avgAnxiety)") }
+                if let avgEnergy { summaryParts.append("平均精力=\(avgEnergy)") }
+                if !summaryParts.isEmpty { lines.append("最近7天: \(summaryParts.joined(separator: ", "))") }
+            }
+
+            if let hardware = dashboard.hardwareData {
+                var hardwareParts: [String] = []
+                if let hrv = hardware.hrv?.value { hardwareParts.append("HRV=\(String(format: "%.0f", hrv))") }
+                if let rhr = hardware.resting_heart_rate?.value { hardwareParts.append("静息心率=\(String(format: "%.0f", rhr))") }
+                if let sleepScore = hardware.sleep_score?.value { hardwareParts.append("睡眠评分=\(String(format: "%.0f", sleepScore))") }
+                if let steps = hardware.steps?.value { hardwareParts.append("步数=\(String(format: "%.0f", steps))") }
+                if !hardwareParts.isEmpty { lines.append("穿戴设备: \(hardwareParts.joined(separator: ", "))") }
+            }
+        }
+
+        let context = lines.joined(separator: "\n")
+        return context.isEmpty ? nil : context
+    }
+
+    private func average(_ values: [Int?]) -> Double? {
+        let nums = values.compactMap { $0 }
+        guard !nums.isEmpty else { return nil }
+        return Double(nums.reduce(0, +)) / Double(nums.count)
     }
     
     // 🆕 确保 token 有效 - 请求前调用
@@ -1545,6 +2040,12 @@ struct AISettings: Codable, Equatable {
     let mode: String?
 }
 
+struct ReminderPreferences: Codable, Equatable {
+    let morning: Bool?
+    let evening: Bool?
+    let breathing: Bool?
+}
+
 struct ProfileSettings: Codable, Equatable {
     let id: String?
     let full_name: String?
@@ -1556,6 +2057,7 @@ struct ProfileSettings: Codable, Equatable {
     let primary_goal: String?
     let current_focus: String?
     let inferred_scale_scores: [String: Int]?
+    let reminder_preferences: ReminderPreferences?
 }
 
 struct ProfileSettingsUpdate: Encodable {
@@ -1565,6 +2067,7 @@ struct ProfileSettingsUpdate: Encodable {
     var ai_persona_context: String?
     var ai_settings: AISettings?
     var preferred_language: String?
+    var reminder_preferences: ReminderPreferences?
 
     enum CodingKeys: String, CodingKey {
         case full_name
@@ -1573,6 +2076,7 @@ struct ProfileSettingsUpdate: Encodable {
         case ai_persona_context
         case ai_settings
         case preferred_language
+        case reminder_preferences
     }
 
     func encode(to encoder: Encoder) throws {
@@ -1583,6 +2087,7 @@ struct ProfileSettingsUpdate: Encodable {
         if let ai_persona_context { try container.encode(ai_persona_context, forKey: .ai_persona_context) }
         if let ai_settings { try container.encode(ai_settings, forKey: .ai_settings) }
         if let preferred_language { try container.encode(preferred_language, forKey: .preferred_language) }
+        if let reminder_preferences { try container.encode(reminder_preferences, forKey: .reminder_preferences) }
     }
 }
 
@@ -1684,32 +2189,69 @@ extension SupabaseManager {
             "根据我的数据，有什么建议？"
         ]
 
-        do {
-            let prompt = """
-            你是 Max，生成 4 条中文起始问题：
-            - 每条不超过 18 个字
-            - 聚焦焦虑/睡眠/压力/能量
-            - 直接输出 4 行纯文本
-            """
-            let reply = try await AIManager.shared.chatCompletion(
-                messages: [ChatMessage(role: .user, content: prompt)],
-                systemPrompt: "你是 Max，回答简洁直接。",
-                model: .deepseekV3Exp,
-                temperature: 0.6
-            )
-            let lines = reply
-                .split(separator: "\n")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "•", with: "").replacingOccurrences(of: "-", with: "") }
-                .filter { !$0.isEmpty }
-            let unique = Array(lines.prefix(4))
-            if unique.count >= 2 {
-                return unique
+        guard let user = currentUser else { return defaults }
+
+        var questions: [String] = []
+        func appendUnique(_ text: String) {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            if !questions.contains(trimmed) {
+                questions.append(trimmed)
             }
-        } catch {
-            // ignore and fallback
         }
 
-        return defaults
+        if let pending = try? await fetchLatestPendingInquiry(userId: user.id),
+           let questionText = pending.question_text, !questionText.isEmpty {
+            appendUnique(questionText)
+        }
+
+        let profile = try? await getProfileSettings()
+        let scores = profile?.inferred_scale_scores ?? [:]
+        if let gad7 = scores["gad7"], gad7 >= 7 {
+            appendUnique("最近最让你焦虑的触发点是什么？")
+        }
+        if let isi = scores["isi"], isi >= 7 {
+            appendUnique("最近入睡困难还是早醒更明显？")
+        }
+        if let pss10 = scores["pss10"], pss10 >= 14 {
+            appendUnique("最近压力主要来自哪件事？")
+        }
+        if let phq9 = scores["phq9"], phq9 >= 8 {
+            appendUnique("近两周情绪低落的高峰在什么场景？")
+        }
+
+        let logs = (try? await getMonthlyWellnessLogs()) ?? []
+        let calibrations = await fetchDigitalTwinCalibrations(userId: user.id, logs: logs)
+        if let latest = calibrations.last {
+            if latest.sleepHours > 0, latest.sleepHours < 6 {
+                appendUnique("最近睡眠偏少，影响最大的是哪一段？")
+            }
+            if latest.stressLevel >= 7 {
+                appendUnique("当前压力偏高，想先优化哪一块？")
+            }
+            if latest.energyLevel <= 4 {
+                appendUnique("最近精力偏低，你更想提升哪一时段？")
+            }
+        }
+
+        if let goal = profile?.primary_goal, !goal.isEmpty {
+            switch goal {
+            case "maintain_energy":
+                appendUnique("基于你的目标，怎样提升白天能量？")
+            case "improve_sleep":
+                appendUnique("基于你的目标，先从睡眠哪个环节优化？")
+            case "reduce_stress":
+                appendUnique("基于你的目标，先从哪种减压方式开始？")
+            default:
+                appendUnique("围绕你的目标，我该先给你什么建议？")
+            }
+        }
+
+        for fallback in defaults where questions.count < 4 {
+            appendUnique(fallback)
+        }
+
+        return Array(questions.prefix(4))
     }
 }
 
@@ -1717,58 +2259,101 @@ extension SupabaseManager {
 extension SupabaseManager {
     /// 获取科学期刊 Feed
     func getScienceFeed(language: String) async throws -> ScienceFeedResponse {
-        guard let url = appAPIURL(path: "api/feed") else {
-            print("[ScienceFeed] ⚠️ APP_API_BASE_URL 未配置")
-            throw SupabaseError.missingAppApiBaseUrl
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        struct CuratedFeedRow: Codable {
+            let id: String
+            let content_type: String?
+            let title: String
+            let summary: String?
+            let url: String?
+            let source: String
+            let relevance_score: Double?
+            let relevance_explanation: String?
+            let created_at: String?
         }
-        
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        components?.queryItems = [
-            URLQueryItem(name: "language", value: language),
-            URLQueryItem(name: "limit", value: "20")
-        ]
-        
-        guard let finalUrl = components?.url else {
-            throw SupabaseError.requestFailed
+
+        let endpoint = "curated_feed_queue?user_id=eq.\(user.id)&select=id,content_type,title,summary,url,source,relevance_score,relevance_explanation,created_at&order=relevance_score.desc.nullsfirst,created_at.desc&limit=20"
+        let curatedRows: [CuratedFeedRow] = (try? await request(endpoint)) ?? []
+
+        if !curatedRows.isEmpty {
+            let articles = curatedRows.map { row in
+                ScienceArticle(
+                    id: row.id,
+                    title: row.title,
+                    titleZh: nil,
+                    summary: row.summary,
+                    summaryZh: nil,
+                    sourceType: row.source,
+                    sourceUrl: row.url,
+                    matchPercentage: row.relevance_score.map { Int($0 * 100) },
+                    whyRecommended: row.relevance_explanation,
+                    actionableInsight: nil,
+                    tags: nil,
+                    createdAt: row.created_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+                )
+            }
+            return ScienceFeedResponse(
+                success: true,
+                items: articles,
+                data: nil,
+                personalization: FeedPersonalization(ready: true, message: nil, fallback: nil)
+            )
         }
-        
-        var request = URLRequest(url: finalUrl)
-        request.httpMethod = "GET"
-        attachSupabaseCookies(to: &request)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw SupabaseError.requestFailed
+
+        let fallbackQuery = language == "en" ? "anxiety sleep stress" : "焦虑 睡眠 压力"
+        let result = await ScientificSearchService.searchScientificTruth(query: fallbackQuery)
+        let articles = result.papers.map { paper in
+            ScienceArticle(
+                id: paper.id,
+                title: paper.title,
+                titleZh: nil,
+                summary: paper.abstract,
+                summaryZh: nil,
+                sourceType: paper.source.rawValue,
+                sourceUrl: paper.url,
+                matchPercentage: Int(paper.compositeScore * 100),
+                whyRecommended: "基于科学检索匹配",
+                actionableInsight: nil,
+                tags: nil,
+                createdAt: nil
+            )
         }
-        
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let feedResponse = try decoder.decode(ScienceFeedResponse.self, from: data)
-        print("✅ [ScienceFeed] 获取了 \(feedResponse.articles.count) 篇文章")
-        return feedResponse
+
+        return ScienceFeedResponse(
+            success: !articles.isEmpty,
+            items: articles,
+            data: nil,
+            personalization: FeedPersonalization(
+                ready: !articles.isEmpty,
+                message: articles.isEmpty ? (language == "en" ? "No curated feed available." : "暂无推荐内容") : nil,
+                fallback: articles.isEmpty ? (language == "en" ? "Please check back later." : "请稍后再试") : nil
+            )
+        )
     }
     
     /// 提交 Feed 反馈
     func submitFeedFeedback(_ feedback: FeedFeedbackInput) async throws {
-        guard let url = appAPIURL(path: "api/feed/feedback") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        struct FeedbackRow: Encodable {
+            let user_id: String
+            let content_id: String
+            let content_url: String?
+            let content_title: String?
+            let source: String?
+            let feedback_type: String
         }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        
-        let encoder = JSONEncoder()
-        request.httpBody = try encoder.encode(feedback)
-        
-        let (_, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw SupabaseError.requestFailed
-        }
-        
+
+        let payload = FeedbackRow(
+            user_id: user.id,
+            content_id: feedback.contentId,
+            content_url: feedback.contentUrl,
+            content_title: feedback.contentTitle,
+            source: feedback.source,
+            feedback_type: feedback.feedbackType
+        )
+        try await requestVoid("user_feed_feedback", method: "POST", body: payload)
         print("✅ [FeedFeedback] 反馈已提交")
     }
 }
@@ -1781,171 +2366,762 @@ extension SupabaseManager {
             URLQueryItem(name: "includeHistory", value: includeHistory ? "true" : "false"),
             URLQueryItem(name: "days", value: String(max(1, days)))
         ]
-        guard let url = appAPIURL(path: "api/understanding-score", queryItems: queryItems) else {
-            throw SupabaseError.missingAppApiBaseUrl
+        if let url = appAPIURL(path: "api/understanding-score", queryItems: queryItems) {
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            attachSupabaseCookies(to: &request)
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                    return try JSONDecoder().decode(UnderstandingScoreResponse.self, from: data)
+                }
+            } catch {
+                print("[UnderstandingScore] Remote API failed: \(error)")
+            }
         }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        attachSupabaseCookies(to: &request)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
+
+        return try await buildUnderstandingScoreLocally(includeHistory: includeHistory, days: days)
+    }
+
+    private func buildUnderstandingScoreLocally(includeHistory: Bool, days: Int) async throws -> UnderstandingScoreResponse {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        let normalizedDays = max(1, days)
+        let now = Date()
+        let calendar = Calendar(identifier: .gregorian)
+        let startDate = calendar.date(byAdding: .day, value: -(normalizedDays - 1), to: now) ?? now
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withFullDate]
+        let startString = dateFormatter.string(from: startDate)
+
+        let logs = (try? await getMonthlyWellnessLogs()) ?? []
+        let logsInRange = logs.filter { $0.log_date.prefix(10) >= startString }
+        let completionRate = min(1.0, Double(logsInRange.count) / Double(normalizedDays))
+
+        struct InquiryRow: Codable {
+            let responded_at: String?
+            let created_at: String?
         }
-        
-        if (200...299).contains(httpResponse.statusCode) {
-            return try JSONDecoder().decode(UnderstandingScoreResponse.self, from: data)
+        let inquiryEndpoint = "inquiry_history?user_id=eq.\(user.id)&select=responded_at,created_at&created_at=gte.\(startString)"
+        let inquiryRows: [InquiryRow] = (try? await request(inquiryEndpoint)) ?? []
+        let totalInquiries = inquiryRows.count
+        let respondedCount = inquiryRows.filter { ($0.responded_at ?? "").isEmpty == false }.count
+        let inquiryRate = totalInquiries == 0 ? 0.4 : min(1.0, Double(respondedCount) / Double(totalInquiries))
+
+        let profile = try? await getProfileSettings()
+        var preferenceScore: Double = 0.2
+        if let personality = profile?.ai_personality, !personality.isEmpty { preferenceScore += 0.2 }
+        if let language = profile?.preferred_language, !language.isEmpty { preferenceScore += 0.2 }
+        if let goal = profile?.primary_goal, !goal.isEmpty { preferenceScore += 0.2 }
+        if let focus = profile?.current_focus, !focus.isEmpty { preferenceScore += 0.2 }
+        preferenceScore = min(1.0, preferenceScore)
+
+        let currentScore = (35 + 65 * (0.45 * completionRate + 0.35 * inquiryRate + 0.2 * preferenceScore)).rounded()
+
+        let breakdown = UnderstandingScoreBreakdown(
+            completionPredictionAccuracy: (completionRate * 100).rounded(),
+            replacementAcceptanceRate: (inquiryRate * 100).rounded(),
+            sentimentPredictionAccuracy: ((completionRate * 0.6 + preferenceScore * 0.4) * 100).rounded(),
+            preferencePatternMatch: (preferenceScore * 100).rounded()
+        )
+
+        let score = UnderstandingScore(
+            current: currentScore,
+            breakdown: breakdown,
+            isDeepUnderstanding: currentScore >= 70,
+            lastUpdated: ISO8601DateFormatter().string(from: now)
+        )
+
+        var history: [UnderstandingScoreHistory] = []
+        if includeHistory {
+            for offset in (0..<normalizedDays).reversed() {
+                if let day = calendar.date(byAdding: .day, value: -offset, to: now) {
+                    let dayString = dateFormatter.string(from: day)
+                    let hasLog = logsInRange.contains { $0.log_date.hasPrefix(dayString) }
+                    let hasInquiry = inquiryRows.contains {
+                        ($0.responded_at ?? "").hasPrefix(dayString)
+                    }
+                    let dailyScore = (30 + 70 * ((hasLog ? 0.6 : 0) + (hasInquiry ? 0.4 : 0))).rounded()
+                    history.append(UnderstandingScoreHistory(date: dayString, score: dailyScore, factorsChanged: nil))
+                }
+            }
         }
-        
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let errorMessage = json["error"] as? String {
-            throw NSError(domain: "UnderstandingScore", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
-        }
-        
-        throw SupabaseError.requestFailed
+
+        return UnderstandingScoreResponse(score: score, history: includeHistory ? history : nil)
     }
 }
 
 // MARK: - 🆕 Inquiry API
 extension SupabaseManager {
-    /// 获取待答问询
+    fileprivate struct InquiryHistoryRow: Codable {
+        let id: String
+        let user_id: String?
+        let question_text: String?
+        let question_type: String?
+        let priority: String?
+        let data_gaps_addressed: [String]?
+        let user_response: String?
+        let responded_at: String?
+        let delivery_method: String?
+        let created_at: String?
+    }
+
+    fileprivate struct InquiryHistoryInsert: Encodable {
+        let user_id: String
+        let question_text: String
+        let question_type: String
+        let priority: String
+        let data_gaps_addressed: [String]
+        let delivery_method: String
+    }
+
+    fileprivate struct InquiryHistoryUpdate: Encodable {
+        let user_response: String
+        let responded_at: String
+    }
+
+    private func getInquiryContextSummary(language: String, limit: Int = 8) async throws -> String? {
+        guard let user = currentUser else { return nil }
+
+        let endpoint = "inquiry_history?user_id=eq.\(user.id)&select=id,question_text,user_response,data_gaps_addressed,created_at,responded_at&order=created_at.desc&limit=\(max(1, limit))"
+        let rows: [InquiryHistoryRow] = (try? await request(endpoint)) ?? []
+        guard !rows.isEmpty else { return nil }
+
+        let records = rows.map { row in
+            InquiryHistoryRecord(
+                id: row.id,
+                questionText: row.question_text ?? "",
+                userResponse: row.user_response,
+                dataGapsAddressed: row.data_gaps_addressed ?? [],
+                createdAt: row.created_at ?? "",
+                respondedAt: row.responded_at
+            )
+        }
+
+        let context = InquiryContextService.buildContext(from: records, language: language)
+        return InquiryContextService.generateSummary(context, language: language)
+    }
+
+    /// 获取待答问询（本地 Supabase 直连）
     func getPendingInquiry(language: String) async throws -> InquiryPendingResponse {
-        let queryItems = [URLQueryItem(name: "language", value: language)]
-        guard let url = appAPIURL(path: "api/inquiry/pending", queryItems: queryItems) else {
-            throw SupabaseError.missingAppApiBaseUrl
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        if let existing = try? await fetchLatestPendingInquiry(userId: user.id) {
+            let question = resolveInquiryQuestion(from: existing, language: language)
+            return InquiryPendingResponse(hasInquiry: question != nil, inquiry: question)
         }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        attachSupabaseCookies(to: &request)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
+
+        // 无待答问询，尝试生成新的问询
+        if let inquiry = try await generateInquiryFromGaps(language: language) {
+            return InquiryPendingResponse(hasInquiry: true, inquiry: inquiry)
         }
-        
-        if (200...299).contains(httpResponse.statusCode) {
-            return try JSONDecoder().decode(InquiryPendingResponse.self, from: data)
-        }
-        
-        throw SupabaseError.requestFailed
+
+        return InquiryPendingResponse(hasInquiry: false, inquiry: nil)
     }
     
-    /// 提交问询回答
+    /// 提交问询回答（本地 Supabase 直连）
     func respondInquiry(inquiryId: String, response: String) async throws -> InquiryRespondResponse {
-        guard let url = appAPIURL(path: "api/inquiry/respond") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        guard currentUser != nil else { throw SupabaseError.notAuthenticated }
+
+        let payload = InquiryHistoryUpdate(
+            user_response: response,
+            responded_at: ISO8601DateFormatter().string(from: Date())
+        )
+        let endpoint = "inquiry_history?id=eq.\(inquiryId)"
+        try await requestVoid(endpoint, method: "PATCH", body: payload, prefer: "return=representation")
+        return InquiryRespondResponse(success: true, message: nil)
+    }
+
+    private func fetchLatestPendingInquiry(userId: String) async throws -> InquiryHistoryRow? {
+        let endpoint = "inquiry_history?user_id=eq.\(userId)&responded_at=is.null&order=created_at.desc&limit=1"
+        let rows: [InquiryHistoryRow] = try await request(endpoint)
+        return rows.first
+    }
+
+    private func resolveInquiryQuestion(from row: InquiryHistoryRow, language: String) -> InquiryQuestion? {
+        guard let questionText = row.question_text,
+              let questionType = row.question_type,
+              let priority = row.priority else {
+            return nil
         }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        
-        let payload = [
-            "inquiryId": inquiryId,
-            "response": response
+
+        let gaps = row.data_gaps_addressed ?? []
+        let options: [InquiryOption]? = gaps.first.flatMap { gap in
+            InquiryEngine.inquiryTemplate(
+                for: DataGap(field: gap, importance: .medium, description: gap, lastUpdated: row.created_at),
+                language: language
+            )?.options
+        }
+
+        return InquiryQuestion(
+            id: row.id,
+            questionText: questionText,
+            questionType: questionType,
+            priority: priority,
+            dataGapsAddressed: gaps,
+            options: options,
+            feedContent: nil
+        )
+    }
+
+    private func generateInquiryFromGaps(language: String) async throws -> InquiryQuestion? {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        let recentData = await collectRecentInquiryData(userId: user.id)
+        let gaps = InquiryEngine.identifyDataGaps(recentData: recentData, staleThresholdHours: 24)
+        let prioritized = InquiryEngine.prioritizeDataGaps(gaps)
+
+        guard let gap = prioritized.first,
+              let inquiry = InquiryEngine.inquiryTemplate(for: gap, language: language) else {
+            return nil
+        }
+
+        let payload = InquiryHistoryInsert(
+            user_id: user.id,
+            question_text: inquiry.questionText,
+            question_type: inquiry.questionType,
+            priority: inquiry.priority,
+            data_gaps_addressed: inquiry.dataGapsAddressed,
+            delivery_method: "in_app"
+        )
+
+        _ = try? await requestVoid("inquiry_history", method: "POST", body: payload, prefer: "return=representation")
+        return inquiry
+    }
+
+    private func collectRecentInquiryData(userId: String) async -> [String: (value: String, timestamp: String)] {
+        var data: [String: (value: String, timestamp: String)] = [:]
+
+        if let recentLogs = try? await getWeeklyWellnessLogs() {
+            for log in recentLogs {
+                let timestamp = log.log_date
+                if let minutes = log.sleep_duration_minutes {
+                    data["sleep_hours"] = (value: String(format: "%.1f", Double(minutes) / 60.0), timestamp: timestamp)
+                }
+                if let stress = log.stress_level {
+                    data["stress_level"] = (value: "\(stress)", timestamp: timestamp)
+                }
+                if let exercise = log.exercise_duration_minutes {
+                    data["exercise_duration"] = (value: "\(exercise)", timestamp: timestamp)
+                }
+                if let mood = log.mood_status {
+                    data["mood"] = (value: mood, timestamp: timestamp)
+                }
+                if let energy = log.energy_level {
+                    data["energy_level"] = (value: "\(energy)", timestamp: timestamp)
+                }
+            }
+        }
+
+        // 日常校准表的补充（如果存在）
+        struct CalibrationRow: Codable {
+            let date: String
+            let sleep_hours: Double?
+            let stress_level: Int?
+            let exercise_duration: Int?
+            let meal_quality: String?
+            let mood_score: Int?
+            let water_intake: String?
+        }
+        let calibrationEndpoint = "daily_calibrations?user_id=eq.\(userId)&select=date,sleep_hours,stress_level,exercise_duration,meal_quality,mood_score,water_intake&order=date.desc&limit=7"
+        if let rows: [CalibrationRow] = try? await request(calibrationEndpoint) {
+            for row in rows {
+                let timestamp = row.date
+                if let sleepHours = row.sleep_hours {
+                    data["sleep_hours"] = (value: String(format: "%.1f", sleepHours), timestamp: timestamp)
+                }
+                if let stress = row.stress_level {
+                    data["stress_level"] = (value: "\(stress)", timestamp: timestamp)
+                }
+                if let exercise = row.exercise_duration {
+                    data["exercise_duration"] = (value: "\(exercise)", timestamp: timestamp)
+                }
+                if let meal = row.meal_quality {
+                    data["meal_quality"] = (value: meal, timestamp: timestamp)
+                }
+                if let moodScore = row.mood_score {
+                    data["mood"] = (value: "\(moodScore)", timestamp: timestamp)
+                }
+                if let water = row.water_intake {
+                    data["water_intake"] = (value: water, timestamp: timestamp)
+                }
+            }
+        }
+
+        return data
+    }
+}
+
+// MARK: - 🆕 Habits API
+extension SupabaseManager {
+    struct HabitStatus: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let description: String?
+        let minResistanceLevel: Int?
+        var isCompleted: Bool
+    }
+
+    private struct HabitRowV2: Codable {
+        let id: FlexibleId
+        let title: String
+        let description: String?
+        let min_resistance_level: Int?
+        let created_at: String?
+    }
+
+    private struct HabitRowLegacy: Codable {
+        let id: FlexibleId
+        let habit_name: String
+        let cue: String?
+        let response: String?
+        let reward: String?
+        let belief_score: Int?
+        let created_at: String?
+    }
+
+    private struct HabitCompletionRow: Codable {
+        let habit_id: FlexibleId
+        let completed_at: String?
+    }
+
+    func getHabitsForToday(referenceDate: Date = Date()) async throws -> [HabitStatus] {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        let backend = await resolveHabitsBackend(userId: user.id)
+        var habits = try await fetchHabits(backend: backend, userId: user.id)
+        if habits.isEmpty {
+            habits = try await seedDefaultHabits(backend: backend, userId: user.id)
+        }
+
+        let completedIds = try await fetchHabitCompletionIds(
+            backend: backend,
+            userId: user.id,
+            referenceDate: referenceDate
+        )
+
+        if !completedIds.isEmpty {
+            let completedSet = Set(completedIds)
+            habits = habits.map { habit in
+                var updated = habit
+                updated.isCompleted = completedSet.contains(habit.id)
+                return updated
+            }
+        }
+
+        return habits
+    }
+
+    func setHabitCompletion(habitId: String, isCompleted: Bool, referenceDate: Date = Date()) async throws {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+        let backend = await resolveHabitsBackend(userId: user.id)
+
+        let (start, end) = dayRange(for: referenceDate)
+        let habitValue = habitIdPayloadValue(habitId)
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime]
+
+        switch backend {
+        case .v2:
+            if isCompleted {
+                let payload: [String: AnyCodable] = [
+                    "user_id": AnyCodable(user.id),
+                    "habit_id": habitValue,
+                    "completed_at": AnyCodable(dateFormatter.string(from: referenceDate))
+                ]
+                try await requestVoid("habit_completions", method: "POST", body: payload, prefer: "return=representation")
+            } else {
+                let endpoint = "habit_completions?user_id=eq.\(user.id)&habit_id=eq.\(habitId)&completed_at=gte.\(start)&completed_at=lt.\(end)"
+                try await requestVoid(endpoint, method: "DELETE", body: nil, prefer: nil)
+            }
+        case .legacy:
+            if isCompleted {
+                let payload: [String: AnyCodable] = [
+                    "habit_id": habitValue,
+                    "completed_at": AnyCodable(dateFormatter.string(from: referenceDate))
+                ]
+                try await requestVoid("habit_log", method: "POST", body: payload, prefer: "return=representation")
+            } else {
+                let endpoint = "habit_log?habit_id=eq.\(habitId)&completed_at=gte.\(start)&completed_at=lt.\(end)"
+                try await requestVoid(endpoint, method: "DELETE", body: nil, prefer: nil)
+            }
+        }
+    }
+
+    private func resolveHabitsBackend(userId: String) async -> HabitsBackend {
+        if let cached = habitsBackendCache {
+            return cached
+        }
+        do {
+            let _: [HabitRowV2] = try await request("habits?user_id=eq.\(userId)&select=id&limit=1")
+            habitsBackendCache = .v2
+            return .v2
+        } catch {
+            habitsBackendCache = .legacy
+            return .legacy
+        }
+    }
+
+    private func fetchHabits(backend: HabitsBackend, userId: String) async throws -> [HabitStatus] {
+        switch backend {
+        case .v2:
+            let endpoint = "habits?user_id=eq.\(userId)&select=id,title,description,min_resistance_level,created_at&order=created_at.asc"
+            let rows: [HabitRowV2] = try await request(endpoint)
+            return rows.map { row in
+                HabitStatus(
+                    id: row.id.value,
+                    title: row.title,
+                    description: row.description,
+                    minResistanceLevel: row.min_resistance_level,
+                    isCompleted: false
+                )
+            }
+        case .legacy:
+            let endpoint = "user_habits?user_id=eq.\(userId)&select=id,habit_name,cue,response,reward,belief_score,created_at&order=created_at.asc"
+            do {
+                let rows: [HabitRowLegacy] = try await request(endpoint)
+                return rows.map { row in
+                    let description = [row.cue, row.response, row.reward].compactMap { $0 }.first
+                    return HabitStatus(
+                        id: row.id.value,
+                        title: row.habit_name,
+                        description: description,
+                        minResistanceLevel: row.belief_score,
+                        isCompleted: false
+                    )
+                }
+            } catch {
+                let fallbackEndpoint = "user_habits?user_id=eq.\(userId)&select=id,habit_name,cue,response,reward,created_at&order=created_at.asc"
+                let rows: [HabitRowLegacy] = try await request(fallbackEndpoint)
+                return rows.map { row in
+                    let description = [row.cue, row.response, row.reward].compactMap { $0 }.first
+                    return HabitStatus(
+                        id: row.id.value,
+                        title: row.habit_name,
+                        description: description,
+                        minResistanceLevel: nil,
+                        isCompleted: false
+                    )
+                }
+            }
+        }
+    }
+
+    private func seedDefaultHabits(backend: HabitsBackend, userId: String) async throws -> [HabitStatus] {
+        let defaults = defaultHabitTemplates()
+        switch backend {
+        case .v2:
+            for habit in defaults {
+                let payload: [String: AnyCodable] = [
+                    "user_id": AnyCodable(userId),
+                    "title": AnyCodable(habit.title),
+                    "description": AnyCodable(habit.description ?? ""),
+                    "min_resistance_level": AnyCodable(habit.minResistanceLevel ?? 3)
+                ]
+                let _: [[String: AnyCodable]]? = try? await request("habits", method: "POST", body: payload, prefer: "return=representation")
+            }
+        case .legacy:
+            for habit in defaults {
+                let payload: [String: AnyCodable] = [
+                    "user_id": AnyCodable(userId),
+                    "habit_name": AnyCodable(habit.title),
+                    "cue": AnyCodable(habit.description ?? ""),
+                    "belief_score": AnyCodable(habit.minResistanceLevel ?? 3)
+                ]
+                let inserted: [[String: AnyCodable]]? = try? await request("user_habits", method: "POST", body: payload, prefer: "return=representation")
+                if inserted == nil {
+                    let fallbackPayload: [String: AnyCodable] = [
+                        "user_id": AnyCodable(userId),
+                        "habit_name": AnyCodable(habit.title),
+                        "cue": AnyCodable(habit.description ?? "")
+                    ]
+                    let _: [[String: AnyCodable]]? = try? await request("user_habits", method: "POST", body: fallbackPayload, prefer: "return=representation")
+                }
+            }
+        }
+        return try await fetchHabits(backend: backend, userId: userId)
+    }
+
+    private func defaultHabitTemplates() -> [HabitStatus] {
+        [
+            HabitStatus(id: UUID().uuidString, title: "补水 2000ml", description: "保持全天水分摄入", minResistanceLevel: 2, isCompleted: false),
+            HabitStatus(id: UUID().uuidString, title: "完成 5 分钟呼吸", description: "降低紧张水平", minResistanceLevel: 1, isCompleted: false),
+            HabitStatus(id: UUID().uuidString, title: "完成 20 分钟运动", description: "提升能量与心率变异性", minResistanceLevel: 3, isCompleted: false),
+            HabitStatus(id: UUID().uuidString, title: "22:30 前入睡", description: "稳定昼夜节律", minResistanceLevel: 3, isCompleted: false)
         ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
+    }
+
+    private func fetchHabitCompletionIds(
+        backend: HabitsBackend,
+        userId: String,
+        referenceDate: Date
+    ) async throws -> [String] {
+        let (start, end) = dayRange(for: referenceDate)
+        let endpoint: String
+        switch backend {
+        case .v2:
+            endpoint = "habit_completions?user_id=eq.\(userId)&completed_at=gte.\(start)&completed_at=lt.\(end)&select=habit_id"
+        case .legacy:
+            endpoint = "habit_log?completed_at=gte.\(start)&completed_at=lt.\(end)&select=habit_id"
         }
-        
-        if (200...299).contains(httpResponse.statusCode) {
-            return (try? JSONDecoder().decode(InquiryRespondResponse.self, from: data)) ?? InquiryRespondResponse(success: true, message: nil)
+
+        let rows: [HabitCompletionRow] = (try? await request(endpoint)) ?? []
+        return rows.map { $0.habit_id.value }
+    }
+
+    private func dayRange(for date: Date) -> (String, String) {
+        let calendar = Calendar(identifier: .gregorian)
+        let startDate = calendar.startOfDay(for: date)
+        let endDate = calendar.date(byAdding: .day, value: 1, to: startDate) ?? startDate.addingTimeInterval(86400)
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        let start = formatter.string(from: startDate)
+        let end = formatter.string(from: endDate)
+        return (start, end)
+    }
+
+    private func habitIdPayloadValue(_ habitId: String) -> AnyCodable {
+        if let intValue = Int(habitId) {
+            return AnyCodable(intValue)
         }
-        
-        throw SupabaseError.requestFailed
+        return AnyCodable(habitId)
     }
 }
 
 // MARK: - 🆕 Bayesian API
 extension SupabaseManager {
+    private struct BayesianBeliefRow: Codable {
+        let id: String
+        let belief_context: String?
+        let prior_score: Double
+        let posterior_score: Double
+        let evidence_stack: [EvidenceItem]?
+        let calculation_details: [String: CodableValue]?
+        let created_at: String?
+    }
+
     func getBayesianHistory(range: BayesianHistoryRange, context: String? = nil) async throws -> BayesianHistoryResponse {
-        var queryItems = [URLQueryItem(name: "timeRange", value: range.rawValue)]
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        var endpoint = "bayesian_beliefs?user_id=eq.\(user.id)&select=*&order=created_at.asc"
+        if let startDate = bayesianStartDate(range: range) {
+            endpoint += "&created_at=gte.\(startDate)"
+        }
         if let context, !context.isEmpty {
-            queryItems.append(URLQueryItem(name: "context", value: context))
-        }
-        guard let url = appAPIURL(path: "api/bayesian/history", queryItems: queryItems) else {
-            throw SupabaseError.missingAppApiBaseUrl
+            endpoint += "&belief_context=eq.\(context)"
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        attachSupabaseCookies(to: &request)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
+        let rows: [BayesianBeliefRow] = (try? await request(endpoint)) ?? []
+        let points: [BayesianHistoryPoint] = rows.compactMap { row in
+            let exaggeration: Double
+            if let details = row.calculation_details,
+               case .number(let value) = details["exaggeration_factor"] {
+                exaggeration = value
+            } else {
+                exaggeration = row.posterior_score > 0 ? (row.prior_score / row.posterior_score) : 1
+            }
+            return BayesianHistoryPoint(
+                id: row.id,
+                date: row.created_at ?? ISO8601DateFormatter().string(from: Date()),
+                beliefContext: row.belief_context,
+                priorScore: row.prior_score,
+                posteriorScore: row.posterior_score,
+                evidenceStack: row.evidence_stack,
+                exaggerationFactor: exaggeration
+            )
         }
 
-        if (200...299).contains(httpResponse.statusCode) {
-            return try JSONDecoder().decode(BayesianHistoryResponse.self, from: data)
-        }
-
-        throw SupabaseError.requestFailed
+        let summary = summarizeBayesianHistory(points: points)
+        let data = BayesianHistoryData(points: points, summary: summary)
+        return BayesianHistoryResponse(success: true, data: data, error: nil)
     }
 
     func triggerBayesianNudge(actionType: String, durationMinutes: Int?) async throws -> BayesianNudgeResponse {
-        guard let url = appAPIURL(path: "api/bayesian/nudge") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        let correction = calculateNudgeCorrection(actionType: actionType, durationMinutes: durationMinutes)
+        let message = generateNudgeMessage(actionType: actionType, correction: correction)
+
+        let endpoint = "bayesian_beliefs?user_id=eq.\(user.id)&select=*&order=created_at.desc&limit=1"
+        let rows: [BayesianBeliefRow] = (try? await request(endpoint)) ?? []
+
+        guard let latest = rows.first else {
+            return BayesianNudgeResponse(
+                success: true,
+                data: BayesianNudgeData(correction: correction, newPosterior: clampBayesian(50 + correction), message: message),
+                error: nil
+            )
         }
 
-        var payload: [String: Any] = ["action_type": actionType]
-        if let durationMinutes {
-            payload["duration_minutes"] = durationMinutes
-        }
+        let newPosterior = clampBayesian(latest.posterior_score + correction)
+        var updatedStack = latest.evidence_stack ?? []
+        updatedStack.append(EvidenceItem(id: UUID(), type: .action, value: message, weight: correction))
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        let updatePayload: [String: AnyCodable] = [
+            "posterior_score": AnyCodable(newPosterior),
+            "evidence_stack": AnyCodable(updatedStack.map { ["type": $0.type.rawValue, "value": $0.value, "weight": $0.weight ?? 0] })
+        ]
+        _ = try? await requestVoid(
+            "bayesian_beliefs?id=eq.\(latest.id)",
+            method: "PATCH",
+            body: updatePayload,
+            prefer: "return=representation"
+        )
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
-        }
-
-        if (200...299).contains(httpResponse.statusCode) {
-            return try JSONDecoder().decode(BayesianNudgeResponse.self, from: data)
-        }
-
-        throw SupabaseError.requestFailed
+        return BayesianNudgeResponse(
+            success: true,
+            data: BayesianNudgeData(correction: correction, newPosterior: newPosterior, message: message),
+            error: nil
+        )
     }
 
     func runBayesianRitual(context: String, priorScore: Int, customQuery: String?) async throws -> BayesianRitualResponse {
-        guard let url = appAPIURL(path: "api/bayesian/ritual") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        let query = (customQuery?.isEmpty == false ? customQuery! : context)
+        let papersResult = await ScientificSearchService.searchScientificTruth(query: query)
+        let hrvValue = try? await getHardwareData()?.hrv?.value
+
+        let likelihood = BayesianEngine.calculateLikelihood(hrvData: BayesianHRVData(rmssd: hrvValue, lf_hf_ratio: nil))
+        let evidenceWeight = BayesianEngine.calculateEvidenceWeight(
+            papers: papersResult.papers.map {
+                BayesianPaper(id: $0.id, title: $0.title, relevanceScore: $0.compositeScore, url: $0.url)
+            }
+        )
+        let posterior = BayesianEngine.calculateBayesianPosterior(
+            prior: Double(priorScore),
+            likelihood: likelihood,
+            evidence: evidenceWeight
+        )
+
+        var evidenceStack: [EvidenceItem] = []
+        if let hrvValue {
+            evidenceStack.append(EvidenceItem(id: UUID(), type: .bio, value: "HRV \(Int(hrvValue))", weight: likelihood))
+        }
+        for paper in papersResult.papers.prefix(3) {
+            evidenceStack.append(EvidenceItem(id: UUID(), type: .science, value: paper.title, weight: paper.compositeScore))
         }
 
-        var payload: [String: Any] = [
-            "belief_context": context,
-            "prior_score": priorScore
+        let exaggeration = posterior > 0 ? (Double(priorScore) / posterior) : 1
+        let payload: [String: AnyCodable] = [
+            "user_id": AnyCodable(user.id),
+            "belief_context": AnyCodable(context),
+            "prior_score": AnyCodable(Double(priorScore)),
+            "posterior_score": AnyCodable(posterior),
+            "evidence_stack": AnyCodable(evidenceStack.map { ["type": $0.type.rawValue, "value": $0.value, "weight": $0.weight ?? 0] }),
+            "calculation_details": AnyCodable([
+                "exaggeration_factor": exaggeration,
+                "evidence_weight": evidenceWeight,
+                "likelihood": likelihood
+            ])
         ]
-        if let customQuery, !customQuery.isEmpty {
-            payload["custom_query"] = customQuery
+
+        var insertedId = UUID().uuidString
+        if let rows: [[String: AnyCodable]] = try? await request("bayesian_beliefs", method: "POST", body: payload, prefer: "return=representation"),
+           let first = rows.first,
+           let idValue = first["id"]?.value as? String {
+            insertedId = idValue
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        let message = "概率已调整至 \(Int(posterior))%"
+        let data = BayesianRitualData(
+            id: insertedId,
+            priorScore: Double(priorScore),
+            posteriorScore: posterior,
+            evidenceStack: evidenceStack,
+            exaggerationFactor: exaggeration,
+            message: message
+        )
+        return BayesianRitualResponse(success: true, data: data, error: nil)
+    }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
+    private func bayesianStartDate(range: BayesianHistoryRange) -> String? {
+        let now = Date()
+        let calendar = Calendar.current
+        let date: Date?
+        switch range {
+        case .days7:
+            date = calendar.date(byAdding: .day, value: -7, to: now)
+        case .days30:
+            date = calendar.date(byAdding: .day, value: -30, to: now)
+        case .days90:
+            date = calendar.date(byAdding: .day, value: -90, to: now)
+        case .all:
+            date = nil
         }
+        guard let date else { return nil }
+        return ISO8601DateFormatter().string(from: date)
+    }
 
-        if (200...299).contains(httpResponse.statusCode) {
-            return try JSONDecoder().decode(BayesianRitualResponse.self, from: data)
+    private func summarizeBayesianHistory(points: [BayesianHistoryPoint]) -> BayesianHistorySummary {
+        let total = points.count
+        let averagePrior = total > 0 ? points.reduce(0) { $0 + $1.priorScore } / Double(total) : 0
+        let averagePosterior = total > 0 ? points.reduce(0) { $0 + $1.posteriorScore } / Double(total) : 0
+        let averageReduction = averagePrior - averagePosterior
+        let trend = calculateBayesianTrend(points: points)
+
+        return BayesianHistorySummary(
+            totalEntries: total,
+            averagePrior: round1(averagePrior),
+            averagePosterior: round1(averagePosterior),
+            averageReduction: round1(averageReduction),
+            trend: trend
+        )
+    }
+
+    private func calculateBayesianTrend(points: [BayesianHistoryPoint]) -> String {
+        guard points.count >= 3 else { return "stable" }
+        let recent = points.suffix(5)
+        let older = points.dropLast(5).suffix(5)
+        guard !older.isEmpty else { return "stable" }
+        let recentAvg = recent.reduce(0) { $0 + $1.posteriorScore } / Double(recent.count)
+        let olderAvg = older.reduce(0) { $0 + $1.posteriorScore } / Double(older.count)
+        let diff = recentAvg - olderAvg
+        if diff < -5 { return "improving" }
+        if diff > 5 { return "worsening" }
+        return "stable"
+    }
+
+    private func round1(_ value: Double) -> Double {
+        (value * 10).rounded() / 10
+    }
+
+    private func calculateNudgeCorrection(actionType: String, durationMinutes: Int?) -> Double {
+        let base: [String: Double] = [
+            "breathing_exercise": -5,
+            "meditation": -8,
+            "exercise": -10,
+            "sleep_improvement": -7,
+            "hydration": -3,
+            "journaling": -4,
+            "stretching": -3
+        ]
+        var correction = base[actionType] ?? -2
+        if let durationMinutes, durationMinutes > 10 {
+            correction = max(correction * 1.5, -20)
         }
+        correction = max(-20, min(-1, correction.rounded()))
+        return correction
+    }
 
-        throw SupabaseError.requestFailed
+    private func generateNudgeMessage(actionType: String, correction: Double) -> String {
+        let names: [String: String] = [
+            "breathing_exercise": "呼吸练习",
+            "meditation": "冥想",
+            "exercise": "运动",
+            "sleep_improvement": "睡眠改善",
+            "hydration": "补水",
+            "journaling": "日记",
+            "stretching": "拉伸"
+        ]
+        let name = names[actionType] ?? "健康行为"
+        return "\(name)完成。皮质醇风险概率修正：\(Int(correction))%"
+    }
+
+    private func clampBayesian(_ value: Double) -> Double {
+        min(100, max(0, value))
     }
 }
 
@@ -1964,137 +3140,120 @@ extension SupabaseManager {
     }
 
     func generateProactiveInquiry(language: String) async throws -> InquiryQuestion {
-        guard let url = appAPIURL(path: "api/ai/generate-inquiry") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        if let inquiry = try await generateInquiryFromGaps(language: language) {
+            return inquiry
         }
-
-        let hour = Calendar.current.component(.hour, from: Date())
-        let timeOfDay = hour < 12 ? "morning" : (hour < 18 ? "afternoon" : "evening")
-        let context = ProactiveInquiryContext(
-            recentData: ["sleep": "unknown", "stress": "unknown"],
-            dataGaps: ["sleep_duration", "stress_level"],
-            timeOfDay: timeOfDay
-        )
-        let payload = ProactiveInquiryPayload(context: context, language: language, history: [])
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        request.httpBody = try JSONEncoder().encode(payload)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
-        }
-
-        if (200...299).contains(httpResponse.statusCode) {
-            let decoded = try JSONDecoder().decode(ProactiveInquiryResponse.self, from: data)
-            if let question = decoded.question {
-                return question
-            }
-        }
-
         throw SupabaseError.requestFailed
+    }
+
+    private func isAIConfigured() -> Bool {
+        guard let key = Bundle.main.infoDictionary?["OPENAI_API_KEY"] as? String,
+              !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+        guard let base = Bundle.main.infoDictionary?["OPENAI_API_BASE"] as? String,
+              !base.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+        return true
+    }
+
+    private func extractJSONPayload(from text: String) -> Data? {
+        guard let start = text.firstIndex(of: "{"),
+              let end = text.lastIndex(of: "}") else { return nil }
+        let jsonString = String(text[start...end])
+        return jsonString.data(using: .utf8)
     }
 
     func analyzeVoiceInput(_ input: VoiceAnalysisInput) async throws -> VoiceAnalysisResponse {
-        guard let url = appAPIURL(path: "api/ai/analyze-voice-input") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        if let url = appAPIURL(path: "api/ai/analyze-voice-input") {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            attachSupabaseCookies(to: &request)
+            request.httpBody = try JSONEncoder().encode(input)
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                    return try JSONDecoder().decode(VoiceAnalysisResponse.self, from: data)
+                }
+            } catch {
+                print("[VoiceAnalysis] Remote API failed: \(error)")
+            }
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        request.httpBody = try JSONEncoder().encode(input)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
-        }
-
-        if (200...299).contains(httpResponse.statusCode) {
-            return try JSONDecoder().decode(VoiceAnalysisResponse.self, from: data)
-        }
-
-        throw SupabaseError.requestFailed
+        return try await analyzeVoiceInputLocally(input)
     }
 
     func generateInsight(_ input: InsightGenerateInput) async throws -> String {
-        guard let url = appAPIURL(path: "api/insight/generate") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        if let url = appAPIURL(path: "api/insight/generate") {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            attachSupabaseCookies(to: &request)
+            request.httpBody = try JSONEncoder().encode(input)
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                    return String(data: data, encoding: .utf8) ?? ""
+                }
+            } catch {
+                print("[Insight] Remote API failed: \(error)")
+            }
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        request.httpBody = try JSONEncoder().encode(input)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
-        }
-
-        if (200...299).contains(httpResponse.statusCode) {
-            return String(data: data, encoding: .utf8) ?? ""
-        }
-
-        throw SupabaseError.requestFailed
+        return try await generateInsightLocally(input)
     }
 
     func fetchInsightSummary() async throws -> InsightSummaryResponse {
-        guard let url = appAPIURL(path: "api/insight") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        if let url = appAPIURL(path: "api/insight") {
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            attachSupabaseCookies(to: &request)
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                    return try JSONDecoder().decode(InsightSummaryResponse.self, from: data)
+                }
+            } catch {
+                print("[InsightSummary] Remote API failed: \(error)")
+            }
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        attachSupabaseCookies(to: &request)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
-        }
-
-        if (200...299).contains(httpResponse.statusCode) {
-            return try JSONDecoder().decode(InsightSummaryResponse.self, from: data)
-        }
-
-        throw SupabaseError.requestFailed
+        return try await fetchInsightSummaryLocally()
     }
 
     func getDeepInference(analysisResult: [String: Any], recentLogs: [[String: Any]]) async throws -> String {
-        guard let url = appAPIURL(path: "api/ai/deep-inference") else {
-            throw SupabaseError.missingAppApiBaseUrl
-        }
+        if let url = appAPIURL(path: "api/ai/deep-inference") {
+            let payload: [String: Any] = [
+                "analysisResult": analysisResult,
+                "recentLogs": recentLogs
+            ]
 
-        let payload: [String: Any] = [
-            "analysisResult": analysisResult,
-            "recentLogs": recentLogs
-        ]
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            attachSupabaseCookies(to: &request)
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
-        }
-
-        if (200...299).contains(httpResponse.statusCode) {
-            if let object = try? JSONSerialization.jsonObject(with: data),
-               let prettyData = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted]) {
-                return String(data: prettyData, encoding: .utf8) ?? ""
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                    if let object = try? JSONSerialization.jsonObject(with: data),
+                       let prettyData = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted]) {
+                        return String(data: prettyData, encoding: .utf8) ?? ""
+                    }
+                    return String(data: data, encoding: .utf8) ?? ""
+                }
+            } catch {
+                print("[DeepInference] Remote API failed: \(error)")
             }
-            return String(data: data, encoding: .utf8) ?? ""
         }
 
-        throw SupabaseError.requestFailed
+        return try await getDeepInferenceLocally(analysisResult: analysisResult, recentLogs: recentLogs)
     }
 
     func explainRecommendation(
@@ -2105,39 +3264,249 @@ extension SupabaseManager {
         language: String,
         category: String? = nil
     ) async throws -> String {
-        guard let url = appAPIURL(path: "api/digital-twin/explain-recommendation") else {
-            throw SupabaseError.missingAppApiBaseUrl
+        if let url = appAPIURL(path: "api/digital-twin/explain-recommendation") {
+            var payload: [String: Any] = [
+                "recommendationId": recommendationId,
+                "title": title,
+                "description": description,
+                "science": science,
+                "language": language
+            ]
+            if let category, !category.isEmpty {
+                payload["category"] = category
+            }
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            attachSupabaseCookies(to: &request)
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                    struct ExplainResponse: Codable { let explanation: String }
+                    let decoded = try JSONDecoder().decode(ExplainResponse.self, from: data)
+                    return decoded.explanation
+                }
+            } catch {
+                print("[ExplainRecommendation] Remote API failed: \(error)")
+            }
         }
 
-        var payload: [String: Any] = [
-            "recommendationId": recommendationId,
-            "title": title,
-            "description": description,
-            "science": science,
-            "language": language
-        ]
-        if let category, !category.isEmpty {
-            payload["category"] = category
+        return try await explainRecommendationLocally(
+            recommendationId: recommendationId,
+            title: title,
+            description: description,
+            science: science,
+            language: language,
+            category: category
+        )
+    }
+
+    private func analyzeVoiceInputLocally(_ input: VoiceAnalysisInput) async throws -> VoiceAnalysisResponse {
+        let transcript = input.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !transcript.isEmpty else {
+            return VoiceAnalysisResponse(formUpdates: [:], summary: "未检测到语音内容。", confidence: 0.1)
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        if isAIConfigured() {
+            let currentStateData = (try? JSONEncoder().encode(input.currentFormState)) ?? Data()
+            let currentState = String(data: currentStateData, encoding: .utf8) ?? "{}"
+            let systemPrompt = """
+你是健康助手，负责从用户口述中提取结构化数据。
+请只输出 JSON，格式如下：
+{
+  "formUpdates": { "sleepDuration": "...", "sleepQuality": "...", "exerciseDuration": "...", "moodStatus": "...", "stressLevel": "...", "notes": "..." },
+  "summary": "...",
+  "confidence": 0.0
+}
+要求：
+- formUpdates 只包含你能确定的字段，其余省略
+- 数值用字符串表达
+- summary 用中文简短总结
+- confidence 在 0~1 之间
+"""
+            let userPrompt = """
+Transcript:
+\(transcript)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SupabaseError.requestFailed
+CurrentFormState:
+\(currentState)
+"""
+            let response = try await AIManager.shared.chatCompletion(
+                messages: [ChatMessage(role: .user, content: userPrompt)],
+                systemPrompt: systemPrompt,
+                model: .deepseekV3Exp,
+                temperature: 0.2
+            )
+            if let data = extractJSONPayload(from: response),
+               let parsed = try? JSONDecoder().decode(VoiceAnalysisResponse.self, from: data) {
+                return parsed
+            }
         }
 
-        if (200...299).contains(httpResponse.statusCode) {
-            struct ExplainResponse: Codable { let explanation: String }
-            let decoded = try JSONDecoder().decode(ExplainResponse.self, from: data)
-            return decoded.explanation
+        return heuristicVoiceAnalysis(input)
+    }
+
+    private func heuristicVoiceAnalysis(_ input: VoiceAnalysisInput) -> VoiceAnalysisResponse {
+        let transcript = input.transcript.lowercased()
+        var updates: [String: String] = [:]
+
+        func match(_ pattern: String) -> String? {
+            let regex = try? NSRegularExpression(pattern: pattern, options: [])
+            let range = NSRange(transcript.startIndex..<transcript.endIndex, in: transcript)
+            if let match = regex?.firstMatch(in: transcript, options: [], range: range),
+               let matchRange = Range(match.range(at: 1), in: transcript) {
+                return String(transcript[matchRange])
+            }
+            return nil
         }
 
-        throw SupabaseError.requestFailed
+        if let sleep = match("(\\d+(?:\\.\\d+)?)\\s*(?:小时|h)") {
+            updates["sleepDuration"] = sleep
+        }
+        if let exercise = match("(\\d+(?:\\.\\d+)?)\\s*(?:分钟|min)") {
+            updates["exerciseDuration"] = exercise
+        }
+        if transcript.contains("压力"), let stress = match("压力\\D{0,6}(\\d+)") {
+            updates["stressLevel"] = stress
+        }
+        if transcript.contains("心情"), let mood = match("心情\\D{0,6}(\\d+)") {
+            updates["moodStatus"] = mood
+        }
+
+        let summary = updates.isEmpty ? "暂未识别到可填写的数据。" : "已从描述中提取可更新字段。"
+        let confidence = updates.isEmpty ? 0.2 : 0.45
+        return VoiceAnalysisResponse(formUpdates: updates, summary: summary, confidence: confidence)
+    }
+
+    private func generateInsightLocally(_ input: InsightGenerateInput) async throws -> String {
+        if isAIConfigured() {
+            let systemPrompt = """
+你是健康数据洞察助手。请基于输入的睡眠、HRV、压力、运动数据，输出 3 条洞察和 2 条建议。
+要求：中文、简洁、可执行、不做医疗诊断。
+"""
+            let userPrompt = """
+sleepHours: \(input.sleepHours)
+hrv: \(input.hrv)
+stressLevel: \(input.stressLevel)
+exerciseMinutes: \(input.exerciseMinutes ?? 0)
+"""
+            let response = try await AIManager.shared.chatCompletion(
+                messages: [ChatMessage(role: .user, content: userPrompt)],
+                systemPrompt: systemPrompt,
+                model: .deepseekV3Exp,
+                temperature: 0.4
+            )
+            return response.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        var lines: [String] = []
+        if input.sleepHours < 6 {
+            lines.append("睡眠时长偏低，可能影响恢复与情绪稳定。")
+        } else if input.sleepHours > 8.5 {
+            lines.append("睡眠时长偏高，注意是否存在睡眠效率下降。")
+        } else {
+            lines.append("睡眠时长处于合理区间，保持节律更重要。")
+        }
+        if input.stressLevel >= 7 {
+            lines.append("压力水平偏高，建议增加呼吸练习或短时放松。")
+        } else {
+            lines.append("压力水平可控，可以继续保持当前节奏。")
+        }
+        if let exercise = input.exerciseMinutes, exercise < 20 {
+            lines.append("运动量偏少，建议每天安排 20 分钟轻度运动。")
+        }
+        lines.append("建议：固定作息 + 1 次短时呼吸练习。")
+        return lines.joined(separator: "\n")
+    }
+
+    private func fetchInsightSummaryLocally() async throws -> InsightSummaryResponse {
+        let dashboard = try? await getDashboardData()
+        let logs = dashboard?.weeklyLogs ?? []
+        let avgSleep = logs.compactMap { $0.sleep_duration_minutes }.reduce(0, +)
+        let avgSleepHours = logs.isEmpty ? 0 : Double(avgSleep) / Double(logs.count) / 60.0
+        let avgStress = logs.compactMap { $0.stress_level }.reduce(0, +)
+        let avgStressScore = logs.isEmpty ? 0 : Double(avgStress) / Double(logs.count)
+
+        let baseSummary = "近7天平均睡眠 \(String(format: "%.1f", avgSleepHours)) 小时，平均压力 \(String(format: "%.1f", avgStressScore))。"
+
+        if isAIConfigured() {
+            let systemPrompt = """
+你是健康周报助手。基于输入的统计摘要，给出 3 条洞察和 1 个重点建议。
+要求：中文、简洁、可执行。
+"""
+            let response = try await AIManager.shared.chatCompletion(
+                messages: [ChatMessage(role: .user, content: baseSummary)],
+                systemPrompt: systemPrompt,
+                model: .deepseekV3Exp,
+                temperature: 0.4
+            )
+            return InsightSummaryResponse(insight: response.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+
+        return InsightSummaryResponse(insight: baseSummary + " 建议保持作息一致，并安排放松练习。")
+    }
+
+    private func getDeepInferenceLocally(analysisResult: [String: Any], recentLogs: [[String: Any]]) async throws -> String {
+        let analysisData = (try? JSONSerialization.data(withJSONObject: analysisResult, options: [.prettyPrinted])) ?? Data()
+        let logsData = (try? JSONSerialization.data(withJSONObject: recentLogs, options: [.prettyPrinted])) ?? Data()
+        let analysisString = String(data: analysisData, encoding: .utf8) ?? "{}"
+        let logsString = String(data: logsData, encoding: .utf8) ?? "[]"
+
+        if isAIConfigured() {
+            let systemPrompt = """
+你是健康趋势分析助手。请基于分析结果和最近日志，输出：1) 主要趋势 2) 可能驱动因素 3) 3 条行动建议。
+要求：中文、结构化、避免医疗诊断。
+"""
+            let userPrompt = """
+analysisResult:
+\(analysisString)
+
+recentLogs:
+\(logsString)
+"""
+            let response = try await AIManager.shared.chatCompletion(
+                messages: [ChatMessage(role: .user, content: userPrompt)],
+                systemPrompt: systemPrompt,
+                model: .deepseekV3Exp,
+                temperature: 0.4
+            )
+            return response.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return "暂无可用的深度推断结果（AI 未配置）。"
+    }
+
+    private func explainRecommendationLocally(
+        recommendationId: String,
+        title: String,
+        description: String,
+        science: String,
+        language: String,
+        category: String? = nil
+    ) async throws -> String {
+        if isAIConfigured() {
+            let systemPrompt = language == "en"
+                ? "You are Max. Explain why the recommendation helps, in 3 concise bullets, avoid medical claims."
+                : "你是 Max，请用 3 条要点解释该建议为何有效，避免医疗诊断。"
+            let userPrompt = """
+title: \(title)
+description: \(description)
+science: \(science)
+category: \(category ?? "")
+"""
+            let response = try await AIManager.shared.chatCompletion(
+                messages: [ChatMessage(role: .user, content: userPrompt)],
+                systemPrompt: systemPrompt,
+                model: .deepseekV3Exp,
+                temperature: 0.4
+            )
+            return response.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return "该建议有助于稳定节律与降低压力反应，可先尝试 1-2 周观察变化。"
     }
 
     func sendDebugPayload(path: String, payload: String) async throws -> String {

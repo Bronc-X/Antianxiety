@@ -2112,32 +2112,7 @@ struct BayesianRitualResult {
     }
 }
 
-struct EvidenceItem: Codable, Identifiable {
-    let id: UUID
-    let type: EvidenceType
-    let value: String
-    let weight: Double?
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case value
-        case weight
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        type = (try? container.decode(EvidenceType.self, forKey: .type)) ?? .bio
-        value = (try? container.decode(String.self, forKey: .value)) ?? ""
-        weight = try? container.decode(Double.self, forKey: .weight)
-        id = UUID()
-    }
-}
-
-enum EvidenceType: String, Codable {
-    case bio
-    case science
-    case action
-
+extension EvidenceType {
     var color: Color {
         switch self {
         case .bio: return .liquidGlassAccent

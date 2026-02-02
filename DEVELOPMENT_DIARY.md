@@ -1,3 +1,51 @@
+## 2026-02-02 - 编译失败复盘 + 流程纠偏 ✅
+
+### 🎯 复盘结论（为什么每次改完都还有一堆编译错误）
+1. **根因没有一次性收口**：修单点导致同一类型/协议的其他引用继续报错。  
+2. **核心层引入 UI 类型**：Networking/Services 里引用了 SwiftUI 类型（如 Color），导致跨层编译失败。  
+3. **模型归属不清**：同名模型分散在 UI 文件中，Core 层无法访问或被 SwiftUI 绑住。  
+4. **异步/可选/类型推断没同轮收口**：async/await、Optional unwrap、`count` 歧义等碎片错误残留。  
+5. **缺少最小编译门槛**：改动后没有强制一次最小编译验证，错误滚雪球。
+
+### 🛠️ 已采取纠偏措施
+- ✅ 将“Build Reliability Protocol”写入 `PROJECT_CONSTITUTION.md`。  
+- ✅ 约束 Core 层模型可复用，UI 扩展（颜色/样式）只在 UI 层。  
+- ✅ 每轮改动结束必须完成最小编译验证后再进入下一轮。
+
+### 🚀 下一步
+- [ ] 按新宪章流程执行：每轮改动后立刻 build，确保一次性收敛错误链。
+
+---
+
+## 2026-02-02 - iOS 全模块 Hook + AI 依赖去 Next 化 ✅
+
+### ✅ 完成事项
+1. **Habits / AI Reminders 全量接入 Supabase**  
+   - 习惯改为 `habits / habit_completions`（带 `user_habits / habit_log` 兼容回退）。  
+   - 提醒改为 `profiles.reminder_preferences` 读写，不再使用 UserDefaults。
+2. **Insight / Deep Inference / Voice / Explain 全部本地 AI 兜底**  
+   - App API 可用时优先远程；失败时自动转本地 AI（AICan/OpenAI 兼容）推理。  
+   - 避免 “必须等 Vercel/Next 服务” 的阻塞。
+3. **Max 向量检索链路对齐**  
+   - `MaxRAGService` 汇入 `ai_memory` + `knowledge_base`，可选 Cohere Rerank。  
+   - 记忆写入限制在有效偏好/策略，避免敏感信息。
+4. **科学检索稳定性提升**  
+   - 优先向量知识库召回，再融合外部论文源（Semantic Scholar / PubMed / OpenAlex）。
+
+### 🧩 关键文件
+- `Core/Networking/SupabaseManager.swift`
+- `Features/Plans/PlansExtras.swift`
+- `Core/Services/Max/MaxRAGService.swift`
+- `Core/Services/KnowledgeBaseService.swift`
+
+### 🧪 建议验证
+- 习惯勾选后保存 → Supabase 表同步  
+- AI 提醒保存后重新进入页面 → 读取无偏差  
+- Insight/Deep Inference/Voice 输入 → 本地 AI 兜底能返回  
+- Max 对话：能看到记忆/知识库内容被引用
+
+---
+
 ## 2026-01-15 - Mobile Hooks 接入补齐 + Capacitor 配置分流 ✅
 
 ### 🎯 核心更新
