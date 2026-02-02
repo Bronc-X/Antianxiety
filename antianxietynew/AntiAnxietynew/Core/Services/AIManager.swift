@@ -4,6 +4,8 @@
 import Foundation
 
 enum AIModel: String {
+    case deepseekV3Exp = "deepseek-v3.2-exp"
+    case deepseekV3Thinking = "deepseek-v3.1-thinking"
     case geminiThinking = "gemini-3-pro-preview-thinking"
     case geminiStandard = "gemini-3-pro-preview"
 }
@@ -23,12 +25,27 @@ final class AIManager: ObservableObject, AIManaging {
         guard let url = Bundle.main.infoDictionary?["OPENAI_API_BASE"] as? String else {
             fatalError("Missing OPENAI_API_BASE in Info.plist. Please configure Secrets.xcconfig.")
         }
-        return url.replacingOccurrences(of: "\\", with: "")
+        let cleaned = url.replacingOccurrences(of: "\\", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = cleaned.replacingOccurrences(of: "/chat/completions", with: "")
+        return normalized.hasSuffix("/") ? String(normalized.dropLast()) : normalized
+    }
+
+    private var defaultModel: String {
+        if let model = Bundle.main.infoDictionary?["OPENAI_MODEL"] as? String,
+           !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return model
+        }
+        return AIModel.deepseekV3Exp.rawValue
     }
     
     private init() {}
     
-    func chatCompletion(messages: [ChatMessage], model: AIModel = .geminiStandard) async throws -> String {
+    func chatCompletion(
+        messages: [ChatMessage],
+        systemPrompt: String? = nil,
+        model: AIModel? = nil,
+        temperature: Double = 0.7
+    ) async throws -> String {
         let url = URL(string: "\(baseURL)/chat/completions")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -36,15 +53,19 @@ final class AIManager: ObservableObject, AIManaging {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         // Convert internal ChatMessage to API format
-        let apiMessages = messages.map { msg in
+        var apiMessages: [[String: String]] = []
+        if let systemPrompt = systemPrompt, !systemPrompt.isEmpty {
+            apiMessages.append(["role": "system", "content": systemPrompt])
+        }
+        apiMessages.append(contentsOf: messages.map { msg in
             ["role": msg.role == .user ? "user" : "assistant",
              "content": msg.content]
-        }
+        })
         
         let body: [String: Any] = [
-            "model": model.rawValue,
+            "model": model?.rawValue ?? defaultModel,
             "messages": apiMessages,
-            "temperature": 0.7
+            "temperature": temperature
         ]
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)

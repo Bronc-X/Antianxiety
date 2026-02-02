@@ -295,6 +295,7 @@ struct DigitalTwinView: View {
                     }
                 }
                 .frame(height: 180)
+                .clipped() // 修复：裁剪溢出的曲线绘制
 
                 HStack(spacing: 12) {
                     ForEach(selectedMetrics) { metric in

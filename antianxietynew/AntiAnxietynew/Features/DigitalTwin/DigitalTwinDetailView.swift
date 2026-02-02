@@ -212,6 +212,7 @@ struct DigitalTwinDetailView: View {
                     }
                 }
                 .frame(height: 220)
+                .clipped() // 修复：裁剪溢出的曲线绘制
             }
         }
     }

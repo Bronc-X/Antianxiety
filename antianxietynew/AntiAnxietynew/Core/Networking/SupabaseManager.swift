@@ -460,33 +460,103 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let content: String
         let session_id: String?
     }
+
+    private struct ChatSessionRow: Codable {
+        let id: FlexibleId
+        let user_id: String
+        let title: String?
+        let summary: String?
+        let message_count: Int?
+        let last_message_at: String?
+        let created_at: String?
+        let updated_at: String?
+    }
+
+    private struct ChatSessionInsert: Encodable {
+        let user_id: String
+        let title: String?
+    }
+
+    private struct ChatSessionUpdate: Encodable {
+        let last_message_at: String
+        let message_count: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case last_message_at
+            case message_count
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(last_message_at, forKey: .last_message_at)
+            if let message_count {
+                try container.encode(message_count, forKey: .message_count)
+            }
+        }
+    }
     
-    /// 获取所有对话列表
+    /// 获取所有对话列表（优先 chat_sessions）
     func getConversations() async throws -> [Conversation] {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
 
         do {
-            let endpoint = "conversations?user_id=eq.\(user.id)&select=*&order=last_message_at.desc.nullsfirst"
-            return try await request(endpoint)
+            let endpoint = "chat_sessions?user_id=eq.\(user.id)&select=*&order=updated_at.desc.nullsfirst"
+            let sessions: [ChatSessionRow] = try await request(endpoint)
+            if !sessions.isEmpty {
+                return sessions.map { session in
+                    Conversation(
+                        id: session.id.value,
+                        user_id: session.user_id,
+                        title: session.title ?? "新对话",
+                        last_message_at: session.last_message_at ?? session.updated_at,
+                        message_count: session.message_count,
+                        created_at: session.created_at
+                    )
+                }
+            }
         } catch {
-            return try await getChatConversationsFallback(userId: user.id)
+            do {
+                let endpoint = "chat_sessions?user_id=eq.\(user.id)&select=*&order=created_at.desc.nullsfirst"
+                let sessions: [ChatSessionRow] = try await request(endpoint)
+                if !sessions.isEmpty {
+                    return sessions.map { session in
+                        Conversation(
+                            id: session.id.value,
+                            user_id: session.user_id,
+                            title: session.title ?? "新对话",
+                            last_message_at: session.last_message_at ?? session.created_at,
+                            message_count: session.message_count,
+                            created_at: session.created_at
+                        )
+                    }
+                }
+            } catch {
+                // fall through
+            }
         }
+        return try await getChatConversationsFallback(userId: user.id)
     }
     
-    /// 创建新对话
+    /// 创建新对话（优先 chat_sessions）
     func createConversation(title: String = "新对话") async throws -> Conversation {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
 
         do {
-            let body = CreateConversationRequest(user_id: user.id, title: title)
-            let endpoint = "conversations"
-            let results: [Conversation] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
-            guard let conversation = results.first else {
+            let body = ChatSessionInsert(user_id: user.id, title: title)
+            let endpoint = "chat_sessions"
+            let results: [ChatSessionRow] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
+            guard let session = results.first else {
                 throw SupabaseError.requestFailed
             }
-            return conversation
+            return Conversation(
+                id: session.id.value,
+                user_id: session.user_id,
+                title: session.title ?? title,
+                last_message_at: session.last_message_at,
+                message_count: session.message_count,
+                created_at: session.created_at
+            )
         } catch {
-            // Fallback: use session_id grouping in chat_conversations
             let sessionId = UUID().uuidString
             return Conversation(
                 id: sessionId,
@@ -499,75 +569,48 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         }
     }
     
-    /// 获取对话历史消息
+    /// 获取对话历史消息（chat_conversations）
     func getChatHistory(conversationId: String) async throws -> [ChatMessageDTO] {
-        do {
-            if isNumericId(conversationId) {
-                let endpoint = "chat_messages?conversation_id=eq.\(conversationId)&select=*&order=created_at.asc"
-                return try await request(endpoint)
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        if isUUID(conversationId) {
+            let endpoint = "chat_conversations?user_id=eq.\(user.id)&session_id=eq.\(conversationId)&select=*&order=created_at.asc"
+            let rows: [ChatConversationRow] = try await request(endpoint)
+            return rows.map { row in
+                ChatMessageDTO(
+                    id: row.id.value,
+                    conversation_id: conversationId,
+                    role: row.role,
+                    content: row.content,
+                    created_at: row.created_at
+                )
             }
-            throw SupabaseError.requestFailed
-        } catch {
-            guard let user = currentUser else { throw SupabaseError.notAuthenticated }
-            do {
-                let endpoint = "chat_conversations?user_id=eq.\(user.id)&session_id=eq.\(conversationId)&select=*&order=created_at.asc"
-                let rows: [ChatConversationRow] = try await request(endpoint)
-                return rows.map { row in
-                    ChatMessageDTO(
-                        id: row.id.value,
-                        conversation_id: conversationId,
-                        role: row.role,
-                        content: row.content,
-                        created_at: row.created_at
-                    )
-                }
-            } catch {
-                let endpoint = "chat_conversations?user_id=eq.\(user.id)&select=*&order=created_at.asc"
-                let rows: [ChatConversationRow] = try await request(endpoint)
-                return rows.map { row in
-                    ChatMessageDTO(
-                        id: row.id.value,
-                        conversation_id: conversationId,
-                        role: row.role,
-                        content: row.content,
-                        created_at: row.created_at
-                    )
-                }
-            }
+        }
+
+        let endpoint = "chat_conversations?user_id=eq.\(user.id)&session_id=is.null&select=*&order=created_at.asc"
+        let rows: [ChatConversationRow] = try await request(endpoint)
+        return rows.map { row in
+            ChatMessageDTO(
+                id: row.id.value,
+                conversation_id: conversationId,
+                role: row.role,
+                content: row.content,
+                created_at: row.created_at
+            )
         }
     }
     
-    /// 追加消息到对话
+    /// 追加消息到对话（chat_conversations）
     func appendMessage(conversationId: String, role: String, content: String) async throws -> ChatMessageDTO {
-        do {
-            if isNumericId(conversationId) {
-                let body = AppendMessageRequest(conversation_id: conversationId, role: role, content: content)
-                let endpoint = "chat_messages"
-                let results: [ChatMessageDTO] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
-                guard let message = results.first else {
-                    throw SupabaseError.requestFailed
-                }
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+        let endpoint = "chat_conversations"
 
-                // 更新对话的 last_message_at
-                let updateEndpoint = "conversations?id=eq.\(conversationId)"
-                struct UpdateLastMessage: Encodable {
-                    let last_message_at: String
-                }
-                let now = ISO8601DateFormatter().string(from: Date())
-                try await requestVoid(updateEndpoint, method: "PATCH", body: UpdateLastMessage(last_message_at: now))
-
-                return message
-            }
-            throw SupabaseError.requestFailed
-        } catch {
-            guard let user = currentUser else { throw SupabaseError.notAuthenticated }
-            let endpoint = "chat_conversations"
+        if isUUID(conversationId) {
             do {
                 let body = ChatConversationInsert(user_id: user.id, role: role, content: content, session_id: conversationId)
                 let results: [ChatConversationRow] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
-                guard let row = results.first else {
-                    throw SupabaseError.requestFailed
-                }
+                guard let row = results.first else { throw SupabaseError.requestFailed }
+                try? await updateChatSessionStats(sessionId: conversationId)
                 return ChatMessageDTO(
                     id: row.id.value,
                     conversation_id: conversationId,
@@ -576,11 +619,10 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
                     created_at: row.created_at
                 )
             } catch {
+                // session_id 外键失败时回退为无 session
                 let body = ChatConversationInsert(user_id: user.id, role: role, content: content, session_id: nil)
                 let results: [ChatConversationRow] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
-                guard let row = results.first else {
-                    throw SupabaseError.requestFailed
-                }
+                guard let row = results.first else { throw SupabaseError.requestFailed }
                 return ChatMessageDTO(
                     id: row.id.value,
                     conversation_id: conversationId,
@@ -590,22 +632,27 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
                 )
             }
         }
+
+        let body = ChatConversationInsert(user_id: user.id, role: role, content: content, session_id: nil)
+        let results: [ChatConversationRow] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
+        guard let row = results.first else { throw SupabaseError.requestFailed }
+        return ChatMessageDTO(
+            id: row.id.value,
+            conversation_id: conversationId,
+            role: row.role,
+            content: row.content,
+            created_at: row.created_at
+        )
     }
     
     /// 删除对话
     func deleteConversation(conversationId: String) async throws {
-        do {
-            // 先删除消息
-            let messagesEndpoint = "chat_messages?conversation_id=eq.\(conversationId)"
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+        if isUUID(conversationId) {
+            let messagesEndpoint = "chat_conversations?user_id=eq.\(user.id)&session_id=eq.\(conversationId)"
             try await requestVoid(messagesEndpoint, method: "DELETE")
-
-            // 再删除对话
-            let conversationEndpoint = "conversations?id=eq.\(conversationId)"
-            try await requestVoid(conversationEndpoint, method: "DELETE")
-        } catch {
-            guard let user = currentUser else { throw SupabaseError.notAuthenticated }
-            let endpoint = "chat_conversations?user_id=eq.\(user.id)&session_id=eq.\(conversationId)"
-            try await requestVoid(endpoint, method: "DELETE")
+            let sessionEndpoint = "chat_sessions?id=eq.\(conversationId)"
+            try await requestVoid(sessionEndpoint, method: "DELETE")
         }
     }
 
@@ -649,6 +696,13 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
 
         return conversations
     }
+
+    private func updateChatSessionStats(sessionId: String) async throws {
+        let now = ISO8601DateFormatter().string(from: Date())
+        let body = ChatSessionUpdate(last_message_at: now, message_count: nil)
+        let endpoint = "chat_sessions?id=eq.\(sessionId)"
+        try await requestVoid(endpoint, method: "PATCH", body: body)
+    }
     
     // MARK: - Dashboard API Methods
     
@@ -679,14 +733,73 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let endpoint = "daily_wellness_logs?user_id=eq.\(user.id)&log_date=gte.\(dateString)&select=*&order=log_date.desc"
         return try await request(endpoint)
     }
+
+    private struct FlexibleDouble: Codable {
+        let value: Double
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let doubleValue = try? container.decode(Double.self) {
+                value = doubleValue
+            } else if let intValue = try? container.decode(Int.self) {
+                value = Double(intValue)
+            } else if let stringValue = try? container.decode(String.self), let parsed = Double(stringValue) {
+                value = parsed
+            } else {
+                value = 0
+            }
+        }
+    }
+
+    private struct DigitalTwinProfileRow: Codable {
+        let id: String
+        let inferred_scale_scores: [String: FlexibleDouble]?
+        let age: Int?
+        let gender: String?
+        let full_name: String?
+        let primary_goal: String?
+        let created_at: String?
+    }
+
+    private func loadDigitalTwinLocalInput() async throws -> DigitalTwinLocalInput {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        let profileEndpoint = "profiles?id=eq.\(user.id)&select=id,inferred_scale_scores,age,gender,full_name,primary_goal,created_at&limit=1"
+        let profileRows: [DigitalTwinProfileRow] = (try? request(profileEndpoint)) ?? []
+        let profileRow = profileRows.first
+
+        let scores = profileRow?.inferred_scale_scores
+        let gad7 = Int(scores?["gad7"]?.value ?? 0)
+        let phq9 = Int(scores?["phq9"]?.value ?? 0)
+        let isi = Int(scores?["isi"]?.value ?? 0)
+        let pss10 = Int(scores?["pss10"]?.value ?? 0)
+        let baseline: BaselineScores? = (gad7 + phq9 + isi + pss10) > 0
+            ? BaselineScores(gad7: gad7, phq9: phq9, isi: isi, pss10: pss10)
+            : nil
+
+        let logs = (try? getMonthlyWellnessLogs()) ?? []
+        let registrationDate = profileRow?.created_at ?? ISO8601DateFormatter().string(from: Date())
+        let profile = ProfileSnapshot(
+            age: profileRow?.age,
+            gender: profileRow?.gender,
+            primaryGoal: profileRow?.primary_goal,
+            registrationDate: registrationDate,
+            fullName: profileRow?.full_name
+        )
+
+        return DigitalTwinLocalInput(
+            userId: user.id,
+            baselineScores: baseline,
+            logs: logs,
+            profile: profile,
+            now: Date()
+        )
+    }
     
     /// 获取最新的数字孪生分析结果
     func getDigitalTwinAnalysis() async throws -> DigitalTwinAnalysis? {
-        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
-        
-        let endpoint = "digital_twin_analyses?user_id=eq.\(user.id)&select=*&order=created_at.desc&limit=1"
-        let results: [DigitalTwinAnalysis] = try await request(endpoint)
-        return results.first
+        let input = try await loadDigitalTwinLocalInput()
+        return DigitalTwinLocalEngine.analysis(input: input)
     }
 
     /// 获取分析历史
@@ -1243,10 +1356,8 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         return false
     }
 
-    private func isNumericId(_ value: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
-        return trimmed.range(of: #"^\d+$"#, options: .regularExpression) != nil
+    private func isUUID(_ value: String) -> Bool {
+        UUID(uuidString: value) != nil
     }
 
     private func attachSupabaseCookies(to request: inout URLRequest) {
@@ -1330,89 +1441,20 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     // MARK: - Max Chat (Next API)
 
     func chatWithMax(messages: [ChatRequestMessage], mode: String = "fast") async throws -> String {
-        let baseURL = try await resolveMaxAgentBaseURL()
-        guard let finalURL = buildAppAPIURL(baseURL: baseURL, path: "api/chat") else {
-            print("[MaxChat] ❌ APP_API_BASE_URL 未配置")
-            throw SupabaseError.missingAppApiBaseUrl
+        let localMessages = messages.map { message in
+            ChatMessage(
+                role: message.role == "user" ? .user : .assistant,
+                content: message.content
+            )
         }
-        
-        // 🆕 请求前自动刷新 token，确保 token 有效
-        await ensureValidToken()
-        
-        // 🆕 检查 token 是否存在
-        let hasToken = UserDefaults.standard.string(forKey: "supabase_access_token") != nil
-        let hasRefresh = UserDefaults.standard.string(forKey: "supabase_refresh_token") != nil
-        print("[MaxChat] 🔐 Token状态: access=\(hasToken), refresh=\(hasRefresh)")
-        
-        if !hasToken {
-            print("[MaxChat] ❌ 没有 access_token，请先登录！")
-            throw SupabaseError.notAuthenticated
-        }
-        
-        print("[MaxChat] 请求 URL: \(finalURL.absoluteString)")
-
-        let payload = ChatAPIRequest(messages: messages, stream: false, mode: mode)
-
-        func makeRequest(url: URL) throws -> URLRequest {
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            attachSupabaseCookies(to: &request)
-            request.httpBody = try JSONEncoder().encode(payload)
-            return request
-        }
-
-        func performRequest(url: URL) async throws -> (Data, HTTPURLResponse) {
-            let request = try makeRequest(url: url)
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw SupabaseError.requestFailed
-            }
-            return (data, httpResponse)
-        }
-
-        var data: Data
-        var httpResponse: HTTPURLResponse
-        do {
-            (data, httpResponse) = try await performRequest(url: finalURL)
-        } catch {
-            throw error
-        }
-        
-        print("[MaxChat] 响应状态码: \(httpResponse.statusCode)")
-        if let responseStr = String(data: data, encoding: .utf8) {
-            print("[MaxChat] 响应内容: \(responseStr.prefix(500))")
-        }
-        
-        // 🆕 如果 401，尝试刷新 token 并重试一次
-        if httpResponse.statusCode == 401 {
-            print("[MaxChat] ⚠️ Token 过期，尝试刷新后重试...")
-            do {
-                try await refreshSession()
-                // 重新构建请求
-                let retryURL = buildAppAPIURL(baseURL: baseURL, path: "api/chat") ?? finalURL
-                let (retryData, retryResponse) = try await performRequest(url: retryURL)
-                if (200...299).contains(retryResponse.statusCode) {
-                    let decoded = try JSONDecoder().decode(ChatAPIResponse.self, from: retryData)
-                    print("[MaxChat] ✅ 重试成功")
-                    return decoded.response
-                }
-            } catch {
-                print("[MaxChat] ❌ 刷新 token 或重试失败: \(error)")
-            }
-        }
-
-        if (200...299).contains(httpResponse.statusCode) {
-            let decoded = try JSONDecoder().decode(ChatAPIResponse.self, from: data)
-            return decoded.response
-        }
-
-        if let decoded = try? JSONDecoder().decode(ChatAPIErrorResponse.self, from: data),
-           let message = decoded.error, !message.isEmpty {
-            throw NSError(domain: "MaxChat", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message])
-        }
-
-        throw SupabaseError.requestFailed
+        let prompt = "你是 Max，一个高效、直接、简洁的健康共情型助手。中文回答，避免冗长。"
+        let model: AIModel = (mode == "think") ? .deepseekV3Thinking : .deepseekV3Exp
+        return try await AIManager.shared.chatCompletion(
+            messages: localMessages,
+            systemPrompt: prompt,
+            model: model,
+            temperature: 0.7
+        )
     }
     
     // 🆕 确保 token 有效 - 请求前调用
@@ -1426,117 +1468,34 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         }
     }
 
-    // MARK: - Digital Twin Trigger (Next API)
+    // MARK: - Digital Twin (Local Engine)
 
     func triggerDigitalTwinAnalysis(forceRefresh: Bool = false) async -> DigitalTwinTriggerResult {
-        await ensureAppAPIBaseURLReady()
-        guard let url = appAPIURL(path: "api/digital-twin/analyze") else {
-            return DigitalTwinTriggerResult(triggered: false, reason: "Missing APP_API_BASE_URL")
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-
-        let body = ["forceRefresh": forceRefresh]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-
         do {
-            let (data, httpResponse) = try await performAppAPIRequest(request)
-            guard (200...299).contains(httpResponse.statusCode) else {
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let error = json["error"] as? String {
-                    return DigitalTwinTriggerResult(triggered: false, reason: error)
-                }
-                return DigitalTwinTriggerResult(triggered: false, reason: "Request failed")
+            let input = try await loadDigitalTwinLocalInput()
+            if input.baselineScores == nil {
+                return DigitalTwinTriggerResult(triggered: false, reason: "缺少基线评估")
             }
-
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                if let skipped = json["skipped"] as? Bool, skipped {
-                    return DigitalTwinTriggerResult(triggered: false, reason: json["reason"] as? String ?? "Skipped")
-                }
-                return DigitalTwinTriggerResult(triggered: true, reason: "Triggered", analysisId: json["analysisId"] as? String)
-            }
-            return DigitalTwinTriggerResult(triggered: true, reason: "Triggered")
+            _ = DigitalTwinLocalEngine.analysis(input: input)
+            return DigitalTwinTriggerResult(triggered: true, reason: "Local generated", analysisId: nil)
         } catch {
             return DigitalTwinTriggerResult(triggered: false, reason: error.localizedDescription)
         }
     }
 
-    // MARK: - Digital Twin Dashboard (Next API)
-
     func getDigitalTwinDashboard() async throws -> DigitalTwinDashboardPayload {
-        await ensureAppAPIBaseURLReady()
-        guard let url = appAPIURL(path: "api/digital-twin/dashboard") else {
-            throw SupabaseError.missingAppApiBaseUrl
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        attachSupabaseCookies(to: &request)
-
-        let (data, httpResponse) = try await performAppAPIRequest(request)
-        if !(200...299).contains(httpResponse.statusCode) {
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let message = json["error"] as? String {
-                throw NSError(domain: "DigitalTwinDashboard", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message])
-            }
-            throw SupabaseError.requestFailed
-        }
-
-        let decoder = JSONDecoder()
-        return try decoder.decode(DigitalTwinDashboardPayload.self, from: data)
+        let input = try await loadDigitalTwinLocalInput()
+        return DigitalTwinLocalEngine.dashboardPayload(input: input)
     }
 
     func getDigitalTwinCurve(devMode: Bool = false) async throws -> DigitalTwinCurveResponse {
-        var queryItems: [URLQueryItem] = []
-        if devMode {
-            queryItems.append(URLQueryItem(name: "dev", value: "true"))
-        }
-        await ensureAppAPIBaseURLReady()
-        guard let url = appAPIURL(path: "api/digital-twin/curve", queryItems: queryItems) else {
-            throw SupabaseError.missingAppApiBaseUrl
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        attachSupabaseCookies(to: &request)
-
-        let (data, httpResponse) = try await performAppAPIRequest(request)
-        if let decoded = try? JSONDecoder().decode(DigitalTwinCurveResponse.self, from: data) {
-            if httpResponse.statusCode == 200 || decoded.success == true || decoded.error != nil {
-                return decoded
-            }
-        }
-
-        throw SupabaseError.requestFailed
+        let input = try await loadDigitalTwinLocalInput()
+        return DigitalTwinLocalEngine.curveResponse(input: input, conversationTrend: nil)
     }
 
     func generateDigitalTwinCurve(conversationTrend: String? = nil) async throws -> DigitalTwinCurveResponse {
-        await ensureAppAPIBaseURLReady()
-        guard let url = appAPIURL(path: "api/digital-twin/curve") else {
-            throw SupabaseError.missingAppApiBaseUrl
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        attachSupabaseCookies(to: &request)
-
-        let body: [String: Any] = [
-            "conversationTrend": conversationTrend as Any
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, httpResponse) = try await performAppAPIRequest(request)
-        if let decoded = try? JSONDecoder().decode(DigitalTwinCurveResponse.self, from: data) {
-            if httpResponse.statusCode == 200 || decoded.success == true || decoded.error != nil {
-                return decoded
-            }
-        }
-
-        throw SupabaseError.requestFailed
+        let input = try await loadDigitalTwinLocalInput()
+        return DigitalTwinLocalEngine.curveResponse(input: input, conversationTrend: conversationTrend)
     }
 }
 
@@ -1718,39 +1677,39 @@ extension SupabaseManager {
 extension SupabaseManager {
     /// 获取个性化起始问题
     func getStarterQuestions() async throws -> [String] {
-        let baseURL = try await resolveMaxAgentBaseURL()
-        guard let url = buildAppAPIURL(baseURL: baseURL, path: "api/starter-questions") else {
-            print("[StarterQuestions] ⚠️ APP_API_BASE_URL 未配置，使用默认问题")
-            throw SupabaseError.missingAppApiBaseUrl
+        let defaults = [
+            "今天我的焦虑评分如何？",
+            "帮我分析一下最近的睡眠质量",
+            "我该如何改善当前的压力水平？",
+            "根据我的数据，有什么建议？"
+        ]
+
+        do {
+            let prompt = """
+            你是 Max，生成 4 条中文起始问题：
+            - 每条不超过 18 个字
+            - 聚焦焦虑/睡眠/压力/能量
+            - 直接输出 4 行纯文本
+            """
+            let reply = try await AIManager.shared.chatCompletion(
+                messages: [ChatMessage(role: .user, content: prompt)],
+                systemPrompt: "你是 Max，回答简洁直接。",
+                model: .deepseekV3Exp,
+                temperature: 0.6
+            )
+            let lines = reply
+                .split(separator: "\n")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "•", with: "").replacingOccurrences(of: "-", with: "") }
+                .filter { !$0.isEmpty }
+            let unique = Array(lines.prefix(4))
+            if unique.count >= 2 {
+                return unique
+            }
+        } catch {
+            // ignore and fallback
         }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        attachSupabaseCookies(to: &request)
-        
-        let (data, httpResponse) = try await performAppAPIRequest(request)
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw SupabaseError.requestFailed
-        }
-        
-        // 解析响应
-        struct StarterQuestionsResponse: Decodable {
-            let success: Bool?
-            let data: [String]?
-            let questions: [String]?
-        }
-        
-        let decoded = try JSONDecoder().decode(StarterQuestionsResponse.self, from: data)
-        
-        // 尝试从 data 或 questions 字段获取
-        if let questions = decoded.data, !questions.isEmpty {
-            return questions
-        }
-        if let questions = decoded.questions, !questions.isEmpty {
-            return questions
-        }
-        
-        throw SupabaseError.decodingFailed
+
+        return defaults
     }
 }
 

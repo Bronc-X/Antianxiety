@@ -3468,6 +3468,25 @@ hooks/
 
 ---
 
+## 2026-02-02 - Max / 数字孪生本地化重做（Supabase + AICAN）✅
+
+### ✅ 目标
+- 彻底移除 Max 与数字孪生对 Next/App API 的依赖，改为纯 Swift 直连 Supabase + AICAN。
+- 修复会话/消息表结构不一致导致的 Max 对话失败。
+- 数字孪生改为本地生成曲线与仪表盘，避免 SSL/超时。
+
+### ✅ 变更摘要
+- **Max**：改为 `AIManager` 直连 AICAN (`OPENAI_API_BASE`)；会话与消息改走 `chat_sessions` + `chat_conversations`。
+- **会话兼容**：兼容 UUID / bigint id；`session_id` 外键缺失时自动回退。
+- **数字孪生**：新增本地引擎 `DigitalTwinLocalEngine`，自动生成曲线/仪表盘/分析。
+- **UI**：曲线容器新增裁剪，避免 Chart 溢出。
+
+### 🧪 运行提示
+- 需在 Xcode Build Settings 配置 `OPENAI_API_KEY` / `OPENAI_API_BASE`。
+- 数字孪生无基线时提示完成基础量表。
+
+---
+
 ## 2026-01-29 - 生产站点白屏排查与修复 ✅
 
 ### 🧯 症状

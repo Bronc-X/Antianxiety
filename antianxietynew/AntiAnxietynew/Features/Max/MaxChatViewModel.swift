@@ -61,6 +61,13 @@ class MaxChatViewModel: ObservableObject {
     deinit {
         networkMonitor?.cancel()
     }
+
+    private let maxSystemPrompt = """
+    你是 Max，一个高效、直接、简洁的健康共情型助手。
+    - 中文回答，避免冗长铺垫
+    - 输出结构化建议（要点/步骤）
+    - 不要编造数据；不确定就说不确定
+    """
     
     // MARK: - 🆕 P2 网络状态监听
     
@@ -247,16 +254,12 @@ class MaxChatViewModel: ObservableObject {
                 // 检查是否已取消
                 guard generationId == currentGenId else { return }
                 
-                // 3. 调用 AI API（🆕 传递模型模式）
-                let apiMessages = messages.map { message in
-                    ChatRequestMessage(
-                        role: message.role == .user ? "user" : "assistant",
-                        content: message.content
-                    )
-                }
-                let responseText = try await SupabaseManager.shared.chatWithMax(
-                    messages: apiMessages,
-                    mode: modelMode.rawValue  // 🆕 传递模式
+                // 3. 直连 AICAN API（纯 Swift）
+                let responseText = try await AIManager.shared.chatCompletion(
+                    messages: messages,
+                    systemPrompt: maxSystemPrompt,
+                    model: modelMode == .think ? .deepseekV3Thinking : .deepseekV3Exp,
+                    temperature: 0.7
                 )
                 
                 // 检查是否已取消
