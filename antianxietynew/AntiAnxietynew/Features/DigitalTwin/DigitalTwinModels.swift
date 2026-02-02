@@ -52,6 +52,24 @@ struct DigitalTwinDataQualityFlags: Codable {
     let sleepHoursOutOfRange: Bool?
     let scaleMismatchFlag: Bool?
 
+    init(
+        baselineMissing: [String],
+        dailyCalibrationSparse: Bool,
+        conversationTrendMissing: Bool,
+        pss10Missing: Bool,
+        hrvIsInferred: Bool,
+        sleepHoursOutOfRange: Bool?,
+        scaleMismatchFlag: Bool?
+    ) {
+        self.baselineMissing = baselineMissing
+        self.dailyCalibrationSparse = dailyCalibrationSparse
+        self.conversationTrendMissing = conversationTrendMissing
+        self.pss10Missing = pss10Missing
+        self.hrvIsInferred = hrvIsInferred
+        self.sleepHoursOutOfRange = sleepHoursOutOfRange
+        self.scaleMismatchFlag = scaleMismatchFlag
+    }
+
     enum CodingKeys: String, CodingKey {
         case baselineMissing
         case dailyCalibrationSparse
