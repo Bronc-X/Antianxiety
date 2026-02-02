@@ -447,7 +447,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
 
     private struct ChatConversationRow: Codable {
         let id: FlexibleId
-        let user_id: String
+        let user_id: String?
         let role: String
         let content: String
         let session_id: String?
@@ -659,10 +659,10 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     private func getChatConversationsFallback(userId: String) async throws -> [Conversation] {
         let rows: [ChatConversationRow]
         do {
-            let endpoint = "chat_conversations?user_id=eq.\(userId)&select=id,session_id,role,content,created_at&order=created_at.desc&limit=200"
+            let endpoint = "chat_conversations?user_id=eq.\(userId)&select=id,user_id,session_id,role,content,created_at&order=created_at.desc&limit=200"
             rows = try await request(endpoint)
         } catch {
-            let endpoint = "chat_conversations?user_id=eq.\(userId)&select=id,role,content,created_at&order=created_at.desc&limit=200"
+            let endpoint = "chat_conversations?user_id=eq.\(userId)&select=id,user_id,role,content,created_at&order=created_at.desc&limit=200"
             rows = try await request(endpoint)
         }
         if rows.isEmpty {
@@ -685,7 +685,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             conversations.append(
                 Conversation(
                     id: sessionId,
-                    user_id: userId,
+                    user_id: row.user_id ?? userId,
                     title: title.isEmpty ? "新对话" : title,
                     last_message_at: lastMessageAt,
                     message_count: nil,
