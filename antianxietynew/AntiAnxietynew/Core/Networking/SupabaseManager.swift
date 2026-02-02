@@ -446,7 +446,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     // MARK: - Chat API Methods (对话管理)
 
     private struct ChatConversationRow: Codable {
-        let id: String
+        let id: FlexibleId
         let user_id: String
         let role: String
         let content: String
@@ -502,8 +502,11 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     /// 获取对话历史消息
     func getChatHistory(conversationId: String) async throws -> [ChatMessageDTO] {
         do {
-            let endpoint = "chat_messages?conversation_id=eq.\(conversationId)&select=*&order=created_at.asc"
-            return try await request(endpoint)
+            if isNumericId(conversationId) {
+                let endpoint = "chat_messages?conversation_id=eq.\(conversationId)&select=*&order=created_at.asc"
+                return try await request(endpoint)
+            }
+            throw SupabaseError.requestFailed
         } catch {
             guard let user = currentUser else { throw SupabaseError.notAuthenticated }
             do {
@@ -511,7 +514,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
                 let rows: [ChatConversationRow] = try await request(endpoint)
                 return rows.map { row in
                     ChatMessageDTO(
-                        id: row.id,
+                        id: row.id.value,
                         conversation_id: conversationId,
                         role: row.role,
                         content: row.content,
@@ -523,7 +526,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
                 let rows: [ChatConversationRow] = try await request(endpoint)
                 return rows.map { row in
                     ChatMessageDTO(
-                        id: row.id,
+                        id: row.id.value,
                         conversation_id: conversationId,
                         role: row.role,
                         content: row.content,
@@ -537,22 +540,25 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     /// 追加消息到对话
     func appendMessage(conversationId: String, role: String, content: String) async throws -> ChatMessageDTO {
         do {
-            let body = AppendMessageRequest(conversation_id: conversationId, role: role, content: content)
-            let endpoint = "chat_messages"
-            let results: [ChatMessageDTO] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
-            guard let message = results.first else {
-                throw SupabaseError.requestFailed
-            }
+            if isNumericId(conversationId) {
+                let body = AppendMessageRequest(conversation_id: conversationId, role: role, content: content)
+                let endpoint = "chat_messages"
+                let results: [ChatMessageDTO] = try await request(endpoint, method: "POST", body: body, prefer: "return=representation")
+                guard let message = results.first else {
+                    throw SupabaseError.requestFailed
+                }
 
-            // 更新对话的 last_message_at
-            let updateEndpoint = "conversations?id=eq.\(conversationId)"
-            struct UpdateLastMessage: Encodable {
-                let last_message_at: String
-            }
-            let now = ISO8601DateFormatter().string(from: Date())
-            try await requestVoid(updateEndpoint, method: "PATCH", body: UpdateLastMessage(last_message_at: now))
+                // 更新对话的 last_message_at
+                let updateEndpoint = "conversations?id=eq.\(conversationId)"
+                struct UpdateLastMessage: Encodable {
+                    let last_message_at: String
+                }
+                let now = ISO8601DateFormatter().string(from: Date())
+                try await requestVoid(updateEndpoint, method: "PATCH", body: UpdateLastMessage(last_message_at: now))
 
-            return message
+                return message
+            }
+            throw SupabaseError.requestFailed
         } catch {
             guard let user = currentUser else { throw SupabaseError.notAuthenticated }
             let endpoint = "chat_conversations"
@@ -563,7 +569,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
                     throw SupabaseError.requestFailed
                 }
                 return ChatMessageDTO(
-                    id: row.id,
+                    id: row.id.value,
                     conversation_id: conversationId,
                     role: row.role,
                     content: row.content,
@@ -576,7 +582,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
                     throw SupabaseError.requestFailed
                 }
                 return ChatMessageDTO(
-                    id: row.id,
+                    id: row.id.value,
                     conversation_id: conversationId,
                     role: row.role,
                     content: row.content,
@@ -896,8 +902,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         }
         static let fallbackBaseURLs = [
             "https://project-metabasis.vercel.app",
-            "https://antianxiety.app",
-            "https://www.antianxiety.app"
+            "https://antianxiety.app"
         ]
     }
 
@@ -1107,7 +1112,17 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\\", with: "")
         guard !trimmed.isEmpty else { return nil }
-        return trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
+        let normalized = trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
+        if let url = URL(string: normalized),
+           let host = url.host?.lowercased(),
+           host == "www.antianxiety.app" {
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.host = "antianxiety.app"
+            if let rebuilt = components?.url?.absoluteString {
+                return rebuilt.hasSuffix("/") ? String(rebuilt.dropLast()) : rebuilt
+            }
+        }
+        return normalized
     }
 
     private func clearAppAPIOverrides() {
@@ -1226,6 +1241,12 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             }
         }
         return false
+    }
+
+    private func isNumericId(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return trimmed.range(of: #"^\d+$"#, options: .regularExpression) != nil
     }
 
     private func attachSupabaseCookies(to request: inout URLRequest) {
