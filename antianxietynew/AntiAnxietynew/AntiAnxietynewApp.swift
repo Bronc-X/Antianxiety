@@ -22,6 +22,18 @@ struct AntiAnxietynewApp: App {
         } else {
             print("❌ [Config] APP_API_BASE_URL 未配置!")
         }
+
+        if let aiBase = Bundle.main.infoDictionary?["OPENAI_API_BASE"] as? String {
+            print("✅ [Config] OPENAI_API_BASE = \(aiBase)")
+        } else {
+            print("❌ [Config] OPENAI_API_BASE 未配置!")
+        }
+
+        if let aiModel = Bundle.main.infoDictionary?["OPENAI_MODEL"] as? String {
+            print("✅ [Config] OPENAI_MODEL = \(aiModel)")
+        } else {
+            print("⚠️ [Config] OPENAI_MODEL 未配置，使用默认模型")
+        }
         
         if let supabaseUrl = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String {
             print("✅ [Config] SUPABASE_URL = \(supabaseUrl)")

@@ -142,6 +142,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         case legacy
     }
     private var habitsBackendCache: HabitsBackend?
+    private var reminderPreferencesColumnAvailable: Bool?
     
     private init() {
         // 初始化时检查会话
@@ -256,6 +257,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         isAuthenticated = false
         isClinicalComplete = false
         habitsBackendCache = nil
+        reminderPreferencesColumnAvailable = nil
     }
     
     func checkSession() async {
@@ -1208,9 +1210,30 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     func getProfileSettings() async throws -> ProfileSettings? {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
 
-        let endpoint = "profiles?id=eq.\(user.id)&select=id,full_name,avatar_url,ai_personality,ai_persona_context,ai_settings,preferred_language,primary_goal,current_focus,inferred_scale_scores,reminder_preferences&limit=1"
-        let results: [ProfileSettings] = try await request(endpoint)
-        return results.first
+        let baseSelect = "id,full_name,avatar_url,ai_personality,ai_persona_context,ai_settings,preferred_language,primary_goal,current_focus,inferred_scale_scores"
+        if reminderPreferencesColumnAvailable == false {
+            let legacyEndpoint = "profiles?id=eq.\(user.id)&select=\(baseSelect)&limit=1"
+            let results: [ProfileSettings] = try await request(legacyEndpoint)
+            return results.first
+        }
+
+        let endpoint = "profiles?id=eq.\(user.id)&select=\(baseSelect),reminder_preferences&limit=1"
+        do {
+            let results: [ProfileSettings] = try await request(endpoint)
+            reminderPreferencesColumnAvailable = true
+            return results.first
+        } catch {
+            let originalError = error
+            let legacyEndpoint = "profiles?id=eq.\(user.id)&select=\(baseSelect)&limit=1"
+            do {
+                let results: [ProfileSettings] = try await request(legacyEndpoint)
+                reminderPreferencesColumnAvailable = false
+                print("[SupabaseManager] ⚠️ profiles.reminder_preferences missing; fallback to legacy profile select")
+                return results.first
+            } catch {
+                throw originalError
+            }
+        }
     }
 
     func updateProfileSettings(_ update: ProfileSettingsUpdate) async throws -> ProfileSettings? {
@@ -1792,6 +1815,9 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let inquirySummary = try? await getInquiryContextSummary(language: language)
 
         let lastUserMessage = localMessages.last { $0.role == .user }
+        if let lastUserMessage, shouldRefuseNonHealthRequest(lastUserMessage.content) {
+            return refusalMessage(language: language)
+        }
         var memoryContext: String? = nil
         var playbookContext: String? = nil
         if let lastUserMessage {
@@ -1870,6 +1896,29 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         )
 
         return cleaned
+    }
+
+    private func shouldRefuseNonHealthRequest(_ text: String) -> Bool {
+        let lowered = text.lowercased()
+        let politicsTokens = [
+            "特朗普", "拜登", "哈里斯", "共和党", "民主党", "选举", "大选", "投票", "竞选",
+            "摇摆州", "总统", "议会", "参议院", "众议院", "民调",
+            "trump", "biden", "harris", "election", "vote", "campaign", "poll", "swing state"
+        ]
+        let gamblingTokens = [
+            "博彩", "赔率", "下注", "赌", "盘口", "赌场",
+            "bet", "odds", "sportsbook", "casino", "wager"
+        ]
+        let containsPolitics = politicsTokens.contains { lowered.contains($0.lowercased()) }
+        let containsGambling = gamblingTokens.contains { lowered.contains($0.lowercased()) }
+        return containsPolitics || containsGambling
+    }
+
+    private func refusalMessage(language: String) -> String {
+        if language == "en" {
+            return "I can’t help with election predictions or betting odds. If you have a health, emotion, or lifestyle question, I can help."
+        }
+        return "我不能提供政治选举预测或博彩赔率等内容。如果你有健康/情绪/生活方式的问题，我可以帮你。"
     }
 
     private func buildMemoryContext(_ records: [MaxMemoryRecord]) -> String {

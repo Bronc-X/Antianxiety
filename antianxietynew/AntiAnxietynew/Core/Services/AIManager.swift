@@ -17,6 +17,7 @@ final class AIManager: ObservableObject, AIManaging {
     private let requestTimeout: TimeInterval = 25
     private let embeddingCacheTTL: TimeInterval = 6 * 3600
     private var embeddingCache: [String: (vector: [Double], timestamp: Date)] = [:]
+    private var didLogConfig = false
     
     private var apiKey: String {
         guard let key = Bundle.main.infoDictionary?["OPENAI_API_KEY"] as? String else {
@@ -76,6 +77,13 @@ final class AIManager: ObservableObject, AIManaging {
         model: AIModel? = nil,
         temperature: Double = 0.7
     ) async throws -> String {
+        let resolvedModel = model?.rawValue ?? defaultModel
+        if !didLogConfig {
+            print("✅ [AI] chat.completions base=\(baseURL) model=\(resolvedModel)")
+            didLogConfig = true
+        } else {
+            print("✅ [AI] chat.completions model=\(resolvedModel)")
+        }
         let url = URL(string: "\(baseURL)/chat/completions")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -94,7 +102,7 @@ final class AIManager: ObservableObject, AIManaging {
         })
         
         let body: [String: Any] = [
-            "model": model?.rawValue ?? defaultModel,
+            "model": resolvedModel,
             "messages": apiMessages,
             "temperature": temperature
         ]

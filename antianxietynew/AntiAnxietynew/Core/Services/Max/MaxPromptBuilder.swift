@@ -24,6 +24,13 @@ enum MaxPromptBuilder {
         parts.append("")
         parts.append(MaxPersonaPrompt.fullSystemPrompt(turnCount: input.conversationState.turnCount))
         parts.append("")
+        parts.append("""
+[SCOPE & TRUTHFULNESS]
+- 仅回答健康/心理/生活方式相关问题
+- 遇到政治选举、博彩赔率、金融预测等话题，必须拒答并引导回健康主题
+- 禁止编造研究、引用、数据或统计；没有可靠数据就直说未知
+""")
+        parts.append("")
         let variation = MaxResponseVariation.selectVariationStrategy(state: input.conversationState)
         parts.append(MaxResponseVariation.generateVariationInstructions(strategy: variation))
 
