@@ -39,7 +39,17 @@ final class AIManager: ObservableObject, AIManaging {
     }
     
     private init() {}
-    
+
+    // Protocol conformance
+    func chatCompletion(messages: [ChatMessage], model: AIModel) async throws -> String {
+        return try await chatCompletion(
+            messages: messages,
+            systemPrompt: nil,
+            model: model,
+            temperature: 0.7
+        )
+    }
+
     func chatCompletion(
         messages: [ChatMessage],
         systemPrompt: String? = nil,

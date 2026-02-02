@@ -55,6 +55,7 @@
 		EEA092022F1A929B00193FC7 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA092012F1A929B00193FC7 /* LiveActivityAttributes.swift */; };
 		EEA092032F1A929B00193FC7 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA092012F1A929B00193FC7 /* LiveActivityAttributes.swift */; };
 		EEA092052F1A92D700193FC7 /* AIManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA092042F1A92D700193FC7 /* AIManager.swift */; };
+		EED0A1B2C3D4E5F607182930 /* DigitalTwinLocalEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED0A1B2C3D4E5F607182931 /* DigitalTwinLocalEngine.swift */; };
 		EEA092072F1AB8FB00193FC7 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = EEA092062F1AB8FB00193FC7 /* Secrets.xcconfig */; };
 		EEA4D4DE2F26065E00C9F079 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA4D4DC2F26065E00C9F079 /* ThemeManager.swift */; };
 		EEA4D4DF2F26065E00C9F079 /* LiquidGlassTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA4D4DD2F26065E00C9F079 /* LiquidGlassTheme.swift */; };
@@ -169,6 +170,7 @@
 		EEA092002F1A904100193FC7 /* AntiAnxietynewWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AntiAnxietynewWidgetExtension.entitlements; sourceTree = "<group>"; };
 		EEA092012F1A929B00193FC7 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LiveActivityAttributes.swift; sourceTree = "<group>"; };
 		EEA092042F1A92D700193FC7 /* AIManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AIManager.swift; sourceTree = "<group>"; };
+		EED0A1B2C3D4E5F607182931 /* DigitalTwinLocalEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DigitalTwinLocalEngine.swift; sourceTree = "<group>"; };
 		EEA092062F1AB8FB00193FC7 /* Secrets.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		EEA4D4DC2F26065E00C9F079 /* ThemeManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		EEA4D4DD2F26065E00C9F079 /* LiquidGlassTheme.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LiquidGlassTheme.swift; sourceTree = "<group>"; };
@@ -444,6 +446,7 @@
 			isa = PBXGroup;
 			children = (
 				EEA092042F1A92D700193FC7 /* AIManager.swift */,
+				EED0A1B2C3D4E5F607182931 /* DigitalTwinLocalEngine.swift */,
 				EEA092012F1A929B00193FC7 /* LiveActivityAttributes.swift */,
 				0EEC4BC54C3A46548598A346 /* ServiceProtocols.swift */,
 				CE183FC3B4F94E92865D55E3 /* AppServices.swift */,
@@ -874,6 +877,7 @@
 				BEBEAD1234567890ABCDEF02 /* BreathingSessionView.swift in Sources */,
 				EEB545A72F1A787700B61C9D /* MaxChatViewModel.swift in Sources */,
 				EEA092052F1A92D700193FC7 /* AIManager.swift in Sources */,
+				EED0A1B2C3D4E5F607182930 /* DigitalTwinLocalEngine.swift in Sources */,
 				EEA092022F1A929B00193FC7 /* LiveActivityAttributes.swift in Sources */,
 				EEB545A82F1A787700B61C9D /* MaxChatView.swift in Sources */,
 				1497EA5834822BB0745CCF64 /* PlanOptionModel.swift in Sources */,

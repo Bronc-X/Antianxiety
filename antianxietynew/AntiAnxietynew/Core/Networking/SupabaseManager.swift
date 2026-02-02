@@ -765,7 +765,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
 
         let profileEndpoint = "profiles?id=eq.\(user.id)&select=id,inferred_scale_scores,age,gender,full_name,primary_goal,created_at&limit=1"
-        let profileRows: [DigitalTwinProfileRow] = (try? request(profileEndpoint)) ?? []
+        let profileRows: [DigitalTwinProfileRow] = (try? await request(profileEndpoint)) ?? []
         let profileRow = profileRows.first
 
         let scores = profileRow?.inferred_scale_scores
