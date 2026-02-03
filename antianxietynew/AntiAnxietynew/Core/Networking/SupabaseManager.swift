@@ -2543,6 +2543,14 @@ extension SupabaseManager {
         let responded_at: String
     }
 
+    fileprivate struct InquiryGapRow: Codable {
+        let data_gaps_addressed: [String]?
+    }
+
+    fileprivate struct InquiryRecentResponseRow: Codable {
+        let responded_at: String?
+    }
+
     private func getInquiryContextSummary(language: String, limit: Int = 8) async throws -> String? {
         guard let user = currentUser else { return nil }
 
@@ -2574,8 +2582,14 @@ extension SupabaseManager {
             return InquiryPendingResponse(hasInquiry: question != nil, inquiry: question)
         }
 
+        if await hasRecentInquiryResponse(userId: user.id, withinMinutes: 20) {
+            return InquiryPendingResponse(hasInquiry: false, inquiry: nil)
+        }
+
+        let answeredGaps = await fetchAnsweredGapsToday(userId: user.id)
+
         // 无待答问询，尝试生成新的问询
-        if let inquiry = try await generateInquiryFromGaps(language: language) {
+        if let inquiry = try await generateInquiryFromGaps(language: language, excluding: answeredGaps) {
             return InquiryPendingResponse(hasInquiry: true, inquiry: inquiry)
         }
 
@@ -2584,14 +2598,18 @@ extension SupabaseManager {
     
     /// 提交问询回答（本地 Supabase 直连）
     func respondInquiry(inquiryId: String, response: String) async throws -> InquiryRespondResponse {
-        guard currentUser != nil else { throw SupabaseError.notAuthenticated }
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
 
         let payload = InquiryHistoryUpdate(
             user_response: response,
             responded_at: ISO8601DateFormatter().string(from: Date())
         )
         let endpoint = "inquiry_history?id=eq.\(inquiryId)"
-        try await requestVoid(endpoint, method: "PATCH", body: payload, prefer: "return=representation")
+        let updatedRows: [InquiryHistoryRow] = try await request(endpoint, method: "PATCH", body: payload, prefer: "return=representation")
+
+        if let gapField = updatedRows.first?.data_gaps_addressed?.first {
+            await syncInquiryResponseToCalibration(userId: user.id, gapField: gapField, response: response)
+        }
         return InquiryRespondResponse(success: true, message: nil)
     }
 
@@ -2609,16 +2627,20 @@ extension SupabaseManager {
         }
 
         let gaps = row.data_gaps_addressed ?? []
-        let options: [InquiryOption]? = gaps.first.flatMap { gap in
-            InquiryEngine.inquiryTemplate(
-                for: DataGap(field: gap, importance: .medium, description: gap, lastUpdated: row.created_at),
-                language: language
-            )?.options
+        var resolvedText = questionText
+        var options: [InquiryOption]?
+        if let gap = gaps.first,
+           let template = InquiryEngine.inquiryTemplate(
+            for: DataGap(field: gap, importance: .medium, description: gap, lastUpdated: row.created_at),
+            language: language
+           ) {
+            resolvedText = template.questionText
+            options = template.options
         }
 
         return InquiryQuestion(
             id: row.id,
-            questionText: questionText,
+            questionText: resolvedText,
             questionType: questionType,
             priority: priority,
             dataGapsAddressed: gaps,
@@ -2627,12 +2649,18 @@ extension SupabaseManager {
         )
     }
 
-    private func generateInquiryFromGaps(language: String) async throws -> InquiryQuestion? {
+    private func generateInquiryFromGaps(
+        language: String,
+        excluding answeredGaps: Set<String> = []
+    ) async throws -> InquiryQuestion? {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
 
         let recentData = await collectRecentInquiryData(userId: user.id)
         let gaps = InquiryEngine.identifyDataGaps(recentData: recentData, staleThresholdHours: 24)
-        let prioritized = InquiryEngine.prioritizeDataGaps(gaps)
+        let filtered = gaps.filter { gap in
+            !answeredGaps.contains(gap.field)
+        }
+        let prioritized = InquiryEngine.prioritizeDataGaps(filtered)
 
         guard let gap = prioritized.first,
               let inquiry = InquiryEngine.inquiryTemplate(for: gap, language: language) else {
@@ -2650,6 +2678,101 @@ extension SupabaseManager {
 
         _ = try? await requestVoid("inquiry_history", method: "POST", body: payload, prefer: "return=representation")
         return inquiry
+    }
+
+    private func hasRecentInquiryResponse(userId: String, withinMinutes: Int) async -> Bool {
+        let threshold = Date().addingTimeInterval(-Double(max(1, withinMinutes)) * 60)
+        let iso = ISO8601DateFormatter().string(from: threshold)
+        let endpoint = "inquiry_history?user_id=eq.\(userId)&user_response=not.is.null&responded_at=gte.\(iso)&select=responded_at&order=responded_at.desc&limit=1"
+        let rows: [InquiryRecentResponseRow] = (try? await request(endpoint)) ?? []
+        return !rows.isEmpty
+    }
+
+    private func fetchAnsweredGapsToday(userId: String) async -> Set<String> {
+        let dayString = utcDayString(for: Date())
+        let endpoint = "inquiry_history?user_id=eq.\(userId)&user_response=not.is.null&responded_at=gte.\(dayString)T00:00:00Z&select=data_gaps_addressed"
+        let rows: [InquiryGapRow] = (try? await request(endpoint)) ?? []
+        var gaps = Set<String>()
+        for row in rows {
+            row.data_gaps_addressed?.forEach { gaps.insert($0) }
+        }
+        return gaps
+    }
+
+    private func utcDayString(for date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter.string(from: date)
+    }
+
+    private func syncInquiryResponseToCalibration(userId: String, gapField: String, response: String) async {
+        let now = Date()
+        var payload: [String: AnyCodable] = [
+            "user_id": AnyCodable(userId),
+            "date": AnyCodable(utcDayString(for: now)),
+            "updated_at": AnyCodable(ISO8601DateFormatter().string(from: now))
+        ]
+
+        switch gapField {
+        case "sleep_hours":
+            let map: [String: Double] = [
+                "under_6": 5,
+                "6_7": 6.5,
+                "7_8": 7.5,
+                "over_8": 8.5
+            ]
+            if let value = map[response] {
+                payload["sleep_hours"] = AnyCodable(value)
+            }
+        case "stress_level":
+            let map: [String: Int] = [
+                "low": 3,
+                "medium": 6,
+                "high": 9
+            ]
+            if let value = map[response] {
+                payload["stress_level"] = AnyCodable(value)
+            }
+        case "exercise_duration":
+            let map: [String: Int] = [
+                "none": 0,
+                "light": 15,
+                "moderate": 30,
+                "intense": 60
+            ]
+            if let value = map[response] {
+                payload["exercise_duration"] = AnyCodable(value)
+            }
+        case "mood":
+            let map: [String: Int] = [
+                "bad": 3,
+                "okay": 6,
+                "great": 9
+            ]
+            if let value = map[response] {
+                payload["mood_score"] = AnyCodable(value)
+            }
+        case "meal_quality":
+            payload["meal_quality"] = AnyCodable(response)
+        case "water_intake":
+            payload["water_intake"] = AnyCodable(response)
+        default:
+            break
+        }
+
+        guard payload.keys.count > 3 else { return }
+
+        do {
+            try await requestVoid(
+                "daily_calibrations?on_conflict=user_id,date",
+                method: "POST",
+                body: payload,
+                prefer: "resolution=merge-duplicates,return=representation"
+            )
+        } catch {
+            print("[Inquiry] daily_calibrations sync warning: \(error)")
+        }
     }
 
     private func collectRecentInquiryData(userId: String) async -> [String: (value: String, timestamp: String)] {

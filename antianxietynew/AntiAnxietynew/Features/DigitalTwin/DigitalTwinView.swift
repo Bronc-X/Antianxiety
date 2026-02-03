@@ -46,19 +46,22 @@ struct DigitalTwinView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.headline)
-                    .foregroundColor(.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .background(Color.textPrimary.opacity(0.1))
-                    .clipShape(Circle())
+        ZStack {
+            HStack {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.headline)
+                        .foregroundColor(.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.textPrimary.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                Spacer()
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(spacing: 2) {
                 Text("数字孪生")
                     .font(.headline)
                     .foregroundColor(.textPrimary)
@@ -68,20 +71,23 @@ struct DigitalTwinView: View {
                         .foregroundColor(.textSecondary)
                 }
             }
+            .multilineTextAlignment(.center)
 
-            Spacer()
-
-            Button {
-                Task { await viewModel.refreshCurve() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.headline)
-                    .foregroundColor(.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .background(Color.textPrimary.opacity(0.1))
-                    .clipShape(Circle())
+            HStack {
+                Spacer()
+                Button {
+                    Task { await viewModel.refreshCurve() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.headline)
+                        .foregroundColor(.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.textPrimary.opacity(0.1))
+                        .clipShape(Circle())
+                }
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, metrics.horizontalPadding)
         .padding(.vertical, metrics.isCompactHeight ? 10 : 14)
         .padding(.top, metrics.safeAreaInsets.top)

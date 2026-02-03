@@ -51,6 +51,7 @@ struct AntiAnxietynewApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .tint(.liquidGlassAccent)
                 .environmentObject(supabase)
                 .environmentObject(appSettings)
                 .environmentObject(themeManager)
@@ -95,9 +96,12 @@ struct AntiAnxietynewApp: App {
         tabBar.isTranslucent = true
         tabBar.tintColor = UIColor(Color.liquidGlassAccent)
         tabBar.unselectedItemTintColor = UIColor(Color.textTertiary)
-        tabBar.itemPositioning = .centered
-        tabBar.itemSpacing = 18
-        tabBar.itemWidth = 56
+        // Equalize spacing between all 5 items and keep left/right margins symmetric.
+        tabBar.itemPositioning = .fill
+        tabBar.itemSpacing = 0
+        tabBar.itemWidth = 0
+        // Hide system TabBar (we render a custom TabBar in ContentView).
+        tabBar.isHidden = true
     }
 
     private func configureNavigationBarAppearance() {

@@ -8,14 +8,15 @@ struct MaxChatView: View {
     @FocusState private var isInputFocused: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.screenMetrics) private var metrics
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
+    @State private var isHistoryOpen = false
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                // 背景与全局主题一致
-                LinearGradient.magazineWash.ignoresSafeArea()
-                LinearGradient.mossVeil.ignoresSafeArea()
-                
+            ZStack(alignment: .leading) {
+                immersiveBackground
+
                 // Error Banner
                 if let error = viewModel.error {
                     VStack {
@@ -35,26 +36,27 @@ struct MaxChatView: View {
                         .foregroundColor(.white)
                         .cornerRadius(8)
                         .padding(.horizontal)
-                        .padding(.top, 100) // Below nav bar
+                        .padding(.top, metrics.safeAreaInsets.top + 20)
                         Spacer()
                     }
                     .zIndex(100)
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                
+
                 VStack(spacing: 0) {
+                    chatHeader
+
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: metrics.sectionSpacing) {
-                                // 🆕 空消息时显示 Starter Questions
-                                if viewModel.messages.isEmpty && !viewModel.starterQuestions.isEmpty {
-                                    StarterQuestionsView(questions: viewModel.starterQuestions) { question in
+                                if viewModel.messages.isEmpty {
+                                    ImmersiveStarterView(questions: viewModel.starterQuestions) { question in
                                         viewModel.inputText = question
                                         viewModel.sendMessage()
                                     }
-                                    .padding(.top, metrics.isCompactHeight ? 20 : 40)
+                                    .padding(.top, metrics.isCompactHeight ? 12 : 24)
                                 }
-                                
+
                                 ForEach(viewModel.messages) { message in
                                     MessageBubble(message: message) { selectedPlan in
                                         viewModel.savePlan(selectedPlan)
@@ -63,7 +65,7 @@ struct MaxChatView: View {
                                 }
                                 if viewModel.isTyping { TypingIndicator() }
                             }
-                            .liquidGlassPageWidth()
+                            .liquidGlassPageWidth(alignment: .leading)
                             .padding(.vertical, metrics.verticalPadding)
                         }
                         .onChange(of: viewModel.messages.count) { _ in
@@ -72,24 +74,62 @@ struct MaxChatView: View {
                             }
                         }
                     }
-                    
-                    // 2. 悬浮输入栏 (🆕 支持模式切换和停止生成)
+
                     InputBarV2(
                         text: $viewModel.inputText,
                         isFocused: $isInputFocused,
                         isTyping: viewModel.isTyping,
                         modelMode: viewModel.modelMode,
+                        onOpenHistory: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                isHistoryOpen = true
+                            }
+                        },
                         onSend: { viewModel.sendMessage() },
                         onToggleMode: { viewModel.toggleModelMode() },
                         onStop: { viewModel.stopGeneration() }
                     )
-                    .padding(.bottom, metrics.isCompactHeight ? 6 : 10)
                 }
+
+                if isHistoryOpen {
+                    Color.black.opacity(0.35)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                isHistoryOpen = false
+                            }
+                        }
+                }
+
+                HistoryDrawer(
+                    conversations: viewModel.conversations,
+                    currentConversationId: viewModel.currentConversationId,
+                    onSelect: { conversation in
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            isHistoryOpen = false
+                        }
+                        Task {
+                            await viewModel.switchConversation(conversation.id)
+                        }
+                    },
+                    onNew: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            isHistoryOpen = false
+                        }
+                        viewModel.startNewConversation()
+                    },
+                    onDelete: { conversation in
+                        Task {
+                            _ = await viewModel.deleteConversation(conversation.id)
+                        }
+                    }
+                )
+                .frame(width: historyDrawerWidth)
+                .offset(x: isHistoryOpen ? 0 : -historyDrawerWidth - 12)
+                .shadow(color: Color.black.opacity(0.45), radius: 20, x: 8, y: 0)
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isHistoryOpen)
             }
-            .navigationTitle("Max")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.bgPrimary, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .onReceive(NotificationCenter.default.publisher(for: .askMax)) { notification in
                 guard let question = notification.userInfo?["question"] as? String,
                       !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -98,38 +138,73 @@ struct MaxChatView: View {
                 viewModel.inputText = question
                 viewModel.sendMessage()
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { viewModel.startNewConversation() } label: {
-                        Image(systemName: "plus.bubble")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 32, height: 32)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("新建对话")
+            .simultaneousGesture(historyEdgeGesture)
+        }
+    }
+
+    private var immersiveBackground: some View {
+        ZStack {
+            LinearGradient.magazineWash.ignoresSafeArea()
+            LinearGradient.mossVeil.ignoresSafeArea()
+        }
+    }
+
+    private var chatHeader: some View {
+        let sidePadding = metrics.horizontalPadding
+        return ZStack {
+            HStack {
+                Button(action: handleBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.surfaceGlass(for: colorScheme))
+                        .clipShape(Circle())
                 }
-                
-                // 🆕 P2 离线状态指示
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if viewModel.isOffline {
-                        HStack(spacing: 4) {
-                            Image(systemName: "wifi.slash")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                            Text("离线")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
+                Spacer()
+            }
+
+            Text("Max")
+                .font(.headline)
+                .foregroundColor(.textPrimary)
+
+            HStack {
+                Spacer()
+                Color.clear
+                    .frame(width: 36, height: 36)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, sidePadding)
+        .padding(.top, metrics.safeAreaInsets.top + 12)
+        .padding(.bottom, 12)
+    }
+
+    private var historyDrawerWidth: CGFloat {
+        min(metrics.safeWidth * 0.78, 320)
+    }
+
+    private var historyEdgeGesture: some Gesture {
+        DragGesture(minimumDistance: 20, coordinateSpace: .global)
+            .onEnded { value in
+                let isEdgeSwipe = value.startLocation.x < 28
+                if isEdgeSwipe && value.translation.width > 60 {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        isHistoryOpen = true
+                    }
+                } else if isHistoryOpen && value.translation.width < -60 {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        isHistoryOpen = false
                     }
                 }
             }
+    }
+
+    private func handleBack() {
+        if presentationMode.wrappedValue.isPresented {
+            dismiss()
+        } else {
+            NotificationCenter.default.post(name: .openDashboard, object: nil)
         }
     }
 }
@@ -333,12 +408,193 @@ struct TypingIndicator: View {
     }
 }
 
+// MARK: - Immersive Starter View
+struct ImmersiveStarterView: View {
+    let questions: [String]
+    let onSelect: (String) -> Void
+    @Environment(\.screenMetrics) private var metrics
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let icons = [
+        "photo.on.rectangle",
+        "video",
+        "square.and.pencil",
+        "book",
+        "sparkles"
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("你好")
+                    .font(.system(size: metrics.isCompactWidth ? 20 : 22, weight: .semibold))
+                    .foregroundColor(Color.textSecondary(for: colorScheme))
+                Text("需要我为你做些什么？")
+                    .font(.system(size: metrics.isCompactWidth ? 30 : 34, weight: .bold))
+                    .foregroundColor(Color.textPrimary(for: colorScheme))
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(questions.prefix(5).enumerated()), id: \.offset) { index, question in
+                    Button {
+                        let impact = UIImpactFeedbackGenerator(style: .light)
+                        impact.impactOccurred()
+                        onSelect(question)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: icons[index % icons.count])
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(Color.textPrimary(for: colorScheme))
+                            Text(question)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color.textPrimary(for: colorScheme))
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            Capsule()
+                                .fill(Color.surfaceGlass(for: colorScheme))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.vertical, 12)
+    }
+}
+
+// MARK: - History Drawer
+struct HistoryDrawer: View {
+    let conversations: [Conversation]
+    let currentConversationId: String?
+    let onSelect: (Conversation) -> Void
+    let onNew: () -> Void
+    let onDelete: (Conversation) -> Void
+    @Environment(\.screenMetrics) private var metrics
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            headerView
+            contentView
+
+            Spacer()
+        }
+        .padding(.top, metrics.safeAreaInsets.top + 12)
+        .padding(.horizontal, metrics.horizontalPadding)
+        .padding(.bottom, 24)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(drawerBackground)
+    }
+
+    private var headerView: some View {
+        HStack(spacing: 12) {
+            Text("历史记录")
+                .font(.headline)
+                .foregroundColor(Color.textPrimary(for: colorScheme))
+            Spacer()
+            Button(action: onNew) {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color.textPrimary(for: colorScheme))
+                    .frame(width: 28, height: 28)
+                    .background(Color.surfaceGlass(for: colorScheme))
+                    .clipShape(Circle())
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        if conversations.isEmpty {
+            Text("还没有对话记录")
+                .font(.subheadline)
+                .foregroundColor(Color.textSecondary(for: colorScheme))
+                .padding(.top, 12)
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(conversations) { conversation in
+                        conversationRow(conversation)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private func conversationRow(_ conversation: Conversation) -> some View {
+        Button {
+            onSelect(conversation)
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(conversation.displayTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Color.textPrimary(for: colorScheme))
+                        .lineLimit(1)
+                    Text(conversationDateLabel(conversation))
+                        .font(.caption2)
+                        .foregroundColor(Color.textTertiary(for: colorScheme))
+                }
+                Spacer()
+                if conversation.id == currentConversationId {
+                    Circle()
+                        .fill(Color.liquidGlassAccent)
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(conversation.id == currentConversationId
+                          ? Color.liquidGlassAccent.opacity(0.18)
+                          : Color.surfaceGlass(for: colorScheme))
+            )
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                onDelete(conversation)
+            } label: {
+                Label("删除对话", systemImage: "trash")
+            }
+        }
+    }
+
+    private var drawerBackground: some View {
+        ZStack {
+            LinearGradient.magazineWash
+            LinearGradient.mossVeil
+        }
+        .ignoresSafeArea()
+    }
+
+    private func conversationDateLabel(_ conversation: Conversation) -> String {
+        guard let date = conversation.lastMessageDate else { return "刚刚" }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = Locale(identifier: "zh-CN")
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
 // MARK: - 🆕 Input Bar V3 (支持图片上传和语音输入)
 struct InputBarV2: View {
     @Binding var text: String
     var isFocused: FocusState<Bool>.Binding
     let isTyping: Bool
     let modelMode: ModelMode
+    let onOpenHistory: () -> Void
     let onSend: () -> Void
     let onToggleMode: () -> Void
     let onStop: () -> Void
@@ -349,28 +605,21 @@ struct InputBarV2: View {
     @State private var showVoiceRecorder = false
     @State private var isRecording = false
     @Environment(\.screenMetrics) private var metrics
+    @Environment(\.colorScheme) private var colorScheme
     
     private var controlSize: CGFloat { metrics.isCompactWidth ? 32 : 36 }
     private var iconSize: CGFloat { metrics.isCompactWidth ? 16 : 18 }
-    private var sendSize: CGFloat { metrics.isCompactWidth ? 32 : 36 }
+    private var sendSize: CGFloat { metrics.isCompactWidth ? 26 : 28 }
     private var fieldHorizontalPadding: CGFloat { metrics.isCompactWidth ? 12 : 14 }
-    private var fieldVerticalPadding: CGFloat { metrics.isCompactHeight ? 8 : 10 }
-    private var barCornerRadius: CGFloat { metrics.isCompactWidth ? 20 : 24 }
+    private var fieldVerticalPadding: CGFloat { metrics.isCompactHeight ? 10 : 12 }
+    private var barCornerRadius: CGFloat { metrics.isCompactWidth ? 22 : 26 }
 
     var body: some View {
-        VStack(spacing: 8) {
-            ViewThatFits(in: .horizontal) {
-                inputRow(showExtras: true)
-                inputRow(showExtras: false)
-            }
+        let sidePadding = metrics.horizontalPadding
+        return ViewThatFits(in: .horizontal) {
+            barContainer(content: barRow(showMode: true), sidePadding: sidePadding)
+            barContainer(content: barRow(showMode: false), sidePadding: sidePadding)
         }
-        .padding(.horizontal, metrics.isCompactWidth ? 10 : 12)
-        .padding(.vertical, metrics.isCompactHeight ? 12 : 16)
-        .background(Color.bgPrimary.opacity(0.92))
-        .overlay(
-            Rectangle().frame(height: 1).foregroundColor(Color.white.opacity(0.08)), alignment: .top
-        )
-        .liquidGlassPageWidth(alignment: .center)
         // 🆕 图片选择器 Sheet
         .sheet(isPresented: $showImagePicker) {
             ImagePickerView { image in
@@ -385,151 +634,146 @@ struct InputBarV2: View {
         }
     }
 
+    private func barContainer(content: some View, sidePadding: CGFloat) -> some View {
+        content
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: barCornerRadius)
+                    .fill(Color.surfaceGlass(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: barCornerRadius)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, sidePadding)
+            .padding(.top, 8)
+            .padding(.bottom, max(12, metrics.safeAreaInsets.bottom + 6))
+    }
+
     @ViewBuilder
-    private func inputRow(showExtras: Bool) -> some View {
-        HStack(spacing: 10) {
-            if showExtras {
-                attachmentButton
-            } else {
-                compactExtrasMenu
+    private func barRow(showMode: Bool) -> some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            historyButton
+            plusButton
+            inputField
+            if showMode {
+                modePill
             }
-
-            modeButton
-
-            textFieldView
-
-            if showExtras {
-                voiceButton
-            }
-
-            sendButton
+            micButton
         }
     }
 
-    private var attachmentButton: some View {
+    private var historyButton: some View {
+        Button(action: {
+            lightImpact()
+            onOpenHistory()
+        }) {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundColor(.textPrimary)
+                .frame(width: controlSize, height: controlSize)
+                .background(Color.surfaceGlass(for: colorScheme))
+                .clipShape(Circle())
+                .overlay(
+                    Circle().stroke(Color.white.opacity(0.12), lineWidth: 1)
+                )
+        }
+    }
+
+    private var plusButton: some View {
         Button(action: {
             lightImpact()
             showImagePicker = true
         }) {
-            Image(systemName: "photo.on.rectangle.angled")
-                .font(.system(size: iconSize))
-                .foregroundColor(.white.opacity(0.7))
+            Image(systemName: "plus")
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundColor(.textPrimary)
                 .frame(width: controlSize, height: controlSize)
-                .background(.ultraThinMaterial)
+                .background(Color.surfaceGlass(for: colorScheme))
                 .clipShape(Circle())
                 .overlay(
-                    Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    Circle().stroke(Color.white.opacity(0.12), lineWidth: 1)
                 )
         }
         .disabled(isTyping)
         .opacity(isTyping ? 0.5 : 1)
     }
 
-    private var voiceButton: some View {
+    private var micButton: some View {
         Button(action: {
             lightImpact()
             showVoiceRecorder = true
         }) {
             Image(systemName: "mic.fill")
                 .font(.system(size: iconSize))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.textPrimary)
                 .frame(width: controlSize, height: controlSize)
-                .background(.ultraThinMaterial)
+                .background(Color.surfaceGlass(for: colorScheme))
                 .clipShape(Circle())
                 .overlay(
-                    Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    Circle().stroke(Color.white.opacity(0.12), lineWidth: 1)
                 )
         }
         .disabled(isTyping)
         .opacity(isTyping ? 0.5 : 1)
     }
 
-    private var compactExtrasMenu: some View {
-        Menu {
-            Button {
-                lightImpact()
-                showImagePicker = true
-            } label: {
-                Label("上传图片", systemImage: "photo.on.rectangle.angled")
-            }
-            Button {
-                lightImpact()
-                showVoiceRecorder = true
-            } label: {
-                Label("语音输入", systemImage: "mic.fill")
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-                .font(.system(size: iconSize))
-                .foregroundColor(.white.opacity(0.7))
-                .frame(width: controlSize, height: controlSize)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .overlay(
-                    Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
-                )
-        }
-        .disabled(isTyping)
-        .opacity(isTyping ? 0.5 : 1)
-    }
-
-    private var modeButton: some View {
+    private var modePill: some View {
         Button(action: {
             lightImpact()
             onToggleMode()
         }) {
-            Image(systemName: modelMode.icon)
-                .font(.system(size: iconSize))
-                .foregroundColor(modelMode == .think ? .liquidGlassAccent : .white.opacity(0.7))
-                .frame(width: controlSize, height: controlSize)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .overlay(
-                    Circle()
-                        .stroke(modelMode == .think ? Color.liquidGlassAccent.opacity(0.5) : Color.white.opacity(0.1), lineWidth: 1)
+            Text(modelMode == .think ? "Pro" : "Fast")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(modelMode == .think ? .liquidGlassAccent : Color.textSecondary(for: colorScheme))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .background(Capsule().fill(Color.surfaceGlass(for: colorScheme)))
                 )
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
         }
         .disabled(isTyping)
         .opacity(isTyping ? 0.5 : 1)
     }
 
-    private var textFieldView: some View {
-        TextField("与 Max 对话...", text: $text)
-            .focused(isFocused)
-            .textFieldStyle(.plain)
-            .padding(.horizontal, fieldHorizontalPadding)
-            .padding(.vertical, fieldVerticalPadding)
-            .background {
-                RoundedRectangle(cornerRadius: barCornerRadius)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-            }
-            .foregroundColor(.white)
-            .layoutPriority(1)
-    }
+    private var inputField: some View {
+        HStack(spacing: 10) {
+            TextField("一起开始创作吧", text: $text)
+                .focused(isFocused)
+                .textFieldStyle(.plain)
+                .foregroundColor(Color.textPrimary(for: colorScheme))
+                .layoutPriority(1)
 
-    @ViewBuilder
-    private var sendButton: some View {
-        if isTyping {
-            Button(action: {
-                let impact = UIImpactFeedbackGenerator(style: .medium)
-                impact.impactOccurred()
-                onStop()
-            }) {
-                Image(systemName: "stop.circle.fill")
-                    .font(.system(size: sendSize))
-                    .foregroundStyle(.red.opacity(0.9))
-                    .shadow(color: .red.opacity(0.4), radius: 8)
+            if isTyping {
+                Button(action: {
+                    let impact = UIImpactFeedbackGenerator(style: .medium)
+                    impact.impactOccurred()
+                    onStop()
+                }) {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.system(size: sendSize))
+                        .foregroundStyle(.red.opacity(0.9))
+                        .shadow(color: .red.opacity(0.4), radius: 6)
+                }
+            } else if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button { onSend() } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: sendSize))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(Color.bgPrimary, Color.liquidGlassAccent)
+                        .shadow(color: .liquidGlassAccent.opacity(0.4), radius: 6)
+                }
             }
-        } else {
-            Button { onSend() } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: sendSize))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(Color.bgPrimary, Color.liquidGlassAccent)
-                    .shadow(color: .liquidGlassAccent.opacity(0.4), radius: 8)
-            }
-            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
+        .padding(.horizontal, fieldHorizontalPadding)
+        .padding(.vertical, fieldVerticalPadding)
+        .frame(maxWidth: .infinity)
     }
 
     private func lightImpact() {

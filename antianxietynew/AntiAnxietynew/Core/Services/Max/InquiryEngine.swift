@@ -14,6 +14,15 @@ enum InquiryPriority: String, Codable {
 }
 
 enum InquiryEngine {
+    private static let dateOnlyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
     private static let dataGapDefinitions: [DataGap] = [
         DataGap(field: "sleep_hours", importance: .high, description: "睡眠时长数据", lastUpdated: nil),
         DataGap(field: "stress_level", importance: .high, description: "压力水平数据", lastUpdated: nil),
@@ -35,7 +44,9 @@ enum InquiryEngine {
                 gaps.append(gapDef)
                 continue
             }
-            let date = ISO8601DateFormatter().date(from: data.timestamp) ?? Date(timeIntervalSince1970: 0)
+            let date = ISO8601DateFormatter().date(from: data.timestamp)
+                ?? dateOnlyFormatter.date(from: data.timestamp)
+                ?? Date(timeIntervalSince1970: 0)
             let hours = now.timeIntervalSince(date) / 3600
             if hours > Double(staleThresholdHours) {
                 gaps.append(DataGap(

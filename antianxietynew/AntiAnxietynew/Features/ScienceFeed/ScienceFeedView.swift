@@ -6,14 +6,19 @@ import SwiftUI
 struct ScienceFeedView: View {
     @StateObject private var viewModel = ScienceFeedViewModel()
     @Environment(\.screenMetrics) private var metrics
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.bgPrimary.ignoresSafeArea()
-                
+        ZStack {
+            Color.bgPrimary.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                centerAxisHeader
+
                 if viewModel.isLoading && viewModel.articles.isEmpty {
                     AILoadingView(message: viewModel.loadingMessage)
+                        .frame(maxWidth: .infinity)
                 } else if viewModel.articles.isEmpty {
                     EmptyFeedView(onRefresh: { Task { await viewModel.refresh() } })
                 } else {
@@ -48,17 +53,48 @@ struct ScienceFeedView: View {
                         .liquidGlassPageWidth()
                         .padding(.vertical, metrics.verticalPadding)
                     }
+                    .refreshable {
+                        await viewModel.refresh()
+                    }
                 }
             }
-            .navigationTitle("科学期刊")
-            .navigationBarTitleDisplayMode(.inline)
-            .refreshable {
-                await viewModel.refresh()
-            }
         }
+        .navigationBarHidden(true)
         .task {
             await viewModel.loadFeed()
         }
+    }
+
+    private var centerAxisHeader: some View {
+        ZStack {
+            HStack {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.surfaceGlass(for: colorScheme))
+                        .clipShape(Circle())
+                }
+                Spacer()
+            }
+
+            Text("科学期刊")
+                .font(.headline)
+                .foregroundColor(.textPrimary)
+
+            HStack {
+                Spacer()
+                Color.clear
+                    .frame(width: 36, height: 36)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, metrics.horizontalPadding)
+        .padding(.top, metrics.safeAreaInsets.top + 12)
+        .padding(.bottom, 12)
     }
 }
 
@@ -370,6 +406,7 @@ struct AILoadingView: View {
             
             Spacer()
         }
+        .frame(maxWidth: .infinity)
         .padding()
         .onAppear {
             withAnimation(.linear(duration: 25)) {

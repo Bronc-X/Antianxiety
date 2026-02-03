@@ -93,6 +93,7 @@ struct WelcomeStep: View {
           .font(.system(size: metrics.isCompactWidth ? 48 : 60))
           .foregroundColor(.liquidGlassAccent)
       }
+      .offset(x: -2)
 
       VStack(spacing: 12) {
         if hasCompletedToday {
@@ -111,22 +112,26 @@ struct WelcomeStep: View {
             .multilineTextAlignment(.center)
         }
       }
+      .offset(x: -2)
 
       Spacer()
 
+      let buttonWidth = min(metrics.maxContentWidth, metrics.isCompactWidth ? 240 : 280)
       if hasCompletedToday {
         Button("再次校准") { onStart() }
           .buttonStyle(LiquidGlassButtonStyle(isProminent: false))
-          .padding(.horizontal, 40)
+          .frame(maxWidth: buttonWidth)
+          .frame(maxWidth: .infinity, alignment: .center)
       } else {
         Button("开始校准") { onStart() }
           .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
-          .padding(.horizontal, 40)
+          .frame(maxWidth: buttonWidth)
+          .frame(maxWidth: .infinity, alignment: .center)
       }
 
       Spacer()
     }
-    .padding()
+    .padding(.vertical, metrics.verticalPadding)
   }
 }
 
@@ -151,7 +156,7 @@ struct RestDayStep: View {
 
       Spacer()
     }
-    .padding()
+    .padding(.vertical, metrics.verticalPadding)
   }
 }
 

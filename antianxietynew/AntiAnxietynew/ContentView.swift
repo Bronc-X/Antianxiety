@@ -154,10 +154,73 @@ struct ContentView: View {
                         Label(Tab.settings.title(language: appSettings.language), systemImage: Tab.settings.icon)
                     }
             }
+            .toolbar(.hidden, for: .tabBar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if selectedTab != .max {
+                    CustomTabBar(tabs: Tab.allCases, selection: $selectedTab)
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .preferredColorScheme(.dark)
+    }
+}
+
+private struct CustomTabBar: View {
+    @Environment(\.screenMetrics) private var metrics
+    @EnvironmentObject private var appSettings: AppSettings
+    let tabs: [ContentView.Tab]
+    @Binding var selection: ContentView.Tab
+
+    var body: some View {
+        let itemHeight: CGFloat = metrics.isCompactHeight ? 52 : 58
+        let topPadding: CGFloat = metrics.isCompactHeight ? 6 : 8
+        let bottomPadding = max(10, metrics.safeAreaInsets.bottom)
+
+        HStack(spacing: 0) {
+            ForEach(tabs, id: \.self) { tab in
+                tabButton(tab, itemHeight: itemHeight)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, metrics.horizontalPadding)
+        .padding(.top, topPadding)
+        .padding(.bottom, bottomPadding)
+        .frame(maxWidth: .infinity)
+        .background(tabBarBackground)
+    }
+
+    private var tabBarBackground: some View {
+        Rectangle()
+            .fill(.ultraThinMaterial)
+            .overlay(
+                Rectangle()
+                    .fill(Color.black.opacity(0.12))
+                    .frame(height: 0.5),
+                alignment: .top
+            )
+            .background(Color.bgPrimary.opacity(0.95))
+    }
+
+    @ViewBuilder
+    private func tabButton(_ tab: ContentView.Tab, itemHeight: CGFloat) -> some View {
+        let isSelected = selection == tab
+
+        Button {
+            selection = tab
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 18, weight: .semibold))
+                Text(tab.title(language: appSettings.language))
+                    .font(.system(size: 11, weight: isSelected ? .bold : .semibold))
+            }
+            .foregroundColor(isSelected ? .liquidGlassAccent : .textTertiary)
+            .frame(maxWidth: .infinity, minHeight: itemHeight)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
