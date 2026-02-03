@@ -128,8 +128,12 @@ class AssessmentViewModel: ObservableObject {
             request.httpBody = try JSONEncoder().encode(dto)
             
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else {
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AssessmentError.requestFailed
+            }
+            if !(200...299).contains(httpResponse.statusCode) {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                print("[Assessment] Start failed: status=\(httpResponse.statusCode) body=\(body.prefix(500))")
                 throw AssessmentError.requestFailed
             }
             
@@ -178,8 +182,12 @@ class AssessmentViewModel: ObservableObject {
             request.httpBody = try JSONEncoder().encode(dto)
             
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else {
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AssessmentError.requestFailed
+            }
+            if !(200...299).contains(httpResponse.statusCode) {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                print("[Assessment] Next failed: status=\(httpResponse.statusCode) body=\(body.prefix(500))")
                 throw AssessmentError.requestFailed
             }
             

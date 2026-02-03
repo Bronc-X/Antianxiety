@@ -78,7 +78,7 @@ struct SettingsView: View {
                 ToolbarItem(placement: .principal) {
                     Text("设置")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.textPrimary)
                 }
             }
             .alert(
@@ -128,7 +128,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(supabase.currentUser?.email?.components(separatedBy: "@").first ?? "探索者")
                             .font(.title3.bold())
-                            .foregroundColor(.white)
+                            .foregroundColor(.textPrimary)
                         
                         Text(supabase.currentUser?.email ?? "未登录")
                             .font(.caption)
@@ -166,7 +166,7 @@ struct SettingsView: View {
                     }
                     
                     Divider()
-                        .background(Color.white.opacity(0.05))
+                        .background(Color.textPrimary.opacity(0.1))
                         .padding(.leading, 46)
                     
                     LiquidGlassSettingsRow(
@@ -213,7 +213,7 @@ struct SettingsView: View {
                     
                     if viewModel.notificationsEnabled {
                         Divider()
-                            .background(Color.white.opacity(0.05))
+                            .background(Color.textPrimary.opacity(0.1))
                             .padding(.leading, 46)
                         
                         HStack(spacing: 14) {
@@ -272,7 +272,7 @@ struct SettingsView: View {
                     }
                     
                     Divider()
-                        .background(Color.white.opacity(0.05))
+                        .background(Color.textPrimary.opacity(0.1))
                         .padding(.leading, 46)
                         .padding(.vertical, 12)
                     
@@ -285,7 +285,7 @@ struct SettingsView: View {
                     }
                     
                     Divider()
-                        .background(Color.white.opacity(0.05))
+                        .background(Color.textPrimary.opacity(0.1))
                         .padding(.leading, 46)
                     
                     LiquidGlassSettingsRow(
@@ -339,9 +339,9 @@ struct SettingsView: View {
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 8)
                                     .background(
-                                        themeManager.appearanceMode == mode
+                                            themeManager.appearanceMode == mode
                                             ? Color.liquidGlassAccent
-                                            : Color.white.opacity(0.05)
+                                            : Color.textPrimary.opacity(0.1)
                                     )
                                     .clipShape(Capsule())
                             }
@@ -393,7 +393,7 @@ struct SettingsView: View {
                                     .background(
                                         appSettings.language == lang
                                             ? Color.liquidGlassAccent
-                                            : Color.white.opacity(0.05)
+                                            : Color.textPrimary.opacity(0.1)
                                     )
                                     .clipShape(Capsule())
                             }
@@ -434,7 +434,7 @@ struct SettingsView: View {
                     }
                     
                     Divider()
-                        .background(Color.white.opacity(0.05))
+                        .background(Color.textPrimary.opacity(0.1))
                         .padding(.leading, 46)
                         .padding(.vertical, 12)
                     
@@ -447,7 +447,7 @@ struct SettingsView: View {
                     }
 
                     Divider()
-                        .background(Color.white.opacity(0.05))
+                        .background(Color.textPrimary.opacity(0.1))
                         .padding(.leading, 46)
 
                     LiquidGlassSettingsRow(
@@ -480,7 +480,7 @@ struct SettingsView: View {
                     }
 
                     Divider()
-                        .background(Color.white.opacity(0.05))
+                        .background(Color.textPrimary.opacity(0.1))
                         .padding(.leading, 46)
 
                     LiquidGlassSettingsRow(
@@ -557,7 +557,7 @@ struct HealthKitSettingsViewNew: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(healthKit.isAuthorized ? "已授权" : "未授权")
                                     .font(.headline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.textPrimary)
                                 
                                 Text(healthKit.isAuthorized ? "健康数据同步已开启" : "需要授权以同步健康数据")
                                     .font(.caption)
@@ -590,15 +590,15 @@ struct HealthKitSettingsViewNew: View {
                             VStack(spacing: 14) {
                                 healthDataRow(icon: "waveform.path.ecg", color: .liquidGlassAccent, title: "心率变异性 (HRV)", status: "核心指标")
                                 
-                                Divider().background(Color.white.opacity(0.05))
+                                Divider().background(Color.textPrimary.opacity(0.1))
                                 
                                 healthDataRow(icon: "heart.fill", color: .statusError, title: "静息心率", status: "健康基线")
                                 
-                                Divider().background(Color.white.opacity(0.05))
+                                Divider().background(Color.textPrimary.opacity(0.1))
                                 
                                 healthDataRow(icon: "moon.zzz.fill", color: .liquidGlassPurple, title: "睡眠分析", status: "睡眠质量")
                                 
-                                Divider().background(Color.white.opacity(0.05))
+                                Divider().background(Color.textPrimary.opacity(0.1))
                                 
                                 healthDataRow(icon: "figure.walk", color: .liquidGlassWarm, title: "步数", status: "活动量")
                             }

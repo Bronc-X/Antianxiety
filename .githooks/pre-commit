@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${SKIP_CHECK_FEATURES:-}" == "1" ]]; then
+  echo "⏭️  跳过功能清单检查 (SKIP_CHECK_FEATURES=1)"
+  exit 0
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "⚠️  npm 未安装，跳过功能清单检查"
+  exit 0
+fi
+
+echo "🔍 运行功能清单检查..."
+
+npm run check-features
+
+echo "✅ 功能检查通过，继续提交..."

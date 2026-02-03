@@ -20,6 +20,8 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
     // 缓存
     private let cacheKey = "science_feed_cache"
     private var lastFetchDate: Date?
+    private let personalizationLimit = 8
+    private let minMemorySimilarity: Double = 0.58
     
     // MARK: - 加载消息（对齐 Web 端）
     
@@ -61,6 +63,14 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         // 检查缓存是否有效（同一天）
         if let lastDate = lastFetchDate, Calendar.current.isDateInToday(lastDate), !articles.isEmpty {
             print("📦 使用今日缓存")
+            Task { [weak self] in
+                guard let self else { return }
+                let personalized = await self.personalizeArticles(self.articles)
+                if !personalized.isEmpty {
+                    self.articles = personalized
+                    self.saveToCache()
+                }
+            }
             return
         }
         
@@ -70,11 +80,20 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         
         do {
             let response = try await SupabaseManager.shared.getScienceFeed(language: "zh")
-            articles = response.articles
+            let baseArticles = response.articles
+            articles = baseArticles
             personalization = response.personalization
             lastFetchDate = Date()
             saveToCache()
             print("✅ 加载了 \(articles.count) 篇科学文章")
+            Task { [weak self] in
+                guard let self else { return }
+                let personalized = await self.personalizeArticles(baseArticles)
+                if !personalized.isEmpty {
+                    self.articles = personalized
+                    self.saveToCache()
+                }
+            }
         } catch {
             self.error = "加载失败：\(error.localizedDescription)"
             print("❌ 加载科学期刊失败: \(error)")
@@ -91,10 +110,19 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         
         do {
             let response = try await SupabaseManager.shared.getScienceFeed(language: "zh")
-            articles = response.articles
+            let baseArticles = response.articles
+            articles = baseArticles
             personalization = response.personalization
             lastFetchDate = Date()
             saveToCache()
+            Task { [weak self] in
+                guard let self else { return }
+                let personalized = await self.personalizeArticles(baseArticles)
+                if !personalized.isEmpty {
+                    self.articles = personalized
+                    self.saveToCache()
+                }
+            }
         } catch {
             self.error = "刷新失败"
         }
@@ -171,6 +199,144 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
     
     private func clearCache() {
         UserDefaults.standard.removeObject(forKey: cacheKey)
+    }
+
+    // MARK: - 个性化（向量检索 + 历史记录）
+
+    private func personalizeArticles(_ baseArticles: [ScienceArticle]) async -> [ScienceArticle] {
+        guard let userId = SupabaseManager.shared.currentUser?.id,
+              !baseArticles.isEmpty else { return baseArticles }
+        let profile = try? await SupabaseManager.shared.getProfileSettings()
+        var result: [ScienceArticle] = []
+        result.reserveCapacity(baseArticles.count)
+        for (index, article) in baseArticles.enumerated() {
+            if index < personalizationLimit {
+                let updated = await personalizeArticle(article, userId: userId, profile: profile)
+                result.append(updated)
+            } else {
+                result.append(article)
+            }
+        }
+        return result
+    }
+
+    private func personalizeArticle(_ article: ScienceArticle, userId: String, profile: ProfileSettings?) async -> ScienceArticle {
+        let query = [article.titleZh ?? article.title, article.summaryZh ?? article.summary]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return article }
+
+        let memories = await MaxMemoryService.retrieveMemories(userId: userId, query: query, limit: 4)
+        let bestMemory = memories.max { ($0.similarity ?? 0) < ($1.similarity ?? 0) }
+        let similarity = bestMemory?.similarity
+        let memorySnippet = similarity != nil && (similarity ?? 0) >= minMemorySimilarity
+            ? trimMemorySnippet(bestMemory?.content_text)
+            : nil
+
+        let focus = focusLabel(from: profile)
+        let reason = buildWhyRecommended(
+            base: article.whyRecommended,
+            focus: focus,
+            memorySnippet: memorySnippet,
+            similarity: similarity
+        )
+        let digest = buildDigest(
+            summary: article.summaryZh ?? article.summary,
+            focus: focus,
+            memorySnippet: memorySnippet
+        )
+        let match = mergeMatch(existing: article.matchPercentage, similarity: similarity)
+
+        return article.applyingOverrides(
+            whyRecommended: reason,
+            actionableInsight: digest,
+            matchPercentage: match
+        )
+    }
+
+    private func buildWhyRecommended(
+        base: String?,
+        focus: String?,
+        memorySnippet: String?,
+        similarity: Double?
+    ) -> String? {
+        var parts: [String] = []
+        if let focus, !focus.isEmpty {
+            parts.append("与你当前关注「\(focus)」相关")
+        }
+        if let memorySnippet, !memorySnippet.isEmpty {
+            parts.append("与你近期记录「\(memorySnippet)」高度相关")
+        }
+        if let similarity, similarity >= minMemorySimilarity {
+            parts.append("相似度约 \(Int(min(max(similarity, 0.4), 0.98) * 100))%")
+        }
+
+        if parts.isEmpty {
+            return base ?? "基于科学检索与历史数据匹配"
+        }
+
+        if let base, !base.isEmpty, base != "基于科学检索匹配" {
+            parts.append(base)
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func buildDigest(summary: String?, focus: String?, memorySnippet: String?) -> String? {
+        guard let summary, !summary.isEmpty else { return nil }
+        let core = shortenSummary(summary)
+        var parts: [String] = ["要点：\(core)"]
+        if let focus, !focus.isEmpty {
+            parts.append("与你关注的「\(focus)」相关")
+        }
+        if let memorySnippet, !memorySnippet.isEmpty {
+            parts.append("关联：\(memorySnippet)")
+        }
+        return parts.joined(separator: "  ")
+    }
+
+    private func mergeMatch(existing: Int?, similarity: Double?) -> Int? {
+        guard let similarity, similarity >= minMemorySimilarity else { return existing }
+        let computed = Int(min(max(similarity, 0.4), 0.98) * 100)
+        if let existing { return max(existing, computed) }
+        return computed
+    }
+
+    private func focusLabel(from profile: ProfileSettings?) -> String? {
+        guard let raw = profile?.current_focus ?? profile?.primary_goal,
+              !raw.isEmpty else { return nil }
+        switch raw {
+        case "reduce_stress": return "减压"
+        case "improve_sleep": return "睡眠"
+        case "maintain_energy": return "能量提升"
+        case "anxiety": return "焦虑"
+        case "sleep": return "睡眠"
+        case "stress": return "压力管理"
+        default: return raw
+        }
+    }
+
+    private func trimMemorySnippet(_ text: String?, limit: Int = 18) -> String? {
+        guard let text else { return nil }
+        let cleaned = text
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return nil }
+        if cleaned.count <= limit { return cleaned }
+        return "\(cleaned.prefix(limit))…"
+    }
+
+    private func shortenSummary(_ text: String, maxLength: Int = 80) -> String {
+        let cleaned = text
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.count <= maxLength { return cleaned }
+        let separators: [Character] = ["。", "！", "？", ".", "!", "?"]
+        if let cutIndex = cleaned.firstIndex(where: { separators.contains($0) }) {
+            let prefix = String(cleaned[..<cutIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !prefix.isEmpty { return prefix }
+        }
+        return "\(cleaned.prefix(maxLength))…"
     }
 }
 

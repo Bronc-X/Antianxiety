@@ -300,6 +300,7 @@ Output a JSON array with fields: title, action, rationale, difficulty (easy/medi
     }
 
     private static func fetchHrv(userId: String) async -> HrvSnapshot? {
+        guard await SupabaseManager.shared.isUserHealthDataAvailable() else { return nil }
         let endpoint = "user_health_data?user_id=eq.\(userId)&select=*&order=recorded_at.desc&limit=5"
         if let rows: [[String: AnyCodable]] = try? await SupabaseManager.shared.request(endpoint),
            let row = rows.first {

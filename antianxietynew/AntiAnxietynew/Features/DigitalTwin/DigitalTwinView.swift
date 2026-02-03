@@ -52,16 +52,16 @@ struct DigitalTwinView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.textPrimary)
                     .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.1))
+                    .background(Color.textPrimary.opacity(0.1))
                     .clipShape(Circle())
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("数字孪生")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.textPrimary)
                 if let ruleVersion = viewModel.curveData?.meta.ruleVersion {
                     Text("规则版本 \(ruleVersion)")
                         .font(.caption)
@@ -76,16 +76,16 @@ struct DigitalTwinView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.textPrimary)
                     .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.1))
+                    .background(Color.textPrimary.opacity(0.1))
                     .clipShape(Circle())
             }
         }
         .padding(.horizontal, metrics.horizontalPadding)
         .padding(.vertical, metrics.isCompactHeight ? 10 : 14)
         .padding(.top, metrics.safeAreaInsets.top)
-        .background(Color.black.opacity(0.25))
+        .background(Color.textPrimary.opacity(0.05))
     }
 
     @ViewBuilder
@@ -249,7 +249,7 @@ struct DigitalTwinView: View {
                         .foregroundColor(.liquidGlassAccent)
                     Text("预测曲线")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.textPrimary)
                 }
 
                 Chart(seriesData) { point in
@@ -272,7 +272,7 @@ struct DigitalTwinView: View {
                 .chartYScale(domain: 0...100)
                 .chartXAxis {
                     AxisMarks(values: timepoints.map { $0.week }) { value in
-                        AxisGridLine().foregroundStyle(Color.white.opacity(0.1))
+                        AxisGridLine().foregroundStyle(Color.textPrimary.opacity(0.1))
                         AxisValueLabel {
                             if let week = value.as(Int.self) {
                                 Text("W\(week)")
@@ -284,7 +284,7 @@ struct DigitalTwinView: View {
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading) { value in
-                        AxisGridLine().foregroundStyle(Color.white.opacity(0.1))
+                        AxisGridLine().foregroundStyle(Color.textPrimary.opacity(0.1))
                         AxisValueLabel {
                             if let val = value.as(Int.self) {
                                 Text("\(val)")
@@ -371,7 +371,7 @@ struct DigitalTwinView: View {
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(String(format: "%.1f", currentValue))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.textPrimary)
                     Text("/ 100")
                         .font(.caption2)
                         .foregroundColor(.textTertiary)
@@ -392,7 +392,7 @@ struct DigitalTwinView: View {
                         .foregroundColor(.textSecondary)
                     Text("进度时间线")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.textPrimary)
                 }
 
                 GeometryReader { geo in
@@ -400,7 +400,7 @@ struct DigitalTwinView: View {
                     let progress = min(max(Double(currentWeek ?? 0) / 15.0, 0), 1)
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.white.opacity(0.1))
+                            .fill(Color.textPrimary.opacity(0.1))
                             .frame(height: 4)
                         Capsule()
                             .fill(LinearGradient(colors: [.liquidGlassAccent, .liquidGlassPurple], startPoint: .leading, endPoint: .trailing))
@@ -408,6 +408,7 @@ struct DigitalTwinView: View {
                     }
                 }
                 .frame(height: 10)
+                .clipped() // 防护：确保进度条不溢出容器
 
                 HStack(spacing: 0) {
                     ForEach(milestones) { milestone in
@@ -417,7 +418,7 @@ struct DigitalTwinView: View {
                                 .frame(width: 20, height: 20)
                                 .overlay(
                                     Circle()
-                                        .stroke(Color.white.opacity(milestone.status == .current ? 0.6 : 0), lineWidth: 4)
+                                        .stroke(Color.bgPrimary.opacity(milestone.status == .current ? 0.6 : 0), lineWidth: 4)
                                 )
                             Text("W\(milestone.week)")
                                 .font(.caption2)
@@ -452,7 +453,7 @@ struct DigitalTwinView: View {
                         .foregroundColor(.textSecondary)
                     Text("基线量表")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.textPrimary)
                 }
 
                 if scales.isEmpty {
@@ -465,7 +466,7 @@ struct DigitalTwinView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(scale.name)
                                     .font(.subheadline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.textPrimary)
                                 Text(scale.interpretation)
                                     .font(.caption2)
                                     .foregroundColor(.textSecondary)
@@ -473,10 +474,10 @@ struct DigitalTwinView: View {
                             Spacer()
                             Text(scale.value.map { String(format: "%.0f", $0) } ?? "N/A")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(.textPrimary)
                         }
                         if scale.id != scales.last?.id {
-                            Divider().background(Color.white.opacity(0.1))
+                            Divider().background(Color.textPrimary.opacity(0.1))
                         }
                     }
                 }

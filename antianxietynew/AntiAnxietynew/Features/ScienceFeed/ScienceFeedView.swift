@@ -105,15 +105,15 @@ struct FeedHeaderView: View {
             
             Text("为你量身定制的科学")
                 .font(.title.bold())
-                .foregroundColor(.white)
+                .foregroundColor(.textPrimary)
             
             Text("每篇文章都经过 AI 分析，解释为什么它对你重要")
                 .font(.subheadline)
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(.textSecondary)
             
             Text("📅 每天下午 2:00（UTC+8）更新推荐")
                 .font(.caption2)
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(.textTertiary)
         }
     }
 }
@@ -126,6 +126,11 @@ struct ArticleCard: View {
     
     private var isLight: Bool { index % 2 == 0 }
     private var platform: PlatformInfo { PlatformInfo.forType(article.sourceType) }
+    private var cardBackground: Color { isLight ? Color.brandPaper : Color(hex: "#0F4A37") }
+    private var cardPrimaryText: Color { isLight ? Color.deepGreen : Color.brandPaper }
+    private var cardSecondaryText: Color { isLight ? Color(hex: "#4A665A") : Color.brandPaper.opacity(0.75) }
+    private var cardTertiaryText: Color { isLight ? Color(hex: "#7A8F70") : Color.brandPaper.opacity(0.55) }
+    private var cardBorder: Color { isLight ? Color.black.opacity(0.06) : Color.white.opacity(0.12) }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -142,24 +147,33 @@ struct ArticleCard: View {
                     HStack(alignment: .top) {
                         Text(article.titleZh ?? article.title)
                             .font(.headline)
-                            .foregroundColor(isLight ? .primary : .white)
+                            .foregroundColor(cardPrimaryText)
                             .multilineTextAlignment(.leading)
                         Image(systemName: "arrow.up.right")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(cardTertiaryText)
                     }
                 }
             } else {
                 Text(article.titleZh ?? article.title)
                     .font(.headline)
-                    .foregroundColor(isLight ? .primary : .white)
+                    .foregroundColor(cardPrimaryText)
             }
             
-            // Summary
-            if let summary = article.summaryZh ?? article.summary {
+            // 精华检索（个性化摘要）
+            if let digest = article.actionableInsight {
+                InsightBox(
+                    icon: "magnifyingglass",
+                    title: "精华检索",
+                    content: digest,
+                    accentColor: .liquidGlassSecondary,
+                    textColor: cardSecondaryText,
+                    backgroundColor: .liquidGlassSecondary.opacity(isLight ? 0.12 : 0.2)
+                )
+            } else if let summary = article.summaryZh ?? article.summary {
                 Text(summary)
                     .font(.subheadline)
-                    .foregroundColor(isLight ? .secondary : .white.opacity(0.7))
+                    .foregroundColor(cardSecondaryText)
                     .lineLimit(3)
             }
             
@@ -169,17 +183,9 @@ struct ArticleCard: View {
                     icon: "sparkles",
                     title: "为什么推荐给你",
                     content: why,
-                    accentColor: .liquidGlassAccent
-                )
-            }
-            
-            // 你可以这样做
-            if let insight = article.actionableInsight {
-                InsightBox(
-                    icon: "lightbulb.fill",
-                    title: "你可以这样做",
-                    content: insight,
-                    accentColor: .green
+                    accentColor: .liquidGlassAccent,
+                    textColor: cardSecondaryText,
+                    backgroundColor: .liquidGlassAccent.opacity(isLight ? 0.12 : 0.2)
                 )
             }
             
@@ -219,22 +225,22 @@ struct ArticleCard: View {
                 HStack(spacing: 16) {
                     Button { onFeedback(true) } label: {
                         Image(systemName: "hand.thumbsup")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(cardTertiaryText)
                     }
                     
                     Button { onFeedback(false) } label: {
                         Image(systemName: "hand.thumbsdown")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(cardTertiaryText)
                     }
                 }
             }
         }
         .padding()
-        .background(isLight ? Color.white : Color(hex: "#0F4A37"))
+        .background(cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(cardBorder, lineWidth: 1)
         )
     }
 }
@@ -291,6 +297,8 @@ struct InsightBox: View {
     let title: String
     let content: String
     let accentColor: Color
+    var textColor: Color = .textSecondary
+    var backgroundColor: Color? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -303,11 +311,11 @@ struct InsightBox: View {
             }
             Text(content)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(textColor)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(accentColor.opacity(0.1))
+        .background(backgroundColor ?? accentColor.opacity(0.1))
         .overlay(
             Rectangle()
                 .fill(accentColor)
@@ -339,7 +347,7 @@ struct AILoadingView: View {
             
             Text(message)
                 .font(.subheadline)
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.textSecondary)
                 .multilineTextAlignment(.center)
                 .animation(.easeInOut, value: message)
             
@@ -358,7 +366,7 @@ struct AILoadingView: View {
             
             Text("这可能需要 10-20 秒")
                 .font(.caption2)
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(.textTertiary)
             
             Spacer()
         }
@@ -383,11 +391,11 @@ struct EmptyFeedView: View {
             
             Text("暂时没有个性化内容")
                 .font(.title3.bold())
-                .foregroundColor(.white)
+                .foregroundColor(.textPrimary)
             
             Text("完成每日校准，即可开始接收 AI 精选研究")
                 .font(.subheadline)
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(.textSecondary)
                 .multilineTextAlignment(.center)
             
             Button("刷新", action: onRefresh)
@@ -407,20 +415,20 @@ struct RefreshButton: View {
             HStack(spacing: 8) {
                 if isRefreshing {
                     ProgressView()
-                        .tint(.white)
+                        .tint(.liquidGlassAccent)
                 } else {
                     Image(systemName: "arrow.clockwise")
                 }
                 Text(isRefreshing ? "刷新中..." : "刷新文章")
             }
             .font(.subheadline)
-            .foregroundColor(.white)
+            .foregroundColor(.textPrimary)
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(0.1))
+            .background(Color.liquidGlassAccent.opacity(0.1))
             .clipShape(Capsule())
             .overlay(
-                Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1)
+                Capsule().stroke(Color.liquidGlassAccent.opacity(0.2), lineWidth: 1)
             )
         }
         .disabled(isRefreshing)

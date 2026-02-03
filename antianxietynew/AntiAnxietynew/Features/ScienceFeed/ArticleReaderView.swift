@@ -27,21 +27,21 @@ struct ArticleReaderView: View {
                                     .foregroundColor(.textSecondary)
                             }
 
+                            if let digest = article.actionableInsight {
+                                InsightBox(
+                                    icon: "magnifyingglass",
+                                    title: "精华检索",
+                                    content: digest,
+                                    accentColor: .liquidGlassSecondary
+                                )
+                            }
+
                             if let why = article.whyRecommended {
                                 InsightBox(
                                     icon: "sparkles",
                                     title: "为什么推荐给你",
                                     content: why,
                                     accentColor: .liquidGlassAccent
-                                )
-                            }
-
-                            if let insight = article.actionableInsight {
-                                InsightBox(
-                                    icon: "lightbulb.fill",
-                                    title: "你可以这样做",
-                                    content: insight,
-                                    accentColor: .statusSuccess
                                 )
                             }
 
@@ -78,4 +78,3 @@ struct ArticleReaderView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
-

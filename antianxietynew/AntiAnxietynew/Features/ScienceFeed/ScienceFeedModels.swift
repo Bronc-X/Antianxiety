@@ -35,3 +35,26 @@ struct PlatformInfo {
         }
     }
 }
+
+extension ScienceArticle {
+    func applyingOverrides(
+        whyRecommended: String?,
+        actionableInsight: String?,
+        matchPercentage: Int?
+    ) -> ScienceArticle {
+        ScienceArticle(
+            id: id,
+            title: title,
+            titleZh: titleZh,
+            summary: summary,
+            summaryZh: summaryZh,
+            sourceType: sourceType,
+            sourceUrl: sourceUrl,
+            matchPercentage: matchPercentage ?? self.matchPercentage,
+            whyRecommended: whyRecommended ?? self.whyRecommended,
+            actionableInsight: actionableInsight ?? self.actionableInsight,
+            tags: tags,
+            createdAt: createdAt
+        )
+    }
+}

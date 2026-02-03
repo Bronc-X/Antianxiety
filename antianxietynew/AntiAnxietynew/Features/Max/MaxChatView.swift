@@ -822,7 +822,7 @@ struct StarterQuestionsView: View {
                     .foregroundColor(.liquidGlassAccent)
                 Text("快速开始")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.textPrimary)
             }
             .padding(.bottom, 4)
             
@@ -840,6 +840,7 @@ struct StarterQuestionsView: View {
 struct StarterQuestionCard: View {
     let question: String
     let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: {
@@ -850,20 +851,24 @@ struct StarterQuestionCard: View {
             HStack {
                 Text(question)
                     .font(.subheadline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.textPrimary)
                     .multilineTextAlignment(.leading)
                 
                 Spacer()
                 
                 Image(systemName: "arrow.right")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(.textTertiary)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(white: 0.2), lineWidth: 1)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.85))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08), lineWidth: 1)
+                    )
             )
         }
         .buttonStyle(ScaleButtonStyle())

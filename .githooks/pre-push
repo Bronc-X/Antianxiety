@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${IOS_HOOK_SKIP:-}" == "1" ]]; then
+  echo "⏭️  跳过 iOS pre-push hook (IOS_HOOK_SKIP=1)"
+  exit 0
+fi
+
+if [[ "$(uname -s)" != "Darwin" ]]; then
+  echo "⏭️  非 macOS，跳过 iOS pre-push hook"
+  exit 0
+fi
+
+IOS_TEST="${IOS_TEST:-$HOME/.codex/skills/iostest/iostest.sh}"
+HOOK_LOG="${HOOK_LOG:-/tmp/iostest_pre_push.log}"
+
+if [[ ! -x "$IOS_TEST" ]]; then
+  echo "❌ 未找到 iostest: $IOS_TEST"
+  echo "   先运行 /iostest 或确保脚本存在并可执行"
+  exit 1
+fi
+
+echo "🚀 pre-push: 运行 iostest (scheme=${SCHEME:-AntiAnxietynew})"
+LOG_FILE="$HOOK_LOG" "$IOS_TEST"
+
+echo "✅ iostest 通过，允许推送"

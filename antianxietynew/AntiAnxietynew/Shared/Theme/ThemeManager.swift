@@ -71,33 +71,35 @@ class ThemeManager: ObservableObject {
 extension Color {
     // ==========================================
     // ==========================================
+    // ==========================================
+    // ==========================================
     static func bgAbyss(for scheme: ColorScheme) -> Color {
-        // Light Mode = Original Green Theme
-        // Dark Mode  = New Onyx/Deep Space Theme
-        scheme == .dark ? Color(hex: "#050505") : Color(hex: "#0B3D2E")
+        // Light Mode = Oatmeal (Paper Like)
+        // Dark Mode  = Deep Green (Bio/Abyss)
+        scheme == .dark ? Color(hex: "#0B3D2E") : Color(hex: "#FAF6EF")
     }
     
     static func bgMist(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#FFFFFF").opacity(0.05) : Color(hex: "#FAF6EF").opacity(0.08)
+        scheme == .dark ? Color(hex: "#FFFFFF").opacity(0.05) : Color(hex: "#0B3D2E").opacity(0.05)
     }
     
     // ==========================================
     // 生物荧光色 (Bioluminescent)
     // ==========================================
     static func bioGlow(for scheme: ColorScheme) -> Color {
-        // Light: Bright Moss (#9CAF88)
-        // Dark:  Muted Moss (#5C7A5C) for less glare on black
-        scheme == .dark ? Color(hex: "#5C7A5C") : Color(hex: "#9CAF88")
+        // Light: Dark Green for contrast on Oatmeal
+        // Dark:  Bright Moss for glow on dark
+        scheme == .dark ? Color(hex: "#9CAF88") : Color(hex: "#0B3D2E")
     }
     
     static func bioluminPink(for scheme: ColorScheme) -> Color {
-        // Light: Pale Sage (#CBD6C4)
-        // Dark:  Deep Sage (#3A4A3A)
-        scheme == .dark ? Color(hex: "#3A4A3A") : Color(hex: "#CBD6C4")
+        // Light: Sage Green
+        // Dark:  Pale Sage
+        scheme == .dark ? Color(hex: "#CBD6C4") : Color(hex: "#7A8F70")
     }
     
     static func deepViolet(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#0A201A") : Color(hex: "#0F4636")
+        scheme == .dark ? Color(hex: "#0F4636") : Color(hex: "#E8E4DC")
     }
     
     // ==========================================
@@ -122,13 +124,13 @@ extension Color {
     // 自适应文字色
     // ==========================================
     static func bioTextPrimary(for scheme: ColorScheme) -> Color {
-        // Light (Green Theme): Off-white for softness
-        // Dark (Onyx Theme): Pure White for contrast
-        scheme == .dark ? Color.white : Color(hex: "#FAF6EF")
+        // Light (Oatmeal): Dark Green Text
+        // Dark (Green): Light Text
+        scheme == .dark ? Color(hex: "#FAF6EF") : Color(hex: "#0B3D2E")
     }
     
     static func bioTextSecondary(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color.white.opacity(0.7) : Color(hex: "#FAF6EF").opacity(0.7)
+        scheme == .dark ? Color(hex: "#FAF6EF").opacity(0.7) : Color(hex: "#0B3D2E").opacity(0.7)
     }
 }
 

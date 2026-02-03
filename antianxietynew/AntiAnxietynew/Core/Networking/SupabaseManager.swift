@@ -143,6 +143,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     }
     private var habitsBackendCache: HabitsBackend?
     private var reminderPreferencesColumnAvailable: Bool?
+    private var userHealthDataTableAvailable: Bool?
     
     private init() {
         // 初始化时检查会话
@@ -1151,6 +1152,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     /// 获取穿戴设备健康数据
     func getHardwareData() async throws -> HardwareData? {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+        if userHealthDataTableAvailable == false { return nil }
         
         let endpoint = "user_health_data?user_id=eq.\(user.id)&select=data_type,value,source,recorded_at&order=recorded_at.desc&limit=20"
         
@@ -1161,7 +1163,14 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             let recorded_at: String
         }
         
-        let rawData: [RawHealthData] = try await request(endpoint)
+        let rawData: [RawHealthData]
+        do {
+            rawData = try await request(endpoint)
+        } catch {
+            userHealthDataTableAvailable = false
+            print("[SupabaseManager] ⚠️ user_health_data unavailable: \(error)")
+            return nil
+        }
         
         if rawData.isEmpty { return nil }
         
@@ -1186,6 +1195,10 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         }
         
         return hardware
+    }
+
+    func isUserHealthDataAvailable() -> Bool {
+        userHealthDataTableAvailable != false
     }
     
     /// 获取完整的 Dashboard 数据（聚合调用）

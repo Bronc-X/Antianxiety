@@ -3535,6 +3535,27 @@ hooks/
 
 ---
 
+## 2026-02-03 - iOS LiquidGlass 主题编译错误修复 ✅
+
+### 🧯 症状
+- Xcode 报错：`Type 'Color' has no member 'surfaceGlass'`
+- Xcode 报错：`Cannot call value of non-function type 'Color'`（LiquidGlassComponents 269/533 行）
+- Xcode 报错：`Type 'Color' has no member 'liquidGlassWarm' / 'liquidGlassSecondary'`
+- 之前还出现过：`Type 'Color' has no member 'brandSage'`（LiquidGlassTheme 219 行）
+
+### 🔍 根因复盘
+- `LiquidGlassTheme` 只定义了 `Color` 静态属性，没有提供 `textPrimary(for:) / textSecondary(for:) / surfaceGlass(for:)` 等方法。
+- 但 `LiquidGlassComponents` 与多个页面使用了 `Color.xxx(for: .dark)` 的调用方式，导致编译报错。
+- `brandSage` 在组件/渐变中被引用，但未在色板里定义。
+- `liquidGlassWarm / liquidGlassSecondary` 在多个页面被使用，但主题色板未提供。
+
+### ✅ 修复
+- 在 `LiquidGlassTheme` 补齐 `brandSage` 色板项。
+- 新增 `Color.textPrimary(for:) / textSecondary(for:) / textTertiary(for:) / surfaceGlass(for:)`，与现有调用方式一致，避免反复报错。
+- 新增 `Color.liquidGlassWarm / liquidGlassSecondary`，统一全局引用。
+
+---
+
 ## 2026-01-29 - 生产站点白屏排查与修复 ✅
 
 ### 🧯 症状
