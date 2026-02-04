@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import {
   CalendarDays,
   FlaskConical,
@@ -82,77 +82,84 @@ export default function MobileBottomNav() {
     <>
       <div className="h-24 md:hidden" />
 
-      <nav className="fixed bottom-6 left-4 right-4 z-50 md:hidden">
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md z-50 md:hidden">
         {/* Floating Glass Dock Container */}
-        <div className="relative bg-white/90 dark:bg-black/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/5">
-          <div className="flex justify-between items-center px-2 py-3">
-            {navItems.map((item) => {
-              const active = isActive(item);
+        <div className="relative bg-white/90 dark:bg-black/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/5 overflow-hidden">
+          <LayoutGroup id="mobile-nav">
+            <div className="flex items-center px-2 py-2">
+              {navItems.map((item) => {
+                const active = isActive(item);
 
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  onClick={() => {
-                    if (!active) {
-                      import('@/lib/haptics').then(({ triggerHaptic }) => triggerHaptic.selection());
-                    }
-                  }}
-                  className="relative flex-1 flex flex-col items-center justify-center min-w-0"
-                >
-                  {/* Active Indicator (Glow behind) */}
-                  {active && (
-                    <motion.div
-                      layoutId="activeTabGlow"
-                      className="absolute w-12 h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-full blur-md"
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    />
-                  )}
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => {
+                      if (!active) {
+                        import('@/lib/haptics').then(({ triggerHaptic }) => triggerHaptic.selection());
+                      }
+                    }}
+                    className="relative flex-1 flex flex-col items-center justify-center min-w-0"
+                  >
+                    {/* Active Indicator (Glow behind) */}
+                    <AnimatePresence>
+                      {active && (
+                        <motion.div
+                          layoutId="activeTabGlow"
+                          className="absolute inset-0 m-auto w-12 h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-full blur-md"
+                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                        />
+                      )}
+                    </AnimatePresence>
 
-                  {/* Icon Container */}
-                  <div className="relative p-2">
-                    <motion.div
-                      animate={{
-                        scale: active ? 1.1 : 1,
-                        y: active ? -2 : 0,
-                        color: active ? 'var(--color-emerald-600)' : 'var(--color-neutral-400)'
-                      }}
-                      // Tailwind colors need to be resolved or used as classes logic below checks this
-                      className={`relative z-10 transition-colors ${active
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-neutral-400 dark:text-neutral-500'
-                        }`}
-                      whileTap={{ scale: 0.8 }}
-                    >
-                      {item.icon}
-                    </motion.div>
-
-                    {/* Active Dot (Small indicator below icon) */}
-                    {active && (
+                    {/* Icon Container */}
+                    <div className="relative p-2">
                       <motion.div
-                        layoutId="activeTabDot"
-                        className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full"
-                      />
-                    )}
-                  </div>
+                        animate={{
+                          scale: active ? 1.1 : 1,
+                          y: active ? -2 : 0,
+                          color: active ? 'var(--color-emerald-600)' : 'var(--color-neutral-400)'
+                        }}
+                        // Tailwind colors need to be resolved or used as classes logic below checks this
+                        className={`relative z-10 transition-colors ${active
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-neutral-400 dark:text-neutral-500'
+                          }`}
+                        whileTap={{ scale: 0.8 }}
+                      >
+                        {item.icon}
+                      </motion.div>
 
-                  {/* Label - Hidden in compact dock or shown? Let's show it very small or hide for cleanliness. 
+                      {/* Active Dot (Small indicator below icon) */}
+                      {active && (
+                        <motion.div
+                          layoutId="activeTabDot"
+                          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-emerald-600 dark:bg-emerald-400 rounded-full"
+                        />
+                      )}
+                    </div>
+
+                    {/* Label - Hidden in compact dock or shown? Let's show it very small or hide for cleanliness. 
                       "Floating Dock" usually is icon only. But users might need labels.
                       Let's hide labels for the 'cool' look like Arc Search, or update to show only on active?
                       Code below keeps labels but makes them tiny.
                   */}
-                  <span
-                    className={`text-[9px] font-medium transition-all duration-300 ${active
-                      ? 'text-emerald-600 dark:text-emerald-400 opacity-100 translate-y-0'
-                      : 'text-neutral-400 dark:text-neutral-500 opacity-0 -translate-y-2 hidden'
-                      }`}
-                  >
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
+                    <span
+                      className={`text-[9px] font-medium transition-all duration-300 ${active
+                        ? 'text-emerald-600 dark:text-emerald-400 opacity-100 translate-y-0'
+                        : 'text-neutral-400 dark:text-neutral-500 opacity-0 -translate-y-2 hidden'
+                        }`}
+                    >
+                      {item.label}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </LayoutGroup>
         </div>
       </nav>
     </>

@@ -8,15 +8,21 @@ struct ScreenMetrics {
     let size: CGSize
     let safeAreaInsets: EdgeInsets
 
+    /// 固定屏幕宽度（使用物理像素对齐，避免亚像素导致的布局漂移）
+    var fixedScreenWidth: CGFloat {
+        alignToPixel(size.width)
+    }
+
     var safeWidth: CGFloat {
         max(0, size.width - safeAreaInsets.leading - safeAreaInsets.trailing)
     }
 
-    var isCompactWidth: Bool { size.width <= 360 }
+    var isCompactWidth: Bool { fixedScreenWidth <= 360 }
     var isCompactHeight: Bool { size.height <= 700 }
 
+    /// 水平边距（基于 fixedScreenWidth 判断，避免 safeWidth 微小波动导致阈值跳变）
     var horizontalPadding: CGFloat {
-        isCompactWidth ? 16 : (safeWidth < 390 ? 24 : 32)
+        fixedScreenWidth <= 360 ? 16 : (fixedScreenWidth < 390 ? 24 : 32)
     }
 
     var verticalPadding: CGFloat {
@@ -37,8 +43,10 @@ struct ScreenMetrics {
         0
     }
 
+    /// TabBar 宽度（基于 fixedScreenWidth，确保布局稳定）
     var tabBarWidth: CGFloat {
-        min(max(0, safeWidth - tabBarHorizontalPadding * 2), 560)
+        let baseWidth = fixedScreenWidth - tabBarHorizontalPadding * 2
+        return alignToPixel(min(max(0, baseWidth), 560))
     }
 
     var bottomContentInset: CGFloat {
@@ -52,6 +60,11 @@ struct ScreenMetrics {
     var ringLarge: CGFloat { isCompactHeight ? 140 : 160 }
     var ringMedium: CGFloat { isCompactHeight ? 120 : 140 }
     var avatarLarge: CGFloat { isCompactWidth ? 84 : 100 }
+
+    private func alignToPixel(_ value: CGFloat) -> CGFloat {
+        let scale = UIScreen.main.scale
+        return (value * scale).rounded() / scale
+    }
 }
 
 private struct ScreenMetricsKey: EnvironmentKey {
