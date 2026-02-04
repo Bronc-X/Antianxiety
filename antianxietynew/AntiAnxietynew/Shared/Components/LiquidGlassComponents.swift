@@ -544,8 +544,8 @@ struct LiquidGlassPageWidthModifier: ViewModifier {
         // 回到基线布局：全宽对齐 + 对称内边距 + 最大宽度限制
         content
             .frame(maxWidth: metrics.maxContentWidth, alignment: alignment)
-            .frame(maxWidth: .infinity, alignment: alignment)
             .padding(.horizontal, metrics.horizontalPadding)
+            .frame(maxWidth: .infinity, alignment: alignment)
     }
 }
 

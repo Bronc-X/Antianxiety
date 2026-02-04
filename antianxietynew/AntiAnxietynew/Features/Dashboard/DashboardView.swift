@@ -140,6 +140,7 @@ struct DashboardView: View {
         }
         .fullScreenCover(isPresented: $isAssessmentPresented) {
             AssessmentView()
+                .edgeSwipeBack()
         }
     }
     
@@ -271,7 +272,7 @@ struct DashboardView: View {
     
     /// 每日校准快捷入口
     private var calibrationQuickEntry: some View {
-        NavigationLink(destination: DailyQuestionnaireView(log: viewModel.todayLog)) {
+        NavigationLink(destination: DailyQuestionnaireView(log: viewModel.todayLog).edgeSwipeBack()) {
             LiquidGlassCard(style: .standard, padding: 16) {
                 HStack {
                     Image(systemName: "sparkles")
@@ -300,7 +301,7 @@ struct DashboardView: View {
 
     /// 核心功能中枢入口
     private var coreHubEntry: some View {
-        NavigationLink(destination: CoreHubView()) {
+        NavigationLink(destination: CoreHubView().edgeSwipeBack()) {
             LiquidGlassCard(style: .standard, padding: 16) {
                 HStack(spacing: 12) {
                     Image(systemName: "square.grid.2x2.fill")
@@ -388,7 +389,7 @@ struct DashboardView: View {
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) {
-                        NavigationLink(destination: DigitalTwinView()) {
+                        NavigationLink(destination: DigitalTwinView().edgeSwipeBack()) {
                             Text("查看详情")
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -409,7 +410,7 @@ struct DashboardView: View {
                     }
 
                     VStack(spacing: 8) {
-                        NavigationLink(destination: DigitalTwinView()) {
+                        NavigationLink(destination: DigitalTwinView().edgeSwipeBack()) {
                             Text("查看详情")
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -435,7 +436,7 @@ struct DashboardView: View {
 
     /// 报告入口
     private var reportEntry: some View {
-        NavigationLink(destination: ReportView()) {
+        NavigationLink(destination: ReportView().edgeSwipeBack()) {
             LiquidGlassCard(style: .standard, padding: 16) {
                 HStack(spacing: 12) {
                     Image(systemName: "doc.text.magnifyingglass")
@@ -620,7 +621,7 @@ struct DashboardView: View {
 
     /// 计划入口
     private var plansEntry: some View {
-        NavigationLink(destination: PlansView()) {
+        NavigationLink(destination: PlansView().edgeSwipeBack()) {
             LiquidGlassCard(style: .standard, padding: 16) {
                 HStack(spacing: 12) {
                     Image(systemName: "list.bullet.clipboard.fill")
@@ -646,7 +647,7 @@ struct DashboardView: View {
 
     /// 科学期刊入口
     private var scienceFeedEntry: some View {
-        NavigationLink(destination: ScienceFeedView()) {
+        NavigationLink(destination: ScienceFeedView().edgeSwipeBack()) {
             LiquidGlassCard(style: .standard, padding: 16) {
                 HStack(spacing: 12) {
                     Image(systemName: "books.vertical.fill")

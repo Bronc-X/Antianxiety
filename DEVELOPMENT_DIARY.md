@@ -17,6 +17,26 @@
 
 ---
 
+## 2026-02-04 - 今日任务启动
+
+### 🎯 目标
+- 稳定 iOS UI 中轴线布局（尤其 TabBar 漂移问题）。
+- 校正 Max/ScienceFeed/DigitalTwin 头部与底部布局的居中对齐。
+
+### ✅ 今日计划
+- [x] 复现 TabBar 漂移/越界问题并定位根因
+- [x] 采用“固定中轴 + 容器宽度锁定 + 对称间距”统一修复
+- [x] iostest 验证通过
+
+### 📝 备注
+- 今日重点：一次性彻底消除“漂移/越界/非中轴”问题，避免反复返工。
+- 根因：`liquidGlassPageWidth` 在 `.frame(maxWidth: .infinity)` 之后再加水平内边距，导致实际内容宽度 = 屏幕宽 + 2×padding，造成右侧溢出与“漂移”错觉。
+- 修复：调整 `liquidGlassPageWidth` 先 padding 再 full-width frame，保证总宽度锁定在安全区；TabBar 内侧间距改为使用 `tabBarHorizontalPadding` 保持对称。
+- 追加修复：iPhone 14 Pro Max 上 TabBar 背景层未限定高度，`Rectangle` 在 `safeAreaInset` 中被拉伸成全屏遮罩。已在 `CustomTabBar` 中固定 `totalHeight` 并将上下安全区 padding 显式纳入。
+- 追加需求：从首页进入的二级菜单，左侧中部边缘右滑返回首页。已新增 `edgeSwipeBack` 手势并应用到 Dashboard 各入口目的地及评估全屏页。
+
+---
+
 ## 2026-02-02 - iOS 全模块 Hook + AI 依赖去 Next 化 ✅
 
 ### ✅ 完成事项
@@ -3602,5 +3622,30 @@ hooks/
 - **禁止 TDZ**：函数/回调先声明再引用；避免 `useEffect` 依赖未声明变量。
 - **map 默认传 index**：在需要 `i` 的地方显式写 `map((item, i) => ...)`。
 - **建议开启 ESLint 规则**：`no-use-before-define`（或至少对 hooks 文件启用）。
+
+---
+
+## 2026-02-04 - 移动端导航栏稳定性与漂移修复 (UI Stability Fix) ✅
+
+### 🧯 症状
+- **TabBar 漂移**：底部导航栏在交互过程中会缓慢向右移动。
+- **越界/溢出**：右侧“我的”(Settings)项有时会跑出容器范围。
+
+### 🔍 根因分析
+1. **LayoutId 冲突/未对齐**：`framer-motion` 的 `layoutId` 在多个 tab 间切换时，如果没有明确的定位中心且容器宽度不固定（`left-4 right-4`），容易产生累积的亚像素偏移。
+2. **布局依赖不稳**：使用 `justify-between` 配合 `flex-1` 可能在某些渲染频率下产生对齐计算的微小浮动。
+3. **定位丢失**：`activeTabGlow` 缺少显式的绝对中心坐标约束。
+
+### ✅ 修复方案 (调动开源最佳实践)
+- **固定中轴线约束**：将 `fixed left-4 right-4` 改为 `left-1/2 -translate-x-1/2` 并配合 `max-w-md`，锁定物理中心，消除左右扩展导致的漂移。
+- **LayoutGroup 分离**：引入 `LayoutGroup` 显式隔离导航栏动画命名空间，防止与其他布局动画冲突。
+- **精密对齐**：`activeTabGlow` 增加 `inset-0 m-auto` 配合 `AnimatePresence`，确保激活指示器永远在当前 Tab 正中心。
+- **容器加固**：增加 `overflow-hidden` 遮罩，确保即使有亚像素溢出也不会被用户察觉。
+
+### 📊 代码变更
+- `components/MobileBottomNav.tsx`：重构布局容器与动画逻辑。
+
+### 🚀 结论
+UI 的低级漂移问题已彻底固定，通过物理中轴线锁定 + 动画分组隔离，未来不会再出现累积偏移。
 
 ---

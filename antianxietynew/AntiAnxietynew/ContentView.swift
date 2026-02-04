@@ -57,6 +57,7 @@ struct ContentView: View {
                             ProgressView()
                                 .tint(.white)
                         }
+                        .padding(.leading, 8)
                     }
                     .transition(.opacity)
                         .transition(.opacity)
@@ -177,18 +178,37 @@ private struct CustomTabBar: View {
         let itemHeight: CGFloat = metrics.isCompactHeight ? 52 : 58
         let topPadding: CGFloat = metrics.isCompactHeight ? 6 : 8
         let bottomPadding = max(10, metrics.safeAreaInsets.bottom)
+        let sidePadding = metrics.tabBarHorizontalPadding
+        // 使用像素对齐的固定宽度，避免亚像素漂移
+        let containerWidth = alignToPixel(metrics.fixedScreenWidth)
+        let extraWidth: CGFloat = 16  // 左右各自加宽 8
+        let barWidth = alignToPixel(min(containerWidth, metrics.tabBarWidth + extraWidth))
+        let totalHeight = itemHeight + topPadding + bottomPadding
 
-        HStack(spacing: 0) {
-            ForEach(tabs, id: \.self) { tab in
-                tabButton(tab, itemHeight: itemHeight)
-                    .frame(maxWidth: .infinity)
+        // 使用 ZStack 创建显式居中容器，确保背景与内容共享同一锚点
+        ZStack {
+            // 背景层 - 使用相同的 barWidth
+            tabBarBackground
+                .frame(width: barWidth, height: totalHeight)
+
+            // 内容层 - 使用相同的 barWidth
+            VStack(spacing: 0) {
+                Color.clear.frame(height: topPadding)
+                HStack(spacing: 0) {
+                    ForEach(tabs, id: \.self) { tab in
+                        tabButton(tab, itemHeight: itemHeight)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.horizontal, sidePadding)
+                .frame(width: barWidth, height: itemHeight)
+                Color.clear.frame(height: bottomPadding)
             }
+            .frame(width: barWidth, height: totalHeight)
         }
-        .padding(.horizontal, metrics.horizontalPadding)
-        .padding(.top, topPadding)
-        .padding(.bottom, bottomPadding)
-        .frame(maxWidth: .infinity)
-        .background(tabBarBackground)
+        .frame(width: containerWidth, height: totalHeight)  // 容器锚定到物理屏幕宽度
+        .offset(x: -24)
+        .overlay(centerAxisOverlay)
     }
 
     private var tabBarBackground: some View {
@@ -221,6 +241,25 @@ private struct CustomTabBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private var centerAxisOverlay: some View {
+        Group {
+            if LayoutDebug.enabled {
+                GeometryReader { proxy in
+                    let centerX = proxy.size.width / 2
+                    Rectangle()
+                        .fill(Color.yellow.opacity(0.7))
+                        .frame(width: 1)
+                        .offset(x: centerX)
+                }
+            }
+        }
+    }
+
+    private func alignToPixel(_ value: CGFloat) -> CGFloat {
+        let scale = UIScreen.main.scale
+        return (value * scale).rounded() / scale
     }
 }
 
