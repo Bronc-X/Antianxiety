@@ -205,7 +205,47 @@ Whitespace: #FAFAFA / #FFFFFF
 
 ---
 
-## IX. Documentation Workflow Rules
+## X. 验收标准 (Definition of Done)
+
+> [!IMPORTANT]
+> 此条款为项目核心原则，必须严格执行
+
+### 模块验收标准 (DOD)
+每个功能模块在开发完成后，**必须满足以下全部条件**才能进入下一模块开发：
+
+#### 代码层面
+- [ ] 代码能够成功编译，无编译错误
+- [ ] 核心算法测试通过 (BioVoltage, Consensus 等)
+- [ ] 代码符合模块化Hooks规范
+- [ ] 注释完整且可读
+- [ ] 必须在iOS模拟器中跑通
+
+#### 功能层面
+- [ ] 功能在iOS模拟器/真机上能正常运行
+- [ ] 核心用户流程可完整走通
+- [ ] 无阻塞性(Blocking)Bug
+- [ ] UI符合 California Calm 美学标准
+
+#### 集成层面
+- [ ] 与已完成模块无冲突
+- [ ] API接口正常调用
+- [ ] 数据存储和读取正常 (Supabase RLS)
+
+### 验收流程
+```
+开发完成 → 自测通过 → 模拟器运行验证 → 功能确认 → 进入下一模块
+    ↑                                        ↓
+    └──────────── 不通过则返回修复 ──────────┘
+```
+
+### 阻塞原则
+- 当前模块未通过验收前，**禁止**开始下一模块开发
+- 发现阻塞性问题必须**立即修复**
+- 模块进度需在 `DEVELOPMENT_DIARY.md` 中实时更新
+
+---
+
+## XI. Documentation Workflow Rules
 
 ### Daily Workflow
 - **每日开工**: 阅读 Constitution，检查 Diary 最近进展，查看待处理营销素材
