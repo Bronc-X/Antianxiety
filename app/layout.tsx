@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Inter } from "next/font/google"; // Removed Playfair_Display import
 // Trigger Rebuild 1
 import "./globals.css";
 
@@ -10,11 +10,11 @@ const inter = Inter({
   display: "swap",
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  display: "swap",
-});
+// Fallback for Playfair Display to avoid Google Font network issues
+const playfair = {
+  variable: "--font-playfair", // Keep the variable name to match usage
+};
+
 import RouteTransition from "@/components/RouteTransition";
 import MotionProvider from "@/components/MotionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -25,7 +25,8 @@ import { ToastProvider } from "@/components/ui/toast";
 import DevTools from "@/components/DevTools";
 import TraditionalChineseAutoConvert from "@/components/TraditionalChineseAutoConvert";
 import EnvBadge from "@/components/EnvBadge";
-
+import BackgroundCanvas from "@/components/ui/BackgroundCanvas";
+import CursorEffects from "@/components/ui/CursorEffects";
 
 
 export const metadata: Metadata = {
@@ -84,6 +85,8 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {/* Global background - clean without noise texture */}
+        <BackgroundCanvas />
+        <CursorEffects />
 
         <ThemeProvider>
           <I18nProvider>
