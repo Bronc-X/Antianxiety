@@ -220,7 +220,7 @@ try {
 ### 规则 8：测试与验收
 
 > [!NOTE]
-> 详细的模块验收标准 (DOD) 请参阅 `PROJECT_CONSTITUTION.md` 第 X 章
+> 详细的模块验收标准 (DOD) 请参阅 `docs/project/PROJECT_CONSTITUTION.md` 第 X 章
 
 #### 8.1 测试覆盖要求
 - 核心算法 (BioVoltage, Consensus) 覆盖率 ≥ 90%

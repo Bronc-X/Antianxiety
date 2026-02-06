@@ -28,7 +28,7 @@ AntiAnxiety 不是传统健康 App，它是一套“真相架构”(Truth Archit
 ---
 
 ## 📘 项目技术白皮书（简版）
-> 完整技术细节请见：`TECH_STACK_AND_WORKFLOW.md`、`ADAPTIVE_ASSESSMENT_SYSTEM_FULL.md`、`CLINICAL_ASSESSMENT_CORE_CODE.md`、`PROJECT_CONSTITUTION.md`。
+> 完整技术细节请见：`docs/project/README.md`、`docs/project/TECH_STACK_AND_WORKFLOW.md`、`docs/project/PROJECT_CONSTITUTION.md`。
 
 ### 1) 技术目标
 - 用可计算证据更新用户的焦虑先验（Prior）到后验（Posterior）。
@@ -159,17 +159,16 @@ npm test
 ---
 
 ## 📄 相关文档
-- `TECH_STACK_AND_WORKFLOW.md`
-- `ADAPTIVE_ASSESSMENT_SYSTEM_FULL.md`
-- `CLINICAL_ASSESSMENT_CORE_CODE.md`
-- `PROJECT_CONSTITUTION.md`
-- `DEPLOYMENT.md`
-- `ENV_SETUP.md`
+- `docs/project/README.md`
+- `docs/project/TECH_STACK_AND_WORKFLOW.md`
+- `docs/project/PROJECT_CONSTITUTION.md`
+- `docs/project/DEPLOYMENT.md`
+- `docs/project/ENV_SETUP.md`
 
 ---
 
 ## 📌 当前重点
-见 `implementation_plan.md`（移动端视图与 Domain Hooks 完整对齐、Settings/Max/Calibration UI 补齐）。
+见 `docs/project/DEVELOPMENT_DIARY.md`（最新进展与当前关注点）。
 
 ---
 

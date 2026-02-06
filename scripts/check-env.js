@@ -144,8 +144,8 @@ if (hasErrors) {
   console.log('2. 部署平台: 在项目 Environment Variables 中添加');
   console.log('\n参考文档:');
   console.log('- README.md');
-  console.log('- ENV_SETUP.md');
-  console.log('- DEPLOYMENT.md');
+  console.log('- docs/project/ENV_SETUP.md');
+  console.log('- docs/project/DEPLOYMENT.md');
   process.exit(1);
 } else {
   console.log('? 所有必需的环境变量已配置！');

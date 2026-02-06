@@ -34,7 +34,7 @@
 ## Commit & Pull Request Guidelines
 - Commit messages commonly use a loose conventional style: `feat: ...`, `docs: ...`, `sync: ...`, and occasional `feat(ui): ...` or Chinese descriptions. Keep subject lines short and descriptive.
 - PRs should include: summary of changes, linked issues (if any), and screenshots for UI changes.
-- Call out any schema or environment changes and update relevant docs (e.g., `ENV_SETUP.md`, `ENV_VARIABLES_QUICK_REFERENCE.md`).
+- Call out any schema or environment changes and update relevant docs (e.g., `docs/project/ENV_SETUP.md`, `docs/project/ENV_VARIABLES_QUICK_REFERENCE.md`).
 
 ## Security & Configuration Tips
 - Store secrets in `.env.local` and never commit it.

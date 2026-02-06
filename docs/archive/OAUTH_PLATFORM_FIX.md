@@ -251,7 +251,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
 - **逻辑闭环验证**: `LOGIC_LOOP_VERIFICATION.md`
 - **最终Web测试报告**: `FINAL_WEB_LOGIC_TEST_REPORT.md`
-- **开发日志**: `DEVELOPMENT_DIARY.md`
+- **开发日志**: `docs/project/DEVELOPMENT_DIARY.md`
 
 ---
 
