@@ -44,46 +44,24 @@ struct DashboardView: View {
                             // 4. 核心状态卡片 (对应 Digital Twin 概览)
                             // ==========================================
                             coreStatusCard
-
+                            
                             // ==========================================
-                            // 4.2 报告入口
+                            // 4.2 快捷入口（两排两行）
                             // ==========================================
-                            reportEntry
-
-                            // ==========================================
-                            // 4.5 数字孪生入口
-                            // ==========================================
-                            digitalTwinEntry
+                            quickActionsGrid
                         }
 
                         Group {
                             // ==========================================
-                            // 4.8 全面评估入口
-                            // ==========================================
-                            assessmentEntry
-                            
-                            // ==========================================
                             // 5. 健康指标网格
                             // ==========================================
                             healthMetricsGrid
-
-                            // ==========================================
-                            // 5.5 计划入口
-                            // ==========================================
-                            plansEntry
-
-                            // ==========================================
-                            // 5.8 科学期刊入口
-                            // ==========================================
-                            scienceFeedEntry
                         }
                         
                         // ==========================================
-                        // 6. AI 建议卡片
+                        // 6. AI 建议卡片（后台异步）
                         // ==========================================
-                        if let recommendation = viewModel.aiRecommendation {
-                            aiRecommendationCard(recommendation)
-                        }
+                        aiRecommendationsSection
                         
                         // ==========================================
                         // 7. 关键洞察
@@ -115,14 +93,16 @@ struct DashboardView: View {
             .task {
                 await viewModel.loadData()
                 await viewModel.loadDigitalTwin()
-                await viewModel.loadInquiry(language: appSettings.language.rawValue)
+                await viewModel.loadInquiry(language: appSettings.language.rawValue, force: false)
+                await viewModel.loadDailyRecommendations(language: appSettings.language.rawValue, force: false)
             }
             .onReceive(NotificationCenter.default.publisher(for: .calibrationCompleted)) { _ in
                 Task { await viewModel.refresh() }
             }
             .refreshable {
                 await viewModel.refresh()
-                await viewModel.loadInquiry(language: appSettings.language.rawValue)
+                await viewModel.loadInquiry(language: appSettings.language.rawValue, force: true)
+                await viewModel.loadDailyRecommendations(language: appSettings.language.rawValue, force: true)
             }
             .alert(
                 "错误",
@@ -354,6 +334,12 @@ struct DashboardView: View {
                     }
                     
                     StatusPill(text: viewModel.scoreStatus, color: viewModel.scoreColor)
+
+                    if let trend = viewModel.overallTrendText {
+                        Text(trend)
+                            .font(.caption2)
+                            .foregroundColor(.textSecondary)
+                    }
                 }
                 
                 Spacer()
@@ -364,100 +350,81 @@ struct DashboardView: View {
         }
     }
 
-    /// 数字孪生入口
-    private var digitalTwinEntry: some View {
-        LiquidGlassCard(style: .standard, padding: 16) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    Image(systemName: "brain.head.profile")
-                        .font(.title2)
-                        .foregroundColor(.liquidGlassAccent)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("数字孪生曲线")
-                            .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Text(digitalTwinStatusText)
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
-                    }
-                    Spacer()
-                    if viewModel.loadingDigitalTwin {
-                        ProgressView()
-                            .tint(.liquidGlassAccent)
-                    }
-                }
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
-                        NavigationLink(destination: DigitalTwinView().edgeSwipeBack()) {
-                            Text("查看详情")
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                        .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
-
-                        Button {
-                            Task {
-                                _ = await viewModel.analyzeDigitalTwin()
-                            }
-                        } label: {
-                            Text("触发分析")
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                        .buttonStyle(LiquidGlassButtonStyle(isProminent: false))
-                        .disabled(viewModel.loadingDigitalTwin)
-                    }
-
-                    VStack(spacing: 8) {
-                        NavigationLink(destination: DigitalTwinView().edgeSwipeBack()) {
-                            Text("查看详情")
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                        .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
-
-                        Button {
-                            Task {
-                                _ = await viewModel.analyzeDigitalTwin()
-                            }
-                        } label: {
-                            Text("触发分析")
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                        .buttonStyle(LiquidGlassButtonStyle(isProminent: false))
-                        .disabled(viewModel.loadingDigitalTwin)
-                    }
-                }
+    /// 快捷入口（两排两行）
+    private var quickActionsGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            NavigationLink(destination: DigitalTwinView().edgeSwipeBack()) {
+                QuickActionCard(
+                    icon: "brain.head.profile",
+                    title: "数字孪生曲线",
+                    subtitle: digitalTwinStatusText,
+                    accent: .liquidGlassAccent
+                )
             }
+            .buttonStyle(.plain)
+
+            Button {
+                isAssessmentPresented = true
+            } label: {
+                QuickActionCard(
+                    icon: "stethoscope",
+                    title: "健康评估",
+                    subtitle: "深入的身心健康检查",
+                    accent: .liquidGlassSecondary
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(destination: PlansView().edgeSwipeBack()) {
+                QuickActionCard(
+                    icon: "list.bullet.clipboard.fill",
+                    title: "计划中心",
+                    subtitle: "AI 计划与执行进度",
+                    accent: .liquidGlassAccent
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(destination: ScienceFeedView().edgeSwipeBack()) {
+                QuickActionCard(
+                    icon: "books.vertical.fill",
+                    title: "科学期刊",
+                    subtitle: "与你状态匹配的研究",
+                    accent: .liquidGlassWarm
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 
-    /// 报告入口
-    private var reportEntry: some View {
-        NavigationLink(destination: ReportView().edgeSwipeBack()) {
-            LiquidGlassCard(style: .standard, padding: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.title2)
-                        .foregroundColor(.liquidGlassAccent)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("查看报告")
-                            .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Text("数字孪生与 AI 分析总览")
+    private struct QuickActionCard: View {
+        let icon: String
+        let title: String
+        let subtitle: String
+        let accent: Color
+
+        var body: some View {
+            LiquidGlassCard(style: .standard, padding: 14) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Image(systemName: icon)
+                            .font(.title3)
+                            .foregroundColor(accent)
+                        Spacer()
+                        Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundColor(.textSecondary)
+                            .foregroundColor(.textTertiary)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.textTertiary)
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(.textPrimary)
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundColor(.textSecondary)
+                        .lineLimit(2)
                 }
             }
         }
-        .buttonStyle(.plain)
     }
     
     /// 健康指标网格
@@ -493,22 +460,42 @@ struct DashboardView: View {
         }
     }
     
-    /// AI 建议卡片
-    private func aiRecommendationCard(_ recommendation: String) -> some View {
+    /// AI 建议卡片（后台异步）
+    private var aiRecommendationsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("AI 建议")
                 .font(.headline)
                 .foregroundColor(.textPrimary)
-            
+
             LiquidGlassCard(style: .standard) {
-                HStack(alignment: .top, spacing: 16) {
-                    Image(systemName: "brain.head.profile")
-                        .font(.title2)
-                        .foregroundColor(.liquidGlassAccent)
-                    Text(recommendation)
+                if !viewModel.aiRecommendations.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(viewModel.aiRecommendations.prefix(4)) { item in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(item.title)
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.textPrimary)
+                                Text(item.summary)
+                                    .font(.subheadline)
+                                    .foregroundColor(.textSecondary)
+                                Text("行动：\(item.action)")
+                                    .font(.caption)
+                                    .foregroundColor(.textSecondary)
+                                if let reason = item.reason, !reason.isEmpty {
+                                    Text("原因：\(reason)")
+                                        .font(.caption2)
+                                        .foregroundColor(.textTertiary)
+                                }
+                            }
+                            if item.id != viewModel.aiRecommendations.prefix(4).last?.id {
+                                Divider().opacity(0.3)
+                            }
+                        }
+                    }
+                } else {
+                    Text("今日建议准备中，稍后自动更新。")
                         .font(.subheadline)
-                        .foregroundColor(.textPrimary)
-                        .lineSpacing(4)
+                        .foregroundColor(.textSecondary)
                 }
             }
         }
@@ -586,90 +573,6 @@ struct DashboardView: View {
         }
     }
     
-    /// 全面评估入口
-    private var assessmentEntry: some View {
-        LiquidGlassCard(style: .standard, padding: 16) {
-            HStack {
-                Image(systemName: "stethoscope")
-                    .font(.title2)
-                    .foregroundColor(.liquidGlassSecondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("健康评估")
-                        .font(.headline)
-                        .foregroundColor(.textPrimary)
-                    Text("定期进行深入的身心健康检查")
-                        .font(.caption)
-                        .foregroundColor(.textSecondary)
-                }
-                Spacer()
-                Spacer()
-                Button {
-                    isAssessmentPresented = true
-                } label: {
-                    Text("开始")
-                        .font(.subheadline.bold())
-                        .foregroundColor(.bgPrimary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.liquidGlassSecondary)
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    /// 计划入口
-    private var plansEntry: some View {
-        NavigationLink(destination: PlansView().edgeSwipeBack()) {
-            LiquidGlassCard(style: .standard, padding: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "list.bullet.clipboard.fill")
-                        .font(.title3)
-                        .foregroundColor(.liquidGlassAccent)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("计划中心")
-                            .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Text("查看 AI 定制计划与执行进度")
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// 科学期刊入口
-    private var scienceFeedEntry: some View {
-        NavigationLink(destination: ScienceFeedView().edgeSwipeBack()) {
-            LiquidGlassCard(style: .standard, padding: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "books.vertical.fill")
-                        .font(.title3)
-                        .foregroundColor(.liquidGlassAccent)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("科学期刊")
-                            .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Text("与你当前状态匹配的研究解读")
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
     
     // MARK: - Formatters
     

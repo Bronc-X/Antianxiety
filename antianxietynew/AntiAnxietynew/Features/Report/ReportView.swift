@@ -6,8 +6,6 @@ import SwiftUI
 struct ReportView: View {
     @StateObject private var dashboardViewModel = DashboardViewModel()
     @StateObject private var understandingViewModel = UnderstandingScoreViewModel()
-    @StateObject private var wearableViewModel = WearableConnectViewModel()
-    @State private var isAssessmentPresented = false
     @Environment(\.screenMetrics) private var metrics
 
     var body: some View {
@@ -23,11 +21,7 @@ struct ReportView: View {
                         aiAnalysisCard
                         hrvSummaryCard
                         feedbackLoopCard
-                        analysisHistoryEntry
-                        bayesianLoopEntry
-                        insightEngineEntry
-                        wearableCard
-                        assessmentCard
+                        analysisInsightRow
                     }
                     .liquidGlassPageWidth()
                     .padding(.top, metrics.verticalPadding)
@@ -48,22 +42,17 @@ struct ReportView: View {
                 await refreshData()
             }
         }
-        .fullScreenCover(isPresented: $isAssessmentPresented) {
-            AssessmentView()
-        }
     }
 
     private func loadData() async {
         await dashboardViewModel.loadData()
         await dashboardViewModel.loadDigitalTwin()
         await understandingViewModel.load()
-        wearableViewModel.refreshStatus()
     }
 
     private func refreshData() async {
         await dashboardViewModel.refresh()
         await understandingViewModel.load()
-        wearableViewModel.refreshStatus()
     }
 
     private var headerSection: some View {
@@ -116,6 +105,11 @@ struct ReportView: View {
                 Text(dashboardViewModel.digitalTwinStatusMessage)
                     .font(.caption)
                     .foregroundColor(.textSecondary)
+                if let trend = dashboardViewModel.overallTrendText {
+                    Text(trend)
+                        .font(.caption2)
+                        .foregroundColor(.textSecondary)
+                }
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 10) {
@@ -160,6 +154,8 @@ struct ReportView: View {
         let dashboard = dashboardViewModel.digitalTwinDashboard
         let summary = dashboard?.dashboardData.summaryStats
         let vitals = dashboard?.dashboardData.baselineData.vitals ?? []
+        let highlights = buildBodyAnalysisHighlights()
+        let actions = buildBodyAnalysisActions()
 
         return LiquidGlassCard(style: .standard, padding: 16) {
             VStack(alignment: .leading, spacing: 12) {
@@ -184,6 +180,20 @@ struct ReportView: View {
                             .font(.caption)
                             .foregroundColor(.textTertiary)
                     }
+                }
+
+                if !highlights.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(highlights, id: \.self) { item in
+                            HStack(alignment: .top, spacing: 6) {
+                                Text("•")
+                                    .foregroundColor(.liquidGlassAccent)
+                                Text(item)
+                                    .font(.subheadline)
+                                    .foregroundColor(.textSecondary)
+                            }
+                        }
+                    }
                 } else {
                     Text(dashboardViewModel.digitalTwinStatusMessage)
                         .font(.subheadline)
@@ -204,6 +214,19 @@ struct ReportView: View {
                     }
                 }
 
+                if !actions.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("建议执行")
+                            .font(.caption)
+                            .foregroundColor(.textTertiary)
+                        ForEach(actions, id: \.self) { action in
+                            Text("• \(action)")
+                                .font(.caption)
+                                .foregroundColor(.textSecondary)
+                        }
+                    }
+                }
+
                 NavigationLink(destination: BodyAnalysisView(analysis: dashboardViewModel.digitalTwinDashboard)) {
                     HStack(spacing: 6) {
                         Text("查看分析详情")
@@ -214,6 +237,56 @@ struct ReportView: View {
                 }
             }
         }
+    }
+
+    private func buildBodyAnalysisHighlights() -> [String] {
+        var highlights: [String] = []
+        if let score = dashboardViewModel.overallScore {
+            if score >= 80 {
+                highlights.append("整体状态稳健，恢复节奏良好，可继续保持当前节律。")
+            } else if score >= 60 {
+                highlights.append("整体状态稳定，但仍有提升空间，建议把注意力放在一两个关键指标上。")
+            } else {
+                highlights.append("整体状态偏弱，建议优先修复睡眠与压力管理。")
+            }
+        }
+
+        let sleepHours = dashboardViewModel.averageSleepHours
+        if sleepHours > 0 {
+            if sleepHours < 6.5 {
+                highlights.append("近期睡眠时长偏短，可能影响情绪稳定与能量恢复。")
+            } else if sleepHours >= 7.5 {
+                highlights.append("睡眠时长较理想，是稳定情绪的关键支撑。")
+            }
+        }
+
+        let stress = dashboardViewModel.averageStress
+        if stress > 0 {
+            if stress >= 7 {
+                highlights.append("压力感受偏高，短时放松练习会更有效。")
+            } else if stress <= 4 {
+                highlights.append("压力水平处于可控区间，保持即可。")
+            }
+        }
+
+        return highlights
+    }
+
+    private func buildBodyAnalysisActions() -> [String] {
+        var actions: [String] = []
+        let sleepHours = dashboardViewModel.averageSleepHours
+        let stress = dashboardViewModel.averageStress
+
+        if sleepHours > 0 && sleepHours < 6.5 {
+            actions.append("固定入睡时间，睡前 60 分钟减少屏幕刺激。")
+        }
+        if stress >= 7 {
+            actions.append("午后安排 5-8 分钟慢呼吸或短时冥想。")
+        }
+        if actions.isEmpty {
+            actions.append("继续保持规律作息与轻度活动，巩固当前稳定趋势。")
+        }
+        return actions
     }
 
     private var hrvSummaryCard: some View {
@@ -294,139 +367,49 @@ struct ReportView: View {
         }
     }
 
-    private var analysisHistoryEntry: some View {
-        NavigationLink(destination: AnalysisHistoryView()) {
-            LiquidGlassCard(style: .standard, padding: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "chart.xyaxis.line")
-                        .foregroundColor(.liquidGlassAccent)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("分析历史")
-                            .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Text("查看历史趋势与置信度")
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
-                    }
+    private var analysisInsightRow: some View {
+        HStack(spacing: 12) {
+            NavigationLink(destination: AnalysisHistoryView()) {
+                compactEntryCard(
+                    icon: "chart.xyaxis.line",
+                    title: "分析历史",
+                    subtitle: "历史趋势与置信度",
+                    accent: .liquidGlassAccent
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(destination: InsightEngineView()) {
+                compactEntryCard(
+                    icon: "sparkles",
+                    title: "洞察引擎",
+                    subtitle: "洞察生成与推演",
+                    accent: .liquidGlassAccent
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func compactEntryCard(icon: String, title: String, subtitle: String, accent: Color) -> some View {
+        LiquidGlassCard(style: .standard, padding: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Image(systemName: icon)
+                        .foregroundColor(accent)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundColor(.textTertiary)
                 }
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.textPrimary)
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
             }
         }
-        .buttonStyle(.plain)
-    }
-
-    private var bayesianLoopEntry: some View {
-        NavigationLink(destination: BayesianLoopView()) {
-            LiquidGlassCard(style: .standard, padding: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "brain")
-                        .foregroundColor(.liquidGlassWarm)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("贝叶斯信念循环")
-                            .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Text("证据堆栈与信念更新")
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var insightEngineEntry: some View {
-        NavigationLink(destination: InsightEngineView()) {
-            LiquidGlassCard(style: .standard, padding: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .foregroundColor(.liquidGlassAccent)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("洞察引擎")
-                            .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Text("洞察生成与深度推演")
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var wearableCard: some View {
-        LiquidGlassCard(style: .standard, padding: 16) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    Image(systemName: "applewatch")
-                        .foregroundColor(.liquidGlassAccent)
-                    Text("穿戴设备连接")
-                        .font(.headline)
-                        .foregroundColor(.textPrimary)
-                    Spacer()
-                    Text(wearableViewModel.isAuthorized ? "已连接" : "未连接")
-                        .font(.caption)
-                        .foregroundColor(wearableViewModel.isAuthorized ? .statusSuccess : .textTertiary)
-                }
-
-                if let lastSync = wearableViewModel.lastSync {
-                    Text("上次同步：\(lastSync.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption)
-                        .foregroundColor(.textSecondary)
-                } else {
-                    Text("连接后可同步 HRV、睡眠、心率等数据")
-                        .font(.caption)
-                        .foregroundColor(.textSecondary)
-                }
-
-                NavigationLink(destination: WearableConnectView(viewModel: wearableViewModel)) {
-                    HStack(spacing: 6) {
-                        Text("管理连接")
-                        Image(systemName: "chevron.right")
-                    }
-                    .font(.caption)
-                    .foregroundColor(.liquidGlassAccent)
-                }
-            }
-        }
-    }
-
-    private var assessmentCard: some View {
-        Button {
-            isAssessmentPresented = true
-        } label: {
-            LiquidGlassCard(style: .standard, padding: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .foregroundColor(.liquidGlassAccent)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("临床评估报告")
-                            .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Text("完成评估后生成可追溯的分析报告")
-                            .font(.caption)
-                            .foregroundColor(.textSecondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
     }
 
     private func formatValue(_ value: Double?, suffix: String) -> String {
@@ -467,6 +450,7 @@ struct BodyAnalysisView: View {
             ScrollView {
                 VStack(spacing: metrics.sectionSpacing) {
                     header
+                    analysisSummaryCard
                     baselineVitals
                     baselineAssessments
                     adaptivePlan
@@ -497,6 +481,75 @@ struct BodyAnalysisView: View {
                     .foregroundColor(.textSecondary)
             }
         }
+    }
+
+    private var analysisSummaryCard: some View {
+        let insights = bodyAnalysisInsights
+        let actions = bodyAnalysisActions
+
+        return LiquidGlassCard(style: .standard, padding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("AI 身体分析建议")
+                    .font(.headline)
+                    .foregroundColor(.textPrimary)
+
+                if insights.isEmpty {
+                    Text("当前数据不足以生成深入分析，请先完成评估与每日校准。")
+                        .font(.caption)
+                        .foregroundColor(.textTertiary)
+                } else {
+                    ForEach(insights, id: \.self) { item in
+                        Text("• \(item)")
+                            .font(.subheadline)
+                            .foregroundColor(.textSecondary)
+                    }
+                }
+
+                if !actions.isEmpty {
+                    Divider().opacity(0.3)
+                    Text("你可以这样做")
+                        .font(.caption)
+                        .foregroundColor(.textTertiary)
+                    ForEach(actions, id: \.self) { action in
+                        Text("• \(action)")
+                            .font(.caption)
+                            .foregroundColor(.textSecondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private var bodyAnalysisInsights: [String] {
+        var insights: [String] = []
+        if let summary = analysis?.dashboardData.summaryStats {
+            insights.append("整体改善趋势：\(summary.overallImprovement)，说明恢复方向正在建立。")
+            insights.append("一致性：\(summary.consistencyScore)，规律性是当前最关键的增长点。")
+        }
+
+        let assessments = analysis?.dashboardData.baselineData.assessments ?? []
+        for item in assessments {
+            if item.name.contains("GAD") || item.name.contains("PHQ") || item.name.contains("ISI") {
+                insights.append("\(item.name)：\(item.interpretation)，建议重点关注情绪与睡眠节律。")
+                break
+            }
+        }
+
+        return insights
+    }
+
+    private var bodyAnalysisActions: [String] {
+        var actions: [String] = []
+        if let summary = analysis?.dashboardData.summaryStats {
+            if summary.daysToFirstResult > 0 {
+                actions.append("连续记录与校准 7 天以上，提升模型准确度。")
+            }
+        }
+        if actions.isEmpty {
+            actions.append("每天固定 1 个可执行小动作（如 10 分钟慢呼吸或短时步行）。")
+        }
+        actions.append("睡前 1 小时减少屏幕刺激，稳定入睡时间。")
+        return actions
     }
 
     private var baselineVitals: some View {

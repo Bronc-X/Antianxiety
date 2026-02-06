@@ -67,6 +67,23 @@ struct FeedFeedbackInput: Codable {
     }
 }
 
+// MARK: - Daily AI Recommendations
+
+struct DailyAIRecommendationItem: Codable, Equatable, Identifiable {
+    let title: String
+    let summary: String
+    let action: String
+    let reason: String?
+
+    var id: String { "\(title)-\(action)" }
+}
+
+struct DailyAIRecommendationsRow: Codable {
+    let id: String
+    let recommendation_date: String
+    let recommendations: [DailyAIRecommendationItem]
+}
+
 // MARK: - Evidence Models
 struct EvidenceItem: Codable, Identifiable {
     let id: UUID
@@ -131,6 +148,9 @@ private enum SupabaseConfig {
 @MainActor
 final class SupabaseManager: ObservableObject, SupabaseManaging {
     static let shared = SupabaseManager()
+
+    private static var inquirySessionKey: String?
+    private static var hasGeneratedInquiryForSession = false
     
     @Published var currentUser: AuthUser?
     @Published var isAuthenticated = false
@@ -2547,10 +2567,6 @@ extension SupabaseManager {
         let data_gaps_addressed: [String]?
     }
 
-    fileprivate struct InquiryRecentResponseRow: Codable {
-        let responded_at: String?
-    }
-
     private func getInquiryContextSummary(language: String, limit: Int = 8) async throws -> String? {
         guard let user = currentUser else { return nil }
 
@@ -2576,20 +2592,23 @@ extension SupabaseManager {
     /// 获取待答问询（本地 Supabase 直连）
     func getPendingInquiry(language: String) async throws -> InquiryPendingResponse {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+        updateInquirySession(userId: user.id)
 
         if let existing = try? await fetchLatestPendingInquiry(userId: user.id) {
+            Self.hasGeneratedInquiryForSession = true
             let question = resolveInquiryQuestion(from: existing, language: language)
             return InquiryPendingResponse(hasInquiry: question != nil, inquiry: question)
         }
 
-        if await hasRecentInquiryResponse(userId: user.id, withinMinutes: 20) {
+        if Self.hasGeneratedInquiryForSession {
             return InquiryPendingResponse(hasInquiry: false, inquiry: nil)
         }
 
         let answeredGaps = await fetchAnsweredGapsToday(userId: user.id)
 
-        // 无待答问询，尝试生成新的问询
-        if let inquiry = try await generateInquiryFromGaps(language: language, excluding: answeredGaps) {
+        // 无待答问询，尝试生成新的问询（AI 优先）
+        if let inquiry = try await generateProactiveInquiry(language: language, excluding: answeredGaps) {
+            Self.hasGeneratedInquiryForSession = true
             return InquiryPendingResponse(hasInquiry: true, inquiry: inquiry)
         }
 
@@ -2617,6 +2636,49 @@ extension SupabaseManager {
         let endpoint = "inquiry_history?user_id=eq.\(userId)&responded_at=is.null&order=created_at.desc&limit=1"
         let rows: [InquiryHistoryRow] = try await request(endpoint)
         return rows.first
+    }
+
+    private func updateInquirySession(userId: String) {
+        let token = UserDefaults.standard.string(forKey: "supabase_access_token") ?? ""
+        let sessionKey = "\(userId)|\(token)"
+        if Self.inquirySessionKey != sessionKey {
+            Self.inquirySessionKey = sessionKey
+            Self.hasGeneratedInquiryForSession = false
+        }
+    }
+
+    private func fetchInquiryHistory(userId: String, limit: Int) async -> [InquiryHistoryRow] {
+        let endpoint = "inquiry_history?user_id=eq.\(userId)&select=id,question_text,question_type,priority,data_gaps_addressed,user_response,responded_at,created_at&order=created_at.desc&limit=\(max(1, limit))"
+        return (try? await request(endpoint)) ?? []
+    }
+
+    private func storeInquiry(question: InquiryQuestion, userId: String) async throws -> InquiryQuestion {
+        let payload = InquiryHistoryInsert(
+            user_id: userId,
+            question_text: question.questionText,
+            question_type: question.questionType,
+            priority: question.priority,
+            data_gaps_addressed: question.dataGapsAddressed,
+            delivery_method: "in_app"
+        )
+
+        let rows: [InquiryHistoryRow] = try await request(
+            "inquiry_history",
+            method: "POST",
+            body: payload,
+            prefer: "return=representation"
+        )
+
+        let storedId = rows.first?.id ?? question.id
+        return InquiryQuestion(
+            id: storedId,
+            questionText: question.questionText,
+            questionType: question.questionType,
+            priority: question.priority,
+            dataGapsAddressed: question.dataGapsAddressed,
+            options: question.options,
+            feedContent: question.feedContent
+        )
     }
 
     private func resolveInquiryQuestion(from row: InquiryHistoryRow, language: String) -> InquiryQuestion? {
@@ -2678,14 +2740,6 @@ extension SupabaseManager {
 
         _ = try? await requestVoid("inquiry_history", method: "POST", body: payload, prefer: "return=representation")
         return inquiry
-    }
-
-    private func hasRecentInquiryResponse(userId: String, withinMinutes: Int) async -> Bool {
-        let threshold = Date().addingTimeInterval(-Double(max(1, withinMinutes)) * 60)
-        let iso = ISO8601DateFormatter().string(from: threshold)
-        let endpoint = "inquiry_history?user_id=eq.\(userId)&user_response=not.is.null&responded_at=gte.\(iso)&select=responded_at&order=responded_at.desc&limit=1"
-        let rows: [InquiryRecentResponseRow] = (try? await request(endpoint)) ?? []
-        return !rows.isEmpty
     }
 
     private func fetchAnsweredGapsToday(userId: String) async -> Set<String> {
@@ -3314,21 +3368,104 @@ extension SupabaseManager {
 extension SupabaseManager {
     private struct ProactiveInquiryContext: Codable {
         let recentData: [String: String]
-        let dataGaps: [String]
+        let dataGaps: [DataGap]
         let timeOfDay: String
+        let dayOfWeek: Int
+    }
+
+    private struct ProactiveInquiryHistoryItem: Codable {
+        let questionText: String
+        let questionType: String
+        let answer: String?
+        let createdAt: String?
     }
 
     private struct ProactiveInquiryPayload: Codable {
         let context: ProactiveInquiryContext
         let language: String
-        let history: [InquiryQuestion]
+        let history: [ProactiveInquiryHistoryItem]
     }
 
-    func generateProactiveInquiry(language: String) async throws -> InquiryQuestion {
-        if let inquiry = try await generateInquiryFromGaps(language: language) {
+    private struct ProactiveInquiryResponse: Codable {
+        let question: InquiryQuestion
+    }
+
+    func generateProactiveInquiry(
+        language: String,
+        excluding answeredGaps: Set<String> = []
+    ) async throws -> InquiryQuestion? {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+
+        let recentData = await collectRecentInquiryData(userId: user.id)
+        let dataGaps = InquiryEngine.identifyDataGaps(recentData: recentData, staleThresholdHours: 24)
+            .filter { !answeredGaps.contains($0.field) }
+
+        if let inquiry = try await generateProactiveInquiryFromAI(
+            userId: user.id,
+            language: language,
+            recentData: recentData,
+            dataGaps: dataGaps
+        ) {
             return inquiry
         }
-        throw SupabaseError.requestFailed
+
+        return try await generateInquiryFromGaps(language: language, excluding: answeredGaps)
+    }
+
+    private func generateProactiveInquiryFromAI(
+        userId: String,
+        language: String,
+        recentData: [String: (value: String, timestamp: String)],
+        dataGaps: [DataGap]
+    ) async throws -> InquiryQuestion? {
+        guard let url = appAPIURL(path: "api/ai/generate-inquiry") else { return nil }
+
+        let context = ProactiveInquiryContext(
+            recentData: recentData.mapValues { $0.value },
+            dataGaps: dataGaps,
+            timeOfDay: currentTimeOfDay(),
+            dayOfWeek: Calendar.current.component(.weekday, from: Date())
+        )
+
+        let history = await fetchInquiryHistory(userId: userId, limit: 5).map {
+            ProactiveInquiryHistoryItem(
+                questionText: $0.question_text ?? "",
+                questionType: $0.question_type ?? "diagnostic",
+                answer: $0.user_response,
+                createdAt: $0.created_at
+            )
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        attachSupabaseCookies(to: &request)
+        request.httpBody = try JSONEncoder().encode(
+            ProactiveInquiryPayload(
+                context: context,
+                language: language,
+                history: history
+            )
+        )
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                let decoded = try JSONDecoder().decode(ProactiveInquiryResponse.self, from: data)
+                return try await storeInquiry(question: decoded.question, userId: userId)
+            }
+        } catch {
+            print("[ProactiveInquiry] AI generation failed: \(error)")
+        }
+
+        return nil
+    }
+
+    private func currentTimeOfDay() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour >= 5 && hour < 12 { return "morning" }
+        if hour >= 12 && hour < 18 { return "afternoon" }
+        return "evening"
     }
 
     private func isAIConfigured() -> Bool {
@@ -3719,6 +3856,49 @@ category: \(category ?? "")
         }
 
         throw SupabaseError.requestFailed
+    }
+}
+
+// MARK: - 🆕 Daily AI Recommendations API
+extension SupabaseManager {
+    func getDailyRecommendations(date: Date = Date()) async throws -> [DailyAIRecommendationItem] {
+        guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+        let dayString = recommendationDateString(date)
+        let endpoint = "daily_ai_recommendations?user_id=eq.\(user.id)&recommendation_date=eq.\(dayString)&select=id,recommendation_date,recommendations&limit=1"
+        let rows: [DailyAIRecommendationsRow] = try await request(endpoint)
+        return rows.first?.recommendations ?? []
+    }
+
+    func triggerDailyRecommendations(force: Bool = false, language: String? = nil) async {
+        guard let url = appAPIURL(path: "api/recommendations/daily") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        attachSupabaseCookies(to: &request)
+
+        let payload: [String: Any] = [
+            "force": force,
+            "language": language ?? "zh"
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                print("[Recommendations] trigger failed: \(httpResponse.statusCode)")
+            }
+        } catch {
+            print("[Recommendations] trigger error: \(error)")
+        }
+    }
+
+    private func recommendationDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }
 

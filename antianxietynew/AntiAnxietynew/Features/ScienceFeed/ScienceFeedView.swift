@@ -8,6 +8,9 @@ struct ScienceFeedView: View {
     @Environment(\.screenMetrics) private var metrics
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var appSettings: AppSettings
+
+    private var language: AppLanguage { appSettings.language }
     
     var body: some View {
         ZStack {
@@ -17,17 +20,20 @@ struct ScienceFeedView: View {
                 centerAxisHeader
 
                 if viewModel.isLoading && viewModel.articles.isEmpty {
-                    AILoadingView(message: viewModel.loadingMessage)
+                    AILoadingView(message: viewModel.loadingMessage, language: language)
                         .frame(maxWidth: .infinity)
                 } else if viewModel.articles.isEmpty {
-                    EmptyFeedView(onRefresh: { Task { await viewModel.refresh() } })
+                    EmptyFeedView(language: language, onRefresh: {
+                        Task { await viewModel.refresh(language: language) }
+                    })
                 } else {
                     ScrollView {
                         VStack(spacing: metrics.sectionSpacing) {
                             // Header
                             FeedHeaderView(
+                                language: language,
                                 isRefreshing: viewModel.isRefreshing,
-                                onRefresh: { Task { await viewModel.refresh() } }
+                                onRefresh: { Task { await viewModel.refresh(language: language) } }
                             )
                             
                             // 文章列表
@@ -36,6 +42,7 @@ struct ScienceFeedView: View {
                                     ArticleCard(
                                         article: article,
                                         index: index,
+                                        language: language,
                                         onFeedback: { isPositive in
                                             Task { await viewModel.submitFeedback(articleId: article.id, isPositive: isPositive) }
                                         }
@@ -46,22 +53,26 @@ struct ScienceFeedView: View {
                             
                             // 刷新按钮
                             RefreshButton(
+                                language: language,
                                 isRefreshing: viewModel.isRefreshing,
-                                onRefresh: { Task { await viewModel.refresh() } }
+                                onRefresh: { Task { await viewModel.refresh(language: language) } }
                             )
                         }
                         .liquidGlassPageWidth()
                         .padding(.vertical, metrics.verticalPadding)
                     }
                     .refreshable {
-                        await viewModel.refresh()
+                        await viewModel.refresh(language: language)
                     }
                 }
             }
         }
         .navigationBarHidden(true)
         .task {
-            await viewModel.loadFeed()
+            await viewModel.loadFeed(language: language)
+        }
+        .onChange(of: language) { newLanguage in
+            Task { await viewModel.refresh(language: newLanguage) }
         }
     }
 
@@ -81,7 +92,7 @@ struct ScienceFeedView: View {
                 Spacer()
             }
 
-            Text("科学期刊")
+            Text(L10n.text("科学期刊", "Science Journal", language: language))
                 .font(.headline)
                 .foregroundColor(.textPrimary)
 
@@ -100,19 +111,21 @@ struct ScienceFeedView: View {
 
 // MARK: - Feed Header
 struct FeedHeaderView: View {
+    let language: AppLanguage
     let isRefreshing: Bool
     let onRefresh: () -> Void
     
     private var todayString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "M月d日"
+        formatter.locale = Locale(identifier: language == .en ? "en_US_POSIX" : "zh_CN")
+        formatter.dateFormat = language == .en ? "MMM d" : "M月d日"
         return formatter.string(from: Date())
     }
     
     var body: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("今日精选 · \(todayString)")
+                Text(L10n.text("今日精选 · \(todayString)", "Today's Picks · \(todayString)", language: language))
                     .font(.caption)
                     .tracking(2)
                     .foregroundColor(.liquidGlassAccent)
@@ -127,7 +140,7 @@ struct FeedHeaderView: View {
                         } else {
                             Image(systemName: "arrow.clockwise")
                         }
-                        Text("刷新")
+                        Text(L10n.text("刷新", "Refresh", language: language))
                     }
                     .font(.caption)
                     .foregroundColor(.liquidGlassAccent)
@@ -139,15 +152,15 @@ struct FeedHeaderView: View {
                 .disabled(isRefreshing)
             }
             
-            Text("为你量身定制的科学")
+            Text(L10n.text("为你量身定制的科学", "Science Tailored for You", language: language))
                 .font(.title.bold())
                 .foregroundColor(.textPrimary)
             
-            Text("每篇文章都经过 AI 分析，解释为什么它对你重要")
+            Text(L10n.text("每篇文章都经过 AI 分析，解释为什么它对你重要", "Each article is analyzed by AI to explain why it matters to you.", language: language))
                 .font(.subheadline)
                 .foregroundColor(.textSecondary)
             
-            Text("📅 每天下午 2:00（UTC+8）更新推荐")
+            Text(L10n.text("📅 每天下午 2:00（UTC+8）更新推荐", "📅 Updates daily at 2:00 PM (UTC+8)", language: language))
                 .font(.caption2)
                 .foregroundColor(.textTertiary)
         }
@@ -158,6 +171,7 @@ struct FeedHeaderView: View {
 struct ArticleCard: View {
     let article: ScienceArticle
     let index: Int
+    let language: AppLanguage
     let onFeedback: (Bool) -> Void
     
     private var isLight: Bool { index % 2 == 0 }
@@ -167,21 +181,26 @@ struct ArticleCard: View {
     private var cardSecondaryText: Color { isLight ? Color(hex: "#4A665A") : Color.brandPaper.opacity(0.75) }
     private var cardTertiaryText: Color { isLight ? Color(hex: "#7A8F70") : Color.brandPaper.opacity(0.55) }
     private var cardBorder: Color { isLight ? Color.black.opacity(0.06) : Color.white.opacity(0.12) }
+    private var titleText: String { language == .en ? article.title : (article.titleZh ?? article.title) }
+    private var summaryText: String? {
+        if language == .en { return article.summary ?? article.summaryZh }
+        return article.summaryZh ?? article.summary
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header: Platform + Match
             HStack {
-                PlatformBadge(platform: platform)
+                PlatformBadge(platform: platform, language: language)
                 Spacer()
-                MatchBadge(percentage: article.matchPercentage)
+                MatchBadge(percentage: article.matchPercentage, language: language)
             }
             
             // Title
             if let url = article.sourceUrl, let link = URL(string: url) {
                 Link(destination: link) {
                     HStack(alignment: .top) {
-                        Text(article.titleZh ?? article.title)
+                        Text(titleText)
                             .font(.headline)
                             .foregroundColor(cardPrimaryText)
                             .multilineTextAlignment(.leading)
@@ -191,37 +210,44 @@ struct ArticleCard: View {
                     }
                 }
             } else {
-                Text(article.titleZh ?? article.title)
+                Text(titleText)
                     .font(.headline)
                     .foregroundColor(cardPrimaryText)
             }
             
-            // 精华检索（个性化摘要）
-            if let digest = article.actionableInsight {
-                InsightBox(
-                    icon: "magnifyingglass",
-                    title: "精华检索",
-                    content: digest,
-                    accentColor: .liquidGlassSecondary,
-                    textColor: cardSecondaryText,
-                    backgroundColor: .liquidGlassSecondary.opacity(isLight ? 0.12 : 0.2)
-                )
-            } else if let summary = article.summaryZh ?? article.summary {
-                Text(summary)
-                    .font(.subheadline)
-                    .foregroundColor(cardSecondaryText)
-                    .lineLimit(3)
+            // 摘要
+            if let summary = summaryText, !summary.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L10n.text("摘要", "Summary", language: language))
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(cardTertiaryText)
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundColor(cardSecondaryText)
+                }
             }
             
             // 为什么推荐给你
             if let why = article.whyRecommended {
                 InsightBox(
                     icon: "sparkles",
-                    title: "为什么推荐给你",
+                    title: L10n.text("为什么推荐给你", "Why Recommended", language: language),
                     content: why,
                     accentColor: .liquidGlassAccent,
                     textColor: cardSecondaryText,
                     backgroundColor: .liquidGlassAccent.opacity(isLight ? 0.12 : 0.2)
+                )
+            }
+
+            // 你可以这样做
+            if let action = article.actionableInsight {
+                InsightBox(
+                    icon: "checkmark.circle.fill",
+                    title: L10n.text("你可以这样做", "What You Can Do", language: language),
+                    content: action,
+                    accentColor: .liquidGlassSecondary,
+                    textColor: cardSecondaryText,
+                    backgroundColor: .liquidGlassSecondary.opacity(isLight ? 0.12 : 0.2)
                 )
             }
             
@@ -247,7 +273,7 @@ struct ArticleCard: View {
                     Link(destination: link) {
                         HStack(spacing: 4) {
                             Image(systemName: "book.fill")
-                            Text("阅读全文")
+                            Text(L10n.text("阅读全文", "Read Full Text", language: language))
                             Image(systemName: "arrow.up.right")
                                 .font(.caption2)
                         }
@@ -284,11 +310,12 @@ struct ArticleCard: View {
 // MARK: - Platform Badge
 struct PlatformBadge: View {
     let platform: PlatformInfo
+    let language: AppLanguage
     
     var body: some View {
         HStack(spacing: 6) {
             Text(platform.icon)
-            Text(platform.nameZh)
+            Text(language == .en ? platform.name : platform.nameZh)
                 .font(.caption.weight(.medium))
         }
         .padding(.horizontal, 12)
@@ -302,13 +329,14 @@ struct PlatformBadge: View {
 // MARK: - Match Badge
 struct MatchBadge: View {
     let percentage: Int?
+    let language: AppLanguage
     
     var body: some View {
         if let pct = percentage {
             HStack(spacing: 4) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.caption2)
-                Text("\(pct)% 匹配")
+                Text(language == .en ? "\(pct)% Match" : "\(pct)% 匹配")
                     .font(.caption.bold())
             }
             .padding(.horizontal, 10)
@@ -365,6 +393,7 @@ struct InsightBox: View {
 // MARK: - AI Loading View
 struct AILoadingView: View {
     let message: String
+    let language: AppLanguage
     @State private var progress: CGFloat = 0
     
     var body: some View {
@@ -400,12 +429,13 @@ struct AILoadingView: View {
                     alignment: .leading
                 )
             
-            Text("这可能需要 10-20 秒")
+            Text(L10n.text("这可能需要 10-20 秒", "This may take 10-20 seconds", language: language))
                 .font(.caption2)
                 .foregroundColor(.textTertiary)
             
             Spacer()
         }
+        .offset(x: -6)
         .frame(maxWidth: .infinity)
         .padding()
         .onAppear {
@@ -418,6 +448,7 @@ struct AILoadingView: View {
 
 // MARK: - Empty Feed View
 struct EmptyFeedView: View {
+    let language: AppLanguage
     let onRefresh: () -> Void
     
     var body: some View {
@@ -426,16 +457,16 @@ struct EmptyFeedView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
             
-            Text("暂时没有个性化内容")
+            Text(L10n.text("暂时没有个性化内容", "No personalized content yet", language: language))
                 .font(.title3.bold())
                 .foregroundColor(.textPrimary)
             
-            Text("完成每日校准，即可开始接收 AI 精选研究")
+            Text(L10n.text("完成每日校准，即可开始接收 AI 精选研究", "Complete daily check-ins to receive AI-curated research.", language: language))
                 .font(.subheadline)
                 .foregroundColor(.textSecondary)
                 .multilineTextAlignment(.center)
             
-            Button("刷新", action: onRefresh)
+            Button(L10n.text("刷新", "Refresh", language: language), action: onRefresh)
                 .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
         }
         .padding()
@@ -444,6 +475,7 @@ struct EmptyFeedView: View {
 
 // MARK: - Refresh Button
 struct RefreshButton: View {
+    let language: AppLanguage
     let isRefreshing: Bool
     let onRefresh: () -> Void
     
@@ -456,7 +488,9 @@ struct RefreshButton: View {
                 } else {
                     Image(systemName: "arrow.clockwise")
                 }
-                Text(isRefreshing ? "刷新中..." : "刷新文章")
+                Text(isRefreshing
+                     ? L10n.text("刷新中...", "Refreshing...", language: language)
+                     : L10n.text("刷新文章", "Refresh Articles", language: language))
             }
             .font(.subheadline)
             .foregroundColor(.textPrimary)
@@ -516,5 +550,6 @@ struct ScienceFeedView_Previews: PreviewProvider {
     static var previews: some View {
         ScienceFeedView()
             .preferredColorScheme(.dark)
+            .environmentObject(AppSettings())
     }
 }

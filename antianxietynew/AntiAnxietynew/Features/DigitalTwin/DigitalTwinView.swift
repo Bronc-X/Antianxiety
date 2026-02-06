@@ -85,6 +85,7 @@ struct DigitalTwinView: View {
                         .background(Color.textPrimary.opacity(0.1))
                         .clipShape(Circle())
                 }
+                .padding(.trailing, 5)
             }
         }
         .frame(maxWidth: .infinity)
@@ -165,15 +166,82 @@ struct DigitalTwinView: View {
             }
             .padding()
         } else {
-            VStack(spacing: 12) {
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 36))
-                    .foregroundColor(.textTertiary)
-                Text("尚无预测数据")
-                    .font(.subheadline)
-                    .foregroundColor(.textSecondary)
+            digitalTwinSkeleton
+        }
+    }
+
+    private var digitalTwinSkeleton: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                skeletonSummaryRow
+                skeletonChart
+                skeletonGrid
+                skeletonCard(title: "里程碑")
+                skeletonCard(title: "基线量表")
             }
-            .padding()
+            .liquidGlassPageWidth()
+            .padding(.vertical, metrics.verticalPadding)
+            .padding(.bottom, metrics.isCompactHeight ? 16 : 24)
+        }
+    }
+
+    private var skeletonSummaryRow: some View {
+        HStack(spacing: 12) {
+            skeletonStatCard(title: "整体改善")
+            skeletonStatCard(title: "首次见效")
+            skeletonStatCard(title: "坚持度")
+        }
+    }
+
+    private func skeletonStatCard(title: String) -> some View {
+        LiquidGlassCard(style: .concave, padding: 12) {
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.textPrimary.opacity(0.1))
+                    .frame(height: 18)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var skeletonChart: some View {
+        LiquidGlassCard(style: .standard, padding: 12) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("预测曲线")
+                    .font(.headline)
+                    .foregroundColor(.textPrimary)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.textPrimary.opacity(0.08))
+                    .frame(height: 200)
+            }
+        }
+    }
+
+    private var skeletonGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            skeletonCard(title: "焦虑评分")
+            skeletonCard(title: "睡眠质量")
+            skeletonCard(title: "情绪稳定")
+            skeletonCard(title: "能量水平")
+        }
+    }
+
+    private func skeletonCard(title: String) -> some View {
+        LiquidGlassCard(style: .standard, padding: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.textSecondary)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.textPrimary.opacity(0.1))
+                    .frame(height: 20)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.textPrimary.opacity(0.06))
+                    .frame(height: 14)
+            }
         }
     }
 

@@ -34,6 +34,11 @@ class DashboardViewModel: ObservableObject {
     @Published var inquiry: InquiryQuestion?
     @Published var isInquiryLoading = false
     @Published var inquiryError: String?
+
+    /// AI 建议（每日 3-4 条，后台生成）
+    @Published var aiRecommendations: [DailyAIRecommendationItem] = []
+    @Published var isRecommendationsLoading = false
+    @Published var recommendationsError: String?
     
     /// 加载状态
     @Published var isLoading = false
@@ -97,7 +102,10 @@ class DashboardViewModel: ObservableObject {
         if let readiness = todayLog?.overall_readiness {
             return readiness
         }
-        return calculateOverallScoreFromLogs(weeklyLogs)
+        if let score = calculateOverallScoreFromLogs(weeklyLogs) {
+            return score
+        }
+        return calculateOverallScoreFromDigitalTwin(digitalTwinDashboard)
     }
     
     /// 状态标签
@@ -119,6 +127,16 @@ class DashboardViewModel: ObservableObject {
         case 60..<80: return .liquidGlassAccent
         case 40..<60: return .statusWarning
         default: return .statusError
+        }
+    }
+
+    /// 整体趋势（来自数字孪生曲线）
+    var overallTrendText: String? {
+        guard let trend = calculateOverallTrendFromDigitalTwin(digitalTwinDashboard) else { return nil }
+        switch trend {
+        case .improving: return "趋势：上升"
+        case .declining: return "趋势：下降"
+        case .stable: return "趋势：稳定"
         }
     }
     
@@ -160,17 +178,7 @@ class DashboardViewModel: ObservableObject {
     
     /// 今日 AI 建议
     var aiRecommendation: String? {
-        if let recommendation = todayLog?.ai_recommendation, !recommendation.isEmpty {
-            return recommendation
-        }
-        guard let plan = digitalTwinDashboard?.adaptivePlan else { return nil }
-        if let focus = plan.dailyFocus.first?.action {
-            return focus
-        }
-        if let sleep = plan.sleepRecommendations.first?.recommendation {
-            return sleep
-        }
-        return plan.activitySuggestions.first?.activity
+        nil
     }
 
     /// Digital Twin 状态
@@ -204,6 +212,11 @@ class DashboardViewModel: ObservableObject {
     private static var cachedTwin: DigitalTwinDashboardPayload?
     private static var lastTwinFetchTime: Date?
     private static let staleTime: TimeInterval = 30 // 30 秒
+    private static var lastInquiryUserId: String?
+    private static var lastInquiryToken: String?
+
+    private let recommendationsCacheKey = "daily_ai_recommendations_cache"
+    private let recommendationsTriggerKeyPrefix = "daily_ai_recommendations_trigger_"
     
     private var isCacheStale: Bool {
         guard let lastFetch = Self.lastFetchTime else { return true }
@@ -361,7 +374,8 @@ class DashboardViewModel: ObservableObject {
 
     // MARK: - AI Inquiry (主动问询)
 
-    func loadInquiry(language: String) async {
+    func loadInquiry(language: String, force: Bool = false) async {
+        guard shouldRefreshInquiry(force: force) else { return }
         isInquiryLoading = true
         inquiryError = nil
         do {
@@ -372,6 +386,18 @@ class DashboardViewModel: ObservableObject {
             inquiryError = error.localizedDescription
         }
         isInquiryLoading = false
+    }
+
+    private func shouldRefreshInquiry(force: Bool) -> Bool {
+        if force { return true }
+        guard let userId = supabase.currentUser?.id else { return false }
+        let token = UserDefaults.standard.string(forKey: "supabase_access_token") ?? ""
+        if Self.lastInquiryUserId != userId || Self.lastInquiryToken != token {
+            Self.lastInquiryUserId = userId
+            Self.lastInquiryToken = token
+            return true
+        }
+        return inquiry == nil
     }
 
     func respondInquiry(option: InquiryOption) async {
@@ -390,6 +416,69 @@ class DashboardViewModel: ObservableObject {
 
     func dismissInquiry() {
         inquiry = nil
+    }
+
+    // MARK: - AI Recommendations (每日 3-4 条，后台生成)
+
+    func loadDailyRecommendations(language: String, force: Bool = false) async {
+        if aiRecommendations.isEmpty {
+            isRecommendationsLoading = true
+        }
+        recommendationsError = nil
+        let now = Date()
+
+        do {
+            let items = try await supabase.getDailyRecommendations(date: now)
+            if !items.isEmpty {
+                aiRecommendations = items
+                saveRecommendationsCache(items, date: now)
+            } else if let cached = loadRecommendationsCache(for: now) {
+                aiRecommendations = cached
+            }
+
+            if items.isEmpty && shouldTriggerRecommendations(for: now, force: force) {
+                Task.detached { [language] in
+                    await SupabaseManager.shared.triggerDailyRecommendations(force: force, language: language)
+                }
+            }
+        } catch {
+            recommendationsError = error.localizedDescription
+            if let cached = loadRecommendationsCache(for: now) {
+                aiRecommendations = cached
+            }
+        }
+
+        isRecommendationsLoading = false
+    }
+
+    private func loadRecommendationsCache(for date: Date) -> [DailyAIRecommendationItem]? {
+        guard let data = UserDefaults.standard.data(forKey: recommendationsCacheKey),
+              let cache = try? JSONDecoder().decode(DailyAIRecommendationCache.self, from: data) else {
+            return nil
+        }
+        let dayString = cache.date
+        if dayString == DailyAIRecommendationCache.dateString(from: date) {
+            return cache.items
+        }
+        return nil
+    }
+
+    private func saveRecommendationsCache(_ items: [DailyAIRecommendationItem], date: Date) {
+        let cache = DailyAIRecommendationCache(date: DailyAIRecommendationCache.dateString(from: date), items: items)
+        if let data = try? JSONEncoder().encode(cache) {
+            UserDefaults.standard.set(data, forKey: recommendationsCacheKey)
+        }
+    }
+
+    private func shouldTriggerRecommendations(for date: Date, force: Bool) -> Bool {
+        if force { return true }
+        let dayString = DailyAIRecommendationCache.dateString(from: date)
+        let key = "\(recommendationsTriggerKeyPrefix)\(dayString)"
+        if UserDefaults.standard.bool(forKey: key) {
+            return false
+        }
+        UserDefaults.standard.set(true, forKey: key)
+        return true
     }
     
     // MARK: - Sync (对应 sync)
@@ -524,6 +613,62 @@ class DashboardViewModel: ObservableObject {
         return Int(round(overallScore))
     }
 
+    private func calculateOverallScoreFromDigitalTwin(_ dashboard: DigitalTwinDashboardResponse?) -> Int? {
+        guard let charts = dashboard?.dashboardData.charts else { return nil }
+        let anxiety = charts.anxietyTrend.last.map { 100 - $0 }
+        let sleep = charts.sleepTrend.last
+        let energy = charts.energyTrend.last
+        let hrv = charts.hrvTrend.last
+
+        let values = [anxiety, sleep, energy, hrv].compactMap { $0 }
+        guard !values.isEmpty else { return nil }
+        let avg = values.reduce(0, +) / Double(values.count)
+        return Int(avg.rounded())
+    }
+
+    private enum OverallTrend {
+        case improving
+        case stable
+        case declining
+    }
+
+    private func calculateOverallTrendFromDigitalTwin(_ dashboard: DigitalTwinDashboardResponse?) -> OverallTrend? {
+        guard let charts = dashboard?.dashboardData.charts else { return nil }
+        let count = charts.anxietyTrend.count
+        guard count >= 2 else { return nil }
+
+        let current = averageDigitalTwinScore(
+            anxiety: charts.anxietyTrend.last,
+            sleep: charts.sleepTrend.last,
+            energy: charts.energyTrend.last,
+            hrv: charts.hrvTrend.last
+        )
+        let previous = averageDigitalTwinScore(
+            anxiety: charts.anxietyTrend.dropLast().last,
+            sleep: charts.sleepTrend.dropLast().last,
+            energy: charts.energyTrend.dropLast().last,
+            hrv: charts.hrvTrend.dropLast().last
+        )
+
+        guard let curr = current, let prev = previous else { return nil }
+        let delta = curr - prev
+        if delta > 2 { return .improving }
+        if delta < -2 { return .declining }
+        return .stable
+    }
+
+    private func averageDigitalTwinScore(
+        anxiety: Double?,
+        sleep: Double?,
+        energy: Double?,
+        hrv: Double?
+    ) -> Double? {
+        let transformedAnxiety = anxiety.map { 100 - $0 }
+        let values = [transformedAnxiety, sleep, energy, hrv].compactMap { $0 }
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
     private func sleepQualityFactor(_ value: String?) -> Double? {
         guard let value else { return nil }
         if let numeric = Double(value) {
@@ -542,5 +687,19 @@ class DashboardViewModel: ObservableObject {
         if value <= 5 { return max(1, value) }
         let normalized = Int(round(Double(value) / 2.0))
         return min(5, max(1, normalized))
+    }
+}
+
+private struct DailyAIRecommendationCache: Codable {
+    let date: String
+    let items: [DailyAIRecommendationItem]
+
+    static func dateString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }

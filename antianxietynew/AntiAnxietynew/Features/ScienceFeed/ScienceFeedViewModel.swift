@@ -16,17 +16,43 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
     // AI 加载消息
     @Published var loadingMessage = ""
     private var loadingTimer: Timer?
+    private var activeLanguage: AppLanguage = .zh
     
     // 缓存
-    private let cacheKey = "science_feed_cache"
+    private let cacheKeyPrefix = "science_feed_cache_"
     private var lastFetchDate: Date?
+    private var lastFetchLanguage: AppLanguage?
     private let personalizationLimit = 8
     private let minMemorySimilarity: Double = 0.58
     
     // MARK: - 加载消息（对齐 Web 端）
     
     private var loadingMessages: [String] {
-        [
+        if activeLanguage == .en {
+            return [
+                "Connecting to academic databases...",
+                "Scanning latest PubMed studies...",
+                "Querying Semantic Scholar...",
+                "Scanned \(Int.random(in: 800...2500)) papers...",
+                "Analyzing relevance signals...",
+                "Filtered \(Int.random(in: 1800...4500)) low-relevance papers",
+                "Found \(Int.random(in: 15...45)) high-match studies",
+                "Extracting key takeaways...",
+                "Assessing study methods...",
+                "Evaluating evidence strength...",
+                "Cross-validating conclusions...",
+                "Removed \(Int.random(in: 80...250)) duplicates",
+                "Generating personalized interpretation...",
+                "Matching your health profile...",
+                "Calculating relevance score...",
+                "Reviewing \(Int.random(in: 12...35)) high-impact journals...",
+                "Drafting actionable advice...",
+                "Optimizing ranking...",
+                "Final review...",
+                "Almost ready..."
+            ]
+        }
+        return [
             "正在连接学术数据库...",
             "扫描 PubMed 最新研究...",
             "检索 Semantic Scholar 论文...",
@@ -54,12 +80,19 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        loadFromCache()
+        loadFromCache(language: activeLanguage)
     }
     
     // MARK: - 加载 Feed
     
-    func loadFeed() async {
+    func loadFeed(language: AppLanguage) async {
+        if lastFetchLanguage != language {
+            lastFetchLanguage = language
+            lastFetchDate = nil
+            articles = []
+            loadFromCache(language: language)
+        }
+        activeLanguage = language
         // 检查缓存是否有效（同一天）
         if let lastDate = lastFetchDate, Calendar.current.isDateInToday(lastDate), !articles.isEmpty {
             print("📦 使用今日缓存")
@@ -79,7 +112,7 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         startLoadingAnimation()
         
         do {
-            let response = try await SupabaseManager.shared.getScienceFeed(language: "zh")
+            let response = try await SupabaseManager.shared.getScienceFeed(language: language.rawValue)
             let baseArticles = response.articles
             articles = baseArticles
             personalization = response.personalization
@@ -103,13 +136,15 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         isLoading = false
     }
     
-    func refresh() async {
+    func refresh(language: AppLanguage) async {
+        activeLanguage = language
+        lastFetchLanguage = language
         isRefreshing = true
         lastFetchDate = nil  // 强制刷新
-        clearCache()
+        clearCache(language: language)
         
         do {
-            let response = try await SupabaseManager.shared.getScienceFeed(language: "zh")
+            let response = try await SupabaseManager.shared.getScienceFeed(language: language.rawValue)
             let baseArticles = response.articles
             articles = baseArticles
             personalization = response.personalization
@@ -179,26 +214,31 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
     
     // MARK: - 缓存
     
-    private func loadFromCache() {
-        guard let data = UserDefaults.standard.data(forKey: cacheKey),
+    private func loadFromCache(language: AppLanguage) {
+        guard let data = UserDefaults.standard.data(forKey: cacheKey(for: language)),
               let cache = try? JSONDecoder().decode(ScienceFeedCache.self, from: data),
               Calendar.current.isDateInToday(cache.date) else {
             return
         }
         articles = cache.articles
         lastFetchDate = cache.date
+        lastFetchLanguage = language
         print("📦 从缓存加载了 \(articles.count) 篇文章")
     }
     
     private func saveToCache() {
         let cache = ScienceFeedCache(articles: articles, date: Date())
         if let data = try? JSONEncoder().encode(cache) {
-            UserDefaults.standard.set(data, forKey: cacheKey)
+            UserDefaults.standard.set(data, forKey: cacheKey(for: activeLanguage))
         }
     }
     
-    private func clearCache() {
-        UserDefaults.standard.removeObject(forKey: cacheKey)
+    private func clearCache(language: AppLanguage) {
+        UserDefaults.standard.removeObject(forKey: cacheKey(for: language))
+    }
+
+    private func cacheKey(for language: AppLanguage) -> String {
+        "\(cacheKeyPrefix)\(language.rawValue)"
     }
 
     // MARK: - 个性化（向量检索 + 历史记录）
@@ -214,7 +254,7 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
                 let updated = await personalizeArticle(article, userId: userId, profile: profile)
                 result.append(updated)
             } else {
-                result.append(article)
+                result.append(applyFallbackPersonalization(article, profile: profile))
             }
         }
         return result
@@ -241,16 +281,37 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
             memorySnippet: memorySnippet,
             similarity: similarity
         )
-        let digest = buildDigest(
-            summary: article.summaryZh ?? article.summary,
-            focus: focus,
-            memorySnippet: memorySnippet
+        let actionable = buildActionableInsight(focus: focus, memorySnippet: memorySnippet)
+        let match = calculateMatchPercentage(
+            article: article,
+            similarity: similarity,
+            focus: focus
         )
-        let match = mergeMatch(existing: article.matchPercentage, similarity: similarity)
 
         return article.applyingOverrides(
             whyRecommended: reason,
-            actionableInsight: digest,
+            actionableInsight: actionable,
+            matchPercentage: match
+        )
+    }
+
+    private func applyFallbackPersonalization(_ article: ScienceArticle, profile: ProfileSettings?) -> ScienceArticle {
+        let focus = focusLabel(from: profile)
+        let reason = buildWhyRecommended(
+            base: article.whyRecommended,
+            focus: focus,
+            memorySnippet: nil,
+            similarity: nil
+        )
+        let actionable = buildActionableInsight(focus: focus, memorySnippet: nil)
+        let match = calculateMatchPercentage(
+            article: article,
+            similarity: nil,
+            focus: focus
+        )
+        return article.applyingOverrides(
+            whyRecommended: reason,
+            actionableInsight: actionable,
             matchPercentage: match
         )
     }
@@ -261,59 +322,146 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         memorySnippet: String?,
         similarity: Double?
     ) -> String? {
+        let isEn = activeLanguage == .en
         var parts: [String] = []
         if let focus, !focus.isEmpty {
-            parts.append("与你当前关注「\(focus)」相关")
+            parts.append(isEn ? "Aligned with your focus: \(focus)" : "与你当前关注「\(focus)」相关")
         }
         if let memorySnippet, !memorySnippet.isEmpty {
-            parts.append("与你近期记录「\(memorySnippet)」高度相关")
+            parts.append(isEn ? "Related to your recent note: \(memorySnippet)" : "与你近期记录「\(memorySnippet)」高度相关")
         }
         if let similarity, similarity >= minMemorySimilarity {
-            parts.append("相似度约 \(Int(min(max(similarity, 0.4), 0.98) * 100))%")
+            let percentage = Int(min(max(similarity, 0.4), 0.98) * 100)
+            parts.append(isEn ? "Similarity ~\(percentage)%" : "相似度约 \(percentage)%")
         }
 
         if parts.isEmpty {
-            return base ?? "基于科学检索与历史数据匹配"
+            if let base, !base.isEmpty, shouldUseBase(base, isEn: isEn) {
+                return base
+            }
+            return isEn ? "Matched from research signals and your history" : "基于科学检索与历史数据匹配"
         }
 
-        if let base, !base.isEmpty, base != "基于科学检索匹配" {
+        if let base, !base.isEmpty, base != "基于科学检索匹配", shouldUseBase(base, isEn: isEn) {
             parts.append(base)
         }
         return parts.joined(separator: " · ")
     }
 
-    private func buildDigest(summary: String?, focus: String?, memorySnippet: String?) -> String? {
-        guard let summary, !summary.isEmpty else { return nil }
-        let core = shortenSummary(summary)
-        var parts: [String] = ["要点：\(core)"]
-        if let focus, !focus.isEmpty {
-            parts.append("与你关注的「\(focus)」相关")
-        }
-        if let memorySnippet, !memorySnippet.isEmpty {
-            parts.append("关联：\(memorySnippet)")
-        }
-        return parts.joined(separator: "  ")
+    private func buildActionableInsight(focus: String?, memorySnippet: String?) -> String? {
+        actionSuggestion(for: focus, memorySnippet: memorySnippet)
     }
 
-    private func mergeMatch(existing: Int?, similarity: Double?) -> Int? {
-        guard let similarity, similarity >= minMemorySimilarity else { return existing }
-        let computed = Int(min(max(similarity, 0.4), 0.98) * 100)
-        if let existing { return max(existing, computed) }
-        return computed
+    private func calculateMatchPercentage(
+        article: ScienceArticle,
+        similarity: Double?,
+        focus: String?
+    ) -> Int? {
+        let similarityScore = min(max(similarity ?? 0.55, 0.2), 0.98)
+        let content = [
+            article.titleZh ?? article.title,
+            article.summaryZh ?? article.summary,
+            (article.tags ?? []).joined(separator: " ")
+        ]
+        .compactMap { $0 }
+        .joined(separator: " ")
+        let topicScore = calculateTopicMatchScore(contentText: content, focus: focus, tags: article.tags)
+        let freshnessScore = calculateFreshnessScore(article.createdAt)
+        let authorityScore = calculateAuthorityScore(article.sourceType)
+
+        let weighted = similarityScore * 0.40 + topicScore * 0.30 + freshnessScore * 0.15 + authorityScore * 0.15
+        return Int(round(max(60, min(99, weighted * 40 + 60))))
     }
 
     private func focusLabel(from profile: ProfileSettings?) -> String? {
         guard let raw = profile?.current_focus ?? profile?.primary_goal,
               !raw.isEmpty else { return nil }
+        let isEn = activeLanguage == .en
         switch raw {
-        case "reduce_stress": return "减压"
-        case "improve_sleep": return "睡眠"
-        case "maintain_energy": return "能量提升"
-        case "anxiety": return "焦虑"
-        case "sleep": return "睡眠"
-        case "stress": return "压力管理"
+        case "reduce_stress": return isEn ? "stress relief" : "减压"
+        case "improve_sleep": return isEn ? "sleep" : "睡眠"
+        case "maintain_energy": return isEn ? "energy" : "能量提升"
+        case "anxiety": return isEn ? "anxiety" : "焦虑"
+        case "sleep": return isEn ? "sleep" : "睡眠"
+        case "stress": return isEn ? "stress management" : "压力管理"
         default: return raw
         }
+    }
+
+    private func actionSuggestion(for focus: String?, memorySnippet: String?) -> String? {
+        let isEn = activeLanguage == .en
+        if let focus {
+            let lower = focus.lowercased()
+            if lower.contains("sleep") || focus.contains("睡眠") {
+                return isEn ? "keep a consistent bedtime and get 10 minutes of morning light" : "固定入睡时间，早晨晒 10 分钟自然光"
+            }
+            if lower.contains("stress") || focus.contains("压力") || focus.contains("减压") {
+                return isEn ? "do 5 minutes of slow breathing in the afternoon" : "下午安排 5 分钟慢呼吸"
+            }
+            if lower.contains("energy") || focus.contains("能量") {
+                return isEn ? "add a 10-minute brisk walk after lunch" : "午饭后快走 10 分钟"
+            }
+        }
+        if let snippet = memorySnippet, !snippet.isEmpty {
+            return activeLanguage == .en ? "start from a small change related to \(snippet)" : "从与你近期记录「\(snippet)」相关的小改变开始"
+        }
+        return activeLanguage == .en ? "choose one small action and do it today" : "选一个小行动，今天完成一次"
+    }
+
+    private func calculateFreshnessScore(_ publishedAt: Date?) -> Double {
+        guard let publishedAt else { return 0.5 }
+        let days = Date().timeIntervalSince(publishedAt) / (60 * 60 * 24)
+        if days <= 7 { return 1.0 }
+        if days <= 30 { return 0.8 }
+        if days <= 90 { return 0.6 }
+        if days <= 365 { return 0.4 }
+        return 0.2
+    }
+
+    private func calculateAuthorityScore(_ sourceType: String?) -> Double {
+        switch sourceType?.lowercased() {
+        case "pubmed": return 0.95
+        case "semantic_scholar": return 0.85
+        case "nature": return 1.0
+        case "science": return 1.0
+        case "lancet": return 0.98
+        case "cell": return 0.98
+        case "journal": return 0.75
+        case "research_institution": return 0.7
+        case "university": return 0.7
+        case "x": return 0.45
+        case "reddit": return 0.4
+        default: return 0.6
+        }
+    }
+
+    private func calculateTopicMatchScore(contentText: String, focus: String?, tags: [String]?) -> Double {
+        let content = contentText.lowercased()
+        var topics: [String] = []
+        if let focus {
+            topics.append(contentsOf: focus.lowercased().split(separator: " ").map(String.init))
+        }
+        if let tags = tags {
+            topics.append(contentsOf: tags.map { $0.lowercased() })
+        }
+
+        let anxietyKeywords = [
+            "anxiety", "stress", "sleep", "mood", "depression", "mindfulness",
+            "meditation", "breathing", "relaxation", "cortisol", "nervous",
+            "焦虑", "压力", "睡眠", "情绪", "抑郁", "正念", "冥想", "呼吸", "放松"
+        ]
+        topics.append(contentsOf: anxietyKeywords)
+
+        let allTopics = Array(Set(topics.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })).filter { !$0.isEmpty }
+        guard !allTopics.isEmpty else { return 0.5 }
+
+        var matchCount = 0
+        for topic in allTopics.prefix(10) {
+            if content.contains(topic) {
+                matchCount += 1
+            }
+        }
+        return min(1.0, Double(matchCount) / Double(min(allTopics.count, 10)))
     }
 
     private func trimMemorySnippet(_ text: String?, limit: Int = 18) -> String? {
@@ -326,18 +474,14 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         return "\(cleaned.prefix(limit))…"
     }
 
-    private func shortenSummary(_ text: String, maxLength: Int = 80) -> String {
-        let cleaned = text
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.count <= maxLength { return cleaned }
-        let separators: [Character] = ["。", "！", "？", ".", "!", "?"]
-        if let cutIndex = cleaned.firstIndex(where: { separators.contains($0) }) {
-            let prefix = String(cleaned[..<cutIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
-            if !prefix.isEmpty { return prefix }
+    private func shouldUseBase(_ base: String, isEn: Bool) -> Bool {
+        let hasChinese = base.range(of: "\\p{Han}", options: .regularExpression) != nil
+        if isEn {
+            return !hasChinese
         }
-        return "\(cleaned.prefix(maxLength))…"
+        return hasChinese
     }
+
 }
 
 // 缓存结构

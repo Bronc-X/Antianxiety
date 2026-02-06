@@ -34,6 +34,22 @@ struct CoreHubView: View {
             destination: AnyView(InquiryCenterView())
         ),
         CoreHubModule(
+            id: "clinical-assessment",
+            title: "临床评估",
+            subtitle: "GAD-7 / PHQ-9 / ISI",
+            icon: "stethoscope",
+            accent: .liquidGlassSecondary,
+            destination: AnyView(AssessmentView())
+        ),
+        CoreHubModule(
+            id: "wearables",
+            title: "穿戴设备",
+            subtitle: "HRV / 心率 / 睡眠同步",
+            icon: "applewatch",
+            accent: .liquidGlassAccent,
+            destination: AnyView(WearableConnectView(viewModel: WearableConnectViewModel()))
+        ),
+        CoreHubModule(
             id: "voice-analysis",
             title: "语音分析",
             subtitle: "语音状态解析 + 压力线索",
