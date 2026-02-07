@@ -2,16 +2,20 @@
 //  antiosApp.swift
 //  antios
 //
-//  Created by Broncin on 2026/2/6.
+//  应用入口
 //
 
 import SwiftUI
 
 @main
 struct antiosApp: App {
+    @StateObject private var authManager = AuthManager()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(authManager)
+                .preferredColorScheme(.dark)
         }
     }
 }

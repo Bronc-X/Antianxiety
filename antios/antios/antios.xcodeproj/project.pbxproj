@@ -14,6 +14,30 @@
 		EE94EA802F3618320091CF54 /* antiosTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE94EA7F2F3618320091CF54 /* antiosTests.swift */; };
 		EE94EA8A2F3618320091CF54 /* antiosUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE94EA892F3618320091CF54 /* antiosUITests.swift */; };
 		EE94EA8C2F3618320091CF54 /* antiosUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE94EA8B2F3618320091CF54 /* antiosUITestsLaunchTests.swift */; };
+		EECCB2972F37552E000E1C0B /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2702F37552D000E1C0B /* APIClient.swift */; };
+		EECCB2982F37552E000E1C0B /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2722F37552D000E1C0B /* KeychainService.swift */; };
+		EECCB2992F37552E000E1C0B /* SupabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2742F37552D000E1C0B /* SupabaseManager.swift */; };
+		EECCB29A2F37552E000E1C0B /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2772F37552D000E1C0B /* AppTheme.swift */; };
+		EECCB29B2F37552E000E1C0B /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB27A2F37552D000E1C0B /* ChatViewModel.swift */; };
+		EECCB29C2F37552E000E1C0B /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB27B2F37552D000E1C0B /* ChatView.swift */; };
+		EECCB29D2F37552E000E1C0B /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB27D2F37552D000E1C0B /* AuthView.swift */; };
+		EECCB29E2F37552E000E1C0B /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB27E2F37552D000E1C0B /* AuthManager.swift */; };
+		EECCB29F2F37552E000E1C0B /* AIPersonaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB27F2F37552D000E1C0B /* AIPersonaSettingsView.swift */; };
+		EECCB2A02F37552E000E1C0B /* DailyCalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2812F37552D000E1C0B /* DailyCalibrationView.swift */; };
+		EECCB2A12F37552E000E1C0B /* MaxPlanChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2832F37552D000E1C0B /* MaxPlanChatView.swift */; };
+		EECCB2A22F37552E000E1C0B /* PlanReplaceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2842F37552D000E1C0B /* PlanReplaceService.swift */; };
+		EECCB2A32F37552E000E1C0B /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2852F37552D000E1C0B /* PlanView.swift */; };
+		EECCB2A42F37552E000E1C0B /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2872F37552D000E1C0B /* ProfileView.swift */; };
+		EECCB2A52F37552E000E1C0B /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2882F37552D000E1C0B /* HomeView.swift */; };
+		EECCB2A62F37552E000E1C0B /* ClinicalScalesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB28A2F37552D000E1C0B /* ClinicalScalesView.swift */; };
+		EECCB2A72F37552E000E1C0B /* ReportExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB28B2F37552D000E1C0B /* ReportExportService.swift */; };
+		EECCB2A82F37552E000E1C0B /* ScaleAssessmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB28C2F37552D000E1C0B /* ScaleAssessmentView.swift */; };
+		EECCB2A92F37552E000E1C0B /* ResultInterpretationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB28D2F37552D000E1C0B /* ResultInterpretationView.swift */; };
+		EECCB2AA2F37552E000E1C0B /* CuratedFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB28F2F37552D000E1C0B /* CuratedFeedView.swift */; };
+		EECCB2AB2F37552E000E1C0B /* DigitalTwinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2912F37552D000E1C0B /* DigitalTwinView.swift */; };
+		EECCB2AC2F37552E000E1C0B /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2932F37552D000E1C0B /* HealthKitService.swift */; };
+		EECCB2AD2F37552E000E1C0B /* WearablesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2942F37552D000E1C0B /* WearablesView.swift */; };
+		EECCB2AE2F37552E000E1C0B /* BayesianAnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECCB2962F37552D000E1C0B /* BayesianAnalyticsService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +69,30 @@
 		EE94EA852F3618320091CF54 /* antiosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = antiosUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE94EA892F3618320091CF54 /* antiosUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = antiosUITests.swift; sourceTree = "<group>"; };
 		EE94EA8B2F3618320091CF54 /* antiosUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = antiosUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		EECCB2702F37552D000E1C0B /* APIClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		EECCB2722F37552D000E1C0B /* KeychainService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		EECCB2742F37552D000E1C0B /* SupabaseManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SupabaseManager.swift; sourceTree = "<group>"; };
+		EECCB2772F37552D000E1C0B /* AppTheme.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		EECCB27A2F37552D000E1C0B /* ChatViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		EECCB27B2F37552D000E1C0B /* ChatView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		EECCB27D2F37552D000E1C0B /* AuthView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		EECCB27E2F37552D000E1C0B /* AuthManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		EECCB27F2F37552D000E1C0B /* AIPersonaSettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AIPersonaSettingsView.swift; sourceTree = "<group>"; };
+		EECCB2812F37552D000E1C0B /* DailyCalibrationView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DailyCalibrationView.swift; sourceTree = "<group>"; };
+		EECCB2832F37552D000E1C0B /* MaxPlanChatView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MaxPlanChatView.swift; sourceTree = "<group>"; };
+		EECCB2842F37552D000E1C0B /* PlanReplaceService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlanReplaceService.swift; sourceTree = "<group>"; };
+		EECCB2852F37552D000E1C0B /* PlanView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
+		EECCB2872F37552D000E1C0B /* ProfileView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		EECCB2882F37552D000E1C0B /* HomeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		EECCB28A2F37552D000E1C0B /* ClinicalScalesView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClinicalScalesView.swift; sourceTree = "<group>"; };
+		EECCB28B2F37552D000E1C0B /* ReportExportService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReportExportService.swift; sourceTree = "<group>"; };
+		EECCB28C2F37552D000E1C0B /* ScaleAssessmentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScaleAssessmentView.swift; sourceTree = "<group>"; };
+		EECCB28D2F37552D000E1C0B /* ResultInterpretationView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ResultInterpretationView.swift; sourceTree = "<group>"; };
+		EECCB28F2F37552D000E1C0B /* CuratedFeedView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CuratedFeedView.swift; sourceTree = "<group>"; };
+		EECCB2912F37552D000E1C0B /* DigitalTwinView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DigitalTwinView.swift; sourceTree = "<group>"; };
+		EECCB2932F37552D000E1C0B /* HealthKitService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		EECCB2942F37552D000E1C0B /* WearablesView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WearablesView.swift; sourceTree = "<group>"; };
+		EECCB2962F37552D000E1C0B /* BayesianAnalyticsService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BayesianAnalyticsService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +123,9 @@
 		EE94EA612F36182C0091CF54 = {
 			isa = PBXGroup;
 			children = (
+				EECCB26E2F37552D000E1C0B /* Core */,
+				EECCB2782F37552D000E1C0B /* Features */,
+				EECCB2752F37552D000E1C0B /* UI */,
 				EE94EA6C2F36182C0091CF54 /* antios */,
 				EE94EA7E2F3618320091CF54 /* antiosTests */,
 				EE94EA882F3618320091CF54 /* antiosUITests */,
@@ -127,6 +178,163 @@
 				EE94EA8B2F3618320091CF54 /* antiosUITestsLaunchTests.swift */,
 			);
 			path = antiosUITests;
+			sourceTree = "<group>";
+		};
+		EECCB26E2F37552D000E1C0B /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB26F2F37552D000E1C0B /* Network */,
+				EECCB2712F37552D000E1C0B /* Storage */,
+				EECCB2732F37552D000E1C0B /* Supabase */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		EECCB26F2F37552D000E1C0B /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2702F37552D000E1C0B /* APIClient.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		EECCB2712F37552D000E1C0B /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2722F37552D000E1C0B /* KeychainService.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		EECCB2732F37552D000E1C0B /* Supabase */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2742F37552D000E1C0B /* SupabaseManager.swift */,
+			);
+			path = Supabase;
+			sourceTree = "<group>";
+		};
+		EECCB2752F37552D000E1C0B /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2762F37552D000E1C0B /* Theme */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		EECCB2762F37552D000E1C0B /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2772F37552D000E1C0B /* AppTheme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		EECCB2782F37552D000E1C0B /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2792F37552D000E1C0B /* Chat */,
+				EECCB27C2F37552D000E1C0B /* Auth */,
+				EECCB2802F37552D000E1C0B /* Calibration */,
+				EECCB2822F37552D000E1C0B /* Plan */,
+				EECCB2862F37552D000E1C0B /* Shared */,
+				EECCB2892F37552D000E1C0B /* Assessment */,
+				EECCB28E2F37552D000E1C0B /* Feed */,
+				EECCB2902F37552D000E1C0B /* DigitalTwin */,
+				EECCB2922F37552D000E1C0B /* Wearables */,
+				EECCB2952F37552D000E1C0B /* Analytics */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		EECCB2792F37552D000E1C0B /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB27A2F37552D000E1C0B /* ChatViewModel.swift */,
+				EECCB27B2F37552D000E1C0B /* ChatView.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		EECCB27C2F37552D000E1C0B /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB27D2F37552D000E1C0B /* AuthView.swift */,
+				EECCB27E2F37552D000E1C0B /* AuthManager.swift */,
+				EECCB27F2F37552D000E1C0B /* AIPersonaSettingsView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		EECCB2802F37552D000E1C0B /* Calibration */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2812F37552D000E1C0B /* DailyCalibrationView.swift */,
+			);
+			path = Calibration;
+			sourceTree = "<group>";
+		};
+		EECCB2822F37552D000E1C0B /* Plan */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2832F37552D000E1C0B /* MaxPlanChatView.swift */,
+				EECCB2842F37552D000E1C0B /* PlanReplaceService.swift */,
+				EECCB2852F37552D000E1C0B /* PlanView.swift */,
+			);
+			path = Plan;
+			sourceTree = "<group>";
+		};
+		EECCB2862F37552D000E1C0B /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2872F37552D000E1C0B /* ProfileView.swift */,
+				EECCB2882F37552D000E1C0B /* HomeView.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		EECCB2892F37552D000E1C0B /* Assessment */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB28A2F37552D000E1C0B /* ClinicalScalesView.swift */,
+				EECCB28B2F37552D000E1C0B /* ReportExportService.swift */,
+				EECCB28C2F37552D000E1C0B /* ScaleAssessmentView.swift */,
+				EECCB28D2F37552D000E1C0B /* ResultInterpretationView.swift */,
+			);
+			path = Assessment;
+			sourceTree = "<group>";
+		};
+		EECCB28E2F37552D000E1C0B /* Feed */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB28F2F37552D000E1C0B /* CuratedFeedView.swift */,
+			);
+			path = Feed;
+			sourceTree = "<group>";
+		};
+		EECCB2902F37552D000E1C0B /* DigitalTwin */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2912F37552D000E1C0B /* DigitalTwinView.swift */,
+			);
+			path = DigitalTwin;
+			sourceTree = "<group>";
+		};
+		EECCB2922F37552D000E1C0B /* Wearables */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2932F37552D000E1C0B /* HealthKitService.swift */,
+				EECCB2942F37552D000E1C0B /* WearablesView.swift */,
+			);
+			path = Wearables;
+			sourceTree = "<group>";
+		};
+		EECCB2952F37552D000E1C0B /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				EECCB2962F37552D000E1C0B /* BayesianAnalyticsService.swift */,
+			);
+			path = Analytics;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -259,8 +467,32 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EECCB2A12F37552E000E1C0B /* MaxPlanChatView.swift in Sources */,
+				EECCB2992F37552E000E1C0B /* SupabaseManager.swift in Sources */,
+				EECCB29B2F37552E000E1C0B /* ChatViewModel.swift in Sources */,
 				EE94EA702F36182C0091CF54 /* ContentView.swift in Sources */,
+				EECCB2A62F37552E000E1C0B /* ClinicalScalesView.swift in Sources */,
+				EECCB2982F37552E000E1C0B /* KeychainService.swift in Sources */,
+				EECCB2A72F37552E000E1C0B /* ReportExportService.swift in Sources */,
+				EECCB2A52F37552E000E1C0B /* HomeView.swift in Sources */,
+				EECCB2AC2F37552E000E1C0B /* HealthKitService.swift in Sources */,
+				EECCB29C2F37552E000E1C0B /* ChatView.swift in Sources */,
+				EECCB2AA2F37552E000E1C0B /* CuratedFeedView.swift in Sources */,
+				EECCB29F2F37552E000E1C0B /* AIPersonaSettingsView.swift in Sources */,
+				EECCB29A2F37552E000E1C0B /* AppTheme.swift in Sources */,
+				EECCB2A42F37552E000E1C0B /* ProfileView.swift in Sources */,
 				EE94EA6E2F36182C0091CF54 /* antiosApp.swift in Sources */,
+				EECCB2A82F37552E000E1C0B /* ScaleAssessmentView.swift in Sources */,
+				EECCB2972F37552E000E1C0B /* APIClient.swift in Sources */,
+				EECCB29D2F37552E000E1C0B /* AuthView.swift in Sources */,
+				EECCB2A22F37552E000E1C0B /* PlanReplaceService.swift in Sources */,
+				EECCB2AD2F37552E000E1C0B /* WearablesView.swift in Sources */,
+				EECCB29E2F37552E000E1C0B /* AuthManager.swift in Sources */,
+				EECCB2A92F37552E000E1C0B /* ResultInterpretationView.swift in Sources */,
+				EECCB2AE2F37552E000E1C0B /* BayesianAnalyticsService.swift in Sources */,
+				EECCB2A02F37552E000E1C0B /* DailyCalibrationView.swift in Sources */,
+				EECCB2A32F37552E000E1C0B /* PlanView.swift in Sources */,
+				EECCB2AB2F37552E000E1C0B /* DigitalTwinView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
