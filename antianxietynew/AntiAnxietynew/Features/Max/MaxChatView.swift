@@ -151,8 +151,9 @@ struct MaxChatView: View {
 
     private var chatHeader: some View {
         let sidePadding = metrics.horizontalPadding
+        let sideSlotWidth: CGFloat = 44
         return ZStack {
-            HStack {
+            HStack(spacing: 0) {
                 Button(action: handleBack) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .semibold))
@@ -161,18 +162,17 @@ struct MaxChatView: View {
                         .background(Color.surfaceGlass(for: colorScheme))
                         .clipShape(Circle())
                 }
+                .frame(width: sideSlotWidth, alignment: .leading)
                 Spacer()
+                Color.clear
+                    .frame(width: sideSlotWidth, height: sideSlotWidth)
             }
 
             Text("Max")
                 .font(.headline)
                 .foregroundColor(.textPrimary)
-
-            HStack {
-                Spacer()
-                Color.clear
-                    .frame(width: 36, height: 36)
-            }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .offset(x: metrics.centerAxisOffset)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, sidePadding)
