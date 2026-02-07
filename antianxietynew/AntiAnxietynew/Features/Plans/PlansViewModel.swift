@@ -323,6 +323,7 @@ class PlansViewModel: ObservableObject {
   @Published var plans: [PlanData] = []
   @Published var isLoading = false
   @Published var isSaving = false
+  @Published var isGeneratingPlan = false
   @Published var error: String?
 
   // MARK: - Computed Properties
@@ -452,6 +453,31 @@ class PlansViewModel: ObservableObject {
         print("[Plans] Create error: \(error)")
       }
     }
+  }
+
+  // MARK: - Personalized Plan (Rule-Based)
+
+  func generatePersonalizedPlan(language: AppLanguage) async {
+    guard !isGeneratingPlan else { return }
+    isGeneratingPlan = true
+    defer { isGeneratingPlan = false }
+
+    guard let profile = try? await supabase.getUnifiedProfile() else {
+      error = language == .en
+        ? "No unified profile found. Complete daily check-ins first."
+        : "未找到统一画像，请先完成每日校准。"
+      return
+    }
+
+    let draft = buildPersonalizedPlanDraft(from: profile, language: language)
+    let itemTexts = draft.items.map { item in
+      let separator = language == .en ? ": " : "："
+      let base = "\(item.title)\(separator)\(item.action)"
+      if item.science.isEmpty { return base }
+      return language == .en ? "\(base)\nWhy: \(item.science)" : "\(base)\n科学依据：\(item.science)"
+    }
+
+    addPlan(draft.title, description: draft.description, category: draft.category, items: itemTexts)
   }
 
   // MARK: - Refresh
@@ -619,6 +645,248 @@ class PlansViewModel: ObservableObject {
       print("[Plans] Stats error: \(error)")
       return nil
     }
+  }
+}
+
+// MARK: - Personalized Plan Rule Engine
+
+private struct PlanRuleItem {
+  let title: String
+  let action: String
+  let science: String
+  let difficulty: String
+  let category: String
+}
+
+private struct PlanDraft {
+  let title: String
+  let description: String
+  let category: PlanCategory
+  let items: [PlanRuleItem]
+}
+
+private func buildPersonalizedPlanDraft(from profile: UnifiedProfile, language: AppLanguage) -> PlanDraft {
+  var items: [PlanRuleItem] = []
+  var basedOn: [String] = []
+
+  let isEn = language == .en
+
+  if let goals = profile.health_goals, !goals.isEmpty {
+    basedOn.append(isEn ? "goals" : "健康目标")
+    for goal in goals.prefix(3) {
+      if let item = generateItemForGoal(category: goal.category ?? "habits", goalText: goal.goal_text, language: language) {
+        items.append(item)
+      }
+    }
+  }
+
+  if let mood = profile.recent_mood_trend, !mood.isEmpty {
+    basedOn.append(isEn ? "mood trend" : "情绪趋势")
+    if mood == "declining" {
+      items.append(PlanRuleItem(
+        title: isEn ? "Emotional Reset Breathing" : "情绪调节呼吸",
+        action: isEn
+          ? "5 minutes of box breathing daily (inhale 4s - hold 4s - exhale 4s - hold 4s)."
+          : "每天进行 5 分钟箱式呼吸（吸4秒-屏4秒-呼4秒-屏4秒）。",
+        science: isEn
+          ? "Box breathing activates the parasympathetic system and can lower cortisol."
+          : "箱式呼吸可激活副交感神经系统，降低皮质醇水平。",
+        difficulty: "easy",
+        category: "mental"
+      ))
+    } else if mood == "improving" {
+      items.append(PlanRuleItem(
+        title: isEn ? "Keep Momentum" : "保持正向动力",
+        action: isEn ? "Write down 3 things you are grateful for every night." : "每晚记录 3 件今日感恩的事。",
+        science: isEn
+          ? "Gratitude practice can enhance dopamine and serotonin activity."
+          : "感恩练习有助于增强多巴胺和血清素水平。",
+        difficulty: "easy",
+        category: "mental"
+      ))
+    }
+  }
+
+  if let lifestyle = profile.lifestyle_factors {
+    basedOn.append(isEn ? "lifestyle" : "生活习惯")
+
+    if lifestyle.stress_level == "high" {
+      items.append(PlanRuleItem(
+        title: isEn ? "Stress-Release Movement" : "压力释放运动",
+        action: isEn ? "15 minutes of moderate cardio daily (brisk walk/swim)." : "每天 15 分钟中等强度运动（快走/游泳）。",
+        science: isEn
+          ? "Aerobic exercise reduces cortisol and releases endorphins."
+          : "有氧运动可降低皮质醇并释放内啡肽。",
+        difficulty: "medium",
+        category: "fitness"
+      ))
+    }
+
+    if let sleepHours = lifestyle.sleep_hours, sleepHours > 0, sleepHours < 7 {
+      items.append(PlanRuleItem(
+        title: isEn ? "Sleep Duration Upgrade" : "睡眠时长优化",
+        action: isEn ? "Shift bedtime 15 minutes earlier each week to reach 7 hours." : "每周提前 15 分钟入睡，目标 7 小时。",
+        science: isEn
+          ? "Gradual shifts are easier on circadian rhythm and more sustainable."
+          : "渐进式调整对昼夜节律冲击更小，更易坚持。",
+        difficulty: "medium",
+        category: "sleep"
+      ))
+    }
+  }
+
+  if let concerns = profile.health_concerns, !concerns.isEmpty {
+    basedOn.append(isEn ? "health concerns" : "健康关注点")
+
+    if concerns.contains("失眠") || concerns.contains("睡眠问题") {
+      items.append(PlanRuleItem(
+        title: isEn ? "Blue-Light Wind-Down" : "睡前蓝光管理",
+        action: isEn ? "Stop screens 1 hour before bed and switch to warm light." : "睡前 1 小时停止使用电子设备，切换到暖光。",
+        science: isEn
+          ? "Blue light suppresses melatonin, delaying sleep onset."
+          : "蓝光会抑制褪黑素分泌，影响入睡质量。",
+        difficulty: "medium",
+        category: "sleep"
+      ))
+    }
+
+    if concerns.contains("焦虑") || concerns.contains("紧张") {
+      items.append(PlanRuleItem(
+        title: isEn ? "NSDR Practice" : "NSDR 练习",
+        action: isEn ? "10 minutes of NSDR daily (search 'NSDR' for a guided session)." : "每天 10 分钟 NSDR（可搜索引导练习）。",
+        science: isEn
+          ? "NSDR helps trigger recovery through parasympathetic activation."
+          : "NSDR 可在清醒状态下触发副交感神经恢复。",
+        difficulty: "medium",
+        category: "mental"
+      ))
+    }
+  }
+
+  if items.isEmpty {
+    items.append(PlanRuleItem(
+      title: isEn ? "Daily Check-in" : "每日状态记录",
+      action: isEn ? "Complete daily calibration and log sleep/mood." : "每天完成每日校准，记录睡眠和情绪。",
+      science: isEn
+        ? "Self-monitoring is the first step to sustainable behavior change."
+        : "自我监测是行为改变的第一步，提高健康意识。",
+      difficulty: "easy",
+      category: "habits"
+    ))
+  }
+
+  let category = mapPlanCategory(from: items)
+  let dateFormatter = DateFormatter()
+  dateFormatter.locale = Locale(identifier: isEn ? "en_US_POSIX" : "zh_CN")
+  dateFormatter.dateFormat = isEn ? "MMM d" : "M月d日"
+  let dateTitle = dateFormatter.string(from: Date())
+
+  let title = isEn ? "\(dateTitle) Personalized Plan" : "\(dateTitle) 个性化计划"
+  let basedOnText = basedOn.isEmpty
+    ? (isEn ? "your recent data" : "你的近期数据")
+    : basedOn.joined(separator: isEn ? ", " : "、")
+  let description = isEn
+    ? "Built from \(basedOnText)."
+    : "基于你的\(basedOnText)生成的专属计划。"
+
+  return PlanDraft(title: title, description: description, category: category, items: items)
+}
+
+private func mapPlanCategory(from items: [PlanRuleItem]) -> PlanCategory {
+  if items.contains(where: { $0.category == "sleep" }) { return .sleep }
+  if items.contains(where: { $0.category == "fitness" }) { return .exercise }
+  if items.contains(where: { $0.category == "nutrition" }) { return .diet }
+  if items.contains(where: { $0.category == "mental" || $0.category == "stress" }) { return .mental }
+  return .general
+}
+
+private func generateItemForGoal(category: String, goalText: String, language: AppLanguage) -> PlanRuleItem? {
+  let isEn = language == .en
+  switch category {
+  case "sleep":
+    return PlanRuleItem(
+      title: isEn ? "Sleep Quality Optimization" : "睡眠质量优化",
+      action: isEn
+        ? "For goal \"\(goalText)\": keep a consistent bedtime and start winding down 30 minutes earlier."
+        : "针对目标「\(goalText)」：每晚固定时间入睡，睡前 30 分钟开始准备。",
+      science: isEn
+        ? "Stable sleep timing strengthens circadian rhythm and improves efficiency."
+        : "固定作息时间可以强化昼夜节律，提高睡眠效率。",
+      difficulty: "medium",
+      category: "sleep"
+    )
+  case "stress":
+    return PlanRuleItem(
+      title: isEn ? "Stress Management Training" : "压力管理训练",
+      action: isEn
+        ? "For goal \"\(goalText)\": 5 minutes of mindful breathing twice a day."
+        : "针对目标「\(goalText)」：每天 2 次 5 分钟正念呼吸。",
+      science: isEn
+        ? "Mindful breathing reduces amygdala reactivity and stress response."
+        : "正念练习可以降低杏仁核活动，减少压力反应。",
+      difficulty: "medium",
+      category: "mental"
+    )
+  case "fitness":
+    return PlanRuleItem(
+      title: isEn ? "Exercise Habit" : "运动习惯建立",
+      action: isEn
+        ? "For goal \"\(goalText)\": 30 minutes of cardio 3x per week."
+        : "针对目标「\(goalText)」：每周 3 次 30 分钟有氧运动。",
+      science: isEn
+        ? "Regular exercise improves cardio fitness and basal metabolism."
+        : "规律运动可以提高心肺功能和基础代谢。",
+      difficulty: "hard",
+      category: "fitness"
+    )
+  case "nutrition":
+    return PlanRuleItem(
+      title: isEn ? "Nutrition Optimization" : "营养优化",
+      action: isEn
+        ? "For goal \"\(goalText)\": include a protein source in each meal."
+        : "针对目标「\(goalText)」：每餐保证蛋白质摄入。",
+      science: isEn
+        ? "Adequate protein supports muscle repair and immune function."
+        : "足够的蛋白质是肌肉合成和免疫功能的基础。",
+      difficulty: "medium",
+      category: "nutrition"
+    )
+  case "mental":
+    return PlanRuleItem(
+      title: isEn ? "Mental Wellbeing" : "心理健康维护",
+      action: isEn
+        ? "For goal \"\(goalText)\": weekly 1 deep self-reflection session."
+        : "针对目标「\(goalText)」：每周进行 1 次深度自我反思。",
+      science: isEn
+        ? "Reflection improves metacognition and emotional regulation."
+        : "自我反思可以增强元认知能力，提高情绪调节。",
+      difficulty: "medium",
+      category: "mental"
+    )
+  case "habits":
+    return PlanRuleItem(
+      title: isEn ? "Habit Building" : "习惯养成",
+      action: isEn
+        ? "For goal \"\(goalText)\": stack the new habit onto an existing routine."
+        : "针对目标「\(goalText)」：使用习惯堆叠法，与现有习惯绑定。",
+      science: isEn
+        ? "Habit stacking reduces resistance by using existing neural pathways."
+        : "习惯堆叠利用已有神经通路，降低新习惯阻力。",
+      difficulty: "medium",
+      category: "habits"
+    )
+  default:
+    return PlanRuleItem(
+      title: isEn ? "Habit Building" : "习惯养成",
+      action: isEn
+        ? "For goal \"\(goalText)\": start with a small daily routine."
+        : "针对目标「\(goalText)」：从一个小的日常动作开始。",
+      science: isEn
+        ? "Small routines compound into long-term behavior change."
+        : "小习惯可以形成持续的行为改变。",
+      difficulty: "medium",
+      category: "habits"
+    )
   }
 }
 

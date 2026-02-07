@@ -6,6 +6,9 @@ import SwiftUI
 struct ArticleReaderView: View {
     let article: ScienceArticle
     @Environment(\.screenMetrics) private var metrics
+    @EnvironmentObject private var appSettings: AppSettings
+
+    private var language: AppLanguage { appSettings.language }
 
     var body: some View {
         ZStack {
@@ -32,6 +35,7 @@ struct ArticleReaderView: View {
                                     icon: "magnifyingglass",
                                     title: "精华检索",
                                     content: digest,
+                                    language: language,
                                     accentColor: .liquidGlassSecondary
                                 )
                             }
@@ -41,6 +45,7 @@ struct ArticleReaderView: View {
                                     icon: "sparkles",
                                     title: "为什么推荐给你",
                                     content: why,
+                                    language: language,
                                     accentColor: .liquidGlassAccent
                                 )
                             }

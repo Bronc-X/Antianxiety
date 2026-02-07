@@ -97,19 +97,19 @@ class MaxChatViewModel: ObservableObject {
     
     /// 加载个性化起始问题
     func loadStarterQuestions() async {
-        do {
-            starterQuestions = try await SupabaseManager.shared.getStarterQuestions()
-            print("✅ 加载了 \(starterQuestions.count) 个起始问题")
-        } catch {
-            print("⚠️ 加载起始问题失败，使用默认问题: \(error)")
-            // 默认问题
+        let language = AppLanguage(rawValue: UserDefaults.standard.string(forKey: "app_language") ?? "zh") ?? .zh
+        let questions = await MaxPlanQuestionGenerator.generateStarterQuestions(language: language)
+        if questions.isEmpty {
             starterQuestions = [
                 "今天我的焦虑评分如何？",
                 "帮我分析一下最近的睡眠质量",
                 "我该如何改善当前的压力水平？",
                 "根据我的数据，有什么建议？"
             ]
+        } else {
+            starterQuestions = questions
         }
+        print("✅ 加载了 \(starterQuestions.count) 个起始问题")
     }
     
     // MARK: - 🆕 模型模式切换

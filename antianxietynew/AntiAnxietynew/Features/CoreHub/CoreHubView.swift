@@ -5,10 +5,12 @@ import SwiftUI
 
 // MARK: - 核心功能中枢
 
+@MainActor
 struct CoreHubView: View {
     @Environment(\.screenMetrics) private var metrics
 
-    private let modules: [CoreHubModule] = [
+    private var modules: [CoreHubModule] {
+        [
         CoreHubModule(
             id: "daily-questionnaire",
             title: "每日问询",
@@ -97,7 +99,8 @@ struct CoreHubView: View {
             accent: .textSecondary,
             destination: AnyView(DebugSessionView())
         )
-    ]
+        ]
+    }
 
     var body: some View {
         NavigationStack {

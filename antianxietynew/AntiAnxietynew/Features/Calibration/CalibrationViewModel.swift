@@ -20,6 +20,12 @@ enum CalibrationQuestionCategory: String, Equatable {
   case anxiety
   case sleep
   case stress
+  case energy
+  case mood
+  case lifestyle
+  case exercise
+  case goal
+  case evolution
   case ai_pick
 }
 
@@ -162,7 +168,7 @@ class CalibrationViewModel: ObservableObject {
     isLoading = true
     defer { isLoading = false }
 
-    questions = getDailyCalibrationQuestions()
+    questions = await buildDailyCalibrationQuestions()
     currentQuestionIndex = 0
     answers = [:]
     result = nil
@@ -835,6 +841,260 @@ class CalibrationViewModel: ObservableObject {
         isSafetyQuestion: false
       )
     ]
+  }
+
+  // MARK: - Adaptive Questions (Phase Goals + Evolution)
+
+  private let maxDailyQuestions = 7
+  private let evolutionTriggerDays = 7
+
+  private struct PhaseGoalRow: Codable {
+    let category: String?
+    let goal_type: String?
+    let title: String?
+    let goal_text: String?
+  }
+
+  private func buildDailyCalibrationQuestions() async -> [CalibrationQuestion] {
+    var questions = getDailyCalibrationQuestions()
+
+    guard let user = supabase.currentUser else { return questions }
+
+    let (goalTypes, consecutiveDays) = await (
+      fetchGoalTypes(userId: user.id),
+      fetchConsecutiveDays(userId: user.id)
+    )
+
+    let adaptive = generateAdaptiveQuestions(goalTypes: goalTypes, consecutiveDays: consecutiveDays)
+    for question in adaptive where questions.count < maxDailyQuestions {
+      if !questions.contains(where: { $0.id == question.id }) {
+        questions.append(question)
+      }
+    }
+
+    return questions
+  }
+
+  private func fetchGoalTypes(userId: String) async -> [String] {
+    let endpoint = "phase_goals?user_id=eq.\(userId)&select=category,goal_type,goal_text,title&order=created_at.desc&limit=3"
+    let rows: [PhaseGoalRow] = (try? await supabase.request(endpoint)) ?? []
+    let types = rows.compactMap { row in
+      row.goal_type ?? row.category
+    }
+    return Array(Set(types.map { $0.lowercased() }))
+  }
+
+  private func fetchConsecutiveDays(userId: String) async -> Int {
+    let endpoint = "profiles?id=eq.\(userId)&select=daily_stability_streak&limit=1"
+    let profiles: [ProfileCalibrationState] = (try? await supabase.request(endpoint)) ?? []
+    return profiles.first?.daily_stability_streak ?? 0
+  }
+
+  private func generateAdaptiveQuestions(goalTypes: [String], consecutiveDays: Int) -> [CalibrationQuestion] {
+    var questions: [CalibrationQuestion] = []
+
+    for goal in goalTypes {
+      let goalQuestions = goalQuestionBank(for: goal)
+      if let first = goalQuestions.first {
+        questions.append(first)
+      }
+    }
+
+    if shouldEvolve(consecutiveDays: consecutiveDays) {
+      let evolutionCount = min(calculateEvolutionLevel(consecutiveDays: consecutiveDays), evolutionQuestionBank.count)
+      questions.append(contentsOf: evolutionQuestionBank.prefix(evolutionCount))
+    }
+
+    return questions
+  }
+
+  private func shouldEvolve(consecutiveDays: Int) -> Bool {
+    consecutiveDays > 0 && consecutiveDays % evolutionTriggerDays == 0
+  }
+
+  private func calculateEvolutionLevel(consecutiveDays: Int) -> Int {
+    max(1, (consecutiveDays / evolutionTriggerDays) + 1)
+  }
+
+  private var evolutionQuestionBank: [CalibrationQuestion] {
+    [
+      CalibrationQuestion(
+        id: "evo_overall_progress",
+        text: "这周整体感觉如何？",
+        type: .slider,
+        category: .evolution,
+        options: nil,
+        min: 1,
+        max: 10,
+        isSafetyQuestion: false
+      ),
+      CalibrationQuestion(
+        id: "evo_next_week_focus",
+        text: "下周想重点改善什么？",
+        type: .single,
+        category: .evolution,
+        options: [
+          CalibrationOption(value: 0, label: "睡眠"),
+          CalibrationOption(value: 1, label: "能量"),
+          CalibrationOption(value: 2, label: "压力"),
+          CalibrationOption(value: 3, label: "运动")
+        ],
+        min: nil,
+        max: nil,
+        isSafetyQuestion: false
+      )
+    ]
+  }
+
+  private func goalQuestionBank(for goal: String) -> [CalibrationQuestion] {
+    switch goal {
+    case "sleep":
+      return [
+        CalibrationQuestion(
+          id: "sleep_quality",
+          text: "睡眠质量如何？",
+          type: .slider,
+          category: .sleep,
+          options: nil,
+          min: 1,
+          max: 10,
+          isSafetyQuestion: false
+        ),
+        CalibrationQuestion(
+          id: "sleep_onset_time",
+          text: "入睡花了多长时间？",
+          type: .single,
+          category: .sleep,
+          options: [
+            CalibrationOption(value: 0, label: "15分钟以内"),
+            CalibrationOption(value: 1, label: "15-30分钟"),
+            CalibrationOption(value: 2, label: "超过30分钟")
+          ],
+          min: nil,
+          max: nil,
+          isSafetyQuestion: false
+        )
+      ]
+    case "energy":
+      return [
+        CalibrationQuestion(
+          id: "morning_energy",
+          text: "早上起床时精力如何？",
+          type: .slider,
+          category: .energy,
+          options: nil,
+          min: 1,
+          max: 10,
+          isSafetyQuestion: false
+        ),
+        CalibrationQuestion(
+          id: "afternoon_crash",
+          text: "下午是否有能量低谷？",
+          type: .single,
+          category: .energy,
+          options: [
+            CalibrationOption(value: 0, label: "没有"),
+            CalibrationOption(value: 1, label: "轻微"),
+            CalibrationOption(value: 2, label: "明显")
+          ],
+          min: nil,
+          max: nil,
+          isSafetyQuestion: false
+        )
+      ]
+    case "stress":
+      return [
+        CalibrationQuestion(
+          id: "stress_triggers",
+          text: "今天主要的压力来源是？",
+          type: .single,
+          category: .stress,
+          options: [
+            CalibrationOption(value: 0, label: "工作"),
+            CalibrationOption(value: 1, label: "人际关系"),
+            CalibrationOption(value: 2, label: "健康"),
+            CalibrationOption(value: 3, label: "其他")
+          ],
+          min: nil,
+          max: nil,
+          isSafetyQuestion: false
+        ),
+        CalibrationQuestion(
+          id: "recovery_activity",
+          text: "今天做了什么放松活动？",
+          type: .single,
+          category: .stress,
+          options: [
+            CalibrationOption(value: 0, label: "运动"),
+            CalibrationOption(value: 1, label: "冥想/呼吸"),
+            CalibrationOption(value: 2, label: "社交"),
+            CalibrationOption(value: 3, label: "没有")
+          ],
+          min: nil,
+          max: nil,
+          isSafetyQuestion: false
+        )
+      ]
+    case "fitness", "exercise":
+      return [
+        CalibrationQuestion(
+          id: "exercise_done",
+          text: "今天运动了吗？",
+          type: .single,
+          category: .exercise,
+          options: [
+            CalibrationOption(value: 0, label: "有"),
+            CalibrationOption(value: 1, label: "没有")
+          ],
+          min: nil,
+          max: nil,
+          isSafetyQuestion: false
+        ),
+        CalibrationQuestion(
+          id: "exercise_intensity",
+          text: "运动强度如何？",
+          type: .single,
+          category: .exercise,
+          options: [
+            CalibrationOption(value: 0, label: "轻度"),
+            CalibrationOption(value: 1, label: "中度"),
+            CalibrationOption(value: 2, label: "高强度")
+          ],
+          min: nil,
+          max: nil,
+          isSafetyQuestion: false
+        )
+      ]
+    case "weight", "nutrition", "diet":
+      return [
+        CalibrationQuestion(
+          id: "meal_quality",
+          text: "今天饮食质量如何？",
+          type: .slider,
+          category: .goal,
+          options: nil,
+          min: 1,
+          max: 10,
+          isSafetyQuestion: false
+        ),
+        CalibrationQuestion(
+          id: "hunger_level",
+          text: "今天饥饿感如何？",
+          type: .single,
+          category: .goal,
+          options: [
+            CalibrationOption(value: 0, label: "正常"),
+            CalibrationOption(value: 1, label: "经常饿"),
+            CalibrationOption(value: 2, label: "没什么食欲")
+          ],
+          min: nil,
+          max: nil,
+          isSafetyQuestion: false
+        )
+      ]
+    default:
+      return []
+    }
   }
 
   // MARK: - Mappers

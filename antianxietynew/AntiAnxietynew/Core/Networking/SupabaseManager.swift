@@ -3,6 +3,63 @@
 
 import Foundation
 
+private enum DebugNetworkConfig {
+    static let allowInsecureTLS: Bool = {
+        #if DEBUG
+        #if targetEnvironment(simulator)
+        if let raw = Bundle.main.infoDictionary?["ALLOW_INSECURE_SSL"] {
+            if let value = raw as? Bool { return value }
+            if let value = raw as? String {
+                return ["1", "true", "yes"].contains(value.lowercased())
+            }
+        }
+        if let env = ProcessInfo.processInfo.environment["ALLOW_INSECURE_SSL"] {
+            return ["1", "true", "yes"].contains(env.lowercased())
+        }
+        return true
+        #else
+        return false
+        #endif
+        #else
+        return false
+        #endif
+    }()
+}
+
+enum NetworkSession {
+    static let shared: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.waitsForConnectivity = true
+        #if DEBUG
+        #if targetEnvironment(simulator)
+        if DebugNetworkConfig.allowInsecureTLS {
+            print("⚠️ [NetworkSession] Insecure SSL enabled for simulator debug.")
+            return URLSession(configuration: config, delegate: InsecureSessionDelegate(), delegateQueue: nil)
+        }
+        #endif
+        #endif
+        return URLSession(configuration: config)
+    }()
+}
+
+#if DEBUG
+#if targetEnvironment(simulator)
+private final class InsecureSessionDelegate: NSObject, URLSessionDelegate {
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        if let trust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        } else {
+            completionHandler(.performDefaultHandling, nil)
+        }
+    }
+}
+#endif
+#endif
+
 // MARK: - 科学期刊数据模型（主要定义位置）
 
 /// 科学文章模型
@@ -184,7 +241,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let body = ["email": email, "password": password]
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw SupabaseError.requestFailed
@@ -231,7 +288,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let body = ["email": email, "password": password]
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         
         // Debug: Print response for troubleshooting
         if let responseString = String(data: data, encoding: .utf8) {
@@ -331,7 +388,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         let body = ["refresh_token": refreshToken]
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw SupabaseError.authenticationFailed
@@ -360,7 +417,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
         
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await NetworkSession.shared.data(for: request)
         return try JSONDecoder().decode(AuthUser.self, from: data)
     }
     
@@ -465,7 +522,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             request.httpBody = try JSONEncoder().encode(body)
         }
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         
         if let httpResponse = response as? HTTPURLResponse {
             print("[SupabaseManager.request] Status: \(httpResponse.statusCode)")
@@ -479,7 +536,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             let retryToken = try await ensureAccessToken()
             var retryRequest = request
             retryRequest.setValue("Bearer \(retryToken)", forHTTPHeaderField: "Authorization")
-            let (retryData, retryResponse) = try await URLSession.shared.data(for: retryRequest)
+            let (retryData, retryResponse) = try await NetworkSession.shared.data(for: retryRequest)
             guard let retryHttp = retryResponse as? HTTPURLResponse, (200...299).contains(retryHttp.statusCode) else {
                 throw SupabaseError.requestFailed
             }
@@ -526,7 +583,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             }
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         
         if let httpResponse = response as? HTTPURLResponse {
             print("[SupabaseManager.requestVoid] Status: \(httpResponse.statusCode)")
@@ -540,7 +597,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             let retryToken = try await ensureAccessToken()
             var retryRequest = request
             retryRequest.setValue("Bearer \(retryToken)", forHTTPHeaderField: "Authorization")
-            let (_, retryResponse) = try await URLSession.shared.data(for: retryRequest)
+            let (_, retryResponse) = try await NetworkSession.shared.data(for: retryRequest)
             guard let retryHttp = retryResponse as? HTTPURLResponse, (200...299).contains(retryHttp.statusCode) else {
                 throw SupabaseError.requestFailed
             }
@@ -1383,7 +1440,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
         request.setValue("true", forHTTPHeaderField: "x-upsert")
         request.httpBody = imageData
 
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await NetworkSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
             throw SupabaseError.requestFailed
         }
@@ -1407,25 +1464,47 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             false
 #endif
         }
+        static var allowFallbackWhenUnreachable: Bool {
+#if DEBUG
+#if targetEnvironment(simulator)
+            true
+#else
+            false
+#endif
+#else
+            false
+#endif
+        }
         static let fallbackBaseURLs = [
             "https://project-metabasis.vercel.app",
-            "https://antianxiety.app"
+            "https://antianxiety.app",
+            "https://www.antianxiety.app"
         ]
     }
 
     func refreshAppAPIBaseURL() async {
         if AppAPIConfig.enforceSingleSource {
-            clearAppAPIOverrides()
             guard let infoBase = appAPIBaseURLFromInfoPlist(),
                   let infoURL = URL(string: infoBase) else {
                 print("[AppAPI] APP_API_BASE_URL missing.")
                 return
             }
-            let healthy = await isAppAPIHealthy(baseURL: infoURL)
-            if healthy {
+            if await isAppAPIHealthy(baseURL: infoURL) {
+                cacheAppAPIBaseURL(infoURL)
                 print("[AppAPI] Using fixed base URL: \(infoURL.absoluteString)")
-            } else {
-                print("[AppAPI] Fixed base URL is unreachable: \(infoURL.absoluteString)")
+                return
+            }
+            print("[AppAPI] Fixed base URL is unreachable: \(infoURL.absoluteString)")
+            if AppAPIConfig.allowFallbackWhenUnreachable {
+                let fallbackCandidates = appAPIFallbackCandidates(primary: infoURL)
+                for candidate in fallbackCandidates {
+                    if await isAppAPIHealthy(baseURL: candidate) {
+                        cacheAppAPIBaseURL(candidate)
+                        print("[AppAPI] Fallback base URL: \(candidate.absoluteString)")
+                        return
+                    }
+                }
+                print("[AppAPI] No healthy fallback base URL found.")
             }
             return
         }
@@ -1457,7 +1536,12 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
 
     private func currentAppAPIBaseURL() -> URL? {
         if AppAPIConfig.enforceSingleSource {
-            clearAppAPIOverrides()
+            if let overrideURL = loadAppAPIBaseURL(forKey: AppAPIConfig.overrideBaseURLKey) {
+                return overrideURL
+            }
+            if let cachedURL = loadAppAPIBaseURL(forKey: AppAPIConfig.cachedBaseURLKey) {
+                return cachedURL
+            }
             if let infoBase = appAPIBaseURLFromInfoPlist(),
                let infoURL = URL(string: infoBase) {
                 return infoURL
@@ -1620,15 +1704,6 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             .replacingOccurrences(of: "\\", with: "")
         guard !trimmed.isEmpty else { return nil }
         let normalized = trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
-        if let url = URL(string: normalized),
-           let host = url.host?.lowercased(),
-           host == "www.antianxiety.app" {
-            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            components?.host = "antianxiety.app"
-            if let rebuilt = components?.url?.absoluteString {
-                return rebuilt.hasSuffix("/") ? String(rebuilt.dropLast()) : rebuilt
-            }
-        }
         return normalized
     }
 
@@ -1680,10 +1755,10 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.timeoutInterval = 2
+        request.timeoutInterval = 6
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await NetworkSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse {
                 guard (200...299).contains(httpResponse.statusCode) else {
                     return false
@@ -1703,6 +1778,49 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             return false
         }
         return false
+    }
+
+    private func appAPIFallbackCandidates(primary: URL) -> [URL] {
+        var candidates: [URL] = []
+        var seen: Set<String> = []
+
+        func addCandidate(_ raw: String?) {
+            guard let raw = raw,
+                  let sanitized = sanitizeAppAPIBaseURLString(raw),
+                  let url = URL(string: sanitized),
+                  url.scheme != nil,
+                  url.host != nil,
+                  !isPrivateHost(url.host) else {
+                return
+            }
+            let key = sanitized.lowercased()
+            if !seen.contains(key) && url.absoluteString != primary.absoluteString {
+                seen.insert(key)
+                candidates.append(url)
+            }
+        }
+
+        if let alt = alternateAppAPIBaseURLString(primary) {
+            addCandidate(alt)
+        }
+        AppAPIConfig.fallbackBaseURLs.forEach { addCandidate($0) }
+        return candidates
+    }
+
+    private func alternateAppAPIBaseURLString(_ url: URL) -> String? {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let host = components.host?.lowercased() else {
+            return nil
+        }
+        if host == "antianxiety.app" {
+            components.host = "www.antianxiety.app"
+            return components.url?.absoluteString
+        }
+        if host == "www.antianxiety.app" {
+            components.host = "antianxiety.app"
+            return components.url?.absoluteString
+        }
+        return nil
     }
 
     private struct AppAPIHealthPayload: Decodable {
@@ -1782,7 +1900,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
     }
 
     private func performAppAPIRequestOnce(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw SupabaseError.requestFailed
         }
@@ -1791,7 +1909,7 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             try await refreshSession()
             var retryRequest = request
             attachSupabaseCookies(to: &retryRequest)
-            let (retryData, retryResponse) = try await URLSession.shared.data(for: retryRequest)
+            let (retryData, retryResponse) = try await NetworkSession.shared.data(for: retryRequest)
             guard let retryHttp = retryResponse as? HTTPURLResponse else {
                 throw SupabaseError.requestFailed
             }
@@ -2343,6 +2461,75 @@ extension SupabaseManager {
     func getScienceFeed(language: String) async throws -> ScienceFeedResponse {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
 
+        struct CuratedFeedAPIItem: Codable {
+            let id: String
+            let title: String
+            let summary: String
+            let url: String
+            let source: String
+            let sourceLabel: String?
+            let matchScore: Int?
+            let publishedAt: String?
+            let author: String?
+            let thumbnail: String?
+            let language: String?
+            let matchedTags: [String]?
+            let benefit: String?
+        }
+
+        struct CuratedFeedAPIResponse: Codable {
+            let items: [CuratedFeedAPIItem]
+            let nextCursor: Int?
+            let total: Int?
+            let keywords: [String]?
+            let generatedAt: String?
+        }
+
+        if let url = appAPIURL(
+            path: "api/curated-feed",
+            queryItems: [
+                URLQueryItem(name: "limit", value: "20"),
+                URLQueryItem(name: "cursor", value: "0"),
+                URLQueryItem(name: "language", value: language),
+                URLQueryItem(name: "userId", value: user.id)
+            ]
+        ) {
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            attachSupabaseCookies(to: &request)
+
+            do {
+                let (data, response) = try await NetworkSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                    let decoded = try JSONDecoder().decode(CuratedFeedAPIResponse.self, from: data)
+                    let articles = decoded.items.map { item in
+                        ScienceArticle(
+                            id: item.id,
+                            title: item.title,
+                            titleZh: nil,
+                            summary: item.summary,
+                            summaryZh: nil,
+                            sourceType: item.source,
+                            sourceUrl: item.url,
+                            matchPercentage: item.matchScore,
+                            whyRecommended: item.benefit,
+                            actionableInsight: nil,
+                            tags: item.matchedTags,
+                            createdAt: item.publishedAt.flatMap { ISO8601DateFormatter().date(from: $0) }
+                        )
+                    }
+                    return ScienceFeedResponse(
+                        success: true,
+                        items: articles,
+                        data: nil,
+                        personalization: FeedPersonalization(ready: true, message: nil, fallback: nil)
+                    )
+                }
+            } catch {
+                print("[CuratedFeed] API error: \(error)")
+            }
+        }
+
         struct CuratedFeedRow: Codable {
             let id: String
             let content_type: String?
@@ -2454,7 +2641,7 @@ extension SupabaseManager {
             attachSupabaseCookies(to: &request)
 
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await NetworkSession.shared.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                     return try JSONDecoder().decode(UnderstandingScoreResponse.self, from: data)
                 }
@@ -3449,7 +3636,7 @@ extension SupabaseManager {
         )
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await NetworkSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                 let decoded = try JSONDecoder().decode(ProactiveInquiryResponse.self, from: data)
                 return try await storeInquiry(question: decoded.question, userId: userId)
@@ -3496,7 +3683,7 @@ extension SupabaseManager {
             request.httpBody = try JSONEncoder().encode(input)
 
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await NetworkSession.shared.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                     return try JSONDecoder().decode(VoiceAnalysisResponse.self, from: data)
                 }
@@ -3517,7 +3704,7 @@ extension SupabaseManager {
             request.httpBody = try JSONEncoder().encode(input)
 
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await NetworkSession.shared.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                     return String(data: data, encoding: .utf8) ?? ""
                 }
@@ -3536,7 +3723,7 @@ extension SupabaseManager {
             attachSupabaseCookies(to: &request)
 
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await NetworkSession.shared.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                     return try JSONDecoder().decode(InsightSummaryResponse.self, from: data)
                 }
@@ -3562,7 +3749,7 @@ extension SupabaseManager {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await NetworkSession.shared.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                     if let object = try? JSONSerialization.jsonObject(with: data),
                        let prettyData = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted]) {
@@ -3605,7 +3792,7 @@ extension SupabaseManager {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await NetworkSession.shared.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                     struct ExplainResponse: Codable { let explanation: String }
                     let decoded = try JSONDecoder().decode(ExplainResponse.self, from: data)
@@ -3842,7 +4029,7 @@ category: \(category ?? "")
         attachSupabaseCookies(to: &request)
         request.httpBody = payload.data(using: .utf8)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw SupabaseError.requestFailed
         }
@@ -3883,7 +4070,7 @@ extension SupabaseManager {
         request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await NetworkSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
                 print("[Recommendations] trigger failed: \(httpResponse.statusCode)")
             }

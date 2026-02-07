@@ -7,6 +7,7 @@ struct PlansView: View {
   @StateObject private var viewModel = PlansViewModel()
   @State private var showAddPlan = false
   @Environment(\.screenMetrics) private var metrics
+  @EnvironmentObject private var appSettings: AppSettings
 
   var body: some View {
     NavigationStack {
@@ -214,16 +215,21 @@ struct PlansView: View {
         ViewThatFits(in: .horizontal) {
           HStack(spacing: 10) {
             Button {
-              NotificationCenter.default.post(
-                name: .askMax,
-                object: nil,
-                userInfo: ["question": "请为我生成一套 14 天可执行计划，并标注每日重点。"]
-              )
+              Task {
+                await viewModel.generatePersonalizedPlan(language: appSettings.language)
+              }
             } label: {
-              Text("让 Max 定制")
+              HStack(spacing: 8) {
+                if viewModel.isGeneratingPlan {
+                  ProgressView()
+                    .tint(.white)
+                }
+                Text("让 Max 定制")
+              }
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
+            .disabled(viewModel.isGeneratingPlan)
 
             Button {
               showAddPlan = true
@@ -236,16 +242,21 @@ struct PlansView: View {
 
           VStack(spacing: 10) {
             Button {
-              NotificationCenter.default.post(
-                name: .askMax,
-                object: nil,
-                userInfo: ["question": "请为我生成一套 14 天可执行计划，并标注每日重点。"]
-              )
+              Task {
+                await viewModel.generatePersonalizedPlan(language: appSettings.language)
+              }
             } label: {
-              Text("让 Max 定制")
+              HStack(spacing: 8) {
+                if viewModel.isGeneratingPlan {
+                  ProgressView()
+                    .tint(.white)
+                }
+                Text("让 Max 定制")
+              }
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
+            .disabled(viewModel.isGeneratingPlan)
 
             Button {
               showAddPlan = true
@@ -707,5 +718,6 @@ struct PlansView_Previews: PreviewProvider {
   static var previews: some View {
     PlansView()
       .preferredColorScheme(.dark)
+      .environmentObject(AppSettings())
   }
 }

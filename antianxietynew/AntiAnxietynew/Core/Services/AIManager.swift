@@ -109,7 +109,7 @@ final class AIManager: ObservableObject, AIManaging {
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             if let errorStr = String(data: data, encoding: .utf8) {
@@ -143,7 +143,7 @@ final class AIManager: ObservableObject, AIManaging {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await NetworkSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             if let errorStr = String(data: data, encoding: .utf8) {
                 print("Embedding API Error: \(errorStr)")

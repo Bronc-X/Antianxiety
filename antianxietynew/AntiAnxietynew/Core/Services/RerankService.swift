@@ -60,7 +60,7 @@ enum RerankService {
         request.httpBody = payload
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await NetworkSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
             let result = try JSONDecoder().decode(RerankResult.self, from: data)
             return result.results.map { $0.index }

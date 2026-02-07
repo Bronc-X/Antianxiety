@@ -98,7 +98,7 @@ class OnboardingViewModel: ObservableObject {
             request.httpMethod = "GET"
             attachAuth(to: &request)
             
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await NetworkSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
                 return
@@ -142,7 +142,7 @@ class OnboardingViewModel: ObservableObject {
             
             print("[Onboarding] 📤 发送步骤 \(currentStep) 数据...")
             
-            let (responseData, response) = try await URLSession.shared.data(for: request)
+            let (responseData, response) = try await NetworkSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
                 throw OnboardingError.requestFailed
@@ -195,7 +195,7 @@ class OnboardingViewModel: ObservableObject {
             request.httpMethod = "POST"
             attachAuth(to: &request)
             
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await NetworkSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
                 return false
@@ -224,7 +224,7 @@ class OnboardingViewModel: ObservableObject {
             request.httpMethod = "POST"
             attachAuth(to: &request)
             
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await NetworkSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
                 return false

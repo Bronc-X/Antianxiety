@@ -127,7 +127,7 @@ class AssessmentViewModel: ObservableObject {
             let dto = StartSessionDTO(language: language, country_code: countryCode)
             request.httpBody = try JSONEncoder().encode(dto)
             
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await NetworkSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw AssessmentError.requestFailed
             }
@@ -181,7 +181,7 @@ class AssessmentViewModel: ObservableObject {
             )
             request.httpBody = try JSONEncoder().encode(dto)
             
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await NetworkSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw AssessmentError.requestFailed
             }
@@ -271,7 +271,7 @@ class AssessmentViewModel: ObservableObject {
             let body = ["session_id": sessionId]
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
             
-            _ = try await URLSession.shared.data(for: request)
+            _ = try await NetworkSession.shared.data(for: request)
         } catch {
             print("[Assessment] Dismiss emergency error: \(error)")
         }

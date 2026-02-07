@@ -66,6 +66,7 @@
 		6B10512C9B954F85AC314A60 /* MaxMemoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180F07C0CC0644F4A99434B1 /* MaxMemoryService.swift */; };
 		B288B6CF97604D1BBA1FBC53 /* MaxPersonaPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74081E880F1647DF895BB541 /* MaxPersonaPrompt.swift */; };
 		D738A3AC4DED43A6932E046F /* MaxPlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F2E06D336E438389EECB3A /* MaxPlanEngine.swift */; };
+		D9E8F7A6B5C4D3E2F1A0B9C8 /* MaxPlanQuestionGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F1A0B2C3D4E5F6071829AA /* MaxPlanQuestionGenerator.swift */; };
 		77009E9294D8498FAEE122EC /* MaxPromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE0B577982F40F4BEA77AA8 /* MaxPromptBuilder.swift */; };
 		E57A13FDCEF94EB489127723 /* MaxResponseVariation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83B2468521F4F5991F07074 /* MaxResponseVariation.swift */; };
 		EED0A1B2C3D4E5F607182930 /* DigitalTwinLocalEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED0A1B2C3D4E5F607182931 /* DigitalTwinLocalEngine.swift */; };
@@ -194,6 +195,7 @@
 		180F07C0CC0644F4A99434B1 /* MaxMemoryService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MaxMemoryService.swift; sourceTree = "<group>"; };
 		74081E880F1647DF895BB541 /* MaxPersonaPrompt.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MaxPersonaPrompt.swift; sourceTree = "<group>"; };
 		89F2E06D336E438389EECB3A /* MaxPlanEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MaxPlanEngine.swift; sourceTree = "<group>"; };
+		C9F1A0B2C3D4E5F6071829AA /* MaxPlanQuestionGenerator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MaxPlanQuestionGenerator.swift; sourceTree = "<group>"; };
 		7DE0B577982F40F4BEA77AA8 /* MaxPromptBuilder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MaxPromptBuilder.swift; sourceTree = "<group>"; };
 		A83B2468521F4F5991F07074 /* MaxResponseVariation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MaxResponseVariation.swift; sourceTree = "<group>"; };
 		EED0A1B2C3D4E5F607182931 /* DigitalTwinLocalEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DigitalTwinLocalEngine.swift; sourceTree = "<group>"; };
@@ -490,6 +492,7 @@
 				A1B2C3D4E5F60718293A4B5E /* MaxRAGService.swift */,
 				74081E880F1647DF895BB541 /* MaxPersonaPrompt.swift */,
 				89F2E06D336E438389EECB3A /* MaxPlanEngine.swift */,
+				C9F1A0B2C3D4E5F6071829AA /* MaxPlanQuestionGenerator.swift */,
 				7DE0B577982F40F4BEA77AA8 /* MaxPromptBuilder.swift */,
 				A83B2468521F4F5991F07074 /* MaxResponseVariation.swift */,
 			);
@@ -925,6 +928,7 @@
 				6B10512C9B954F85AC314A60 /* MaxMemoryService.swift in Sources */,
 				B288B6CF97604D1BBA1FBC53 /* MaxPersonaPrompt.swift in Sources */,
 				D738A3AC4DED43A6932E046F /* MaxPlanEngine.swift in Sources */,
+				D9E8F7A6B5C4D3E2F1A0B9C8 /* MaxPlanQuestionGenerator.swift in Sources */,
 				77009E9294D8498FAEE122EC /* MaxPromptBuilder.swift in Sources */,
 				E57A13FDCEF94EB489127723 /* MaxResponseVariation.swift in Sources */,
 				EED0A1B2C3D4E5F607182930 /* DigitalTwinLocalEngine.swift in Sources */,

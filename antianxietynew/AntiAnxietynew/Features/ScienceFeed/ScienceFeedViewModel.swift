@@ -113,15 +113,16 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         
         do {
             let response = try await SupabaseManager.shared.getScienceFeed(language: language.rawValue)
-            let baseArticles = response.articles
-            articles = baseArticles
+            let baseArticles = normalizeArticles(response.articles)
+            let localizedArticles = filterArticlesForLanguage(baseArticles, language: language)
+            articles = localizedArticles
             personalization = response.personalization
             lastFetchDate = Date()
             saveToCache()
             print("✅ 加载了 \(articles.count) 篇科学文章")
             Task { [weak self] in
                 guard let self else { return }
-                let personalized = await self.personalizeArticles(baseArticles)
+                let personalized = await self.personalizeArticles(localizedArticles)
                 if !personalized.isEmpty {
                     self.articles = personalized
                     self.saveToCache()
@@ -145,14 +146,15 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         
         do {
             let response = try await SupabaseManager.shared.getScienceFeed(language: language.rawValue)
-            let baseArticles = response.articles
-            articles = baseArticles
+            let baseArticles = normalizeArticles(response.articles)
+            let localizedArticles = filterArticlesForLanguage(baseArticles, language: language)
+            articles = localizedArticles
             personalization = response.personalization
             lastFetchDate = Date()
             saveToCache()
             Task { [weak self] in
                 guard let self else { return }
-                let personalized = await self.personalizeArticles(baseArticles)
+                let personalized = await self.personalizeArticles(localizedArticles)
                 if !personalized.isEmpty {
                     self.articles = personalized
                     self.saveToCache()
@@ -275,14 +277,16 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
             : nil
 
         let focus = focusLabel(from: profile)
-        let reason = buildWhyRecommended(
-            base: article.whyRecommended,
+        let topic = detectTopic(in: article)
+        let reason = normalizedText(article.whyRecommended) ?? buildWhyRecommended(
             focus: focus,
             memorySnippet: memorySnippet,
-            similarity: similarity
+            similarity: similarity,
+            topic: topic
         )
-        let actionable = buildActionableInsight(focus: focus, memorySnippet: memorySnippet)
-        let match = calculateMatchPercentage(
+        let actionable = normalizedText(article.actionableInsight)
+            ?? buildActionableInsight(focus: focus, memorySnippet: memorySnippet, topic: topic)
+        let match = article.matchPercentage ?? calculateMatchPercentage(
             article: article,
             similarity: similarity,
             focus: focus
@@ -297,14 +301,16 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
 
     private func applyFallbackPersonalization(_ article: ScienceArticle, profile: ProfileSettings?) -> ScienceArticle {
         let focus = focusLabel(from: profile)
-        let reason = buildWhyRecommended(
-            base: article.whyRecommended,
+        let topic = detectTopic(in: article)
+        let reason = normalizedText(article.whyRecommended) ?? buildWhyRecommended(
             focus: focus,
             memorySnippet: nil,
-            similarity: nil
+            similarity: nil,
+            topic: topic
         )
-        let actionable = buildActionableInsight(focus: focus, memorySnippet: nil)
-        let match = calculateMatchPercentage(
+        let actionable = normalizedText(article.actionableInsight)
+            ?? buildActionableInsight(focus: focus, memorySnippet: nil, topic: topic)
+        let match = article.matchPercentage ?? calculateMatchPercentage(
             article: article,
             similarity: nil,
             focus: focus
@@ -317,10 +323,10 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
     }
 
     private func buildWhyRecommended(
-        base: String?,
         focus: String?,
         memorySnippet: String?,
-        similarity: Double?
+        similarity: Double?,
+        topic: ArticleTopic?
     ) -> String? {
         let isEn = activeLanguage == .en
         var parts: [String] = []
@@ -335,21 +341,18 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
             parts.append(isEn ? "Similarity ~\(percentage)%" : "相似度约 \(percentage)%")
         }
 
-        if parts.isEmpty {
-            if let base, !base.isEmpty, shouldUseBase(base, isEn: isEn) {
-                return base
-            }
-            return isEn ? "Matched from research signals and your history" : "基于科学检索与历史数据匹配"
+        if let topic, topic != .general {
+            parts.append(isEn ? "Focuses on \(topic.labelEn) research" : "聚焦\(topic.labelZh)研究")
         }
 
-        if let base, !base.isEmpty, base != "基于科学检索匹配", shouldUseBase(base, isEn: isEn) {
-            parts.append(base)
+        if parts.isEmpty {
+            return nil
         }
         return parts.joined(separator: " · ")
     }
 
-    private func buildActionableInsight(focus: String?, memorySnippet: String?) -> String? {
-        actionSuggestion(for: focus, memorySnippet: memorySnippet)
+    private func buildActionableInsight(focus: String?, memorySnippet: String?, topic: ArticleTopic?) -> String? {
+        actionSuggestion(for: focus, memorySnippet: memorySnippet, topic: topic)
     }
 
     private func calculateMatchPercentage(
@@ -388,8 +391,24 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         }
     }
 
-    private func actionSuggestion(for focus: String?, memorySnippet: String?) -> String? {
+    private func actionSuggestion(for focus: String?, memorySnippet: String?, topic: ArticleTopic?) -> String? {
         let isEn = activeLanguage == .en
+        if let topic {
+            switch topic {
+            case .sleep:
+                return isEn ? "keep a consistent bedtime and get 10 minutes of morning light" : "固定入睡时间，早晨晒 10 分钟自然光"
+            case .stress:
+                return isEn ? "do 5 minutes of slow breathing in the afternoon" : "下午安排 5 分钟慢呼吸"
+            case .anxiety:
+                return isEn ? "write down one trigger and plan a small response" : "记录一个触发点，并安排一个小应对"
+            case .mood:
+                return isEn ? "track today's mood and take a short walk" : "记录今日情绪起伏，安排一次短散步"
+            case .energy:
+                return isEn ? "add a 10-minute brisk walk after lunch" : "午饭后快走 10 分钟"
+            case .general:
+                break
+            }
+        }
         if let focus {
             let lower = focus.lowercased()
             if lower.contains("sleep") || focus.contains("睡眠") {
@@ -405,7 +424,120 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         if let snippet = memorySnippet, !snippet.isEmpty {
             return activeLanguage == .en ? "start from a small change related to \(snippet)" : "从与你近期记录「\(snippet)」相关的小改变开始"
         }
-        return activeLanguage == .en ? "choose one small action and do it today" : "选一个小行动，今天完成一次"
+        return nil
+    }
+
+    // MARK: - Article Normalization & Language Preference
+
+    private func normalizeArticles(_ articles: [ScienceArticle]) -> [ScienceArticle] {
+        articles.map { article in
+            let title = article.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanedTags = article.tags?
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            return ScienceArticle(
+                id: article.id,
+                title: title.isEmpty ? article.title : title,
+                titleZh: normalizedText(article.titleZh),
+                summary: normalizedText(article.summary),
+                summaryZh: normalizedText(article.summaryZh),
+                sourceType: normalizedText(article.sourceType) ?? article.sourceType,
+                sourceUrl: normalizedText(article.sourceUrl),
+                matchPercentage: article.matchPercentage,
+                whyRecommended: normalizedText(article.whyRecommended),
+                actionableInsight: normalizedText(article.actionableInsight),
+                tags: cleanedTags,
+                createdAt: article.createdAt
+            )
+        }
+    }
+
+    private func filterArticlesForLanguage(_ articles: [ScienceArticle], language: AppLanguage) -> [ScienceArticle] {
+        guard !articles.isEmpty else { return articles }
+        let threshold = min(3, articles.count)
+        if language == .zh {
+            let chinese = articles.filter { isMostlyChinese(articleText($0)) }
+            return chinese.count >= threshold ? chinese : articles
+        }
+        let english = articles.filter { !isMostlyChinese(articleText($0)) }
+        return english.count >= threshold ? english : articles
+    }
+
+    private func articleText(_ article: ScienceArticle) -> String {
+        [
+            article.titleZh ?? article.title,
+            article.summaryZh ?? article.summary,
+            (article.tags ?? []).joined(separator: " ")
+        ]
+        .compactMap { $0 }
+        .joined(separator: " ")
+    }
+
+    private func isMostlyChinese(_ text: String) -> Bool {
+        guard !text.isEmpty else { return false }
+        let chineseCount = text.unicodeScalars.filter { scalar in
+            scalar.value >= 0x4E00 && scalar.value <= 0x9FFF
+        }.count
+        return Double(chineseCount) / Double(max(text.count, 1)) > 0.08
+    }
+
+    private func normalizedText(_ text: String?) -> String? {
+        guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !text.isEmpty else { return nil }
+        return text
+    }
+
+    // MARK: - Topic Detection
+
+    private enum ArticleTopic {
+        case sleep
+        case stress
+        case anxiety
+        case mood
+        case energy
+        case general
+
+        var labelZh: String {
+            switch self {
+            case .sleep: return "睡眠"
+            case .stress: return "压力"
+            case .anxiety: return "焦虑"
+            case .mood: return "情绪"
+            case .energy: return "能量"
+            case .general: return "健康"
+            }
+        }
+
+        var labelEn: String {
+            switch self {
+            case .sleep: return "sleep"
+            case .stress: return "stress"
+            case .anxiety: return "anxiety"
+            case .mood: return "mood"
+            case .energy: return "energy"
+            case .general: return "health"
+            }
+        }
+    }
+
+    private func detectTopic(in article: ScienceArticle) -> ArticleTopic? {
+        let text = articleText(article).lowercased()
+        if text.contains("sleep") || text.contains("insomnia") || text.contains("睡眠") || text.contains("失眠") {
+            return .sleep
+        }
+        if text.contains("stress") || text.contains("cortisol") || text.contains("压力") || text.contains("皮质醇") {
+            return .stress
+        }
+        if text.contains("anxiety") || text.contains("焦虑") {
+            return .anxiety
+        }
+        if text.contains("mood") || text.contains("depression") || text.contains("情绪") || text.contains("抑郁") {
+            return .mood
+        }
+        if text.contains("energy") || text.contains("fatigue") || text.contains("能量") || text.contains("疲劳") {
+            return .energy
+        }
+        return .general
     }
 
     private func calculateFreshnessScore(_ publishedAt: Date?) -> Double {
@@ -472,14 +604,6 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         guard !cleaned.isEmpty else { return nil }
         if cleaned.count <= limit { return cleaned }
         return "\(cleaned.prefix(limit))…"
-    }
-
-    private func shouldUseBase(_ base: String, isEn: Bool) -> Bool {
-        let hasChinese = base.range(of: "\\p{Han}", options: .regularExpression) != nil
-        if isEn {
-            return !hasChinese
-        }
-        return hasChinese
     }
 
 }
