@@ -57,7 +57,6 @@ struct ContentView: View {
                             ProgressView()
                                 .tint(.white)
                         }
-                        .padding(.leading, 8)
                     }
                     .transition(.opacity)
                         .transition(.opacity)
@@ -207,7 +206,6 @@ private struct CustomTabBar: View {
             .frame(width: barWidth, height: totalHeight)
         }
         .frame(width: containerWidth, height: totalHeight)  // 容器锚定到物理屏幕宽度
-        .offset(x: -24)
         .overlay(centerAxisOverlay)
     }
 
