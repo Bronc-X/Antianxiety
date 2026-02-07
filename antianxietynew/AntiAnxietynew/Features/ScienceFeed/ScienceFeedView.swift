@@ -77,9 +77,8 @@ struct ScienceFeedView: View {
     }
 
     private var centerAxisHeader: some View {
-        let sideSlotWidth: CGFloat = 44
-        return ZStack {
-            HStack(spacing: 0) {
+        ZStack {
+            HStack {
                 Button {
                     dismiss()
                 } label: {
@@ -90,17 +89,18 @@ struct ScienceFeedView: View {
                         .background(Color.surfaceGlass(for: colorScheme))
                         .clipShape(Circle())
                 }
-                .frame(width: sideSlotWidth, alignment: .leading)
                 Spacer()
-                Color.clear
-                    .frame(width: sideSlotWidth, height: sideSlotWidth)
             }
 
             Text(L10n.text("科学期刊", "Science Journal", language: language))
                 .font(.headline)
                 .foregroundColor(.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .offset(x: metrics.centerAxisOffset)
+
+            HStack {
+                Spacer()
+                Color.clear
+                    .frame(width: 36, height: 36)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, metrics.horizontalPadding)
@@ -182,16 +182,10 @@ struct ArticleCard: View {
     private var cardTertiaryText: Color { isLight ? Color(hex: "#7A8F70") : Color.brandPaper.opacity(0.55) }
     private var cardBorder: Color { isLight ? Color.black.opacity(0.06) : Color.white.opacity(0.12) }
     private var titleText: String { language == .en ? article.title : (article.titleZh ?? article.title) }
-    private var summaryText: String {
-        let base = language == .en ? (article.summary ?? article.summaryZh) : (article.summaryZh ?? article.summary)
-        let trimmed = base?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let trimmed, !trimmed.isEmpty {
-            return trimmed
-        }
-        return L10n.text("摘要生成中", "Summary unavailable", language: language)
+    private var summaryText: String? {
+        if language == .en { return article.summary ?? article.summaryZh }
+        return article.summaryZh ?? article.summary
     }
-    private var whyText: String? { normalizedText(article.whyRecommended) }
-    private var actionText: String? { normalizedText(article.actionableInsight) }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -222,27 +216,23 @@ struct ArticleCard: View {
             }
             
             // 摘要
-            VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.text("摘要", "Summary", language: language))
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(cardTertiaryText)
-                ExpandableText(
-                    text: summaryText,
-                    lineLimit: 3,
-                    language: language,
-                    textColor: cardSecondaryText,
-                    font: .subheadline,
-                    toggleColor: cardTertiaryText
-                )
+            if let summary = summaryText, !summary.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L10n.text("摘要", "Summary", language: language))
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(cardTertiaryText)
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundColor(cardSecondaryText)
+                }
             }
             
             // 为什么推荐给你
-            if let why = whyText {
+            if let why = article.whyRecommended {
                 InsightBox(
                     icon: "sparkles",
                     title: L10n.text("为什么推荐给你", "Why Recommended", language: language),
                     content: why,
-                    language: language,
                     accentColor: .liquidGlassAccent,
                     textColor: cardSecondaryText,
                     backgroundColor: .liquidGlassAccent.opacity(isLight ? 0.12 : 0.2)
@@ -250,12 +240,11 @@ struct ArticleCard: View {
             }
 
             // 你可以这样做
-            if let action = actionText {
+            if let action = article.actionableInsight {
                 InsightBox(
                     icon: "checkmark.circle.fill",
                     title: L10n.text("你可以这样做", "What You Can Do", language: language),
                     content: action,
-                    language: language,
                     accentColor: .liquidGlassSecondary,
                     textColor: cardSecondaryText,
                     backgroundColor: .liquidGlassSecondary.opacity(isLight ? 0.12 : 0.2)
@@ -316,12 +305,6 @@ struct ArticleCard: View {
                 .stroke(cardBorder, lineWidth: 1)
         )
     }
-
-    private func normalizedText(_ text: String?) -> String? {
-        guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !text.isEmpty else { return nil }
-        return text
-    }
 }
 
 // MARK: - Platform Badge
@@ -377,7 +360,6 @@ struct InsightBox: View {
     let icon: String
     let title: String
     let content: String
-    let language: AppLanguage
     let accentColor: Color
     var textColor: Color = .textSecondary
     var backgroundColor: Color? = nil
@@ -391,14 +373,9 @@ struct InsightBox: View {
                     .font(.caption.weight(.semibold))
                     .foregroundColor(accentColor)
             }
-            ExpandableText(
-                text: content,
-                lineLimit: 3,
-                language: language,
-                textColor: textColor,
-                font: .subheadline,
-                toggleColor: accentColor
-            )
+            Text(content)
+                .font(.subheadline)
+                .foregroundColor(textColor)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -413,96 +390,53 @@ struct InsightBox: View {
     }
 }
 
-// MARK: - Expandable Text
-struct ExpandableText: View {
-    let text: String
-    let lineLimit: Int
-    let language: AppLanguage
-    let textColor: Color
-    let font: Font
-    var toggleColor: Color = .textSecondary
-    var minimumCharactersForToggle: Int = 120
-    @State private var isExpanded = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(text)
-                .font(font)
-                .foregroundColor(textColor)
-                .lineLimit(isExpanded ? nil : lineLimit)
-                .animation(.easeInOut(duration: 0.2), value: isExpanded)
-
-            if text.count >= minimumCharactersForToggle {
-                Button {
-                    isExpanded.toggle()
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(isExpanded
-                             ? L10n.text("收起", "Collapse", language: language)
-                             : L10n.text("展开", "More", language: language))
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption2)
-                    }
-                    .font(.caption2.weight(.semibold))
-                    .foregroundColor(toggleColor)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-}
-
 // MARK: - AI Loading View
 struct AILoadingView: View {
     let message: String
     let language: AppLanguage
-    @Environment(\.screenMetrics) private var metrics
     @State private var progress: CGFloat = 0
     
     var body: some View {
-        VStack {
+        VStack(spacing: 24) {
             Spacer()
-
-            VStack(spacing: 24) {
-                ZStack {
-                    Circle()
-                        .stroke(Color.liquidGlassAccent.opacity(0.2), lineWidth: 4)
-                        .frame(width: 60, height: 60)
-
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .tint(.liquidGlassAccent)
-                }
-
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundColor(.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .animation(.easeInOut, value: message)
-
-                // Progress bar
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 200, height: 4)
-                    .overlay(
-                        GeometryReader { geo in
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.liquidGlassAccent)
-                                .frame(width: geo.size.width * progress)
-                        },
-                        alignment: .leading
-                    )
-
-                Text(L10n.text("这可能需要 10-20 秒", "This may take 10-20 seconds", language: language))
-                    .font(.caption2)
-                    .foregroundColor(.textTertiary)
+            
+            ZStack {
+                Circle()
+                    .stroke(Color.liquidGlassAccent.opacity(0.2), lineWidth: 4)
+                    .frame(width: 60, height: 60)
+                
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.liquidGlassAccent)
             }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .offset(x: metrics.centerAxisOffset)
-
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.textSecondary)
+                .multilineTextAlignment(.center)
+                .animation(.easeInOut, value: message)
+            
+            // Progress bar
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color.white.opacity(0.1))
+                .frame(width: 200, height: 4)
+                .overlay(
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.liquidGlassAccent)
+                            .frame(width: geo.size.width * progress)
+                    },
+                    alignment: .leading
+                )
+            
+            Text(L10n.text("这可能需要 10-20 秒", "This may take 10-20 seconds", language: language))
+                .font(.caption2)
+                .foregroundColor(.textTertiary)
+            
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .offset(x: -6)
+        .frame(maxWidth: .infinity)
         .padding()
         .onAppear {
             withAnimation(.linear(duration: 25)) {

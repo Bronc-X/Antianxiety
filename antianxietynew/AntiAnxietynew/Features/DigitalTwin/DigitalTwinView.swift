@@ -25,8 +25,6 @@ struct DigitalTwinView: View {
                 ProgressView()
                     .scaleEffect(1.1)
                     .progressViewStyle(CircularProgressViewStyle(tint: .liquidGlassAccent))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .offset(x: metrics.centerAxisOffset)
             }
         }
         .navigationBarHidden(true)
@@ -48,9 +46,8 @@ struct DigitalTwinView: View {
     }
 
     private var header: some View {
-        let sideSlotWidth: CGFloat = 44
-        return ZStack {
-            HStack(spacing: 0) {
+        ZStack {
+            HStack {
                 Button {
                     dismiss()
                 } label: {
@@ -61,19 +58,7 @@ struct DigitalTwinView: View {
                         .background(Color.textPrimary.opacity(0.1))
                         .clipShape(Circle())
                 }
-                .frame(width: sideSlotWidth, alignment: .leading)
                 Spacer()
-                Button {
-                    Task { await viewModel.refreshCurve() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.headline)
-                        .foregroundColor(.textPrimary)
-                        .frame(width: 36, height: 36)
-                        .background(Color.textPrimary.opacity(0.1))
-                        .clipShape(Circle())
-                }
-                .frame(width: sideSlotWidth, alignment: .trailing)
             }
 
             VStack(spacing: 2) {
@@ -87,8 +72,21 @@ struct DigitalTwinView: View {
                 }
             }
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .offset(x: metrics.centerAxisOffset)
+
+            HStack {
+                Spacer()
+                Button {
+                    Task { await viewModel.refreshCurve() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.headline)
+                        .foregroundColor(.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.textPrimary.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                .padding(.trailing, 5)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, metrics.horizontalPadding)
