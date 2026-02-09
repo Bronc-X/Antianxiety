@@ -29,8 +29,9 @@ struct PlanView: View {
                     }
                 }
                 .padding(AppTheme.Spacing.md)
+                .padding(.bottom, 24)
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle("行动方案")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showMaxChat) {
@@ -296,6 +297,8 @@ struct HistoryPlan: Identifiable {
     let completionRate: Int
 }
 
-#Preview {
+struct PlanView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     PlanView()
+    }
 }

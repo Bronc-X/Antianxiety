@@ -402,6 +402,8 @@ extension Array {
     }
 }
 
-#Preview {
+struct DailyCalibrationView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     DailyCalibrationView()
+    }
 }

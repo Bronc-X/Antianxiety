@@ -238,6 +238,8 @@ struct OptionButton: View {
     }
 }
 
-#Preview {
+struct ScaleAssessmentView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     ScaleAssessmentView(scale: .gad7) { _ in }
+    }
 }

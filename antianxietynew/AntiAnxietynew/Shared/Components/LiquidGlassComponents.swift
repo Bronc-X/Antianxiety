@@ -550,7 +550,7 @@ struct LiquidGlassPageWidthModifier: ViewModifier {
 }
 
 extension View {
-    func liquidGlassPageWidth(alignment: Alignment = .leading) -> some View {
+    func liquidGlassPageWidth(alignment: Alignment = .center) -> some View {
         modifier(LiquidGlassPageWidthModifier(alignment: alignment))
     }
 }

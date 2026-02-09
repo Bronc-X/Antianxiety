@@ -201,7 +201,8 @@ struct ResultInterpretationView: View {
     }
 }
 
-#Preview {
+struct ResultInterpretationView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     ResultInterpretationView(
         result: AssessmentResult(
             id: "1",
@@ -212,4 +213,5 @@ struct ResultInterpretationView: View {
             date: Date()
         )
     )
+    }
 }

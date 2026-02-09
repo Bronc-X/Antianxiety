@@ -27,8 +27,9 @@ struct HomeView: View {
                     activePlanSection
                 }
                 .padding(AppTheme.Spacing.md)
+                .padding(.bottom, 24)
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle("首页")
             .navigationBarTitleDisplayMode(.large)
         }
@@ -90,10 +91,33 @@ struct HomeView: View {
                 .foregroundColor(AppTheme.Colors.textPrimary)
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.Spacing.md) {
-                QuickActionCard(icon: "waveform.path.ecg", title: "每日校准", color: AppTheme.Colors.primary)
-                QuickActionCard(icon: "bubble.left.and.bubble.right.fill", title: "和 Max 聊聊", color: AppTheme.Colors.secondary)
-                QuickActionCard(icon: "list.clipboard", title: "临床评估", color: AppTheme.Colors.info)
-                QuickActionCard(icon: "book.fill", title: "科学期刊", color: .green)
+                NavigationLink {
+                    DailyCalibrationView()
+                } label: {
+                    QuickActionCard(icon: "waveform.path.ecg", title: "每日校准", color: AppTheme.Colors.primary)
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    ChatView()
+                } label: {
+                    QuickActionCard(icon: "bubble.left.and.bubble.right.fill", title: "和 Max 聊聊", color: AppTheme.Colors.secondary)
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    ClinicalScalesView()
+                } label: {
+                    QuickActionCard(icon: "list.clipboard", title: "临床评估", color: AppTheme.Colors.info)
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    CuratedFeedView()
+                } label: {
+                    QuickActionCard(icon: "book.fill", title: "科学期刊", color: .green)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -198,6 +222,8 @@ struct PlanItemRow: View {
     }
 }
 
-#Preview {
+struct HomeView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     HomeView()
+    }
 }

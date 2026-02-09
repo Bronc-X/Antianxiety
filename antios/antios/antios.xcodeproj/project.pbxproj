@@ -7,13 +7,37 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		EE94EA6E2F36182C0091CF54 /* antiosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE94EA6D2F36182C0091CF54 /* antiosApp.swift */; };
-		EE94EA702F36182C0091CF54 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE94EA6F2F36182C0091CF54 /* ContentView.swift */; };
+		11C50991D3094E28E71D1EED /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85276A2CF54367FE4044E8B /* APIClient.swift */; };
+		18680FEE31982CEB8A3CAC3F /* CuratedFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97284175B6A939760AC116BD /* CuratedFeedView.swift */; };
+		1A125367C63BBB996EA57336 /* PlanReplaceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3366B1BDD318165965E9547 /* PlanReplaceService.swift */; };
+		2E6A331595AF7459E769FB2A /* WearablesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82CB4FB9921613A5BBCD60E /* WearablesView.swift */; };
+		327E1BF267E44F070482819F /* BayesianAnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E839F51C54A3C37E5570A945 /* BayesianAnalyticsService.swift */; };
+		33C0C207E13874043E5A78B9 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43DF1CBCC4F0CAA3B8FD7BE /* AuthView.swift */; };
+		3B6E9AD86A60DE262E0DF961 /* DailyCalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36DE278EBA1980927597529 /* DailyCalibrationView.swift */; };
+		474000674D4F28EDE7F67DD4 /* AIPersonaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8779CE3799DE6BB2CD1363E7 /* AIPersonaSettingsView.swift */; };
+		6B4540A17C4A6C094161E169 /* antiosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C81DE1993C374A320C2A5902 /* antiosApp.swift */; };
+		6D4455568EADB457A80BDB26 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE1DD4E925137B46FF6B3D65 /* HealthKitService.swift */; };
+		789519F74042FA92F8D4E565 /* DigitalTwinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E73CA9CEC623B6E3C3B0F8 /* DigitalTwinView.swift */; };
+		7DA2A594ECD7A463D3C1C298 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AE799BECAD6B8C60B06A04 /* ChatView.swift */; };
+		811E3AB6E048977B525502C8 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 977DB16D0416EC9BFA7202F8 /* PlanView.swift */; };
+		90071A55EADBD20562B447D3 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39669E2D38DC6117C139E7F0 /* HomeView.swift */; };
+		914134897B7F0155820175B0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4ABE7C685823B35CD01BD66 /* ContentView.swift */; };
+		91701AEBE247EA8E61843845 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F71B0A3251082DA43D9191B /* AppTheme.swift */; };
+		96B8F7F0BA424E54BF3C1E6D /* ResultInterpretationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B06B41B560D08B3DE487BE57 /* ResultInterpretationView.swift */; };
+		9BFEEA6C3C83CBF5DEFCE1DA /* SupabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E70E3AC794B2AD49A1A95A /* SupabaseManager.swift */; };
+		A356027D3574468C7E191AB3 /* ReportExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1249D5B56E2DABB6483A81 /* ReportExportService.swift */; };
+		AAAB1FB03E1405B42E6F8694 /* ScaleAssessmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB6F9F05D694041B8AFDE4 /* ScaleAssessmentView.swift */; };
+		BA65D88FF27E647B15EAF4D6 /* ClinicalScalesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDB0F197C3AAE7C164A3A614 /* ClinicalScalesView.swift */; };
+		BC6108334F92A44874764B40 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47694F20E644A95862AF0EEF /* ChatViewModel.swift */; };
+		C3A2A753CAB33CBB5C17A558 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3F55B3DBA94508ECA27314 /* KeychainService.swift */; };
+		DE7DF20B17463569C6EF7D8B /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FBCEEEFD7E21ACB067BA36 /* ProfileView.swift */; };
+		E8AA531E8D3D5E7D73169643 /* MaxPlanChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9615F9B497F622DD3E5A585 /* MaxPlanChatView.swift */; };
 		EE94EA722F3618310091CF54 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE94EA712F3618310091CF54 /* Assets.xcassets */; };
 		EE94EA762F3618310091CF54 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE94EA752F3618310091CF54 /* Preview Assets.xcassets */; };
 		EE94EA802F3618320091CF54 /* antiosTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE94EA7F2F3618320091CF54 /* antiosTests.swift */; };
 		EE94EA8A2F3618320091CF54 /* antiosUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE94EA892F3618320091CF54 /* antiosUITests.swift */; };
 		EE94EA8C2F3618320091CF54 /* antiosUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE94EA8B2F3618320091CF54 /* antiosUITestsLaunchTests.swift */; };
+		F8CFAAA8E20284DA363C8880 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 827B4D803846681610235C91 /* AuthManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +58,31 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0F71B0A3251082DA43D9191B /* AppTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppTheme.swift; path = UI/Theme/AppTheme.swift; sourceTree = "<group>"; };
+		39669E2D38DC6117C139E7F0 /* HomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HomeView.swift; path = Features/Shared/HomeView.swift; sourceTree = "<group>"; };
+		47694F20E644A95862AF0EEF /* ChatViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChatViewModel.swift; path = Features/Chat/ChatViewModel.swift; sourceTree = "<group>"; };
+		827B4D803846681610235C91 /* AuthManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AuthManager.swift; path = Features/Auth/AuthManager.swift; sourceTree = "<group>"; };
+		8779CE3799DE6BB2CD1363E7 /* AIPersonaSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AIPersonaSettingsView.swift; path = Features/Auth/AIPersonaSettingsView.swift; sourceTree = "<group>"; };
+		97284175B6A939760AC116BD /* CuratedFeedView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CuratedFeedView.swift; path = Features/Feed/CuratedFeedView.swift; sourceTree = "<group>"; };
+		977DB16D0416EC9BFA7202F8 /* PlanView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PlanView.swift; path = Features/Plan/PlanView.swift; sourceTree = "<group>"; };
+		9DBB6F9F05D694041B8AFDE4 /* ScaleAssessmentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScaleAssessmentView.swift; path = Features/Assessment/ScaleAssessmentView.swift; sourceTree = "<group>"; };
+		A4ABE7C685823B35CD01BD66 /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = App/ContentView.swift; sourceTree = "<group>"; };
+		B06B41B560D08B3DE487BE57 /* ResultInterpretationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultInterpretationView.swift; path = Features/Assessment/ResultInterpretationView.swift; sourceTree = "<group>"; };
+		B9615F9B497F622DD3E5A585 /* MaxPlanChatView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MaxPlanChatView.swift; path = Features/Plan/MaxPlanChatView.swift; sourceTree = "<group>"; };
+		C3366B1BDD318165965E9547 /* PlanReplaceService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PlanReplaceService.swift; path = Features/Plan/PlanReplaceService.swift; sourceTree = "<group>"; };
+		C36DE278EBA1980927597529 /* DailyCalibrationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DailyCalibrationView.swift; path = Features/Calibration/DailyCalibrationView.swift; sourceTree = "<group>"; };
+		C81DE1993C374A320C2A5902 /* antiosApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = antiosApp.swift; path = App/antiosApp.swift; sourceTree = "<group>"; };
+		C82CB4FB9921613A5BBCD60E /* WearablesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WearablesView.swift; path = Features/Wearables/WearablesView.swift; sourceTree = "<group>"; };
+		C9E70E3AC794B2AD49A1A95A /* SupabaseManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SupabaseManager.swift; path = Core/Supabase/SupabaseManager.swift; sourceTree = "<group>"; };
+		CB3F55B3DBA94508ECA27314 /* KeychainService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KeychainService.swift; path = Core/Storage/KeychainService.swift; sourceTree = "<group>"; };
+		CC1249D5B56E2DABB6483A81 /* ReportExportService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ReportExportService.swift; path = Features/Assessment/ReportExportService.swift; sourceTree = "<group>"; };
+		D0E73CA9CEC623B6E3C3B0F8 /* DigitalTwinView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DigitalTwinView.swift; path = Features/DigitalTwin/DigitalTwinView.swift; sourceTree = "<group>"; };
+		D1FBCEEEFD7E21ACB067BA36 /* ProfileView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProfileView.swift; path = Features/Shared/ProfileView.swift; sourceTree = "<group>"; };
+		DE1DD4E925137B46FF6B3D65 /* HealthKitService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HealthKitService.swift; path = Features/Wearables/HealthKitService.swift; sourceTree = "<group>"; };
+		E43DF1CBCC4F0CAA3B8FD7BE /* AuthView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AuthView.swift; path = Features/Auth/AuthView.swift; sourceTree = "<group>"; };
+		E839F51C54A3C37E5570A945 /* BayesianAnalyticsService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BayesianAnalyticsService.swift; path = Features/Analytics/BayesianAnalyticsService.swift; sourceTree = "<group>"; };
+		E85276A2CF54367FE4044E8B /* APIClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = APIClient.swift; path = Core/Network/APIClient.swift; sourceTree = "<group>"; };
+		EDB0F197C3AAE7C164A3A614 /* ClinicalScalesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ClinicalScalesView.swift; path = Features/Assessment/ClinicalScalesView.swift; sourceTree = "<group>"; };
 		EE94EA6A2F36182C0091CF54 /* antios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = antios.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE94EA6D2F36182C0091CF54 /* antiosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = antiosApp.swift; sourceTree = "<group>"; };
 		EE94EA6F2F36182C0091CF54 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -45,6 +94,7 @@
 		EE94EA852F3618320091CF54 /* antiosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = antiosUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE94EA892F3618320091CF54 /* antiosUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = antiosUITests.swift; sourceTree = "<group>"; };
 		EE94EA8B2F3618320091CF54 /* antiosUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = antiosUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		F4AE799BECAD6B8C60B06A04 /* ChatView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChatView.swift; path = Features/Chat/ChatView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +129,32 @@
 				EE94EA7E2F3618320091CF54 /* antiosTests */,
 				EE94EA882F3618320091CF54 /* antiosUITests */,
 				EE94EA6B2F36182C0091CF54 /* Products */,
+				A4ABE7C685823B35CD01BD66 /* ContentView.swift */,
+				C81DE1993C374A320C2A5902 /* antiosApp.swift */,
+				E85276A2CF54367FE4044E8B /* APIClient.swift */,
+				CB3F55B3DBA94508ECA27314 /* KeychainService.swift */,
+				C9E70E3AC794B2AD49A1A95A /* SupabaseManager.swift */,
+				E839F51C54A3C37E5570A945 /* BayesianAnalyticsService.swift */,
+				EDB0F197C3AAE7C164A3A614 /* ClinicalScalesView.swift */,
+				CC1249D5B56E2DABB6483A81 /* ReportExportService.swift */,
+				B06B41B560D08B3DE487BE57 /* ResultInterpretationView.swift */,
+				9DBB6F9F05D694041B8AFDE4 /* ScaleAssessmentView.swift */,
+				8779CE3799DE6BB2CD1363E7 /* AIPersonaSettingsView.swift */,
+				827B4D803846681610235C91 /* AuthManager.swift */,
+				E43DF1CBCC4F0CAA3B8FD7BE /* AuthView.swift */,
+				C36DE278EBA1980927597529 /* DailyCalibrationView.swift */,
+				F4AE799BECAD6B8C60B06A04 /* ChatView.swift */,
+				47694F20E644A95862AF0EEF /* ChatViewModel.swift */,
+				D0E73CA9CEC623B6E3C3B0F8 /* DigitalTwinView.swift */,
+				97284175B6A939760AC116BD /* CuratedFeedView.swift */,
+				B9615F9B497F622DD3E5A585 /* MaxPlanChatView.swift */,
+				C3366B1BDD318165965E9547 /* PlanReplaceService.swift */,
+				977DB16D0416EC9BFA7202F8 /* PlanView.swift */,
+				39669E2D38DC6117C139E7F0 /* HomeView.swift */,
+				D1FBCEEEFD7E21ACB067BA36 /* ProfileView.swift */,
+				DE1DD4E925137B46FF6B3D65 /* HealthKitService.swift */,
+				C82CB4FB9921613A5BBCD60E /* WearablesView.swift */,
+				0F71B0A3251082DA43D9191B /* AppTheme.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -259,8 +335,32 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EE94EA702F36182C0091CF54 /* ContentView.swift in Sources */,
-				EE94EA6E2F36182C0091CF54 /* antiosApp.swift in Sources */,
+				914134897B7F0155820175B0 /* ContentView.swift in Sources */,
+				6B4540A17C4A6C094161E169 /* antiosApp.swift in Sources */,
+				11C50991D3094E28E71D1EED /* APIClient.swift in Sources */,
+				C3A2A753CAB33CBB5C17A558 /* KeychainService.swift in Sources */,
+				9BFEEA6C3C83CBF5DEFCE1DA /* SupabaseManager.swift in Sources */,
+				327E1BF267E44F070482819F /* BayesianAnalyticsService.swift in Sources */,
+				BA65D88FF27E647B15EAF4D6 /* ClinicalScalesView.swift in Sources */,
+				A356027D3574468C7E191AB3 /* ReportExportService.swift in Sources */,
+				96B8F7F0BA424E54BF3C1E6D /* ResultInterpretationView.swift in Sources */,
+				AAAB1FB03E1405B42E6F8694 /* ScaleAssessmentView.swift in Sources */,
+				474000674D4F28EDE7F67DD4 /* AIPersonaSettingsView.swift in Sources */,
+				F8CFAAA8E20284DA363C8880 /* AuthManager.swift in Sources */,
+				33C0C207E13874043E5A78B9 /* AuthView.swift in Sources */,
+				3B6E9AD86A60DE262E0DF961 /* DailyCalibrationView.swift in Sources */,
+				7DA2A594ECD7A463D3C1C298 /* ChatView.swift in Sources */,
+				BC6108334F92A44874764B40 /* ChatViewModel.swift in Sources */,
+				789519F74042FA92F8D4E565 /* DigitalTwinView.swift in Sources */,
+				18680FEE31982CEB8A3CAC3F /* CuratedFeedView.swift in Sources */,
+				E8AA531E8D3D5E7D73169643 /* MaxPlanChatView.swift in Sources */,
+				1A125367C63BBB996EA57336 /* PlanReplaceService.swift in Sources */,
+				811E3AB6E048977B525502C8 /* PlanView.swift in Sources */,
+				90071A55EADBD20562B447D3 /* HomeView.swift in Sources */,
+				DE7DF20B17463569C6EF7D8B /* ProfileView.swift in Sources */,
+				6D4455568EADB457A80BDB26 /* HealthKitService.swift in Sources */,
+				2E6A331595AF7459E769FB2A /* WearablesView.swift in Sources */,
+				91701AEBE247EA8E61843845 /* AppTheme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

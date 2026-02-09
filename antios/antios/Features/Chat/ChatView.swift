@@ -44,7 +44,7 @@ struct ChatView: View {
                 // Input Bar
                 inputBar
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle("Max")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -130,7 +130,7 @@ struct ChatView: View {
             TextField("输入消息...", text: $inputText, axis: .vertical)
                 .textFieldStyle(.plain)
                 .padding(AppTheme.Spacing.sm)
-                .background(AppTheme.Colors.backgroundElevated)
+                .background(.ultraThinMaterial)
                 .cornerRadius(AppTheme.CornerRadius.lg)
                 .focused($isInputFocused)
                 .lineLimit(1...5)
@@ -145,7 +145,7 @@ struct ChatView: View {
             .disabled(inputText.isEmpty || viewModel.isStreaming)
         }
         .padding(AppTheme.Spacing.md)
-        .background(AppTheme.Colors.backgroundCard)
+        .background(.ultraThinMaterial)
     }
     
     private func sendMessage() {
@@ -181,11 +181,19 @@ struct MessageBubble: View {
                     .font(AppTheme.Typography.body)
                     .foregroundColor(message.role == .user ? .white : AppTheme.Colors.textPrimary)
                     .padding(AppTheme.Spacing.md)
-                    .background(
-                        message.role == .user
-                            ? AppTheme.Colors.primary
-                            : AppTheme.Colors.backgroundCard
-                    )
+                    .background {
+                        if message.role == .user {
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.lg, style: .continuous)
+                                .fill(AppTheme.Colors.primary)
+                        } else {
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.lg, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.lg, style: .continuous)
+                                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                                )
+                        }
+                    }
                     .cornerRadius(AppTheme.CornerRadius.lg)
                 
                 // Citations (D2)
@@ -221,6 +229,8 @@ struct MessageBubble: View {
     }
 }
 
-#Preview {
+struct ChatView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     ChatView()
+    }
 }

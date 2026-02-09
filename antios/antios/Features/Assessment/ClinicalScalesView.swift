@@ -264,6 +264,8 @@ struct AssessmentResult: Identifiable {
     let date: Date
 }
 
-#Preview {
+struct ClinicalScalesView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     ClinicalScalesView()
+    }
 }

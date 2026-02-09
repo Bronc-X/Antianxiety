@@ -258,6 +258,8 @@ struct PlanChatMessage: Identifiable {
     let isMax: Bool
 }
 
-#Preview {
+struct MaxPlanChatView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     MaxPlanChatView()
+    }
 }

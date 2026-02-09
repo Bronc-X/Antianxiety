@@ -276,6 +276,8 @@ enum AIPersona: String, CaseIterable, Identifiable {
     }
 }
 
-#Preview {
+struct AIPersonaSettingsView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     AIPersonaSettingsView()
+    }
 }

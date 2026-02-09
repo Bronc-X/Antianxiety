@@ -27,8 +27,9 @@ struct CuratedFeedView: View {
                     }
                 }
                 .padding(AppTheme.Spacing.md)
+                .padding(.bottom, 24)
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle("科学期刊")
             .navigationBarTitleDisplayMode(.large)
         }
@@ -320,6 +321,8 @@ extension View {
     }
 }
 
-#Preview {
+struct CuratedFeedView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     CuratedFeedView()
+    }
 }

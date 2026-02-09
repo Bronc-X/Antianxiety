@@ -269,6 +269,8 @@ struct InfluenceFactor: Identifiable {
     let impact: Int
 }
 
-#Preview {
+struct DigitalTwinView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     DigitalTwinView()
+    }
 }

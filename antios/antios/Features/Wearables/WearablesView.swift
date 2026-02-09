@@ -238,6 +238,8 @@ struct DataCard: View {
     }
 }
 
-#Preview {
+struct WearablesView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     WearablesView()
+    }
 }

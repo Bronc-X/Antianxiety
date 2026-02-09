@@ -9,70 +9,69 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject private var supabase = SupabaseManager.shared
-    @StateObject private var authManager = AuthManager()
+    @EnvironmentObject var authManager: AuthManager
     @State private var showAISettings = false
     
     var body: some View {
         NavigationStack {
-            List {
-                // 用户信息
-                Section {
-                    HStack(spacing: AppTheme.Spacing.md) {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(AppTheme.Colors.primary)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(supabase.currentUser?.name ?? "用户")
-                                .font(AppTheme.Typography.headline)
-                                .foregroundColor(AppTheme.Colors.textPrimary)
-                            
-                            Text(supabase.currentUser?.email ?? "")
-                                .font(AppTheme.Typography.caption)
-                                .foregroundColor(AppTheme.Colors.textSecondary)
+            ScrollView {
+                VStack(spacing: AppTheme.Spacing.md) {
+                    profileHeader
+
+                    VStack(spacing: AppTheme.Spacing.sm) {
+                        SettingsRow(icon: "brain.head.profile", title: "AI 人格设置", color: AppTheme.Colors.primary) {
+                            showAISettings = true
                         }
+
+                        SettingsRow(icon: "heart.fill", title: "健康数据", color: .red) {}
+
+                        SettingsRow(icon: "bell.fill", title: "通知设置", color: .orange) {}
+
+                        SettingsRow(icon: "moon.fill", title: "深色模式", color: .purple) {}
                     }
-                    .padding(.vertical, AppTheme.Spacing.sm)
-                }
-                .listRowBackground(AppTheme.Colors.backgroundCard)
-                
-                // 设置
-                Section("设置") {
-                    SettingsRow(icon: "brain.head.profile", title: "AI 人格设置", color: AppTheme.Colors.primary) {
-                        showAISettings = true
-                    }
-                    
-                    SettingsRow(icon: "heart.fill", title: "健康数据", color: .red) {}
-                    
-                    SettingsRow(icon: "bell.fill", title: "通知设置", color: .orange) {}
-                    
-                    SettingsRow(icon: "moon.fill", title: "深色模式", color: .purple) {}
-                }
-                .listRowBackground(AppTheme.Colors.backgroundCard)
-                
-                // 退出
-                Section {
+                    .cardStyle()
+
                     Button {
                         authManager.signOut()
                     } label: {
-                        HStack {
-                            Spacer()
-                            Text("退出登录")
-                                .foregroundColor(AppTheme.Colors.error)
-                            Spacer()
-                        }
+                        Text("退出登录")
+                            .foregroundColor(AppTheme.Colors.error)
+                            .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.bordered)
+                    .tint(AppTheme.Colors.error)
+                    .padding(.top, AppTheme.Spacing.sm)
                 }
-                .listRowBackground(AppTheme.Colors.backgroundCard)
+                .padding(AppTheme.Spacing.md)
             }
-            .scrollContentBackground(.hidden)
-            .background(AppTheme.Colors.backgroundDark)
-            .navigationTitle("我的")
+            .background(AuroraBackground().ignoresSafeArea())
+            .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showAISettings) {
                 AIPersonaSettingsView()
             }
         }
+    }
+
+    private var profileHeader: some View {
+        HStack(spacing: AppTheme.Spacing.md) {
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 62))
+                .foregroundColor(AppTheme.Colors.primary)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(supabase.currentUser?.name ?? "用户")
+                    .font(AppTheme.Typography.title3)
+                    .foregroundColor(AppTheme.Colors.textPrimary)
+
+                Text(supabase.currentUser?.email ?? "")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textSecondary)
+            }
+
+            Spacer()
+        }
+        .cardStyle()
     }
 }
 
@@ -104,6 +103,8 @@ struct SettingsRow: View {
     }
 }
 
-#Preview {
+struct ProfileView_PreviewProvider: PreviewProvider {
+    static var previews: some View {
     ProfileView()
+    }
 }
