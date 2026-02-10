@@ -13,9 +13,6 @@ class SupabaseManager: ObservableObject {
     @Published var currentUser: SupabaseUser?
     @Published var isAuthenticated = false
     
-    private let supabaseURL = "https://YOUR_PROJECT.supabase.co"
-    private let supabaseAnonKey = "YOUR_ANON_KEY"
-    
     private init() {
         checkSession()
     }
@@ -50,6 +47,7 @@ class SupabaseManager: ObservableObject {
         struct UserResponse: Decodable {
             let id: String
             let email: String
+            let name: String?
         }
         
         let response: SignInResponse = try await APIClient.shared.request(
@@ -66,6 +64,13 @@ class SupabaseManager: ObservableObject {
         
         await MainActor.run {
             self.isAuthenticated = true
+            self.currentUser = SupabaseUser(
+                id: response.user.id,
+                email: response.user.email,
+                name: response.user.name,
+                avatarUrl: nil,
+                aiSettings: nil
+            )
         }
         
         await fetchUserProfile(userId: response.user.id)
@@ -79,14 +84,42 @@ class SupabaseManager: ObservableObject {
             let password: String
             let name: String
         }
+
+        struct UserResponse: Decodable {
+            let id: String
+            let email: String
+            let name: String?
+        }
         
-        let _: EmptyResponse = try await APIClient.shared.request(
+        struct SignUpResponse: Decodable {
+            let accessToken: String
+            let refreshToken: String
+            let user: UserResponse
+        }
+
+        let response: SignUpResponse = try await APIClient.shared.request(
             endpoint: "auth/register",
             method: .post,
             body: SignUpRequest(email: email, password: password, name: name)
         )
-        
-        try await signIn(email: email, password: password)
+
+        KeychainService.shared.save(response.accessToken, for: .accessToken)
+        KeychainService.shared.save(response.refreshToken, for: .refreshToken)
+        KeychainService.shared.save(response.user.id, for: .userId)
+        APIClient.shared.setAuthToken(response.accessToken)
+
+        await MainActor.run {
+            self.isAuthenticated = true
+            self.currentUser = SupabaseUser(
+                id: response.user.id,
+                email: response.user.email,
+                name: response.user.name,
+                avatarUrl: nil,
+                aiSettings: nil
+            )
+        }
+
+        await fetchUserProfile(userId: response.user.id)
     }
     
     // MARK: - Sign Out

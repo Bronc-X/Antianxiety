@@ -6,11 +6,16 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 struct ProfileView: View {
     @ObservedObject private var supabase = SupabaseManager.shared
     @EnvironmentObject var authManager: AuthManager
     @State private var showAISettings = false
+    @State private var showWearables = false
+    @State private var infoMessage: String?
+    @AppStorage("antios_notifications_enabled") private var notificationsEnabled = false
+    @AppStorage("antios_preferred_dark_mode") private var prefersDarkMode = true
     
     var body: some View {
         NavigationStack {
@@ -23,11 +28,18 @@ struct ProfileView: View {
                             showAISettings = true
                         }
 
-                        SettingsRow(icon: "heart.fill", title: "健康数据", color: .red) {}
+                        SettingsRow(icon: "heart.fill", title: "健康数据", color: .red) {
+                            showWearables = true
+                        }
 
-                        SettingsRow(icon: "bell.fill", title: "通知设置", color: .orange) {}
+                        SettingsRow(icon: "bell.fill", title: "通知设置", color: .orange) {
+                            toggleNotifications()
+                        }
 
-                        SettingsRow(icon: "moon.fill", title: "深色模式", color: .purple) {}
+                        SettingsRow(icon: "moon.fill", title: "深色模式", color: .purple) {
+                            prefersDarkMode.toggle()
+                            infoMessage = prefersDarkMode ? "已切换为深色模式偏好" : "已切换为浅色模式偏好"
+                        }
                     }
                     .cardStyle()
 
@@ -49,6 +61,17 @@ struct ProfileView: View {
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showAISettings) {
                 AIPersonaSettingsView()
+            }
+            .sheet(isPresented: $showWearables) {
+                WearablesView()
+            }
+            .alert("设置更新", isPresented: Binding(
+                get: { infoMessage != nil },
+                set: { if !$0 { infoMessage = nil } }
+            )) {
+                Button("确定", role: .cancel) {}
+            } message: {
+                Text(infoMessage ?? "")
             }
         }
     }
@@ -72,6 +95,21 @@ struct ProfileView: View {
             Spacer()
         }
         .cardStyle()
+    }
+
+    private func toggleNotifications() {
+        if notificationsEnabled {
+            notificationsEnabled = false
+            infoMessage = "已关闭应用提醒。"
+            return
+        }
+
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            Task { @MainActor in
+                notificationsEnabled = granted
+                infoMessage = granted ? "通知权限已开启。" : "系统拒绝通知权限，请到设置中开启。"
+            }
+        }
     }
 }
 

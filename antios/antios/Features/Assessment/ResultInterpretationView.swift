@@ -6,10 +6,13 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ResultInterpretationView: View {
     let result: AssessmentResult
     @Environment(\.dismiss) private var dismiss
+    @State private var shareItem: ShareItem?
+    @State private var exportMessage: String?
     
     var body: some View {
         NavigationStack {
@@ -29,7 +32,15 @@ struct ResultInterpretationView: View {
                 }
                 .padding(AppTheme.Spacing.md)
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
+            .alert("报告导出", isPresented: Binding(
+                get: { exportMessage != nil },
+                set: { if !$0 { exportMessage = nil } }
+            )) {
+                Button("确定", role: .cancel) {}
+            } message: {
+                Text(exportMessage ?? "")
+            }
             .navigationTitle("评估结果")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -42,6 +53,9 @@ struct ResultInterpretationView: View {
                     }
                 }
             }
+        }
+        .sheet(item: $shareItem) { item in
+            ActivityView(activityItems: [item.url])
         }
     }
     
@@ -183,7 +197,7 @@ struct ResultInterpretationView: View {
     private var actionsSection: some View {
         VStack(spacing: AppTheme.Spacing.md) {
             Button {
-                // Export PDF
+                exportPDF()
             } label: {
                 Label("导出 PDF 报告", systemImage: "doc.fill")
                     .frame(maxWidth: .infinity)
@@ -191,7 +205,7 @@ struct ResultInterpretationView: View {
             .buttonStyle(PrimaryButtonStyle())
             
             Button {
-                // Share
+                shareReport()
             } label: {
                 Label("分享给医生", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
@@ -199,6 +213,61 @@ struct ResultInterpretationView: View {
             .buttonStyle(.bordered)
         }
     }
+
+    private func exportPDF() {
+        guard let url = makeReportURL() else {
+            exportMessage = "导出失败，请稍后重试。"
+            return
+        }
+        exportMessage = "报告已生成：\(url.lastPathComponent)"
+    }
+
+    private func shareReport() {
+        guard let url = makeReportURL() else {
+            exportMessage = "分享失败，报告生成异常。"
+            return
+        }
+        shareItem = ShareItem(url: url)
+    }
+
+    private func makeReportURL() -> URL? {
+        guard let data = ReportExportService.shared.generatePDFReport(
+            scaleName: result.scale.name,
+            score: result.score,
+            maxScore: result.maxScore,
+            severity: result.severity,
+            interpretation: interpretation,
+            suggestions: suggestions,
+            date: result.date
+        ) else {
+            return nil
+        }
+
+        let fileName = "assessment-\(result.scale.rawValue)-\(result.id).pdf"
+            .replacingOccurrences(of: " ", with: "-")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        do {
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
+    }
+}
+
+private struct ShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 struct ResultInterpretationView_PreviewProvider: PreviewProvider {

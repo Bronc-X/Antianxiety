@@ -35,7 +35,10 @@ struct PlanView: View {
             .navigationTitle("行动方案")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showMaxChat) {
-                MaxPlanChatView()
+                MaxPlanChatView { generatedItems in
+                    viewModel.applyGeneratedPlan(generatedItems)
+                    showMaxChat = false
+                }
             }
         }
         .onAppear {
@@ -219,6 +222,12 @@ class PlanViewModel: ObservableObject {
     @Published var activePlans: [PlanItem] = []
     @Published var historyPlans: [HistoryPlan] = []
     @Published var isGenerating = false
+    @Published var errorMessage: String?
+
+    private let activeStoreKey = "antios_plan_active_items"
+    private let historyStoreKey = "antios_plan_history_items"
+    private let lastGeneratedStoreKey = "antios_plan_last_generated_at"
+    private let activePlanIdKey = "antios_active_plan_id"
     
     var completionRate: Int {
         guard !activePlans.isEmpty else { return 0 }
@@ -227,51 +236,250 @@ class PlanViewModel: ObservableObject {
     }
     
     func loadPlans() {
-        activePlans = [
-            PlanItem(id: "1", title: "睡前冥想", action: "每晚睡前进行 10 分钟正念冥想", science: "冥想可降低皮质醇水平，促进入睡", difficulty: 1, category: "sleep", isCompleted: false),
-            PlanItem(id: "2", title: "户外散步", action: "每天至少户外步行 20 分钟", science: "自然光照有助于调节褪黑素分泌", difficulty: 1, category: "exercise", isCompleted: true),
-            PlanItem(id: "3", title: "限制咖啡因", action: "下午 2 点后避免咖啡因摄入", science: "咖啡因半衰期约 5-6 小时", difficulty: 2, category: "diet", isCompleted: false)
-        ]
-        
-        historyPlans = [
-            HistoryPlan(id: "h1", date: Date().addingTimeInterval(-86400 * 7), itemCount: 4, completionRate: 75),
-            HistoryPlan(id: "h2", date: Date().addingTimeInterval(-86400 * 14), itemCount: 5, completionRate: 60)
-        ]
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        if let activeData = UserDefaults.standard.data(forKey: activeStoreKey),
+           let savedActive = try? decoder.decode([PlanItem].self, from: activeData) {
+            activePlans = savedActive
+        }
+
+        if let historyData = UserDefaults.standard.data(forKey: historyStoreKey),
+           let savedHistory = try? decoder.decode([HistoryPlan].self, from: historyData) {
+            historyPlans = savedHistory
+        }
+
+        if !activePlans.isEmpty && UserDefaults.standard.string(forKey: activePlanIdKey) == nil {
+            UserDefaults.standard.set(defaultActivePlanId(), forKey: activePlanIdKey)
+        }
+
+        if activePlans.isEmpty {
+            activePlans = buildQuickPlanCandidates()
+            UserDefaults.standard.set(defaultActivePlanId(), forKey: activePlanIdKey)
+            persist()
+        }
     }
     
     func generateQuickPlan() async {
         isGenerating = true
-        
-        try? await Task.sleep(nanoseconds: 1_500_000_000)
-        
-        activePlans = [
-            PlanItem(id: UUID().uuidString, title: "4-7-8 呼吸法", action: "吸气 4 秒，屏息 7 秒，呼气 8 秒", science: "激活副交感神经，快速镇静", difficulty: 1, category: "stress", isCompleted: false),
-            PlanItem(id: UUID().uuidString, title: "睡眠日记", action: "每天记录入睡和起床时间", science: "自我监测有助于发现睡眠问题模式", difficulty: 1, category: "sleep", isCompleted: false),
-            PlanItem(id: UUID().uuidString, title: "减少屏幕时间", action: "睡前 1 小时关闭电子设备", science: "蓝光抑制褪黑素分泌", difficulty: 2, category: "sleep", isCompleted: false)
-        ]
-        
+
+        if !activePlans.isEmpty {
+            archiveCurrentPlanSnapshot()
+        }
+        activePlans = buildQuickPlanCandidates()
+        UserDefaults.standard.set(defaultActivePlanId(), forKey: activePlanIdKey)
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastGeneratedStoreKey)
+        persist()
         isGenerating = false
     }
     
     func toggleItemCompletion(_ item: PlanItem) {
         if let index = activePlans.firstIndex(where: { $0.id == item.id }) {
             activePlans[index].isCompleted.toggle()
+            persist()
+            Task {
+                await syncCompletionState()
+            }
         }
     }
     
     func replaceItem(_ item: PlanItem) async {
         let service = PlanReplaceService.shared
-        let newItem = service.localReplace(item)
-        
-        if let index = activePlans.firstIndex(where: { $0.id == item.id }) {
-            activePlans[index] = newItem
+        do {
+            let newItem = try await service.replaceItem(item, userPreferences: clinicalGoals())
+            if let index = activePlans.firstIndex(where: { $0.id == item.id }) {
+                activePlans[index] = newItem
+            }
+            persist()
+        } catch {
+            let localItem = service.localReplace(item)
+            if let index = activePlans.firstIndex(where: { $0.id == item.id }) {
+                activePlans[index] = localItem
+            }
+            persist()
+            errorMessage = error.localizedDescription
         }
+    }
+
+    func applyGeneratedPlan(_ items: [PlanItem]) {
+        guard !items.isEmpty else { return }
+        if !activePlans.isEmpty {
+            archiveCurrentPlanSnapshot()
+        }
+        activePlans = items
+        UserDefaults.standard.set(defaultActivePlanId(), forKey: activePlanIdKey)
+        persist()
+    }
+
+    private func archiveCurrentPlanSnapshot() {
+        guard !activePlans.isEmpty else { return }
+        let completedCount = activePlans.filter(\.isCompleted).count
+        let rate = Int((Double(completedCount) / Double(activePlans.count) * 100).rounded())
+        historyPlans.insert(
+            HistoryPlan(
+                id: "history-\(Int(Date().timeIntervalSince1970))",
+                date: Date(),
+                itemCount: activePlans.count,
+                completionRate: rate
+            ),
+            at: 0
+        )
+        if historyPlans.count > 20 {
+            historyPlans = Array(historyPlans.prefix(20))
+        }
+    }
+
+    private func buildQuickPlanCandidates() -> [PlanItem] {
+        let goals = clinicalGoals()
+        let sleepHours = UserDefaults.standard.double(forKey: "antios_clinical_sleep_hours")
+        let stress = UserDefaults.standard.integer(forKey: "antios_clinical_stress_level")
+
+        var pool: [PlanItem] = []
+
+        if sleepHours > 0 && sleepHours < 7 || goals.contains("改善睡眠") {
+            pool.append(
+                PlanItem(
+                    id: UUID().uuidString,
+                    title: "固定睡前仪式",
+                    action: "睡前 30 分钟关闭屏幕并进行 8 分钟呼吸放松",
+                    science: "睡前减光和呼吸训练可缩短入睡潜伏期",
+                    difficulty: 1,
+                    category: "sleep",
+                    isCompleted: false
+                )
+            )
+        }
+
+        if stress >= 6 || goals.contains("减轻焦虑") {
+            pool.append(
+                PlanItem(
+                    id: UUID().uuidString,
+                    title: "4-7-8 呼吸",
+                    action: "上午和下午各 1 组，持续 3 分钟",
+                    science: "通过延长呼气激活副交感神经，降低生理唤醒",
+                    difficulty: 1,
+                    category: "stress",
+                    isCompleted: false
+                )
+            )
+        }
+
+        if goals.contains("提升精力") {
+            pool.append(
+                PlanItem(
+                    id: UUID().uuidString,
+                    title: "午后 15 分钟快走",
+                    action: "14:00-17:00 任意时段完成一次中等强度快走",
+                    science: "短时有氧可改善下午认知表现与主观能量",
+                    difficulty: 1,
+                    category: "exercise",
+                    isCompleted: false
+                )
+            )
+        }
+
+        if goals.contains("稳定情绪") {
+            pool.append(
+                PlanItem(
+                    id: UUID().uuidString,
+                    title: "情绪标签记录",
+                    action: "晚间记录 3 次情绪波动触发点和应对方式",
+                    science: "情绪标记可降低杏仁核活动并提升调节能力",
+                    difficulty: 2,
+                    category: "mental",
+                    isCompleted: false
+                )
+            )
+        }
+
+        let fallback = [
+            PlanItem(
+                id: UUID().uuidString,
+                title: "减少晚间咖啡因",
+                action: "14:00 后不饮用含咖啡因饮料",
+                science: "咖啡因半衰期会影响夜间睡眠深度",
+                difficulty: 2,
+                category: "diet",
+                isCompleted: false
+            ),
+            PlanItem(
+                id: UUID().uuidString,
+                title: "晨间日照 10 分钟",
+                action: "起床后尽快接触自然光并做轻度拉伸",
+                science: "晨光有助于稳定昼夜节律并改善夜间入睡",
+                difficulty: 1,
+                category: "sleep",
+                isCompleted: false
+            ),
+            PlanItem(
+                id: UUID().uuidString,
+                title: "睡前冥想 8 分钟",
+                action: "睡前使用正念引导音频完成一次冥想",
+                science: "正念练习可降低焦虑相关反刍思维",
+                difficulty: 1,
+                category: "stress",
+                isCompleted: false
+            )
+        ]
+
+        let merged = (pool + fallback)
+        let unique = Dictionary(grouping: merged, by: { $0.title }).compactMap { $0.value.first }
+        return Array(unique.prefix(3))
+    }
+
+    private func clinicalGoals() -> [String] {
+        (UserDefaults.standard.array(forKey: "antios_clinical_goals") as? [String]) ?? []
+    }
+
+    private func persist() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let activeData = try? encoder.encode(activePlans) {
+            UserDefaults.standard.set(activeData, forKey: activeStoreKey)
+        }
+        if let historyData = try? encoder.encode(historyPlans) {
+            UserDefaults.standard.set(historyData, forKey: historyStoreKey)
+        }
+    }
+
+    private func syncCompletionState() async {
+        struct CompleteItem: Encodable {
+            let id: String
+            let completed: Bool
+            let text: String
+        }
+
+        struct CompleteRequest: Encodable {
+            let planId: String
+            let status: String
+            let completedItems: [CompleteItem]
+        }
+
+        guard let planId = UserDefaults.standard.string(forKey: activePlanIdKey) else { return }
+        let items = activePlans.map { CompleteItem(id: $0.id, completed: $0.isCompleted, text: $0.title) }
+        let completedRate = completionRate
+        let status = completedRate >= 100 ? "completed" : "partial"
+        let request = CompleteRequest(planId: planId, status: status, completedItems: items)
+
+        do {
+            let _: EmptyResponse = try await APIClient.shared.request(
+                endpoint: "plans/complete",
+                method: .post,
+                body: request
+            )
+        } catch {
+            // Keep local state authoritative; backend sync is best-effort.
+        }
+    }
+
+    private func defaultActivePlanId() -> String {
+        "ios-plan-\(Int(Date().timeIntervalSince1970))"
     }
 }
 
 // MARK: - Models
 
-struct PlanItem: Identifiable, Encodable {
+struct PlanItem: Identifiable, Codable, Hashable {
     let id: String
     var title: String
     var action: String
@@ -290,7 +498,7 @@ struct PlanItemResponse: Decodable {
     let category: String
 }
 
-struct HistoryPlan: Identifiable {
+struct HistoryPlan: Identifiable, Codable {
     let id: String
     let date: Date
     let itemCount: Int

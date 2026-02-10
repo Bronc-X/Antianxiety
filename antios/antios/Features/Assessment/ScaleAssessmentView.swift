@@ -37,7 +37,7 @@ struct ScaleAssessmentView: View {
                 // 底部按钮
                 bottomButtons
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle(scale.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

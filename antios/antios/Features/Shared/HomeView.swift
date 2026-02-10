@@ -9,6 +9,9 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject private var supabase = SupabaseManager.shared
+    @State private var dailySummary = HomeDailySummary()
+    @State private var activePlanRows: [PlanItemRowModel] = []
+    @State private var nudges: [BayesianAnalyticsService.BehavioralNudge] = []
     
     var body: some View {
         NavigationStack {
@@ -25,6 +28,10 @@ struct HomeView: View {
                     
                     // 活跃方案
                     activePlanSection
+
+                    if !nudges.isEmpty {
+                        nudgeSection
+                    }
                 }
                 .padding(AppTheme.Spacing.md)
                 .padding(.bottom, 24)
@@ -32,6 +39,12 @@ struct HomeView: View {
             .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle("首页")
             .navigationBarTitleDisplayMode(.large)
+        }
+        .onAppear {
+            reloadDashboard()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .calibrationDidUpdate)) { _ in
+            reloadDashboard()
         }
     }
     
@@ -75,9 +88,9 @@ struct HomeView: View {
                 .foregroundColor(AppTheme.Colors.textPrimary)
             
             HStack(spacing: AppTheme.Spacing.md) {
-                StatusCard(icon: "moon.fill", title: "睡眠", value: "7.5h", color: .blue)
-                StatusCard(icon: "bolt.fill", title: "能量", value: "良好", color: .orange)
-                StatusCard(icon: "heart.fill", title: "压力", value: "中等", color: .red)
+                StatusCard(icon: "moon.fill", title: "睡眠", value: dailySummary.sleepText, color: .blue)
+                StatusCard(icon: "bolt.fill", title: "能量", value: dailySummary.energyText, color: .orange)
+                StatusCard(icon: "heart.fill", title: "压力", value: dailySummary.stressText, color: .red)
             }
         }
     }
@@ -139,12 +152,94 @@ struct HomeView: View {
             }
             
             VStack(spacing: AppTheme.Spacing.sm) {
-                PlanItemRow(title: "睡前冥想 10 分钟", isCompleted: true)
-                PlanItemRow(title: "户外散步 20 分钟", isCompleted: false)
-                PlanItemRow(title: "限制咖啡因摄入", isCompleted: false)
+                if activePlanRows.isEmpty {
+                    Text("暂无活跃方案，点击「快速生成方案」开始。")
+                        .font(AppTheme.Typography.caption)
+                        .foregroundColor(AppTheme.Colors.textSecondary)
+                } else {
+                    ForEach(activePlanRows.prefix(3)) { plan in
+                        PlanItemRow(title: plan.title, isCompleted: plan.isCompleted)
+                    }
+                }
             }
             .cardStyle()
         }
+    }
+
+    private var nudgeSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+            Text("今日提醒")
+                .font(AppTheme.Typography.headline)
+                .foregroundColor(AppTheme.Colors.textPrimary)
+
+            ForEach(nudges.prefix(2), id: \.id) { nudge in
+                HStack(alignment: .top, spacing: AppTheme.Spacing.sm) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundColor(AppTheme.Colors.warning)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(nudge.title)
+                            .font(AppTheme.Typography.subheadline)
+                            .foregroundColor(AppTheme.Colors.textPrimary)
+                        Text(nudge.message)
+                            .font(AppTheme.Typography.caption)
+                            .foregroundColor(AppTheme.Colors.textSecondary)
+                    }
+                }
+                .cardStyle()
+            }
+        }
+    }
+
+    private func reloadDashboard() {
+        let snapshots = loadCalibrationHistory()
+        let latest = snapshots.last
+        let activeItems = loadActivePlans()
+        activePlanRows = activeItems.map { PlanItemRowModel(title: $0.title, isCompleted: $0.isCompleted) }
+
+        let sleepHours = latest?.sleepHours ?? 0
+        let stressLevel = latest?.stressLevel ?? 5
+        let energyLevel = latest?.energyLevel ?? "一般"
+        dailySummary = HomeDailySummary(
+            sleepText: sleepHours > 0 ? "\(sleepHours)h" : "--",
+            energyText: energyLevel,
+            stressText: "\(stressLevel)/10"
+        )
+
+        let completion = activeItems.isEmpty
+            ? nil
+            : Double(activeItems.filter(\.isCompleted).count) / Double(activeItems.count)
+
+        nudges = BayesianAnalyticsService.shared.generateNudges(
+            sleepData: latest.map {
+                SleepData(
+                    date: $0.date,
+                    totalHours: Double($0.sleepHours ?? 0),
+                    deepSleepHours: 0,
+                    remSleepHours: 0
+                )
+            },
+            stressLevel: latest?.stressLevel,
+            lastCalibration: latest?.date,
+            planCompletion: completion
+        )
+
+        if let completion {
+            UserDefaults.standard.set(completion, forKey: "antios_plan_completion_cache")
+        }
+    }
+
+    private func loadActivePlans() -> [PlanItem] {
+        guard let data = UserDefaults.standard.data(forKey: "antios_plan_active_items") else { return [] }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return (try? decoder.decode([PlanItem].self, from: data)) ?? []
+    }
+
+    private func loadCalibrationHistory() -> [CalibrationHistoryRecord] {
+        guard let data = UserDefaults.standard.data(forKey: "antios_calibration_history") else { return [] }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return (try? decoder.decode([CalibrationHistoryRecord].self, from: data)) ?? []
     }
 }
 
@@ -226,4 +321,16 @@ struct HomeView_PreviewProvider: PreviewProvider {
     static var previews: some View {
     HomeView()
     }
+}
+
+private struct HomeDailySummary {
+    var sleepText: String = "--"
+    var energyText: String = "--"
+    var stressText: String = "--"
+}
+
+private struct PlanItemRowModel: Identifiable {
+    let id = UUID()
+    let title: String
+    let isCompleted: Bool
 }

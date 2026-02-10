@@ -12,6 +12,7 @@ struct AIPersonaSettingsView: View {
     @State private var honestyLevel: Double = 70
     @State private var humorLevel: Double = 50
     @State private var isSaving = false
+    @State private var message: String?
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -29,7 +30,15 @@ struct AIPersonaSettingsView: View {
                 }
                 .padding(AppTheme.Spacing.md)
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
+            .alert("人格设置", isPresented: Binding(
+                get: { message != nil },
+                set: { if !$0 { message = nil } }
+            )) {
+                Button("确定", role: .cancel) {}
+            } message: {
+                Text(message ?? "")
+            }
             .navigationTitle("AI 人格设置")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -40,6 +49,9 @@ struct AIPersonaSettingsView: View {
                     .disabled(isSaving)
                 }
             }
+        }
+        .task {
+            await loadSettings()
         }
     }
     
@@ -144,30 +156,49 @@ struct AIPersonaSettingsView: View {
         
         Task {
             struct SettingsRequest: Encodable {
-                let persona: String
-                let honestyLevel: Int
-                let humorLevel: Int
+                let mode: String
+                let honesty_level: Int
+                let humor_level: Int
             }
             
             do {
-                let _: EmptyResponse = try await APIClient.shared.request(
+                let _: SettingsResponse = try await APIClient.shared.request(
                     endpoint: "max/settings",
-                    method: .post,
+                    method: .patch,
                     body: SettingsRequest(
-                        persona: selectedPersona.rawValue,
-                        honestyLevel: Int(honestyLevel),
-                        humorLevel: Int(humorLevel)
+                        mode: selectedPersona.maxMode,
+                        honesty_level: Int(honestyLevel),
+                        humor_level: Int(humorLevel)
                     )
                 )
                 
                 await MainActor.run {
+                    message = "设置已保存"
                     dismiss()
                 }
             } catch {
-                print("保存设置失败: \(error)")
+                await MainActor.run {
+                    message = error.localizedDescription
+                }
             }
             
             isSaving = false
+        }
+    }
+
+    private func loadSettings() async {
+        do {
+            let response: SettingsResponse = try await APIClient.shared.request(
+                endpoint: "max/settings",
+                method: .get
+            )
+            if let settings = response.settings {
+                honestyLevel = Double(settings.honesty_level)
+                humorLevel = Double(settings.humor_level)
+                selectedPersona = AIPersona.from(maxMode: settings.mode)
+            }
+        } catch {
+            // Keep local defaults if backend unavailable.
         }
     }
 }
@@ -274,6 +305,31 @@ enum AIPersona: String, CaseIterable, Identifiable {
             }
         }
     }
+
+    var maxMode: String {
+        switch self {
+        case .max: return "MAX"
+        case .zen: return "Zen Master"
+        case .house: return "Dr. House"
+        }
+    }
+
+    static func from(maxMode: String?) -> AIPersona {
+        switch maxMode {
+        case "Dr. House": return .house
+        case "Zen Master": return .zen
+        default: return .max
+        }
+    }
+}
+
+private struct SettingsResponse: Decodable {
+    struct Settings: Decodable {
+        let honesty_level: Int
+        let humor_level: Int
+        let mode: String
+    }
+    let settings: Settings?
 }
 
 struct AIPersonaSettingsView_PreviewProvider: PreviewProvider {

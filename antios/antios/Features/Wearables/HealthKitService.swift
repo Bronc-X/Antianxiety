@@ -155,10 +155,10 @@ class HealthKitService: ObservableObject {
         
         let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictEndDate)
         
-        async let steps = fetchSum(for: stepsType, predicate: predicate, unit: .count())
-        async let energy = fetchSum(for: energyType, predicate: predicate, unit: .kilocalorie())
-        
-        let data = try await ActivityData(
+        let steps = try await fetchSum(for: stepsType, predicate: predicate, unit: .count())
+        let energy = try await fetchSum(for: energyType, predicate: predicate, unit: .kilocalorie())
+
+        let data = ActivityData(
             date: date,
             steps: Int(steps),
             activeCalories: Int(energy)
@@ -192,16 +192,45 @@ class HealthKitService: ObservableObject {
     // MARK: - Sync to Server
     
     func syncToServer() async throws {
-        struct SyncRequest: Encodable {
-            let sleep: SleepData?
-            let hrv: HRVData?
-            let activity: ActivityData?
+        struct HardwareData: Encodable {
+            let hrv: Double?
+            let sleep_minutes: Int?
+            let deep_sleep_minutes: Int?
+            let rem_sleep_minutes: Int?
+            let steps: Int?
+            let active_calories: Int?
+            let recorded_at: String
         }
-        
+
+        struct SyncRequest: Encodable {
+            let source: String
+            let data: HardwareData
+        }
+
+        let sleepMinutes = sleepData.map { Int(($0.totalHours * 60).rounded()) }
+        let deepMinutes = sleepData.map { Int(($0.deepSleepHours * 60).rounded()) }
+        let remMinutes = sleepData.map { Int(($0.remSleepHours * 60).rounded()) }
+        let hrvValue = hrvData?.averageHRV
+        let steps = activityData?.steps
+        let activeCalories = activityData?.activeCalories
+
+        let payload = SyncRequest(
+            source: "healthkit",
+            data: HardwareData(
+                hrv: hrvValue,
+                sleep_minutes: sleepMinutes,
+                deep_sleep_minutes: deepMinutes,
+                rem_sleep_minutes: remMinutes,
+                steps: steps,
+                active_calories: activeCalories,
+                recorded_at: ISO8601DateFormatter().string(from: Date())
+            )
+        )
+
         let _: EmptyResponse = try await APIClient.shared.request(
-            endpoint: "wearables/sync",
+            endpoint: "user/hardware-sync",
             method: .post,
-            body: SyncRequest(sleep: sleepData, hrv: hrvData, activity: activityData)
+            body: payload
         )
     }
 }

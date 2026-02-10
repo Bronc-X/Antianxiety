@@ -26,11 +26,14 @@ struct DigitalTwinView: View {
                 }
                 .padding(AppTheme.Spacing.md)
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle("数字孪生")
             .navigationBarTitleDisplayMode(.large)
         }
         .onAppear {
+            viewModel.loadData()
+        }
+        .onChange(of: viewModel.selectedMetric) { _ in
             viewModel.loadData()
         }
     }
@@ -206,43 +209,159 @@ class DigitalTwinViewModel: ObservableObject {
     @Published var factors: [InfluenceFactor] = []
     
     func loadData() {
-        // Historical data (last 7 days)
+        let snapshots = loadCalibrationSnapshots()
+        let historicalValues = metricValues(from: snapshots)
+        historicalData = historicalValues
+
+        let slope = trendSlope(for: historicalValues)
+        let lastValue = historicalValues.last?.value ?? 6.0
         let calendar = Calendar.current
-        historicalData = (0..<7).map { dayOffset in
-            DataPoint(
-                date: calendar.date(byAdding: .day, value: -6 + dayOffset, to: Date())!,
-                value: Double.random(in: 5...8)
-            )
-        }
-        
-        // Prediction data (next 7 days)
+
         predictionData = (1...7).map { dayOffset in
-            let baseValue = historicalData.last?.value ?? 6
-            let predicted = baseValue + Double.random(in: -1...1.5)
+            let value = clamp(lastValue + slope * Double(dayOffset) + projectedAdjustment(dayOffset: dayOffset))
+            let width = 0.6 + Double(dayOffset) * 0.12
             return DataPoint(
                 date: calendar.date(byAdding: .day, value: dayOffset, to: Date())!,
-                value: min(10, max(0, predicted)),
-                lowerBound: max(0, predicted - 1.5),
-                upperBound: min(10, predicted + 1.5)
+                value: value,
+                lowerBound: clamp(value - width),
+                upperBound: clamp(value + width)
             )
         }
-        
-        // AI Explanation
-        aiExplanation = """
-        根据你过去 7 天的数据分析，我注意到你的情绪状态与睡眠质量呈强相关（r=0.72）。当睡眠时间超过 7 小时时，第二天的情绪评分平均提高 1.2 分。
-        
-        预测显示，如果保持当前的睡眠习惯，未来一周你的情绪状态将保持在 6.5-7.5 分之间。
-        """
-        
-        recommendation = "建议：本周三和周四压力可能较高，提前安排一些放松活动会有帮助。"
-        
+
+        let sleepSeries = snapshots.compactMap { $0.sleepHours.map(Double.init) }
+        let moodSeries = snapshots.compactMap { $0.moodScore.map(Double.init) }
+        let stressSeries = snapshots.compactMap { $0.stressLevel }
+        let confidence = BayesianAnalyticsService.shared.calculateConfidence(
+            sleepData: snapshots.map {
+                SleepData(
+                    date: $0.date,
+                    totalHours: Double($0.sleepHours ?? 0),
+                    deepSleepHours: 0,
+                    remSleepHours: 0
+                )
+            },
+            moodScores: moodSeries.map { Int($0) },
+            stressLevels: stressSeries
+        )
+
+        let summary = confidence.map { "\($0.factor) \(Int($0.confidence * 100))%" }.joined(separator: "，")
+        let forecast = predictionData.prefix(3).map { String(format: "%.1f", $0.value) }.joined(separator: " / ")
+        aiExplanation = summary.isEmpty
+            ? "目前数据样本较少，系统已根据最近校准记录建立初步趋势模型。"
+            : "过去 7 天趋势：\(summary)。未来 3 天预计值：\(forecast)。"
+
+        let nudges = BayesianAnalyticsService.shared.generateNudges(
+            sleepData: snapshots.last.map {
+                SleepData(date: $0.date, totalHours: Double($0.sleepHours ?? 0), deepSleepHours: 0, remSleepHours: 0)
+            },
+            stressLevel: snapshots.last?.stressLevel,
+            lastCalibration: snapshots.last?.date,
+            planCompletion: UserDefaults.standard.double(forKey: "antios_plan_completion_cache")
+        )
+        recommendation = nudges.first?.message ?? "建议维持当前节律，优先保证稳定睡眠窗口。"
+
+        let avgSleep = sleepSeries.isEmpty ? 0 : sleepSeries.reduce(0, +) / Double(sleepSeries.count)
+        let avgStress = stressSeries.isEmpty ? 0 : Double(stressSeries.reduce(0, +)) / Double(stressSeries.count)
+        let avgMood = moodSeries.isEmpty ? 0 : moodSeries.reduce(0, +) / Double(moodSeries.count)
+        let lastExercise = UserDefaults.standard.integer(forKey: "antios_activity_minutes_today")
+
         factors = [
-            InfluenceFactor(name: "睡眠质量", description: "平均 7.2 小时", icon: "moon.fill", impact: 2),
-            InfluenceFactor(name: "运动频率", description: "本周 3 次", icon: "figure.run", impact: 1),
-            InfluenceFactor(name: "咖啡因摄入", description: "略高于平均", icon: "cup.and.saucer.fill", impact: -1),
-            InfluenceFactor(name: "社交活动", description: "本周较少", icon: "person.2.fill", impact: -1)
+            InfluenceFactor(name: "睡眠时长", description: String(format: "均值 %.1f 小时", avgSleep), icon: "moon.fill", impact: impactFromSleep(avgSleep)),
+            InfluenceFactor(name: "压力水平", description: String(format: "均值 %.1f / 10", avgStress), icon: "bolt.fill", impact: -impactFromStress(avgStress)),
+            InfluenceFactor(name: "情绪评分", description: String(format: "均值 %.1f / 10", avgMood), icon: "face.smiling.fill", impact: impactFromMood(avgMood)),
+            InfluenceFactor(name: "活动量", description: "\(lastExercise) 分钟", icon: "figure.run", impact: lastExercise >= 20 ? 1 : 0)
         ]
     }
+
+    private func loadCalibrationSnapshots() -> [CalibrationSnapshot] {
+        let key = "antios_calibration_history"
+        guard let data = UserDefaults.standard.data(forKey: key) else {
+            return syntheticSnapshots()
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let snapshots = (try? decoder.decode([CalibrationSnapshot].self, from: data)) ?? []
+        return snapshots.isEmpty ? syntheticSnapshots() : Array(snapshots.suffix(7))
+    }
+
+    private func syntheticSnapshots() -> [CalibrationSnapshot] {
+        let calendar = Calendar.current
+        let stress = UserDefaults.standard.integer(forKey: "antios_clinical_stress_level")
+        let sleepHours = UserDefaults.standard.double(forKey: "antios_clinical_sleep_hours")
+        let baseSleep = sleepHours > 0 ? sleepHours : 7
+        let baseStress = stress > 0 ? stress : 5
+        return (0..<7).map { offset in
+            let date = calendar.date(byAdding: .day, value: -6 + offset, to: Date())!
+            let sleepValue = Int((baseSleep + Double((offset % 3) - 1)).rounded())
+            let stressValue = max(1, min(10, baseStress + ((offset % 4) - 2)))
+            let moodValue = max(1, min(10, 10 - stressValue + (sleepValue >= 7 ? 1 : 0)))
+            return CalibrationSnapshot(
+                date: date,
+                sleepHours: sleepValue,
+                stressLevel: stressValue,
+                moodScore: moodValue
+            )
+        }
+    }
+
+    private func metricValues(from snapshots: [CalibrationSnapshot]) -> [DataPoint] {
+        snapshots.map { snapshot in
+            let value: Double
+            switch selectedMetric {
+            case .mood:
+                value = Double(snapshot.moodScore ?? 6)
+            case .stress:
+                value = Double(snapshot.stressLevel ?? 5)
+            case .sleep:
+                value = Double(snapshot.sleepHours ?? 7)
+            }
+            return DataPoint(date: snapshot.date, value: clamp(value))
+        }
+    }
+
+    private func projectedAdjustment(dayOffset: Int) -> Double {
+        switch selectedMetric {
+        case .mood: return 0.06 * Double(dayOffset)
+        case .stress: return -0.04 * Double(dayOffset)
+        case .sleep: return 0.03 * Double(dayOffset)
+        }
+    }
+
+    private func trendSlope(for points: [DataPoint]) -> Double {
+        guard points.count >= 2 else { return 0 }
+        let first = points.first!.value
+        let last = points.last!.value
+        return (last - first) / Double(points.count - 1)
+    }
+
+    private func clamp(_ value: Double) -> Double {
+        min(10, max(0, value))
+    }
+
+    private func impactFromSleep(_ hours: Double) -> Int {
+        if hours >= 7 { return 2 }
+        if hours >= 6 { return 1 }
+        return -1
+    }
+
+    private func impactFromStress(_ stress: Double) -> Int {
+        if stress >= 7 { return 2 }
+        if stress >= 5 { return 1 }
+        return 0
+    }
+
+    private func impactFromMood(_ mood: Double) -> Int {
+        if mood >= 7 { return 2 }
+        if mood >= 5 { return 1 }
+        return -1
+    }
+}
+
+private struct CalibrationSnapshot: Codable {
+    let date: Date
+    let sleepHours: Int?
+    let stressLevel: Int?
+    let moodScore: Int?
 }
 
 // MARK: - Models

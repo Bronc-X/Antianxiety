@@ -10,6 +10,7 @@ import SwiftUI
 struct ChatView: View {
     @StateObject private var viewModel = ChatViewModel()
     @State private var inputText = ""
+    @State private var showHistorySheet = false
     @FocusState private var isInputFocused: Bool
     
     var body: some View {
@@ -57,12 +58,50 @@ struct ChatView: View {
                         }
                         
                         Button {
-                            // Show history
+                            showHistorySheet = true
                         } label: {
                             Label("历史记录", systemImage: "clock")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showHistorySheet) {
+            NavigationStack {
+                List {
+                    if viewModel.savedSessions.isEmpty {
+                        Text("暂无历史记录")
+                            .foregroundColor(AppTheme.Colors.textSecondary)
+                    } else {
+                        ForEach(viewModel.savedSessions) { session in
+                            Button {
+                                viewModel.restoreSession(session)
+                                showHistorySheet = false
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(session.title)
+                                        .font(AppTheme.Typography.subheadline)
+                                        .foregroundColor(AppTheme.Colors.textPrimary)
+                                    Text(session.createdAt.formatted(date: .abbreviated, time: .shortened))
+                                        .font(AppTheme.Typography.caption)
+                                        .foregroundColor(AppTheme.Colors.textTertiary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .onDelete { offsets in
+                            viewModel.deleteSessions(at: offsets)
+                        }
+                    }
+                }
+                .navigationTitle("聊天历史")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("关闭") {
+                            showHistorySheet = false
+                        }
                     }
                 }
             }

@@ -9,8 +9,9 @@ import SwiftUI
 
 struct ClinicalScalesView: View {
     @State private var selectedScale: ClinicalScale?
-    @State private var showAssessment = false
+    @State private var selectedResult: AssessmentResult?
     @State private var assessmentHistory: [AssessmentResult] = []
+    private let historyStoreKey = "antios_assessment_history"
     
     var body: some View {
         NavigationStack {
@@ -26,14 +27,19 @@ struct ClinicalScalesView: View {
                 }
                 .padding(AppTheme.Spacing.md)
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle("临床评估")
             .navigationBarTitleDisplayMode(.large)
             .sheet(item: $selectedScale) { scale in
                 ScaleAssessmentView(scale: scale) { result in
                     assessmentHistory.insert(result, at: 0)
+                    saveHistory()
+                    selectedResult = result
                     selectedScale = nil
                 }
+            }
+            .sheet(item: $selectedResult) { result in
+                ResultInterpretationView(result: result)
             }
         }
         .onAppear {
@@ -66,17 +72,33 @@ struct ClinicalScalesView: View {
                 .foregroundColor(AppTheme.Colors.textPrimary)
             
             ForEach(assessmentHistory) { result in
-                HistoryCard(result: result)
+                Button {
+                    selectedResult = result
+                } label: {
+                    HistoryCard(result: result)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
     
     private func loadHistory() {
-        // Mock data
-        assessmentHistory = [
-            AssessmentResult(id: "1", scale: .gad7, score: 8, maxScore: 21, severity: "轻度", date: Date().addingTimeInterval(-86400 * 7)),
-            AssessmentResult(id: "2", scale: .phq9, score: 12, maxScore: 27, severity: "中度", date: Date().addingTimeInterval(-86400 * 14))
-        ]
+        guard let data = UserDefaults.standard.data(forKey: historyStoreKey) else {
+            assessmentHistory = []
+            return
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        assessmentHistory = (try? decoder.decode([AssessmentResult].self, from: data)) ?? []
+    }
+
+    private func saveHistory() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let data = try? encoder.encode(Array(assessmentHistory.prefix(20))) {
+            UserDefaults.standard.set(data, forKey: historyStoreKey)
+        }
     }
 }
 
@@ -163,7 +185,7 @@ struct HistoryCard: View {
 
 // MARK: - Models
 
-enum ClinicalScale: String, CaseIterable, Identifiable {
+enum ClinicalScale: String, CaseIterable, Identifiable, Codable {
     case gad7 = "GAD-7"
     case phq9 = "PHQ-9"
     case isi = "ISI"
@@ -255,7 +277,7 @@ struct ScaleQuestion: Identifiable {
     let text: String
 }
 
-struct AssessmentResult: Identifiable {
+struct AssessmentResult: Identifiable, Codable {
     let id: String
     let scale: ClinicalScale
     let score: Int

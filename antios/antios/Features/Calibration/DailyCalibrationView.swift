@@ -14,7 +14,7 @@ struct DailyCalibrationView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppTheme.Colors.backgroundDark.ignoresSafeArea()
+                AuroraBackground().ignoresSafeArea()
                 
                 if viewModel.isComplete {
                     completionView
@@ -283,6 +283,11 @@ class DailyCalibrationViewModel: ObservableObject {
     @Published var evolutionLevel = 0
     @Published var consecutiveDays = 0
     @Published var summaryData = CalibrationSummary()
+    @Published var syncErrorMessage: String?
+
+    private let consecutiveDaysKey = "consecutiveDays"
+    private let lastCalibrationDateKey = "antios_last_calibration_date"
+    private let calibrationHistoryKey = "antios_calibration_history"
     
     var currentQuestion: CalibrationQuestion? {
         guard currentIndex < questions.count else { return nil }
@@ -297,7 +302,7 @@ class DailyCalibrationViewModel: ObservableObject {
     }
     
     func loadQuestions() {
-        consecutiveDays = UserDefaults.standard.integer(forKey: "consecutiveDays")
+        consecutiveDays = UserDefaults.standard.integer(forKey: consecutiveDaysKey)
         evolutionLevel = calculateEvolutionLevel(days: consecutiveDays)
         
         // 锚定问题 (C1)
@@ -321,6 +326,7 @@ class DailyCalibrationViewModel: ObservableObject {
         }
         
         questions = allQuestions
+        answers = defaultAnswers(for: allQuestions)
     }
     
     func nextQuestion() {
@@ -336,15 +342,35 @@ class DailyCalibrationViewModel: ObservableObject {
     }
     
     func submit() {
+        let moodScore = answers["mood"]
+        let sleepHours = answers["sleep"]
+        let stressLevel = answers["stress"]
+        let energyText = ["疲惫", "低落", "一般", "充沛", "爆棚"][safe: answers["energy"] ?? 2]
+
         summaryData = CalibrationSummary(
-            sleepHours: answers["sleep"],
-            stressLevel: answers["stress"],
-            energyLevel: ["疲惫", "低落", "一般", "充沛", "爆棚"][safe: answers["energy"] ?? 2]
+            sleepHours: sleepHours,
+            stressLevel: stressLevel,
+            moodScore: moodScore,
+            energyLevel: energyText
         )
-        
-        consecutiveDays += 1
-        UserDefaults.standard.set(consecutiveDays, forKey: "consecutiveDays")
-        
+
+        updateConsecutiveDays()
+        let snapshot = CalibrationHistoryRecord(
+            date: Date(),
+            sleepHours: sleepHours,
+            stressLevel: stressLevel,
+            moodScore: moodScore,
+            energyLevel: energyText,
+            answers: answers
+        )
+        persistSnapshot(snapshot)
+        NotificationCenter.default.post(name: .calibrationDidUpdate, object: nil)
+
+        Task {
+            await syncCalibrationToServer(snapshot)
+            await sendBehaviorNudgeIfNeeded(snapshot)
+        }
+
         isComplete = true
     }
     
@@ -354,6 +380,101 @@ class DailyCalibrationViewModel: ObservableObject {
         case 7..<14: return 1
         case 14..<21: return 2
         default: return 3
+        }
+    }
+
+    private func defaultAnswers(for questions: [CalibrationQuestion]) -> [String: Int] {
+        var defaults: [String: Int] = [:]
+        for question in questions where question.type == .numeric {
+            let minValue = question.minValue ?? 0
+            let maxValue = question.maxValue ?? 10
+            defaults[question.id] = (minValue + maxValue) / 2
+        }
+        return defaults
+    }
+
+    private func updateConsecutiveDays() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let lastDate = UserDefaults.standard.object(forKey: lastCalibrationDateKey) as? Date
+
+        if let lastDate {
+            if calendar.isDate(lastDate, inSameDayAs: today) {
+                // Keep current streak if user re-submits same day.
+            } else if let yesterday = calendar.date(byAdding: .day, value: -1, to: today),
+                      calendar.isDate(lastDate, inSameDayAs: yesterday) {
+                consecutiveDays += 1
+            } else {
+                consecutiveDays = 1
+            }
+        } else {
+            consecutiveDays = 1
+        }
+
+        UserDefaults.standard.set(consecutiveDays, forKey: consecutiveDaysKey)
+        UserDefaults.standard.set(today, forKey: lastCalibrationDateKey)
+    }
+
+    private func persistSnapshot(_ snapshot: CalibrationHistoryRecord) {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        var existing: [CalibrationHistoryRecord] = []
+        if let data = UserDefaults.standard.data(forKey: calibrationHistoryKey),
+           let decoded = try? decoder.decode([CalibrationHistoryRecord].self, from: data) {
+            existing = decoded
+        }
+        existing.append(snapshot)
+        existing = Array(existing.suffix(30))
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let data = try? encoder.encode(existing) {
+            UserDefaults.standard.set(data, forKey: calibrationHistoryKey)
+        }
+    }
+
+    private func syncCalibrationToServer(_ snapshot: CalibrationHistoryRecord) async {
+        struct SyncPayload: Encodable {
+            let responses: [String: Int]
+        }
+
+        let payload = SyncPayload(responses: snapshot.answers)
+        do {
+            let _: EmptyResponse = try await APIClient.shared.request(
+                endpoint: "assessment/daily-calibration",
+                method: .post,
+                body: payload
+            )
+        } catch {
+            await MainActor.run {
+                self.syncErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func sendBehaviorNudgeIfNeeded(_ snapshot: CalibrationHistoryRecord) async {
+        struct NudgePayload: Encodable {
+            let action_type: String
+            let duration_minutes: Int
+        }
+
+        let actionType: String
+        if (snapshot.stressLevel ?? 0) >= 7 {
+            actionType = "breathing_exercise"
+        } else if (snapshot.sleepHours ?? 0) < 6 {
+            actionType = "sleep_improvement"
+        } else {
+            actionType = "journaling"
+        }
+
+        do {
+            let _: EmptyResponse = try await APIClient.shared.request(
+                endpoint: "bayesian/nudge",
+                method: .post,
+                body: NudgePayload(action_type: actionType, duration_minutes: 10)
+            )
+        } catch {
+            // Optional sync only.
         }
     }
 }
@@ -393,7 +514,17 @@ enum QuestionType {
 struct CalibrationSummary {
     var sleepHours: Int?
     var stressLevel: Int?
+    var moodScore: Int?
     var energyLevel: String?
+}
+
+struct CalibrationHistoryRecord: Codable {
+    let date: Date
+    let sleepHours: Int?
+    let stressLevel: Int?
+    let moodScore: Int?
+    let energyLevel: String?
+    let answers: [String: Int]
 }
 
 extension Array {
@@ -406,4 +537,8 @@ struct DailyCalibrationView_PreviewProvider: PreviewProvider {
     static var previews: some View {
     DailyCalibrationView()
     }
+}
+
+extension Notification.Name {
+    static let calibrationDidUpdate = Notification.Name("antios.calibrationDidUpdate")
 }

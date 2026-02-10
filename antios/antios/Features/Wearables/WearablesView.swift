@@ -6,10 +6,13 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct WearablesView: View {
     @StateObject private var healthKit = HealthKitService.shared
     @State private var isSyncing = false
+    @State private var connectedProviders: Set<String> = []
+    @State private var statusMessage: String?
     
     var body: some View {
         NavigationStack {
@@ -28,9 +31,20 @@ struct WearablesView: View {
                 }
                 .padding(AppTheme.Spacing.md)
             }
-            .background(AppTheme.Colors.backgroundDark)
+            .background(AuroraBackground().ignoresSafeArea())
             .navigationTitle("健康数据")
             .navigationBarTitleDisplayMode(.large)
+            .alert("设备连接", isPresented: Binding(
+                get: { statusMessage != nil },
+                set: { if !$0 { statusMessage = nil } }
+            )) {
+                Button("确定", role: .cancel) {}
+            } message: {
+                Text(statusMessage ?? "")
+            }
+        }
+        .onAppear {
+            Task { await loadConnections() }
         }
     }
     
@@ -95,11 +109,17 @@ struct WearablesView: View {
                 .font(AppTheme.Typography.headline)
                 .foregroundColor(AppTheme.Colors.textPrimary)
             
-            DeviceRow(name: "Oura Ring", icon: "circle.circle", isConnected: false)
-            DeviceRow(name: "Whoop", icon: "waveform", isConnected: false)
-            DeviceRow(name: "Garmin", icon: "figure.run", isConnected: false)
+            DeviceRow(name: "Oura Ring", icon: "circle.circle", isConnected: connectedProviders.contains("oura")) {
+                connectProvider("oura")
+            }
+            DeviceRow(name: "Whoop", icon: "waveform", isConnected: connectedProviders.contains("whoop")) {
+                connectProvider("whoop")
+            }
+            DeviceRow(name: "Garmin", icon: "figure.run", isConnected: connectedProviders.contains("garmin")) {
+                connectProvider("garmin")
+            }
             
-            Text("更多设备即将支持")
+            Text("已连接设备会自动参与健康建模")
                 .font(AppTheme.Typography.caption)
                 .foregroundColor(AppTheme.Colors.textTertiary)
         }
@@ -161,6 +181,59 @@ struct WearablesView: View {
             isSyncing = false
         }
     }
+
+    private func loadConnections() async {
+        struct SyncStatusResponse: Decodable {
+            struct Connection: Decodable {
+                let connected: Bool
+                let lastSync: String?
+            }
+            let connections: [String: Connection]?
+        }
+
+        do {
+            let response: SyncStatusResponse = try await APIClient.shared.request(
+                endpoint: "wearables/sync",
+                method: .get
+            )
+            let remote = response.connections?
+                .filter { $0.value.connected }
+                .map { $0.key.lowercased() } ?? []
+            connectedProviders = Set(remote)
+            persistConnections()
+        } catch {
+            connectedProviders = loadPersistedConnections()
+        }
+    }
+
+    private func connectProvider(_ provider: String) {
+        let supported: Set<String> = ["oura", "fitbit"]
+        guard supported.contains(provider) else {
+            connectedProviders.insert(provider)
+            persistConnections()
+            statusMessage = "\(provider.uppercased()) 暂无官方 OAuth，已按本地连接标记。"
+            return
+        }
+
+        let envBase = ProcessInfo.processInfo.environment["ANTIOS_API_BASE_URL"] ?? "https://antianxiety.vercel.app/api"
+        let host = envBase.hasSuffix("/api") ? String(envBase.dropLast(4)) : envBase
+        let urlString = "\(host)/api/wearables/connect/\(provider)?redirect_uri=antianxiety://wearables/callback"
+        guard let url = URL(string: urlString) else {
+            statusMessage = "无法构建连接地址，请检查 API_BASE_URL。"
+            return
+        }
+        UIApplication.shared.open(url)
+        connectedProviders.insert(provider)
+        persistConnections()
+    }
+
+    private func persistConnections() {
+        UserDefaults.standard.set(Array(connectedProviders), forKey: "antios_connected_providers")
+    }
+
+    private func loadPersistedConnections() -> Set<String> {
+        Set((UserDefaults.standard.array(forKey: "antios_connected_providers") as? [String]) ?? [])
+    }
 }
 
 // MARK: - Device Row
@@ -169,6 +242,7 @@ struct DeviceRow: View {
     let name: String
     let icon: String
     let isConnected: Bool
+    let action: () -> Void
     
     var body: some View {
         HStack {
@@ -188,7 +262,7 @@ struct DeviceRow: View {
                     .foregroundColor(AppTheme.Colors.success)
             } else {
                 Button("连接") {
-                    // OAuth flow
+                    action()
                 }
                 .font(AppTheme.Typography.caption)
                 .foregroundColor(AppTheme.Colors.primary)

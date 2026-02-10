@@ -30,10 +30,6 @@ class AuthManager: ObservableObject {
             try await supabase.signIn(email: email, password: password)
             isAuthenticated = true
         } catch {
-            if applyTemporaryAuthBypassIfNeeded(error) {
-                isLoading = false
-                return
-            }
             errorMessage = error.localizedDescription
         }
         
@@ -50,10 +46,6 @@ class AuthManager: ObservableObject {
             try await supabase.signUp(email: email, password: password, name: name)
             isAuthenticated = true
         } catch {
-            if applyTemporaryAuthBypassIfNeeded(error) {
-                isLoading = false
-                return
-            }
             errorMessage = error.localizedDescription
         }
         
@@ -116,39 +108,5 @@ class AuthManager: ObservableObject {
     func signOut() {
         supabase.signOut()
         isAuthenticated = false
-    }
-
-    // Pseudocode-style temporary workaround:
-    // IF local auth API returns 404 or connection-refused
-    // THEN mark user authenticated to unblock homepage preview/testing.
-    private func applyTemporaryAuthBypassIfNeeded(_ error: Error) -> Bool {
-        #if DEBUG
-        if isLocalAuthUnavailable(error) {
-            isAuthenticated = true
-            errorMessage = nil
-            return true
-        }
-        #endif
-        return false
-    }
-
-    private func isLocalAuthUnavailable(_ error: Error) -> Bool {
-        if let apiError = error as? APIError,
-           case .httpError(let code) = apiError,
-           code == 404 {
-            return true
-        }
-
-        let nsError = error as NSError
-        if nsError.domain == NSURLErrorDomain && nsError.code == -1004 {
-            return true
-        }
-
-        let text = error.localizedDescription.lowercased()
-        if text.contains("could not connect to the server") || text.contains("connection refused") {
-            return true
-        }
-
-        return false
     }
 }

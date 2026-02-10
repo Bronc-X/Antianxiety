@@ -14,27 +14,41 @@ class PlanReplaceService {
     
     func replaceItem(_ item: PlanItem, userPreferences: [String] = []) async throws -> PlanItem {
         struct ReplaceRequest: Encodable {
-            let currentItem: PlanItem
-            let preferences: [String]
+            let sessionId: String
+            let itemId: String
+            let language: String
         }
         
         struct ReplaceResponse: Decodable {
-            let newItem: PlanItemResponse
+            struct Draft: Decodable {
+                let id: String?
+                let title: String
+                let action: String
+                let rationale: String?
+                let difficulty: String?
+                let category: String?
+            }
+            let success: Bool?
+            let newItem: Draft
         }
         
         let response: ReplaceResponse = try await APIClient.shared.request(
             endpoint: "max/plan-replace",
             method: .post,
-            body: ReplaceRequest(currentItem: item, preferences: userPreferences)
+            body: ReplaceRequest(
+                sessionId: "ios-local-session-\(Int(Date().timeIntervalSince1970))",
+                itemId: item.id,
+                language: Locale.current.language.languageCode?.identifier == "en" ? "en" : "zh"
+            )
         )
         
         return PlanItem(
-            id: response.newItem.id,
+            id: response.newItem.id ?? UUID().uuidString,
             title: response.newItem.title,
             action: response.newItem.action,
-            science: response.newItem.science,
-            difficulty: response.newItem.difficulty,
-            category: response.newItem.category,
+            science: response.newItem.rationale ?? "根据当前状态生成的替换建议",
+            difficulty: mapDifficulty(response.newItem.difficulty),
+            category: mapCategory(response.newItem.category),
             isCompleted: false
         )
     }
@@ -63,6 +77,29 @@ class PlanReplaceService {
         
         let categoryItems = alternatives[item.category] ?? alternatives["stress"]!
         let filtered = categoryItems.filter { $0.title != item.title }
-        return filtered.randomElement() ?? categoryItems.first!
+        guard !filtered.isEmpty else { return categoryItems.first! }
+        let index = abs(item.id.hashValue) % filtered.count
+        return filtered[index]
+    }
+
+    private func mapDifficulty(_ serverDifficulty: String?) -> Int {
+        switch serverDifficulty?.lowercased() {
+        case "easy": return 1
+        case "hard": return 3
+        case "medium": return 2
+        default: return 2
+        }
+    }
+
+    private func mapCategory(_ serverCategory: String?) -> String {
+        switch serverCategory?.lowercased() {
+        case "fitness": return "exercise"
+        case "nutrition": return "diet"
+        case "mental": return "mental"
+        case "habits": return "habits"
+        case "sleep": return "sleep"
+        case "stress": return "stress"
+        default: return "stress"
+        }
     }
 }
