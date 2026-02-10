@@ -111,9 +111,11 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $isCalibrationPresented) {
                 CalibrationView(autoStart: true)
+                    .forcedGlobalLeftShift(20)
             }
             .fullScreenCover(isPresented: $isBreathingPresented) {
                 BreathingSessionView(durationMinutes: breathingDurationMinutes)
+                    .forcedGlobalLeftShift(20)
             }
         }
         .ignoresSafeArea()

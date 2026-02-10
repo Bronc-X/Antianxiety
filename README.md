@@ -164,6 +164,7 @@ npm test
 - `docs/project/PROJECT_CONSTITUTION.md`
 - `docs/project/DEPLOYMENT.md`
 - `docs/project/ENV_SETUP.md`
+- `docs/workspace/README.md`（两层工作模式：Core + Threads）
 
 ---
 

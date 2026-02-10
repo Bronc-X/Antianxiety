@@ -51,6 +51,7 @@ struct AntiAnxietynewApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .forcedGlobalLeftShift(20)
                 .tint(.liquidGlassAccent)
                 .environmentObject(supabase)
                 .environmentObject(appSettings)

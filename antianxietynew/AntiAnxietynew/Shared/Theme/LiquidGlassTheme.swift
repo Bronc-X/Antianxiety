@@ -33,8 +33,8 @@ struct ScreenMetrics {
         isCompactHeight ? 16 : 24
     }
 
-    /// 居中补偿（用于修正视觉中心偏移）
-    var centerAxisOffset: CGFloat { isCompactWidth ? -4 : -8 }
+    /// 居中补偿（已修正：移除历史遗留的负值偏移）
+    var centerAxisOffset: CGFloat { 0 }
 
     var iconSize: CGFloat { isCompactWidth ? 18 : 20 }
     var smallIconSize: CGFloat { isCompactWidth ? 14 : 16 }

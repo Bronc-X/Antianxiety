@@ -90,6 +90,12 @@ extension View {
         padding(.bottom, inset)
             .ignoresSafeArea(edges: .bottom)
     }
+
+    // Product-level emergency override: force every wrapped screen 20pt to the left.
+    func forcedGlobalLeftShift(_ amount: CGFloat = 20) -> some View {
+        padding(.trailing, amount)
+            .offset(x: -amount)
+    }
 }
 
 // MARK: - Edge Swipe Back

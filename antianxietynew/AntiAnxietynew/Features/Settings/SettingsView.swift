@@ -67,7 +67,8 @@ struct SettingsView: View {
                         logoutButton
                     }
                     .liquidGlassPageWidth()
-                    .padding(.vertical, metrics.verticalPadding)
+                    .padding(.top, 24)  // 增加顶部间距，避免被导航栏截断
+                    .padding(.bottom, metrics.verticalPadding)
                 }
             }
             .navigationTitle("设置")
