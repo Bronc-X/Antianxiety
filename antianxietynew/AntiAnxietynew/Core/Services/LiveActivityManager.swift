@@ -62,10 +62,12 @@ final class LiveActivityManager: ObservableObject, LiveActivityManaging {
             progressPercent: 0
         )
         
+        let content = ActivityContent(state: initialState, staleDate: nil)
+        
         do {
             let activity = try Activity.request(
                 attributes: attributes,
-                contentState: initialState,
+                content: content,
                 pushType: nil
             )
             
@@ -86,32 +88,36 @@ final class LiveActivityManager: ObservableObject, LiveActivityManaging {
         progressPercent: Double
     ) async {
         guard let activity = currentActivity else { return }
+        let currentState = activity.content.state
         
         let updatedState = AnxietyTrackingAttributes.ContentState(
             currentHRV: hrv,
             anxietyScore: anxietyScore,
             minutesRemaining: minutesRemaining,
-            sessionType: activity.contentState.sessionType,
+            sessionType: currentState.sessionType,
             progressPercent: progressPercent
         )
         
-        await activity.update(using: updatedState)
+        let content = ActivityContent(state: updatedState, staleDate: nil)
+        await activity.update(content)
     }
     
     // MARK: - 结束 Live Activity
     
     func endCurrentActivity() async {
         guard let activity = currentActivity else { return }
+        let currentState = activity.content.state
         
         let finalState = AnxietyTrackingAttributes.ContentState(
-            currentHRV: activity.contentState.currentHRV,
-            anxietyScore: activity.contentState.anxietyScore,
+            currentHRV: currentState.currentHRV,
+            anxietyScore: currentState.anxietyScore,
             minutesRemaining: 0,
-            sessionType: activity.contentState.sessionType,
+            sessionType: currentState.sessionType,
             progressPercent: 1.0
         )
         
-        await activity.end(using: finalState, dismissalPolicy: .immediate)
+        let content = ActivityContent(state: finalState, staleDate: nil)
+        await activity.end(content, dismissalPolicy: .immediate)
         
         currentActivity = nil
         isActivityActive = false
@@ -122,7 +128,9 @@ final class LiveActivityManager: ObservableObject, LiveActivityManaging {
     
     func endAllActivities() async {
         for activity in Activity<AnxietyTrackingAttributes>.activities {
-            await activity.end(dismissalPolicy: .immediate)
+            let state = activity.content.state
+            let content = ActivityContent(state: state, staleDate: nil)
+            await activity.end(content, dismissalPolicy: .immediate)
         }
         
         currentActivity = nil

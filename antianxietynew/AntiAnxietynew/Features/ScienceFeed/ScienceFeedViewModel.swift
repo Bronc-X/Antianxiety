@@ -16,7 +16,7 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
     // AI 加载消息
     @Published var loadingMessage = ""
     private var loadingTimer: Timer?
-    private var activeLanguage: AppLanguage = .zh
+    private var activeLanguage: AppLanguage = .zhHans
     
     // 缓存
     private let cacheKeyPrefix = "science_feed_cache_"
@@ -112,7 +112,7 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         startLoadingAnimation()
         
         do {
-            let response = try await SupabaseManager.shared.getScienceFeed(language: language.rawValue)
+            let response = try await SupabaseManager.shared.getScienceFeed(language: language.apiCode)
             let baseArticles = normalizeArticles(response.articles)
             let localizedArticles = filterArticlesForLanguage(baseArticles, language: language)
             articles = localizedArticles
@@ -145,7 +145,7 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
         clearCache(language: language)
         
         do {
-            let response = try await SupabaseManager.shared.getScienceFeed(language: language.rawValue)
+            let response = try await SupabaseManager.shared.getScienceFeed(language: language.apiCode)
             let baseArticles = normalizeArticles(response.articles)
             let localizedArticles = filterArticlesForLanguage(baseArticles, language: language)
             articles = localizedArticles
@@ -455,7 +455,7 @@ class ScienceFeedViewModel: NSObject, ObservableObject {
     private func filterArticlesForLanguage(_ articles: [ScienceArticle], language: AppLanguage) -> [ScienceArticle] {
         guard !articles.isEmpty else { return articles }
         let threshold = min(3, articles.count)
-        if language == .zh {
+        if language != .en {
             let chinese = articles.filter { isMostlyChinese(articleText($0)) }
             return chinese.count >= threshold ? chinese : articles
         }

@@ -258,7 +258,11 @@ private struct CustomTabBar: View {
     }
 
     private func alignToPixel(_ value: CGFloat) -> CGFloat {
-        let scale = UIScreen.main.scale
+        #if os(iOS)
+        let scale = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.scale ?? 2.0
+        #else
+        let scale: CGFloat = 2.0
+        #endif
         return (value * scale).rounded() / scale
     }
 }

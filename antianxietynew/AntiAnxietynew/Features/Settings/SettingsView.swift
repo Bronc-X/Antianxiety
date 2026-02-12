@@ -93,13 +93,13 @@ struct SettingsView: View {
             } message: {
                 Text(viewModel.alertMessage ?? "")
             }
-            .onChange(of: viewModel.notificationsEnabled) { newValue in
+            .onChange(of: viewModel.notificationsEnabled) { _, newValue in
                 viewModel.handleNotificationsChanged(newValue)
             }
-            .onChange(of: viewModel.dailyReminderEnabled) { newValue in
+            .onChange(of: viewModel.dailyReminderEnabled) { _, newValue in
                 viewModel.handleDailyReminderChanged(newValue)
             }
-            .onChange(of: viewModel.biometricEnabled) { newValue in
+            .onChange(of: viewModel.biometricEnabled) { _, newValue in
                 viewModel.handleBiometricChanged(newValue)
             }
         }

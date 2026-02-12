@@ -1961,7 +1961,10 @@ final class SupabaseManager: ObservableObject, SupabaseManaging {
             )
         }
         let profile = try? await getProfileSettings()
-        let language = profile?.preferred_language ?? "zh"
+        let appLanguage = AppLanguage.fromStored(UserDefaults.standard.string(forKey: "app_language")).apiCode
+        let language = (appLanguage == "en" || appLanguage == "zh")
+            ? appLanguage
+            : (profile?.preferred_language == "en" ? "en" : "zh")
         let conversationState = MaxConversationStateTracker.extractState(from: localMessages)
         let inquirySummary = try? await getInquiryContextSummary(language: language)
 
@@ -2805,18 +2808,46 @@ extension SupabaseManager {
     /// 提交问询回答（本地 Supabase 直连）
     func respondInquiry(inquiryId: String, response: String) async throws -> InquiryRespondResponse {
         guard let user = currentUser else { throw SupabaseError.notAuthenticated }
+        let resolvedId = try await resolveInquiryHistoryId(
+            rawInquiryId: inquiryId,
+            userId: user.id
+        )
 
         let payload = InquiryHistoryUpdate(
             user_response: response,
             responded_at: ISO8601DateFormatter().string(from: Date())
         )
-        let endpoint = "inquiry_history?id=eq.\(inquiryId)"
+        let endpoint = "inquiry_history?id=eq.\(resolvedId)"
         let updatedRows: [InquiryHistoryRow] = try await request(endpoint, method: "PATCH", body: payload, prefer: "return=representation")
 
         if let gapField = updatedRows.first?.data_gaps_addressed?.first {
             await syncInquiryResponseToCalibration(userId: user.id, gapField: gapField, response: response)
         }
         return InquiryRespondResponse(success: true, message: nil)
+    }
+
+    private func resolveInquiryHistoryId(rawInquiryId: String, userId: String) async throws -> String {
+        if isUUID(rawInquiryId) {
+            return rawInquiryId
+        }
+
+        let pending = await fetchInquiryHistory(userId: userId, limit: 5)
+            .filter { ($0.responded_at ?? "").isEmpty }
+
+        let inferredType = rawInquiryId
+            .replacingOccurrences(of: "inquiry_", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        if !inferredType.isEmpty,
+           let exact = pending.first(where: { ($0.question_type ?? "").lowercased().contains(inferredType) }) {
+            return exact.id
+        }
+
+        if let latest = pending.first {
+            return latest.id
+        }
+
+        throw SupabaseError.requestFailed
     }
 
     private func fetchLatestPendingInquiry(userId: String) async throws -> InquiryHistoryRow? {
@@ -2856,7 +2887,12 @@ extension SupabaseManager {
             prefer: "return=representation"
         )
 
-        let storedId = rows.first?.id ?? question.id
+        let storedId: String
+        if let firstId = rows.first?.id {
+            storedId = firstId
+        } else {
+            storedId = try await resolveInquiryHistoryId(rawInquiryId: question.id, userId: userId)
+        }
         return InquiryQuestion(
             id: storedId,
             questionText: question.questionText,

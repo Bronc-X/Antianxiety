@@ -71,7 +71,7 @@ struct ScienceFeedView: View {
         .task {
             await viewModel.loadFeed(language: language)
         }
-        .onChange(of: language) { newLanguage in
+        .onChange(of: language) { _, newLanguage in
             Task { await viewModel.refresh(language: newLanguage) }
         }
     }

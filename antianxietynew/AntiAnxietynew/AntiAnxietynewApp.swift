@@ -56,6 +56,7 @@ struct AntiAnxietynewApp: App {
                 .environmentObject(supabase)
                 .environmentObject(appSettings)
                 .environmentObject(themeManager)
+                .environment(\.locale, Locale(identifier: appSettings.language.localeIdentifier))
                 .preferredColorScheme(themeManager.colorScheme)
                 .task {
                     await supabase.refreshAppAPIBaseURL()

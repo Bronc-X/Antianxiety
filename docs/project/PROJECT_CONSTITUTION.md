@@ -96,7 +96,7 @@ Max SHOULD say:
 ## IV. Tech Stack Enforcement (Strict)
 
 - **Framework:** Next.js 14+ (App Router)
-- **Mobile:** Capacitor (Think "Native-grade Web App")
+- **Mobile:** Android = Capacitor, iOS = SwiftUI native (`antianxietynew/`)
 - **Styling:** Tailwind CSS + Shadcn UI (Components) + Framer Motion (Interaction)
 - **Database:** Supabase (PostgreSQL + pgvector)
 - **AI:** Vercel AI SDK (Streaming interactions)

@@ -93,16 +93,16 @@ struct DashboardView: View {
             .task {
                 await viewModel.loadData()
                 await viewModel.loadDigitalTwin()
-                await viewModel.loadInquiry(language: appSettings.language.rawValue, force: false)
-                await viewModel.loadDailyRecommendations(language: appSettings.language.rawValue, force: false)
+                await viewModel.loadInquiry(language: appSettings.language.apiCode, force: false)
+                await viewModel.loadDailyRecommendations(language: appSettings.language.apiCode, force: false)
             }
             .onReceive(NotificationCenter.default.publisher(for: .calibrationCompleted)) { _ in
                 Task { await viewModel.refresh() }
             }
             .refreshable {
                 await viewModel.refresh()
-                await viewModel.loadInquiry(language: appSettings.language.rawValue, force: true)
-                await viewModel.loadDailyRecommendations(language: appSettings.language.rawValue, force: true)
+                await viewModel.loadInquiry(language: appSettings.language.apiCode, force: true)
+                await viewModel.loadDailyRecommendations(language: appSettings.language.apiCode, force: true)
             }
             .alert(
                 "错误",

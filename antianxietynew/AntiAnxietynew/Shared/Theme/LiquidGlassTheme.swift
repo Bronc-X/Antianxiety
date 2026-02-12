@@ -65,14 +65,18 @@ struct ScreenMetrics {
     var avatarLarge: CGFloat { isCompactWidth ? 84 : 100 }
 
     private func alignToPixel(_ value: CGFloat) -> CGFloat {
-        let scale = UIScreen.main.scale
+        #if os(iOS)
+        let scale = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.scale ?? 2.0
+        #else
+        let scale: CGFloat = 2.0
+        #endif
         return (value * scale).rounded() / scale
     }
 }
 
 private struct ScreenMetricsKey: EnvironmentKey {
     static let defaultValue = ScreenMetrics(
-        size: UIScreen.main.bounds.size,
+        size: (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.bounds.size ?? CGSize(width: 390, height: 844),
         safeAreaInsets: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
     )
 }

@@ -229,7 +229,7 @@ struct DigitalTwinDetailView: View {
     private func statCard(title: String, value: Double, color: Color, suffix: String = "", isInteger: Bool = false) -> some View {
         LiquidGlassCard(style: .concave, padding: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(title)
+                Text(L10n.localized(title))
                     .font(.caption2)
                     .foregroundColor(.textSecondary)
                 let formatted = isInteger ? "\(Int(value))" : String(format: "%.1f", value)
@@ -317,12 +317,12 @@ extension DigitalTwinMetricKey {
 
     var description: String {
         switch self {
-        case .anxietyScore: return "基于 GAD-7 量表推导，越低越好"
-        case .sleepQuality: return "综合睡眠时长和睡眠质量评分"
-        case .stressResilience: return "基于 PSS-10 和每日压力校准"
-        case .moodStability: return "基于 PHQ-9 和每日情绪波动"
-        case .energyLevel: return "综合睡眠、情绪和每日校准"
-        case .hrvScore: return "推断值，接入穿戴设备后更准确"
+        case .anxietyScore: return L10n.runtime("基于 GAD-7 量表推导，越低越好")
+        case .sleepQuality: return L10n.runtime("综合睡眠时长和睡眠质量评分")
+        case .stressResilience: return L10n.runtime("基于 PSS-10 和每日压力校准")
+        case .moodStability: return L10n.runtime("基于 PHQ-9 和每日情绪波动")
+        case .energyLevel: return L10n.runtime("综合睡眠、情绪和每日校准")
+        case .hrvScore: return L10n.runtime("推断值，接入穿戴设备后更准确")
         }
     }
 }

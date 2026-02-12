@@ -39,7 +39,7 @@ AntiAnxiety 不是传统健康 App，它是一套“真相架构”(Truth Archit
 ```
 User Input → Unified Profile → Evidence Stack → Bayesian Update → Plan Engine → Execution Feedback → Memory & Profile
 ```
-- **客户端**：Next.js App Router + Capacitor（Web/Android/iOS）。
+- **客户端**：Next.js App Router（Web）+ Capacitor（Android）+ SwiftUI（iOS 原生）。
 - **AI 逻辑层**：Vercel Functions + Vercel AI SDK + LangChain.js。
 - **数据层**：Supabase (PostgreSQL + pgvector + Realtime + RLS)。
 - **应用架构**：MVVM（Server Actions → Domain Hooks → Presentational UI），跨端同构复用。
@@ -105,16 +105,16 @@ interface BayesianBelief {
 5. **穿戴设备整合**：Oura / Fitbit / HealthKit 数据同步。
 6. **内容推荐系统**：学术与社区并行，拒绝模板化安慰。
 7. **AI 健康助手**：上下文记忆 + 个性化方案生成。
-8. **多端覆盖**：Web + Android + iOS（Capacitor）。
+8. **多端覆盖**：Web（Next.js）+ Android（Capacitor）+ iOS（SwiftUI 原生）。
 
 ---
 
 ## 🛠️ 技术栈
-- **前端**：Next.js 16、React 18、TypeScript、Tailwind
+- **前端**：Next.js 16、React 19、TypeScript、Tailwind
 - **后端**：Vercel Functions、Supabase（PostgreSQL / RLS / Realtime）
 - **AI**：Claude Sonnet 4.5 + DeepSeek v3.2 + Gemini 3 (fallback) + OpenAI Embedding
 - **向量检索**：pgvector
-- **移动端**：Capacitor
+- **移动端**：Capacitor（Android）+ SwiftUI（iOS 原生）
 
 ---
 
@@ -137,9 +137,14 @@ antianxietynew/ iOS 原生工程（SwiftUI）
 
 ## 🚀 快速开始
 ### 环境要求
-- Node.js 18+
+- Node.js 20+
 - npm
 - Supabase 账号
+
+已验证开发环境（2026-02）：
+- macOS 15.6
+- Xcode 26 + iOS 26 Simulator
+- Node.js 20.x
 
 ### 本地开发
 ```bash

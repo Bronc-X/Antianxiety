@@ -223,7 +223,7 @@ struct BayesianLoopView: View {
         .task {
             await viewModel.loadHistory()
         }
-        .onChange(of: viewModel.range) { _ in
+        .onChange(of: viewModel.range) { _, _ in
             Task { await viewModel.loadHistory() }
         }
     }
@@ -531,7 +531,7 @@ struct InquiryCenterView: View {
         .navigationTitle("问询中心")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await viewModel.loadPending(language: appSettings.language.rawValue)
+            await viewModel.loadPending(language: appSettings.language.apiCode)
         }
     }
 
@@ -561,7 +561,7 @@ struct InquiryCenterView: View {
                         if let options = inquiry.options, !options.isEmpty {
                             ForEach(options, id: \.value) { option in
                                 Button {
-                                    Task { await viewModel.respondPending(option: option, language: appSettings.language.rawValue) }
+                                    Task { await viewModel.respondPending(option: option, language: appSettings.language.apiCode) }
                                 } label: {
                                     HStack {
                                         Text(option.label)
@@ -591,7 +591,7 @@ struct InquiryCenterView: View {
 
                             Button {
                                 Task {
-                                    await viewModel.respondPendingText(pendingAnswer, language: appSettings.language.rawValue)
+                                    await viewModel.respondPendingText(pendingAnswer, language: appSettings.language.apiCode)
                                     pendingAnswer = ""
                                 }
                             } label: {
@@ -629,7 +629,7 @@ struct InquiryCenterView: View {
                         .foregroundColor(.textSecondary)
 
                     Button {
-                        Task { await viewModel.generateProactive(language: appSettings.language.rawValue) }
+                        Task { await viewModel.generateProactive(language: appSettings.language.apiCode) }
                     } label: {
                         Text(viewModel.isGenerating ? "生成中..." : "生成问询")
                             .frame(maxWidth: .infinity)
@@ -1066,7 +1066,7 @@ struct InsightEngineView: View {
                     .foregroundColor(.textPrimary)
 
                 Button {
-                    Task { await viewModel.askMax(language: appSettings.language.rawValue) }
+                    Task { await viewModel.askMax(language: appSettings.language.apiCode) }
                 } label: {
                     Text(viewModel.isAskMaxLoading ? "解释中..." : "让 Max 解释")
                         .frame(maxWidth: .infinity)

@@ -239,7 +239,7 @@ struct GlassButton: View {
                 if let icon {
                     Image(systemName: icon)
                 }
-                Text(title)
+                Text(L10n.localized(title))
             }
         }
         .buttonStyle(GlassButtonStyle(kind: mappedKind))
@@ -264,7 +264,7 @@ struct GlassTextField: View {
                     .foregroundColor(.liquidGlassAccent)
             }
 
-            TextField(placeholder, text: $text)
+            TextField(L10n.localized(placeholder), text: $text)
                 .textFieldStyle(.plain)
                 .foregroundColor(Color.textPrimary(for: colorScheme))
                 .accentColor(.liquidGlassPrimary)
@@ -324,11 +324,11 @@ struct GlassNavigationBar<Leading: View, Trailing: View>: View {
             Spacer()
 
             VStack(spacing: 2) {
-                Text(title)
+                Text(L10n.localized(title))
                     .font(GlassTypography.title(18, weight: .semibold))
                     .foregroundColor(.textPrimary)
                 if let subtitle {
-                    Text(subtitle)
+                    Text(L10n.localized(subtitle))
                         .font(GlassTypography.caption())
                         .foregroundColor(.textSecondary)
                 }
@@ -372,7 +372,7 @@ struct GlassTabBar: View {
                 } label: {
                     VStack(spacing: 4) {
                         Image(systemName: item.icon)
-                        Text(item.title)
+                        Text(L10n.localized(item.title))
                             .font(GlassTypography.caption(11))
                     }
                     .foregroundColor(selection == index ? .brandPaper : .textTertiary)
@@ -528,7 +528,7 @@ struct LiquidGlassSectionHeader: View {
                     .foregroundColor(.liquidGlassAccent)
             }
 
-            Text(title)
+            Text(L10n.localized(title))
                 .font(GlassTypography.body(14, weight: .semibold))
                 .foregroundColor(Color.textSecondary(for: colorScheme))
         }
@@ -621,7 +621,7 @@ struct StatusPill: View {
     let color: Color
 
     var body: some View {
-        Text(text)
+        Text(L10n.localized(text))
             .font(GlassTypography.caption(12, weight: .semibold))
             .foregroundColor(color)
             .padding(.horizontal, 12)
@@ -694,12 +694,12 @@ struct LiquidGlassSettingsRow<Destination: View>: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
+                    Text(L10n.localized(title))
                         .font(GlassTypography.body(14, weight: .medium))
                         .foregroundColor(.textPrimary)
 
                     if let subtitle = subtitle {
-                        Text(subtitle)
+                        Text(L10n.localized(subtitle))
                             .font(GlassTypography.caption(11))
                             .foregroundColor(.textTertiary)
                     }

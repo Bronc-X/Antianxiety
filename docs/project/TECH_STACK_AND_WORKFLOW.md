@@ -6,7 +6,7 @@
 
 | 类别 | 技术 | 版本 |
 |------|------|------|
-| 框架 | Next.js | 16.0.1 |
+| 框架 | Next.js | 16.1.1 |
 | 语言 | TypeScript | 5.9.3 |
 | UI 组件库 | Shadcn UI + Radix UI | - |
 | 样式 | Tailwind CSS | 4.x |
@@ -15,19 +15,20 @@
 | 图表 | Recharts | 3.5.0 |
 | 状态管理 | React Context + Hooks | - |
 | 主题 | next-themes | 0.4.6 |
-| 表单验证 | react-hook-form + Zod | 待安装 |
+| 表单验证 | react-hook-form + Zod | 7.67.0 + 3.25.x |
 
 ### 跨平台/移动端
 
 | 类别 | 技术 | 版本 |
 |------|------|------|
-| 跨平台运行时 | Capacitor | 7.4.4 |
-| 触觉反馈 | @capacitor/haptics | 7.0.2 |
-| 本地存储 | @capacitor/preferences | 7.0.2 |
-| 网络检测 | @capacitor/network | 7.0.2 |
-| 启动画面 | @capacitor/splash-screen | 7.0.3 |
-| 浏览器 | @capacitor/browser | 7.0.2 |
+| 跨平台运行时 | Capacitor | 5.7.8 |
+| 触觉反馈 | @capacitor/haptics | 5.0.8 |
+| 本地存储 | @capacitor/preferences | 5.0.8 |
+| 网络检测 | @capacitor/network | 5.0.8 |
+| 启动画面 | @capacitor/splash-screen | 5.0.8 |
+| 浏览器 | @capacitor/browser | 5.2.1 |
 | 目标平台 | Android | - |
+| iOS 客户端 | SwiftUI 原生工程 (`antianxietynew/`) | Xcode 26 / iOS 26 |
 
 > iOS 原生工程使用 SwiftUI，位于 `antianxietynew/`，不通过 Capacitor。
 
@@ -96,10 +97,12 @@
 │                         │                                │
 │    ┌────────────────────┼────────────────────┐          │
 │    ▼                    ▼                    ▼          │
-│ next build         生成 /out/          npx cap sync     │
-│ (静态导出)         (HTML/JS/CSS)       (同步到原生)      │
+│ next build         生成 /out/          npx cap sync android │
+│ (静态导出)         (HTML/JS/CSS)       (同步到 Android 原生)│
 └─────────────────────────────────────────────────────────┘
 ```
+
+> iOS 主线不走 `cap sync ios`，使用 `antianxietynew/AntiAnxietynew.xcodeproj` 原生构建。
 
 ### 部署流程
 
@@ -167,7 +170,7 @@
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 修改代码 | 在 `antianxiety/` 目录修改任何文件 |
+| 1 | 修改代码 | 在 `Antianxiety/` 目录修改任何文件 |
 | 2 | 本地测试 | `npm run dev` 在 localhost:3000 预览 |
 | 3 | 提交代码 | `git push` 到 GitHub |
 | 4 | 自动部署 | Vercel 检测到推送，自动构建部署 |
@@ -218,7 +221,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                   Next.js API 层 (实时服务)                      │
 ├─────────────────────────────────────────────────────────────────┤
-│  客户端 (Next.js/Capacitor)                                      │
+│  客户端 (Web Next.js / Android Capacitor / iOS SwiftUI)          │
 │         │                                                        │
 │         ├── /api/chat ──► 读取预热洞察 + 实时 RAG + Scientific   │
 │         │                 Search (Semantic Scholar 实时补充)     │
@@ -228,7 +231,7 @@
 │         ├── Supabase Client ──► PostgreSQL (数据存储)            │
 │         │                       └── pgvector (向量搜索/RAG)      │
 │         │                                                        │
-│         └── Capacitor Plugins                                    │
+│         └── Android Capacitor Plugins                            │
 │             ├── Haptics (触觉反馈)                               │
 │             ├── Preferences (本地存储)                           │
 │             └── Network (网络状态)                               │
@@ -329,6 +332,7 @@
 |------|----------|----------|
 | Web 部署 | Vercel (自动 CI/CD) | `vercel.json` |
 | Android 打包 | Capacitor + Gradle | `capacitor.config.ts` |
+| iOS 打包 | Xcode + SwiftUI 原生工程 | `antianxietynew/AntiAnxietynew.xcodeproj` |
 | 静态导出 | Next.js output: 'export' | `next.config.ts` |
 | 环境变量 | Vercel Environment Variables | `.env.local` |
 
@@ -381,6 +385,8 @@
 | `npm run build` | Next.js 构建 |
 | `npm run build:cap` | 构建 + Capacitor 同步 |
 | `npm run android` | 打开 Android Studio |
+| `open antianxietynew/AntiAnxietynew.xcodeproj` | 打开 iOS 原生工程 |
+| `xcodebuild -project antianxietynew/AntiAnxietynew.xcodeproj -scheme AntiAnxietynew -destination 'generic/platform=iOS Simulator' build` | iOS 模拟器最小编译验证 |
 | `npm run test` | 运行测试 |
 | `npm run cap:sync` | 同步 Web 资源到原生项目 |
 
@@ -402,6 +408,7 @@ antianxiety/
 ├── public/                 # 静态资源
 │   └── lottie/            # Lottie JSON 动画文件
 ├── android/                # Capacitor Android 项目
+├── antianxietynew/          # iOS SwiftUI 原生工程
 ├── out/                    # Next.js 静态导出输出
 ├── __tests__/              # 测试文件
 │   └── properties/        # 属性测试

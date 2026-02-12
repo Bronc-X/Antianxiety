@@ -68,7 +68,7 @@ struct MaxChatView: View {
                             .liquidGlassPageWidth(alignment: .leading)
                             .padding(.vertical, metrics.verticalPadding)
                         }
-                        .onChange(of: viewModel.messages.count) { _ in
+                        .onChange(of: viewModel.messages.count) { _, _ in
                             if let lastMessage = viewModel.messages.last {
                                 withAnimation { proxy.scrollTo(lastMessage.id, anchor: .bottom) }
                             }
@@ -933,7 +933,7 @@ struct VoiceRecorderView: View {
             .onDisappear {
                 stopRecording()
             }
-            .onChange(of: isRecording) { newValue in
+            .onChange(of: isRecording) { _, newValue in
                 if newValue {
                     withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                         pulseScale = 1.3

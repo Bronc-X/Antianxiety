@@ -170,13 +170,13 @@ struct ReportView: View {
 
                 if let summary {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("整体改善：\(summary.overallImprovement)")
+                        Text("\(L10n.localized("整体改善"))：\(L10n.runtime(summary.overallImprovement))")
                             .font(.subheadline)
                             .foregroundColor(.textSecondary)
-                        Text("一致性：\(summary.consistencyScore)")
+                        Text("\(L10n.localized("一致性"))：\(L10n.runtime(summary.consistencyScore))")
                             .font(.subheadline)
                             .foregroundColor(.textSecondary)
-                        Text("首次见效：\(summary.daysToFirstResult) 天")
+                        Text("\(L10n.localized("首次见效"))：\(L10n.runtime("\(summary.daysToFirstResult) 天"))")
                             .font(.caption)
                             .foregroundColor(.textTertiary)
                     }
@@ -188,7 +188,7 @@ struct ReportView: View {
                             HStack(alignment: .top, spacing: 6) {
                                 Text("•")
                                     .foregroundColor(.liquidGlassAccent)
-                                Text(item)
+                                Text(L10n.runtime(item))
                                     .font(.subheadline)
                                     .foregroundColor(.textSecondary)
                             }
@@ -206,7 +206,7 @@ struct ReportView: View {
                             HStack(alignment: .top, spacing: 6) {
                                 Text("•")
                                     .foregroundColor(.liquidGlassAccent)
-                                Text("\(vital.name)：\(vital.value)")
+                                Text("\(L10n.runtime(vital.name))：\(L10n.runtime(vital.value))")
                                     .font(.caption)
                                     .foregroundColor(.textSecondary)
                             }
@@ -220,7 +220,7 @@ struct ReportView: View {
                             .font(.caption)
                             .foregroundColor(.textTertiary)
                         ForEach(actions, id: \.self) { action in
-                            Text("• \(action)")
+                            Text("• \(L10n.runtime(action))")
                                 .font(.caption)
                                 .foregroundColor(.textSecondary)
                         }
@@ -351,7 +351,7 @@ struct ReportView: View {
                     }
                 }
 
-                Text(understandingViewModel.score?.isDeepUnderstanding == true ? "深度理解已达成" : "理解度持续提升中")
+                Text(L10n.localized(understandingViewModel.score?.isDeepUnderstanding == true ? "深度理解已达成" : "理解度持续提升中"))
                     .font(.caption)
                     .foregroundColor(.textSecondary)
 
@@ -402,10 +402,10 @@ struct ReportView: View {
                         .font(.caption)
                         .foregroundColor(.textTertiary)
                 }
-                Text(title)
+                Text(L10n.localized(title))
                     .font(.headline)
                     .foregroundColor(.textPrimary)
-                Text(subtitle)
+                Text(L10n.localized(subtitle))
                     .font(.caption2)
                     .foregroundColor(.textSecondary)
             }
@@ -415,7 +415,7 @@ struct ReportView: View {
     private func formatValue(_ value: Double?, suffix: String) -> String {
         guard let value, value > 0 else { return "—" }
         let display = value >= 100 ? String(format: "%.0f", value) : String(format: "%.1f", value)
-        return "\(display)\(suffix)"
+        return L10n.runtime("\(display)\(suffix)")
     }
 }
 
@@ -425,10 +425,10 @@ struct ReportMetricView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+            Text(L10n.localized(title))
                 .font(.caption2)
                 .foregroundColor(.textTertiary)
-            Text(value)
+            Text(L10n.runtime(value))
                 .font(.headline)
                 .foregroundColor(.textPrimary)
         }
@@ -469,10 +469,10 @@ struct BodyAnalysisView: View {
                 .font(.headline)
                 .foregroundColor(.textPrimary)
             if let summary = analysis?.dashboardData.summaryStats {
-                Text("整体改善：\(summary.overallImprovement)")
+                Text("\(L10n.localized("整体改善"))：\(L10n.runtime(summary.overallImprovement))")
                     .font(.subheadline)
                     .foregroundColor(.textSecondary)
-                Text("一致性：\(summary.consistencyScore)")
+                Text("\(L10n.localized("一致性"))：\(L10n.runtime(summary.consistencyScore))")
                     .font(.caption)
                     .foregroundColor(.textTertiary)
             } else {
@@ -499,7 +499,7 @@ struct BodyAnalysisView: View {
                         .foregroundColor(.textTertiary)
                 } else {
                     ForEach(insights, id: \.self) { item in
-                        Text("• \(item)")
+                        Text("• \(L10n.runtime(item))")
                             .font(.subheadline)
                             .foregroundColor(.textSecondary)
                     }
@@ -511,7 +511,7 @@ struct BodyAnalysisView: View {
                         .font(.caption)
                         .foregroundColor(.textTertiary)
                     ForEach(actions, id: \.self) { action in
-                        Text("• \(action)")
+                        Text("• \(L10n.runtime(action))")
                             .font(.caption)
                             .foregroundColor(.textSecondary)
                     }
@@ -523,14 +523,14 @@ struct BodyAnalysisView: View {
     private var bodyAnalysisInsights: [String] {
         var insights: [String] = []
         if let summary = analysis?.dashboardData.summaryStats {
-            insights.append("整体改善趋势：\(summary.overallImprovement)，说明恢复方向正在建立。")
-            insights.append("一致性：\(summary.consistencyScore)，规律性是当前最关键的增长点。")
+            insights.append("\(L10n.runtime("整体改善趋势"))：\(L10n.runtime(summary.overallImprovement))，\(L10n.runtime("说明恢复方向正在建立。"))")
+            insights.append("\(L10n.runtime("一致性"))：\(L10n.runtime(summary.consistencyScore))，\(L10n.runtime("规律性是当前最关键的增长点。"))")
         }
 
         let assessments = analysis?.dashboardData.baselineData.assessments ?? []
         for item in assessments {
             if item.name.contains("GAD") || item.name.contains("PHQ") || item.name.contains("ISI") {
-                insights.append("\(item.name)：\(item.interpretation)，建议重点关注情绪与睡眠节律。")
+                insights.append("\(L10n.runtime(item.name))：\(L10n.runtime(item.interpretation))，\(L10n.runtime("建议重点关注情绪与睡眠节律。"))")
                 break
             }
         }
@@ -569,7 +569,7 @@ struct BodyAnalysisView: View {
                         HStack(alignment: .top, spacing: 6) {
                             Text("•")
                                 .foregroundColor(.liquidGlassAccent)
-                            Text("\(vital.name)：\(vital.value)")
+                            Text("\(L10n.runtime(vital.name))：\(L10n.runtime(vital.value))")
                                 .font(.caption)
                                 .foregroundColor(.textSecondary)
                         }
@@ -594,10 +594,10 @@ struct BodyAnalysisView: View {
                 } else {
                     ForEach(assessments.prefix(4)) { item in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(item.name)
+                            Text(L10n.runtime(item.name))
                                 .font(.caption)
                                 .foregroundColor(.textSecondary)
-                            Text("\(item.value) · \(item.interpretation)")
+                            Text("\(L10n.runtime(item.value)) · \(L10n.runtime(item.interpretation))")
                                 .font(.caption2)
                                 .foregroundColor(.textTertiary)
                         }
@@ -616,7 +616,7 @@ struct BodyAnalysisView: View {
                     .foregroundColor(.textPrimary)
 
                 if let focus = plan?.dailyFocus.first {
-                    Text("今日重点：\(focus.action)")
+                    Text("\(L10n.runtime("今日重点"))：\(L10n.runtime(focus.action))")
                         .font(.subheadline)
                         .foregroundColor(.textSecondary)
                 } else {
@@ -626,13 +626,13 @@ struct BodyAnalysisView: View {
                 }
 
                 if let rec = plan?.sleepRecommendations.first {
-                    Text("睡眠建议：\(rec.recommendation)")
+                    Text("\(L10n.runtime("睡眠建议"))：\(L10n.runtime(rec.recommendation))")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
                 }
 
                 if let exercise = plan?.breathingExercises.first {
-                    Text("呼吸练习：\(exercise.name) · \(exercise.duration)")
+                    Text("\(L10n.localized("呼吸练习"))：\(L10n.runtime(exercise.name)) · \(L10n.runtime(exercise.duration))")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
                 }
@@ -642,7 +642,7 @@ struct BodyAnalysisView: View {
 
     private func formatValue(_ value: Int?, suffix: String) -> String {
         guard let value else { return "—" }
-        return "\(value)\(suffix)"
+        return L10n.runtime("\(value)\(suffix)")
     }
 }
 
@@ -683,7 +683,7 @@ struct HRVDashboardView: View {
                     }
 
                 if let source = viewModel.hardwareData?.hrv?.source {
-                    Text("数据来源：\(source)")
+                    Text("\(L10n.runtime("数据来源"))：\(L10n.runtime(source))")
                         .font(.caption2)
                         .foregroundColor(.textTertiary)
                 }
@@ -704,7 +704,7 @@ struct HRVDashboardView: View {
     private func formatValue(_ value: Double?, suffix: String) -> String {
         guard let value, value > 0 else { return "—" }
         let display = value >= 100 ? String(format: "%.0f", value) : String(format: "%.1f", value)
-        return "\(display)\(suffix)"
+        return L10n.runtime("\(display)\(suffix)")
     }
 }
 
@@ -734,7 +734,7 @@ struct WearableConnectView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.textSecondary)
                                 Spacer()
-                                Text(viewModel.isAuthorized ? "已连接" : "未连接")
+                                Text(L10n.localized(viewModel.isAuthorized ? "已连接" : "未连接"))
                                     .font(.headline)
                                     .foregroundColor(viewModel.isAuthorized ? .statusSuccess : .textTertiary)
                             }
@@ -746,7 +746,7 @@ struct WearableConnectView: View {
                             }
 
                             if let error = viewModel.errorMessage {
-                                Text(error)
+                                Text(L10n.runtime(error))
                                     .font(.caption)
                                     .foregroundColor(.statusError)
                             }
@@ -755,7 +755,7 @@ struct WearableConnectView: View {
                                 Button {
                                     Task { await viewModel.connect() }
                                 } label: {
-                                    Text(viewModel.isAuthorized ? "重新授权" : "授权 HealthKit")
+                                    Text(L10n.localized(viewModel.isAuthorized ? "重新授权" : "授权 HealthKit"))
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(LiquidGlassButtonStyle(isProminent: true))
@@ -763,7 +763,7 @@ struct WearableConnectView: View {
                                 Button {
                                     Task { await viewModel.syncNow() }
                                 } label: {
-                                    Text(viewModel.isSyncing ? "同步中..." : "立即同步")
+                                    Text(L10n.localized(viewModel.isSyncing ? "同步中..." : "立即同步"))
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(LiquidGlassButtonStyle(isProminent: false))
@@ -804,7 +804,7 @@ struct WearableConnectView: View {
     private func formatValue(_ value: Double?, suffix: String) -> String {
         guard let value, value > 0 else { return "—" }
         let display = value >= 100 ? String(format: "%.0f", value) : String(format: "%.1f", value)
-        return "\(display)\(suffix)"
+        return L10n.runtime("\(display)\(suffix)")
     }
 }
 
@@ -886,7 +886,7 @@ struct ScoreMetricRow: View {
 
     var body: some View {
         HStack {
-            Text(title)
+            Text(L10n.localized(title))
                 .font(.subheadline)
                 .foregroundColor(.textSecondary)
             Spacer()

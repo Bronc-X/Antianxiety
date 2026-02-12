@@ -71,8 +71,15 @@ struct AskMaxIntent: AppIntent {
     static var description = IntentDescription("向 Max 提问")
     static var openAppWhenRun: Bool = true
     
-    @Parameter(title: "问题")
+    @Parameter(
+        title: "问题",
+        requestValueDialog: IntentDialog("你想问 Max 什么？")
+    )
     var question: String
+    
+    static var parameterSummary: some ParameterSummary {
+        Summary("问 Max \(\.$question)")
+    }
     
     func perform() async throws -> some IntentResult {
         NotificationCenter.default.post(
@@ -93,7 +100,7 @@ struct AntiAnxietyShortcuts: AppShortcutsProvider {
             phrases: [
                 "打开 \(.applicationName) Max",
                 "和 \(.applicationName) Max 聊天",
-                "唤醒 Max"
+                "在 \(.applicationName) 中唤醒 Max"
             ],
             shortTitle: "打开 Max",
             systemImageName: "bubble.left.and.bubble.right.fill"
@@ -103,7 +110,7 @@ struct AntiAnxietyShortcuts: AppShortcutsProvider {
             intent: StartCalibrationIntent(),
             phrases: [
                 "开始 \(.applicationName) 校准",
-                "进行健康校准"
+                "在 \(.applicationName) 中进行健康校准"
             ],
             shortTitle: "开始校准",
             systemImageName: "brain.head.profile"
@@ -113,7 +120,7 @@ struct AntiAnxietyShortcuts: AppShortcutsProvider {
             intent: ViewHealthDataIntent(),
             phrases: [
                 "查看 \(.applicationName) 健康数据",
-                "显示我的焦虑指数"
+                "在 \(.applicationName) 中显示我的焦虑指数"
             ],
             shortTitle: "查看健康",
             systemImageName: "chart.bar.fill"
@@ -122,7 +129,7 @@ struct AntiAnxietyShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: StartBreathingIntent(),
             phrases: [
-                "开始呼吸练习",
+                "在 \(.applicationName) 中开始呼吸练习",
                 "用 \(.applicationName) 练习呼吸"
             ],
             shortTitle: "呼吸练习",
@@ -132,8 +139,8 @@ struct AntiAnxietyShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: AskMaxIntent(),
             phrases: [
-                "问 Max \(\.$question)",
-                "让 Max 回答 \(\.$question)"
+                "用 \(.applicationName) 问 Max",
+                "让 \(.applicationName) 的 Max 回答问题"
             ],
             shortTitle: "问 Max",
             systemImageName: "questionmark.bubble.fill"

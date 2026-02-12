@@ -74,7 +74,7 @@ struct BreathingSessionView: View {
                 // )
                 // await updateLiveActivity()
 
-                let totalSeconds = remainingSeconds
+                // let totalSeconds = remainingSeconds
                 while isRunning && remainingSeconds > 0 {
                     try? await Task.sleep(nanoseconds: 1_000_000_000)
                     remainingSeconds -= 1

@@ -584,7 +584,7 @@ struct ProfileSetupView: View {
     private func save() async {
         let input = UpdateProfileInput(
             full_name: fullName.isEmpty ? nil : fullName,
-            preferred_language: appSettings.language.rawValue,
+            preferred_language: appSettings.language.apiCode,
             daily_checkin_time: dailyTime,
             primary_goal: primaryGoal.rawValue,
             current_focus: currentFocus.rawValue

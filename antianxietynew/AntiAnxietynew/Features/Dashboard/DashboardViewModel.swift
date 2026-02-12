@@ -62,16 +62,16 @@ class DashboardViewModel: ObservableObject {
         if let email = supabase.currentUser?.email {
             return email.components(separatedBy: "@").first ?? "探索者"
         }
-        return "探索者"
+        return L10n.localized("探索者")
     }
     
     /// 时间问候语
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 0..<12: return "早上好"
-        case 12..<18: return "下午好"
-        default: return "晚上好"
+        case 0..<12: return L10n.localized("早上好")
+        case 12..<18: return L10n.localized("下午好")
+        default: return L10n.localized("晚上好")
         }
     }
     
@@ -110,12 +110,12 @@ class DashboardViewModel: ObservableObject {
     
     /// 状态标签
     var scoreStatus: String {
-        guard let score = overallScore else { return "暂无数据" }
+        guard let score = overallScore else { return L10n.localized("暂无数据") }
         switch score {
-        case 80...100: return "优秀"
-        case 60..<80: return "良好"
-        case 40..<60: return "一般"
-        default: return "需关注"
+        case 80...100: return L10n.localized("优秀")
+        case 60..<80: return L10n.localized("良好")
+        case 40..<60: return L10n.localized("一般")
+        default: return L10n.localized("需关注")
         }
     }
     
@@ -134,9 +134,9 @@ class DashboardViewModel: ObservableObject {
     var overallTrendText: String? {
         guard let trend = calculateOverallTrendFromDigitalTwin(digitalTwinDashboard) else { return nil }
         switch trend {
-        case .improving: return "趋势：上升"
-        case .declining: return "趋势：下降"
-        case .stable: return "趋势：稳定"
+        case .improving: return L10n.runtime("趋势：上升")
+        case .declining: return L10n.runtime("趋势：下降")
+        case .stable: return L10n.runtime("趋势：稳定")
         }
     }
     
@@ -165,13 +165,13 @@ class DashboardViewModel: ObservableObject {
         var insights: [String] = []
         let summary = dashboard.dashboardData.summaryStats
         if !summary.overallImprovement.isEmpty {
-            insights.append("整体改善：\(summary.overallImprovement)")
+            insights.append("\(L10n.localized("整体改善"))：\(L10n.runtime(summary.overallImprovement))")
         }
         if !summary.consistencyScore.isEmpty {
-            insights.append("一致性：\(summary.consistencyScore)")
+            insights.append("\(L10n.localized("一致性"))：\(L10n.runtime(summary.consistencyScore))")
         }
         if let baseline = dashboard.dashboardData.baselineData.assessments.first {
-            insights.append("\(baseline.name)：\(baseline.value)")
+            insights.append("\(L10n.runtime(baseline.name))：\(L10n.runtime(baseline.value))")
         }
         return insights
     }
@@ -188,12 +188,12 @@ class DashboardViewModel: ObservableObject {
 
     var digitalTwinStatusMessage: String {
         if let message = digitalTwin?.message, !message.isEmpty {
-            return message
+            return L10n.runtime(message)
         }
         if digitalTwinDashboard != nil {
-            return "预测数据已就绪"
+            return L10n.localized("预测数据已就绪")
         }
-        return "暂无数据"
+        return L10n.localized("暂无数据")
     }
 
     var digitalTwinCollectionStatus: DataCollectionStatus? {

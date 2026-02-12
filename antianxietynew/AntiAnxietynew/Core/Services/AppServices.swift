@@ -8,15 +8,15 @@ struct AppServices {
     let liveActivity: LiveActivityManaging
 
     init(
-        healthKit: HealthKitServicing = HealthKitService.shared,
-        supabase: SupabaseManaging = SupabaseManager.shared,
-        ai: AIManaging = AIManager.shared,
-        liveActivity: LiveActivityManaging = LiveActivityManager.shared
+        healthKit: HealthKitServicing? = nil,
+        supabase: SupabaseManaging? = nil,
+        ai: AIManaging? = nil,
+        liveActivity: LiveActivityManaging? = nil
     ) {
-        self.healthKit = healthKit
-        self.supabase = supabase
-        self.ai = ai
-        self.liveActivity = liveActivity
+        self.healthKit = healthKit ?? HealthKitService.shared
+        self.supabase = supabase ?? SupabaseManager.shared
+        self.ai = ai ?? AIManager.shared
+        self.liveActivity = liveActivity ?? LiveActivityManager.shared
     }
 
     static let shared = AppServices()

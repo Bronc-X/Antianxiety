@@ -263,12 +263,12 @@ enum DigitalTwinMetricKey: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .anxietyScore: return "焦虑评分"
-        case .sleepQuality: return "睡眠质量"
-        case .stressResilience: return "抗压韧性"
-        case .moodStability: return "情绪稳定"
-        case .energyLevel: return "能量水平"
-        case .hrvScore: return "HRV 代理"
+        case .anxietyScore: return L10n.runtime("焦虑评分")
+        case .sleepQuality: return L10n.runtime("睡眠质量")
+        case .stressResilience: return L10n.runtime("抗压韧性")
+        case .moodStability: return L10n.runtime("情绪稳定")
+        case .energyLevel: return L10n.runtime("能量水平")
+        case .hrvScore: return L10n.runtime("HRV 代理")
         }
     }
 

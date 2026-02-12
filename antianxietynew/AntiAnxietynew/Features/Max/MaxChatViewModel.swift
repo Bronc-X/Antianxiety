@@ -97,7 +97,7 @@ class MaxChatViewModel: ObservableObject {
     
     /// 加载个性化起始问题
     func loadStarterQuestions() async {
-        let language = AppLanguage(rawValue: UserDefaults.standard.string(forKey: "app_language") ?? "zh") ?? .zh
+        let language = AppLanguage.fromStored(UserDefaults.standard.string(forKey: "app_language"))
         let questions = await MaxPlanQuestionGenerator.generateStarterQuestions(language: language)
         if questions.isEmpty {
             starterQuestions = [

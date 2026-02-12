@@ -8,6 +8,7 @@ struct OnboardingView: View {
     @Binding var isComplete: Bool
     @Environment(\.screenMetrics) private var metrics
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var appSettings: AppSettings
     
     var body: some View {
         ZStack {
@@ -39,7 +40,7 @@ struct OnboardingView: View {
         .task {
             await viewModel.loadProgress()
         }
-        .onChange(of: viewModel.isComplete) { newValue in
+        .onChange(of: viewModel.isComplete) { _, newValue in
             if newValue {
                 isComplete = true
             }
@@ -436,8 +437,9 @@ struct OnboardingView: View {
                         
                         LiquidGlassCard(style: .standard, padding: 16) {
                             HStack(spacing: 12) {
-                                languageButton("zh", label: "中文")
-                                languageButton("en", label: "English")
+                                languageButton(AppLanguage.zhHans.rawValue, label: AppLanguage.zhHans.displayName)
+                                languageButton(AppLanguage.zhHant.rawValue, label: AppLanguage.zhHant.displayName)
+                                languageButton(AppLanguage.en.rawValue, label: AppLanguage.en.displayName)
                             }
                         }
                     }
@@ -456,9 +458,12 @@ struct OnboardingView: View {
                     impact.impactOccurred()
                     
                     // 保存数据到本地
+                    let selectedLanguage = AppLanguage.fromStored(viewModel.onboardingData.language)
+                    appSettings.language = selectedLanguage
+
                     let data: [String: String] = [
                         "notification_enabled": String(viewModel.onboardingData.notificationEnabled ?? true),
-                        "language": viewModel.onboardingData.language ?? "zh"
+                        "language": selectedLanguage.apiCode
                     ]
                     
                     // 直接标记 Onboarding 完成
@@ -498,6 +503,7 @@ struct OnboardingView: View {
             let impact = UIImpactFeedbackGenerator(style: .light)
             impact.impactOccurred()
             viewModel.onboardingData.language = value
+            appSettings.language = AppLanguage.fromStored(value)
         } label: {
             Text(label)
                 .font(.subheadline.bold())

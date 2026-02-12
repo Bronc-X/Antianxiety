@@ -165,14 +165,18 @@ class CalibrationViewModel: ObservableObject {
   // MARK: - Start Calibration
 
   func start() async {
+    // Show base questions immediately to avoid "no response" feeling on slow networks.
     isLoading = true
-    defer { isLoading = false }
-
-    questions = await buildDailyCalibrationQuestions()
+    let baseQuestions = getDailyCalibrationQuestions()
+    questions = baseQuestions
     currentQuestionIndex = 0
     answers = [:]
     result = nil
     step = .questions
+
+    let mergedQuestions = await mergeAdaptiveQuestions(into: baseQuestions)
+    questions = mergedQuestions
+    isLoading = false
     // Live Activity 暂时禁用
     // await LiveActivityManager.shared.startCalibrationSession()
   }
@@ -855,9 +859,8 @@ class CalibrationViewModel: ObservableObject {
     let goal_text: String?
   }
 
-  private func buildDailyCalibrationQuestions() async -> [CalibrationQuestion] {
-    var questions = getDailyCalibrationQuestions()
-
+  private func mergeAdaptiveQuestions(into baseQuestions: [CalibrationQuestion]) async -> [CalibrationQuestion] {
+    var questions = baseQuestions
     guard let user = supabase.currentUser else { return questions }
 
     let (goalTypes, consecutiveDays) = await (

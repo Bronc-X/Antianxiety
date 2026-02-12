@@ -81,7 +81,7 @@ struct DigitalTwinView: View {
                     .font(.headline)
                     .foregroundColor(.textPrimary)
                 if let ruleVersion = viewModel.curveData?.meta.ruleVersion {
-                    Text("规则版本 \(ruleVersion)")
+                    Text("\(L10n.runtime("规则版本")) \(L10n.runtime(ruleVersion))")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
                 }
@@ -138,7 +138,7 @@ struct DigitalTwinView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 36))
                     .foregroundColor(.statusWarning)
-                Text(error)
+                Text(L10n.runtime(error))
                     .font(.subheadline)
                     .foregroundColor(.textSecondary)
                     .multilineTextAlignment(.center)
@@ -198,7 +198,7 @@ struct DigitalTwinView: View {
     private func skeletonStatCard(title: String) -> some View {
         LiquidGlassCard(style: .concave, padding: 12) {
             VStack(spacing: 8) {
-                Text(title)
+                Text(L10n.localized(title))
                     .font(.caption2)
                     .foregroundColor(.textSecondary)
                 RoundedRectangle(cornerRadius: 6)
@@ -234,7 +234,7 @@ struct DigitalTwinView: View {
     private func skeletonCard(title: String) -> some View {
         LiquidGlassCard(style: .standard, padding: 12) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(title)
+                Text(L10n.localized(title))
                     .font(.caption)
                     .foregroundColor(.textSecondary)
                 RoundedRectangle(cornerRadius: 8)
@@ -251,7 +251,7 @@ struct DigitalTwinView: View {
         HStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundColor(.statusWarning)
-            Text(message)
+            Text(L10n.runtime(message))
                 .font(.caption)
                 .foregroundColor(.textSecondary)
             Spacer()
@@ -271,7 +271,7 @@ struct DigitalTwinView: View {
                     .font(.caption)
                     .foregroundColor(.statusWarning)
                 ForEach(status.warnings.prefix(2), id: \.self) { warning in
-                    Text("• \(warning)")
+                    Text("• \(L10n.runtime(warning))")
                         .font(.caption2)
                         .foregroundColor(.textSecondary)
                 }
@@ -294,7 +294,7 @@ struct DigitalTwinView: View {
     private func summaryStatCard(title: String, value: Double?, suffix: String, color: Color, prefixPlus: Bool) -> some View {
         LiquidGlassCard(style: .concave, padding: 12) {
             VStack(spacing: 6) {
-                Text(title)
+                Text(L10n.localized(title))
                     .font(.caption2)
                     .foregroundColor(.textSecondary)
                 Text(displayValue(value, suffix: suffix, prefixPlus: prefixPlus))
@@ -435,7 +435,7 @@ struct DigitalTwinView: View {
                     Image(systemName: metric.systemImage)
                         .foregroundColor(metric.color)
                     Spacer()
-                    Text(trend)
+                    Text(L10n.runtime(trend))
                         .font(.caption2)
                         .foregroundColor(trendColor)
                 }
@@ -453,7 +453,7 @@ struct DigitalTwinView: View {
                         .foregroundColor(.textTertiary)
                 }
 
-                Text("置信区间 \(confidenceSuffix(confidence))")
+                Text("\(L10n.runtime("置信区间")) \(L10n.runtime(confidenceSuffix(confidence)))")
                     .font(.caption2)
                     .foregroundColor(.textTertiary)
             }
@@ -506,10 +506,10 @@ struct DigitalTwinView: View {
 
                 if let current = milestones.first(where: { $0.status == .current }) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(current.event)
+                        Text(L10n.runtime(current.event))
                             .font(.subheadline)
                             .foregroundColor(.liquidGlassAccent)
-                        Text(current.detail)
+                        Text(L10n.runtime(current.detail))
                             .font(.caption)
                             .foregroundColor(.textSecondary)
                     }
@@ -540,10 +540,10 @@ struct DigitalTwinView: View {
                     ForEach(scales) { scale in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(scale.name)
+                                Text(L10n.runtime(scale.name))
                                     .font(.subheadline)
                                     .foregroundColor(.textPrimary)
-                                Text(scale.interpretation)
+                                Text(L10n.runtime(scale.interpretation))
                                     .font(.caption2)
                                     .foregroundColor(.textSecondary)
                             }
@@ -565,7 +565,7 @@ struct DigitalTwinView: View {
         guard let value = value else { return "N/A" }
         let formatted = String(format: "%.1f", value)
         let prefix = prefixPlus ? "+" : ""
-        return "\(prefix)\(formatted)\(suffix)"
+        return L10n.runtime("\(prefix)\(formatted)\(suffix)")
     }
 
     private func confidenceSuffix(_ confidence: String) -> String {
